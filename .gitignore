@@ -1,0 +1,9 @@
+.bsp/
+.idea/
+.metals/
+.bloop/
+.ammonite/
+metals.sbt
+project/project
+project/target
+target/

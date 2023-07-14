@@ -1,0 +1,28 @@
+api:
+  host: localhost
+  port: 8080
+store:
+  remote: "s3://bucket/prefix"
+  local: "file://var/lib/nixiesearch"
+
+index:
+  example:
+    alias: prod # like in ES, so you can swap indices
+    fields:
+      id:
+        type: text
+        search: false # just a stored field. all fields are always stored
+      title:
+        type: text
+        search: semantic # a default option for string fields
+      desc:
+        type: text
+        search: # more advanced setup
+          type: semantic
+          model: intfloat/e5-base-v2
+          language: english
+      price:
+        type: int # can be also float/long/double
+        filter: true # all numeric fields are filterable
+        facet: true # and facetable by default when auto-detected
+        sort: true
