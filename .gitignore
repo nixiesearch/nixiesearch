@@ -3,6 +3,7 @@
 .metals/
 .bloop/
 .ammonite/
+# .vscode/
 metals.sbt
 project/project
 project/target
