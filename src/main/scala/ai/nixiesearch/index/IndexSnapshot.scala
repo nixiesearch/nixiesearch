@@ -1,6 +1,6 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.IndexMapping
+import ai.nixiesearch.config.mapping.IndexMapping
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.store.MMapDirectory
 import cats.effect.IO

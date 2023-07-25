@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.Language.English
-import ai.nixiesearch.config.SearchType.NoSearch
+import ai.nixiesearch.config.SearchType.{LexicalSearch, NoSearch}
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.{IntField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}
@@ -27,6 +27,16 @@ object FieldSchema {
       filter: Boolean = false
   ) extends FieldSchema[TextField]
 
+  object TextFieldSchema {
+    def dynamicDefault(name: String) = new TextFieldSchema(
+      name = name,
+      search = LexicalSearch(),
+      sort = true,
+      facet = true,
+      filter = true
+    )
+  }
+
   case class TextListFieldSchema(
       name: String,
       search: SearchType = NoSearch,
@@ -36,6 +46,15 @@ object FieldSchema {
       filter: Boolean = false
   ) extends FieldSchema[TextListField]
 
+  object TextListFieldSchema {
+    def dynamicDefault(name: String) = new TextListFieldSchema(
+      name = name,
+      search = LexicalSearch(),
+      sort = true,
+      facet = true,
+      filter = true
+    )
+  }
   case class IntFieldSchema(
       name: String,
       store: Boolean = true,
@@ -43,6 +62,15 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false
   ) extends FieldSchema[IntField]
+
+  object IntFieldSchema {
+    def dynamicDefault(name: String) = new IntFieldSchema(
+      name = name,
+      sort = true,
+      facet = true,
+      filter = true
+    )
+  }
 
   object yaml {
     def textFieldSchemaDecoder(name: String): Decoder[TextFieldSchema] = Decoder.instance(c =>

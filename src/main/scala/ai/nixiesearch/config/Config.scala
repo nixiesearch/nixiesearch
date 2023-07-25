@@ -1,7 +1,8 @@
 package ai.nixiesearch.config
 
+import ai.nixiesearch.config.mapping.IndexMapping
 import io.circe.{Decoder, Json}
-import cats.implicits._
+import cats.implicits.*
 
 case class Config(
     api: ApiConfig = ApiConfig(),

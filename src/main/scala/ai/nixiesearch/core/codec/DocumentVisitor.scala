@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.codec
 
-import ai.nixiesearch.config.IndexMapping
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -39,7 +39,7 @@ case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: Docu
   }
 
   override def intField(fieldInfo: FieldInfo, value: Int): Unit = mapping.fields.get(fieldInfo.name) match {
-    case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but collected: this should not happen")
+    case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but visited: this should not happen")
     case Some(_: IntFieldSchema) => doc.int.addOne(fieldInfo.name -> value)
     case Some(other) =>
       logger.warn(s"field ${fieldInfo.name} is defined as $other, and cannot accept int value '$value'")

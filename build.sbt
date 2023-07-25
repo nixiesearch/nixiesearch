@@ -7,11 +7,11 @@ scalaVersion := "3.3.0"
 name := "nixiesearch"
 
 libraryDependencies ++= Seq(
-  "org.typelevel"            %% "cats-effect"              % "3.4.10",
+  "org.typelevel"            %% "cats-effect"              % "3.5.1",
   "org.scalatest"            %% "scalatest"                % scalatestVersion % "test,it",
   "org.scalactic"            %% "scalactic"                % scalatestVersion % "test,it",
   "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test,it",
-  "ch.qos.logback"            % "logback-classic"          % "1.4.7",
+  "ch.qos.logback"            % "logback-classic"          % "1.4.8",
   "io.circe"                 %% "circe-yaml"               % circeYamlVersion,
   "io.circe"                 %% "circe-core"               % circeVersion,
   "io.circe"                 %% "circe-generic"            % circeVersion,
@@ -32,8 +32,9 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"         % "lucene-analysis-stempel"  % luceneVersion,
   "commons-io"                % "commons-io"               % "2.11.0",
   "commons-codec"             % "commons-codec"            % "1.16.0",
-  "ai.djl"                    % "api"                      % "0.22.1",
-  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.14.0"
+  "org.apache.commons"        % "commons-lang3"            % "3.12.0",
+  "ai.djl"                    % "api"                      % "0.23.0",
+  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.15.1"
 )
 
 scalacOptions ++= Seq(

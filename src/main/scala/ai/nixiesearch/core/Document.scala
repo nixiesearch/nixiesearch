@@ -8,6 +8,16 @@ case class Document(fields: List[Field])
 
 object Document {
 
+  implicit val documentEncoder: Encoder[Document] =
+    Encoder.instance(doc => {
+      val fields = doc.fields.map {
+        case IntField(name, value)            => (name, Json.fromInt(value))
+        case TextField(name, value)           => (name, Json.fromString(value))
+        case Field.TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
+      }
+      Json.fromJsonObject(JsonObject.fromIterable(fields))
+    })
+
   implicit val documentDecoder: Decoder[Document] =
     Decoder
       .instance(c =>

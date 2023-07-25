@@ -1,15 +1,17 @@
-package ai.nixiesearch.config
+package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.IndexMapping.Alias
-import ai.nixiesearch.core.Field
-import io.circe.{ACursor, Decoder, Json, Encoder}
-import io.circe.generic.semiauto._
+import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.core.{Document, Field, Logging}
+import io.circe.{ACursor, Decoder, Encoder, Json}
+import io.circe.generic.semiauto.*
 import cats.implicits.*
 
 import scala.util.{Failure, Success}
-import ai.nixiesearch.config.FieldSchema.IntFieldSchema
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
+import ai.nixiesearch.config.FieldSchema.*
+import ai.nixiesearch.config.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.IndexMapping.Alias
+import ai.nixiesearch.core.Field.*
+import cats.effect.IO
 
 case class IndexMapping(name: String, alias: List[Alias] = Nil, fields: Map[String, FieldSchema[_ <: Field]]) {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
@@ -17,11 +19,32 @@ case class IndexMapping(name: String, alias: List[Alias] = Nil, fields: Map[Stri
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
 }
 
-object IndexMapping {
+object IndexMapping extends Logging {
   case class Alias(name: String)
 
   def apply(name: String, fields: List[FieldSchema[_ <: Field]]): IndexMapping = {
     new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap)
+  }
+
+  def fromDocument(docs: List[Document], indexName: String): IO[IndexMapping] = for {
+    fieldValues1 <- IO(docs.flatMap(_.fields).groupBy(_.name).toList)
+    fieldValues <- fieldValues1.flatTraverse {
+      case (fieldName, values @ head :: _) =>
+        head match {
+          case f: TextField =>
+            info(s"detected field '$fieldName' of type text: search=lexical sort=true facet=true, filter=true") *>
+              IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
+          case f: TextListField =>
+            info(s"detected field '$fieldName' of type text[]: search=lexical sort=true facet=true, filter=true") *>
+              IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
+          case f: IntField =>
+            info(s"detected field '$fieldName' of type int: sort=true facet=true, filter=true") *>
+              IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
+        }
+      case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen
+    }
+  } yield {
+    IndexMapping(indexName, fieldValues)
   }
 
   object Alias {

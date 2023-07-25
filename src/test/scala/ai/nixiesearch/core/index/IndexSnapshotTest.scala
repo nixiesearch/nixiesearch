@@ -6,10 +6,11 @@ import ai.nixiesearch.index.IndexSnapshot
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.Document
 import java.nio.file.Files
-import ai.nixiesearch.config.IndexMapping
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.index.IndexBuilder
 import cats.effect.unsafe.implicits.global
+import io.circe.syntax._
 
 class IndexSnapshotTest extends AnyFlatSpec with Matchers {
   it should "make snapshot from directory" in {
@@ -22,7 +23,9 @@ class IndexSnapshotTest extends AnyFlatSpec with Matchers {
     val writer = IndexBuilder.open(tmp, mapping)
     writer.addDocuments(List(source))
     writer.writer.commit()
-    val snap = IndexSnapshot.fromDirectory(writer.dir).unsafeRunSync()
-    val br   = 1
+    val snap = IndexSnapshot.fromDirectory(mapping, writer.dir).unsafeRunSync()
+    snap.files.size shouldBe 5
+    val json = snap.asJson
+    json.isObject shouldBe true
   }
 }

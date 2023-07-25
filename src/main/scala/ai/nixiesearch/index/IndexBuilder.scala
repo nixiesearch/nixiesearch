@@ -2,7 +2,7 @@ package ai.nixiesearch.index
 
 import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.index.IndexWriter
-import ai.nixiesearch.config.IndexMapping
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import java.util.ArrayList
 import org.apache.lucene.index.IndexableField

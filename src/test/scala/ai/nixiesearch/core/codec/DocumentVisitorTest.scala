@@ -4,7 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.index.IndexBuilder
 import java.nio.file.Paths
-import ai.nixiesearch.config.IndexMapping
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.index.Index
