@@ -4,17 +4,15 @@ api:
 store:
   remote: "s3://bucket/prefix"
   local: "file://var/lib/nixiesearch"
-
 index:
-  example:
-    alias: prod # like in ES, so you can swap indices
+  helloworld:
     fields:
       id:
         type: text
-        search: false # just a stored field. all fields are always stored
+        search: false # just a stored field. all fields are stored by-default
       title:
         type: text
-        search: semantic # a default option for string fields
+        search: semantic
       desc:
         type: text
         search: # more advanced setup
