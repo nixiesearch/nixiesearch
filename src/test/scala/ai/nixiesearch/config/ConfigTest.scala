@@ -24,9 +24,9 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         ),
         api = ApiConfig(host = Hostname("localhost")),
         index = Map(
-          "example" -> IndexMapping(
-            name = "example",
-            alias = List(Alias("prod")),
+          "helloworld" -> IndexMapping(
+            name = "helloworld",
+            alias = Nil,
             fields = Map(
               "id"    -> TextFieldSchema(name = "id"),
               "title" -> TextFieldSchema(name = "title", search = SemanticSearch()),
