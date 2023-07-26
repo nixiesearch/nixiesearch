@@ -17,10 +17,10 @@ and [LambdaMART Learn-to-Rank](https://xgboost.readthedocs.io/en/latest/tutorial
 * **fine-tuned for your data**: fine-tune semantic search models like [E5](https://huggingface.co/intfloat/e5-base-v2) 
 and [MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) for your data out-of-the-box.
 
-But Nixiesearch is not a yet another vector search engine:
-* Supports facets, rich boolean filtering, sorting and autocomplete: things you got used to in traditional search engines.
-* Text in, text out: LLM embedding is handled by the search engine, not by you.
-* Exact-match search: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand and SKU
+But Nixiesearch is *not a yet another vector search engine*:
+* **Supports facets, rich boolean filtering, sorting and autocomplete**: things you got used to in traditional search engines.
+* **Text in, text out**: LLM embedding is handled by the search engine, not by you.
+* **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand and SKU
 queries will return what you expect, and not what LLM hallucinates about.
 
 ## Design
