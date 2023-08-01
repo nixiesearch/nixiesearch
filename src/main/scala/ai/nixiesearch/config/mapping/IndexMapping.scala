@@ -13,10 +13,37 @@ import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Field.*
 import cats.effect.IO
 
-case class IndexMapping(name: String, alias: List[Alias] = Nil, fields: Map[String, FieldSchema[_ <: Field]]) {
+case class IndexMapping(name: String, alias: List[Alias] = Nil, fields: Map[String, FieldSchema[_ <: Field]])
+    extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
   val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
+
+  def migrate(updated: IndexMapping): IO[IndexMapping] = for {
+    fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
+    migrated <- fieldNames.toList.traverse(field => ensureFieldMigratable(fields.get(field), updated.fields.get(field)))
+    _        <- IO.whenA(this != updated)(info(s"migration of changed index mapping '$name' is successful"))
+  } yield {
+    updated
+  }
+
+  def ensureFieldMigratable(
+      before: Option[FieldSchema[_ <: Field]],
+      after: Option[FieldSchema[_ <: Field]]
+  ): IO[Unit] = (before, after) match {
+    case (Some(deleted), None) => info(s"field ${deleted.name} removed from the index $name mapping")
+    case (None, Some(added))   => info(s"field ${added.name} added to the index $name mapping")
+    case (Some(a: IntFieldSchema), Some(b: IntFieldSchema))           => IO.unit
+    case (Some(a: TextFieldSchema), Some(b: TextFieldSchema))         => IO.unit
+    case (Some(a: TextListFieldSchema), Some(b: TextListFieldSchema)) => IO.unit
+    case (Some(a), Some(b)) => IO.raiseError(new Exception(s"cannot migrate field schema $a to $b"))
+    case (None, None) =>
+      IO.raiseError(
+        new Exception(
+          s"You've found a bug, congratulations! Tried to migrate a non-existent field to another non-existent field, which cannot happen"
+        )
+      )
+  }
 }
 
 object IndexMapping extends Logging {

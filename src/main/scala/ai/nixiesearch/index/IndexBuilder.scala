@@ -4,6 +4,7 @@ import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.index.IndexWriter
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
+
 import java.util.ArrayList
 import org.apache.lucene.index.IndexableField
 import ai.nixiesearch.core.Field.TextField
@@ -13,8 +14,16 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.codec.TextFieldWriter
 import ai.nixiesearch.core.codec.TextListFieldWriter
 import ai.nixiesearch.core.codec.IntFieldWriter
-import java.nio.file.Path
+import cats.effect.IO
+import fs2.io.{readInputStream, writeOutputStream}
+import fs2.Stream
+
+import java.nio.file.{Path, Paths}
 import org.apache.lucene.index.IndexWriterConfig
+import io.circe.syntax.*
+import io.circe.parser.*
+
+import java.io.{File, FileInputStream, FileOutputStream}
 
 case class IndexBuilder(dir: MMapDirectory, writer: IndexWriter, schema: IndexMapping) extends Logging {
   def addDocuments(docs: List[Document]): Unit = {
@@ -44,11 +53,43 @@ case class IndexBuilder(dir: MMapDirectory, writer: IndexWriter, schema: IndexMa
   }
 }
 
-object IndexBuilder {
-  def open(path: Path, mapping: IndexMapping) = {
-    val dir    = new MMapDirectory(path)
-    val config = new IndexWriterConfig()
-    val writer = new IndexWriter(dir, config)
-    new IndexBuilder(dir, writer, mapping)
+object IndexBuilder extends Logging {
+  val MAPPING_FILE_NAME = "mapping.json"
+  import IndexMapping.json.*
+
+  def create(workPath: Path, mapping: IndexMapping): IO[IndexBuilder] = for {
+    workPathFile <- IO(workPath.toFile)
+    _ <- IO.whenA(!workPathFile.exists())(
+      IO(workPathFile.mkdirs()) *> info(s"work directory $workPath is missing, creating.")
+    )
+    indexPathFile <- IO(new File(workPathFile.toString + File.separator + mapping.name))
+    _ <- IO.whenA(!indexPathFile.exists())(
+      IO(indexPathFile.mkdirs()) *> info(s"index dir $indexPathFile is missing, creating.")
+    )
+    mappingFile <- IO(new File(indexPathFile.toString + File.separator + MAPPING_FILE_NAME))
+    _ <- Stream(mapping.asJson.spaces2SortKeys.getBytes: _*)
+      .through(writeOutputStream[IO](IO(new FileOutputStream(mappingFile))))
+      .compile
+      .drain
+    builder <- open(indexPathFile.toPath)
+  } yield {
+    builder
+  }
+
+  def open(indexPath: Path): IO[IndexBuilder] = for {
+    _           <- info(s"opening index $indexPath")
+    directory   <- IO(new MMapDirectory(indexPath))
+    config      <- IO(new IndexWriterConfig())
+    writer      <- IO(new IndexWriter(directory, config))
+    mappingFile <- IO(new File(indexPath.toString + File.separator + MAPPING_FILE_NAME))
+    mapping <- readInputStream[IO](IO(new FileInputStream(mappingFile)), 1024)
+      .through(fs2.text.utf8.decode)
+      .reduce(_ + _)
+      .compile
+      .toList
+      .map(_.mkString(""))
+      .flatMap(json => IO.fromEither(decode[IndexMapping](json)))
+  } yield {
+    new IndexBuilder(directory, writer, mapping)
   }
 }
