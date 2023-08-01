@@ -3,6 +3,7 @@ package ai.nixiesearch.api
 import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
+import ai.nixiesearch.index.IndexBuilderRegistry
 import ai.nixiesearch.util.{TestIndexBuilder, TestIndexMapping}
 import org.http4s.{Entity, Method, Request, Uri}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -13,7 +14,7 @@ import io.circe.syntax.*
 import cats.effect.IO
 
 class IndexRouteTest extends AnyFlatSpec with Matchers {
-  lazy val route = IndexRoute(Map("test" -> TestIndexBuilder(TestIndexMapping())))
+  lazy val route = IndexRoute(IndexBuilderRegistry.ofOne(TestIndexBuilder(TestIndexMapping())).unsafeRunSync())
   import IndexRoute._
   import ai.nixiesearch.util.IndexResponseEquality._
 

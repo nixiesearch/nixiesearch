@@ -73,6 +73,8 @@ object FieldSchema {
   }
 
   object yaml {
+    import SearchType.yaml.*
+
     def textFieldSchemaDecoder(name: String): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
         search <- c.downField("search").as[Option[SearchType]].map(_.getOrElse(NoSearch))

@@ -24,7 +24,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers {
       name = "test",
       fields = List(TextFieldSchema("id"), TextFieldSchema("title"), IntFieldSchema("count"))
     )
-    val writer = IndexBuilder.open(tmp, mapping)
+    val writer = IndexBuilder.create(tmp, mapping).unsafeRunSync()
     writer.addDocuments(List(source))
     writer.writer.commit()
     val index   = Index.read(writer.dir).unsafeRunSync()

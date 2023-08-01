@@ -2,9 +2,8 @@ api:
   host: localhost
   port: 8080
 store:
-  remote: "s3://bucket/prefix"
-  local: "file://var/lib/nixiesearch"
-index:
+  url: s3://bucket/prefix
+search:
   helloworld:
     fields:
       id:
