@@ -4,12 +4,12 @@ import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.core.Field.IntField
 import org.apache.lucene.document.{NumericDocValuesField, StoredField}
 import org.apache.lucene.index.IndexableField
-
+import org.apache.lucene.document.{Document => LuceneDocument}
 import java.util
 
 // todo for int[]: use SortedNumericSortField for sorting
 case class IntFieldWriter() extends FieldWriter[IntField, IntFieldSchema] {
-  override def write(field: IntField, spec: IntFieldSchema, buffer: util.ArrayList[IndexableField]): Unit = {
+  override def write(field: IntField, spec: IntFieldSchema, buffer: LuceneDocument): Unit = {
     if (spec.facet || spec.filter || spec.sort) {
       buffer.add(new NumericDocValuesField(field.name, field.value))
     }

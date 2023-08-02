@@ -8,6 +8,7 @@ import org.apache.lucene.index.IndexReader
 
 case class S3Store(config: S3StoreConfig) extends Store {
   override def reader(index: IndexMapping): IO[Option[StoreReader]] = ???
-
-  override def writer(index: IndexMapping): IO[Store.StoreWriter] = ???
+  def mapping(indexName: String): IO[Option[IndexMapping]]          = ???
+  override def writer(index: IndexMapping): IO[Store.StoreWriter]   = ???
+  override def refresh(index: IndexMapping): IO[Unit]               = ???
 }

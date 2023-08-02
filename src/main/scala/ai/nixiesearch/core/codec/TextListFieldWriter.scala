@@ -4,19 +4,19 @@ import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.core.Field.TextListField
 import org.apache.lucene.index.IndexableField
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.SearchType
+import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.core.Field.*
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{BinaryDocValuesField, SortedSetDocValuesField, StoredField, StringField}
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.util.BytesRef
-
+import org.apache.lucene.document.{Document => LuceneDocument}
 import java.util
 
 case class TextListFieldWriter() extends FieldWriter[TextListField, TextListFieldSchema] {
   import TextFieldWriter._
-  override def write(field: TextListField, spec: TextListFieldSchema, buffer: util.ArrayList[IndexableField]): Unit = {
+  override def write(field: TextListField, spec: TextListFieldSchema, buffer: LuceneDocument): Unit = {
     val search = spec.search match {
       case SearchType.LexicalSearch(_) => true
       case _                           => false
