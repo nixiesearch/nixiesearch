@@ -1,6 +1,6 @@
-package ai.nixiesearch.config
+package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.Language.English
+import ai.nixiesearch.config.mapping.Language.English
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.generic.semiauto.*
 

@@ -1,7 +1,7 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
-import ai.nixiesearch.config.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,8 +20,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
       )
     )
   }
-
-  it should "migrate compatible fields: ints" in {
+  "migration" should "preserve compatible int fields" in {
     val before = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
     val after  = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
     val result = before.migrate(after).unsafeRunSync()
@@ -33,5 +32,26 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val after  = IndexMapping("foo", fields = Map("test" -> TextFieldSchema("test")))
     val result = Try(before.migrate(after).unsafeRunSync())
     result.isFailure shouldBe true
+  }
+
+  it should "add+remove fields" in {
+    val before = IndexMapping("foo", fields = Map("test1" -> IntFieldSchema("test1")))
+    val after  = IndexMapping("foo", fields = Map("test2" -> IntFieldSchema("test2")))
+    val result = before.migrate(after).unsafeRunSync()
+    result shouldBe after
+  }
+
+  "dynamic mapping" should "update existing mapping with new fields" in {
+    val before = IndexMapping("foo", fields = Map("test1" -> IntFieldSchema("test1")))
+    val after  = IndexMapping("foo", fields = Map("test2" -> IntFieldSchema("test2")))
+    val result = before.dynamic(after).unsafeRunSync()
+    result shouldBe IndexMapping("foo", fields = before.fields ++ after.fields)
+  }
+
+  it should "accept the same field" in {
+    val before = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
+    val after  = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
+    val result = before.migrate(after).unsafeRunSync()
+    result shouldBe after
   }
 }

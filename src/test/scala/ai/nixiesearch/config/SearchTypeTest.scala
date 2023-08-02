@@ -1,8 +1,8 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.Language.English
-import ai.nixiesearch.config.SearchType.{LexicalSearch, NoSearch, SemanticSearch}
+import ai.nixiesearch.config.mapping.Language.English
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch, SemanticSearch}
 import ai.nixiesearch.core.Field
 import io.circe.Decoder
 import org.scalatest.flatspec.AnyFlatSpec

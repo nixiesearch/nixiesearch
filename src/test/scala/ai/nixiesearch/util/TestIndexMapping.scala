@@ -2,7 +2,7 @@ package ai.nixiesearch.util
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 
 object TestIndexMapping {
   def apply() = IndexMapping(

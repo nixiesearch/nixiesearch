@@ -3,7 +3,7 @@ package ai.nixiesearch.config
 import ai.nixiesearch.config.ApiConfig.Hostname
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.SearchType.SemanticSearch
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.StoreConfig.S3StoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl}
 import ai.nixiesearch.config.mapping.IndexMapping

@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.Language.English
-import ai.nixiesearch.config.SearchType.{LexicalSearch, NoSearch}
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch}
+import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.{IntField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}

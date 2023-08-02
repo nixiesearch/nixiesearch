@@ -1,19 +1,20 @@
 package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.SearchType
+import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.core.Field.*
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{BinaryDocValuesField, StoredField, StringField}
+import org.apache.lucene.facet.FacetsConfig
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.util.BytesRef
-
+import org.apache.lucene.document.{Document => LuceneDocument}
 import java.util
 
 case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] {
   import TextFieldWriter._
-  override def write(field: TextField, spec: TextFieldSchema, buffer: util.ArrayList[IndexableField]): Unit = {
+  override def write(field: TextField, spec: TextFieldSchema, buffer: LuceneDocument): Unit = {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
     }
