@@ -2,7 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.index.{IndexBuilder, IndexBuilderRegistry}
+import ai.nixiesearch.index.store.Store
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -10,7 +10,7 @@ import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 
-case class IndexRoute(indices: IndexBuilderRegistry) extends Route with Logging {
+case class IndexRoute(store: Store) extends Route with Logging {
   import IndexRoute._
 
   val routes = HttpRoutes.of[IO] {
@@ -23,10 +23,32 @@ case class IndexRoute(indices: IndexBuilderRegistry) extends Route with Logging 
     start <- IO(System.currentTimeMillis())
     docs  <- request.as[List[Document]].handleErrorWith(_ => request.as[Document].flatMap(doc => IO.pure(List(doc))))
     _     <- info(s"PUT /$indexName/_index, payload: ${docs.size} docs")
-    writer <- indices.get(indexName).flatMap {
-      case Some(value) => IO.pure(value)
-      case None        => IO.raiseError(new Exception(s"index $indexName is missing"))
+    mapping <- store.mapping(indexName).flatMap {
+      case Some(existing) =>
+        existing.config.mapping.dynamic match {
+          case false => IO.pure(existing)
+          case true =>
+            for {
+              updated <- IndexMapping.fromDocument(docs, indexName)
+              merged  <- existing.dynamic(updated)
+              _       <- store.refresh(merged)
+            } yield {
+              merged
+            }
+        }
+
+      case None =>
+        for {
+          _ <- warn(s"Index '$indexName' mapping not found, using dynamic mapping")
+          _ <- warn("Dynamic mapping is only recommended for testing. Prefer explicit mapping definition in config.")
+          generated <- IndexMapping.fromDocument(docs, indexName).map(_.withDynamicMapping(true))
+          _         <- info(s"Generated mapping $generated")
+          _         <- store.refresh(generated)
+        } yield {
+          generated
+        }
     }
+    writer   <- store.writer(mapping)
     _        <- IO(writer.addDocuments(docs))
     response <- Ok(IndexResponse.withStartTime("created", start))
   } yield {
@@ -34,24 +56,26 @@ case class IndexRoute(indices: IndexBuilderRegistry) extends Route with Logging 
   }
 
   def mapping(indexName: String): IO[Response[IO]] =
-    indices.get(indexName).flatMap {
-      case Some(index) => info(s"GET /$indexName/_mapping") *> Ok(index.schema)
+    store.mapping(indexName).flatMap {
+      case Some(index) => info(s"GET /$indexName/_mapping") *> Ok(index)
       case None        => NotFound(s"index $indexName is missing in config file")
     }
 
-  def flush(indexName: String): IO[Response[IO]] =
-    indices.get(indexName).flatMap {
-      case Some(index) =>
+  def flush(indexName: String): IO[Response[IO]] = {
+    store.mapping(indexName).flatMap {
+      case Some(mapping) =>
         for {
           start    <- IO(System.currentTimeMillis())
           _        <- info(s"POST /$indexName/_flush")
-          _        <- IO(index.writer.flush())
+          writer   <- store.writer(mapping)
+          _        <- writer.flush()
           response <- Ok(IndexResponse.withStartTime("flushed", start))
         } yield {
           response
         }
       case None => NotFound(s"index $indexName is missing in config file")
     }
+  }
 }
 
 object IndexRoute {

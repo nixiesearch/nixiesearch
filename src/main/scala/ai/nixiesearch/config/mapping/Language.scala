@@ -1,4 +1,4 @@
-package ai.nixiesearch.config
+package ai.nixiesearch.config.mapping
 
 import scala.util.{Failure, Success}
 import io.circe.{Decoder, Encoder}
@@ -6,9 +6,24 @@ import io.circe.Json
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.en.EnglishAnalyzer
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
+
+import scala.collection.mutable.ArrayBuffer
 
 sealed trait Language {
   def analyzer: Analyzer
+
+  def analyze(query: String): List[String] = {
+    val buf    = new ArrayBuffer[String]()
+    val stream = analyzer.tokenStream("dope", query)
+    stream.reset()
+    val term = stream.addAttribute(classOf[CharTermAttribute])
+    while (stream.incrementToken()) {
+      buf.addOne(term.toString)
+    }
+    stream.close()
+    buf.toList
+  }
 }
 
 object Language {

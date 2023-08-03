@@ -1,8 +1,7 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
-import ai.nixiesearch.config.Language.English
-import ai.nixiesearch.config.SearchType.NoSearch
+import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Field
 import io.circe.Decoder
 import io.circe.yaml.parser.parse

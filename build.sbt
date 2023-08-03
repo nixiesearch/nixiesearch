@@ -25,6 +25,7 @@ libraryDependencies ++= Seq(
   "org.http4s"               %% "http4s-circe"             % http4sVersion,
   "org.apache.lucene"         % "lucene-core"              % luceneVersion,
   "org.apache.lucene"         % "lucene-facet"             % luceneVersion,
+  "org.apache.lucene"         % "lucene-queryparser"       % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-common"   % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-icu"      % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-smartcn"  % luceneVersion,
