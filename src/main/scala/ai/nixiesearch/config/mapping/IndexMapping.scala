@@ -144,6 +144,7 @@ object IndexMapping extends Logging {
             fieldsMap.updated("id", TextFieldSchema("id", filter = true))
         }
         IndexMapping(name, alias = alias, fields = extendedFields, config = config)
+
       }
     )
 

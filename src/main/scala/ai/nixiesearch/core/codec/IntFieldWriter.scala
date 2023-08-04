@@ -2,10 +2,15 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.core.Field.IntField
-import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  NumericDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.document.Field.Store
-
+import org.apache.lucene.document.{Document => LuceneDocument}
 import java.util
 
 case class IntFieldWriter() extends FieldWriter[IntField, IntFieldSchema] {

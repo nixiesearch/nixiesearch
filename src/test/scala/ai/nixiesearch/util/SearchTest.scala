@@ -47,5 +47,4 @@ trait SearchTest extends AnyFlatSpec with BeforeAndAfterAll {
     }
   }
 
-
 }
