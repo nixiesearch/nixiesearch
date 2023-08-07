@@ -36,14 +36,14 @@ case class ModelCache(cacheDir: String) extends Logging {
 object ModelCache extends Logging {
   def create() = {
     for {
-      topDir      <- cacheDir()
-      metarankDir <- IO(new File(topDir.toString + File.separator + "nixiesearch"))
-      _ <- IO.whenA(!metarankDir.exists())(
-        info(s"cache dir $metarankDir is not present, creating") *> IO(metarankDir.mkdirs())
+      topDir   <- cacheDir()
+      nixieDir <- IO(new File(topDir.toString + File.separator + "nixiesearch"))
+      _ <- IO.whenA(!nixieDir.exists())(
+        info(s"cache dir $nixieDir is not present, creating") *> IO(nixieDir.mkdirs())
       )
-      _ <- info(s"using $metarankDir as local cache dir")
+      _ <- info(s"using $nixieDir as local cache dir")
     } yield {
-      ModelCache(metarankDir.toString)
+      ModelCache(nixieDir.toString)
     }
   }
 

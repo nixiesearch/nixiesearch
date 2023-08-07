@@ -8,8 +8,8 @@ import cats.effect.unsafe.implicits.global
 
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {
-    val handle  = HuggingFaceHandle("metarank", "all-MiniLM-L6-v2")
-    val session = OnnxSession.load(handle, 384).unsafeRunSync()
+    val handle  = HuggingFaceHandle("nixiesearch", "all-MiniLM-L6-v2-onnx")
+    val session = OnnxSession.load(handle, 384, modelFile = "model.onnx").unsafeRunSync()
     val enc     = OnnxBiEncoder(session)
     val result = enc.embed(
       Array(

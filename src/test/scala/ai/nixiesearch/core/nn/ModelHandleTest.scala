@@ -10,7 +10,7 @@ import io.circe.generic.semiauto.*
 
 class ModelHandleTest extends AnyFlatSpec with Matchers {
   it should "decode HF handle" in {
-    parse("metarank/foo") shouldBe Right(HuggingFaceHandle("metarank", "foo"))
+    parse("nixiesearch/foo") shouldBe Right(HuggingFaceHandle("nixiesearch", "foo"))
   }
 
   it should "decode local handle with single slash" in {
