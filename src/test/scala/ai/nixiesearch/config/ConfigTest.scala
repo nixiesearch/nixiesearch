@@ -30,7 +30,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = "helloworld",
             alias = Nil,
             fields = Map(
-              "id"    -> TextFieldSchema(name = "id"),
+              "id"    -> TextFieldSchema(name = "id", filter = true),
               "title" -> TextFieldSchema(name = "title", search = SemanticSearch()),
               "desc"  -> TextFieldSchema(name = "desc", search = SemanticSearch()),
               "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)

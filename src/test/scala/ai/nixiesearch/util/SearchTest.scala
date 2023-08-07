@@ -1,7 +1,10 @@
 package ai.nixiesearch.util
 
+import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.Field.TextField
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
 import org.apache.commons.io.FileUtils
@@ -31,5 +34,17 @@ trait SearchTest extends AnyFlatSpec with BeforeAndAfterAll {
       w
     }
     val searcher = store.reader(mapping).unsafeRunSync().get
+
+    def search(query: Query = MatchAllQuery(), filters: Filter = Filter()): List[String] = {
+      searcher
+        .search(
+          query,
+          filters = filters,
+          fields = List("id")
+        )
+        .unsafeRunSync()
+        .flatMap(_.fields.collect { case TextField(_, value) => value })
+    }
   }
+
 }

@@ -4,15 +4,17 @@ import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.index.store.rw.{StoreReader, StoreWriter}
 import ai.nixiesearch.index.store.{LocalStore, Store}
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+
 import java.nio.file.{Files, Path}
 
 case class TestLocalStore(local: LocalStore, killSwitch: IO[Unit], dir: Path) extends Store {
-  override def reader(index: IndexMapping): IO[Option[Store.StoreReader]] = local.reader(index)
+  override def reader(index: IndexMapping): IO[Option[StoreReader]] = local.reader(index)
 
-  override def writer(index: IndexMapping): IO[Store.StoreWriter] = local.writer(index)
+  override def writer(index: IndexMapping): IO[StoreWriter] = local.writer(index)
 
   override def mapping(indexName: String): IO[Option[IndexMapping]] = local.mapping(indexName)
 

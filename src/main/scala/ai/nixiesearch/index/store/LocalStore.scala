@@ -6,7 +6,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.store.LocalStore.DirectoryMapping
-import ai.nixiesearch.index.store.Store.{StoreReader, StoreWriter}
+import ai.nixiesearch.index.store.rw.{StoreReader, StoreWriter}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter}
 import cats.implicits.*
@@ -74,7 +74,7 @@ case class LocalStore(
     reader
   }
 
-  override def writer(index: IndexMapping): IO[Store.StoreWriter] = for {
+  override def writer(index: IndexMapping): IO[StoreWriter] = for {
     cachedWriterMaybe <- writers.get.map(_.get(index.name))
     writer <- cachedWriterMaybe match {
       case Some(cachedWriter) => IO.pure(cachedWriter)

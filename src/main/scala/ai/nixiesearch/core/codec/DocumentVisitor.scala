@@ -2,6 +2,7 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import ai.nixiesearch.core.codec.DocumentVisitor.DocumentFields
@@ -16,6 +17,7 @@ import io.circe.Json
 import io.circe.JsonObject
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.*
+import cats.effect.IO
 
 case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: DocumentFields = DocumentFields())
     extends StoredFieldVisitor
@@ -45,13 +47,13 @@ case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: Docu
       logger.warn(s"field ${fieldInfo.name} is defined as $other, and cannot accept int value '$value'")
   }
 
-  def asJson(): Json = {
-    val fields = new ArrayBuffer[(String, Json)](4)
-    doc.int.foreach(f => fields.addOne(f._1 -> Json.fromInt(f._2)))
-    doc.text.foreach(f => fields.addOne(f._1 -> Json.fromString(f._2)))
-    doc.textList.foreach(f => fields.addOne(f._1 -> Json.fromValues(f._2.map(Json.fromString))))
-    Json.fromJsonObject(JsonObject.fromIterable(fields))
-  }
+//  def asJson(): IO[Json] = {
+//    val fields = new ArrayBuffer[(String, Json)](4)
+//    doc.int.foreach(f => fields.addOne(f._1 -> Json.fromInt(f._2)))
+//    doc.text.foreach(f => fields.addOne(f._1 -> Json.fromString(f._2)))
+//    doc.textList.foreach(f => fields.addOne(f._1 -> Json.fromValues(f._2.map(Json.fromString))))
+//    Json.fromJsonObject(JsonObject.fromIterable(fields))
+//  }
 
   def asDocument(): Document = {
     val fields = List.concat(

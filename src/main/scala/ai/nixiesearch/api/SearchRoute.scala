@@ -2,13 +2,14 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.api.SearchRoute.{QueryParamDecoder, SearchRequest, SearchResponse, SizeParamDecoder}
+import ai.nixiesearch.api.filter.Filter
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.store.Store
-import ai.nixiesearch.index.store.Store.StoreReader
+import ai.nixiesearch.index.store.rw.StoreReader
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -32,7 +33,7 @@ case class SearchRoute(store: Store) extends Route with Logging {
               query    <- request.as[SearchRequest]
               _        <- info(s"POST /$indexName/_search query=$query")
               start    <- IO(System.currentTimeMillis())
-              docs     <- searchDsl(query.query, query.fields, index, query.size)
+              docs     <- searchDsl(query.query, query.filter, query.fields, index, query.size)
               response <- Ok(SearchResponse.withStartTime(docs, start))
             } yield {
               response
@@ -55,7 +56,7 @@ case class SearchRoute(store: Store) extends Route with Logging {
               start <- IO(System.currentTimeMillis())
               docs <- query match {
                 case Some(q) => searchLucene(q, index, size.getOrElse(10))
-                case None    => searchDsl(MatchAllQuery(), Nil, index, size.getOrElse(10))
+                case None    => searchDsl(MatchAllQuery(), Filter(), Nil, index, size.getOrElse(10))
               }
 
               response <- Ok(SearchResponse.withStartTime(docs, start))
@@ -66,15 +67,16 @@ case class SearchRoute(store: Store) extends Route with Logging {
         }
   }
 
-  def searchDsl(query: Query, fields: List[String], index: StoreReader, n: Int): IO[List[Document]] = for {
-    storedFields <- fields match {
-      case Nil => IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
-      case _   => IO.pure(fields)
+  def searchDsl(query: Query, filter: Filter, fields: List[String], index: StoreReader, n: Int): IO[List[Document]] =
+    for {
+      storedFields <- fields match {
+        case Nil => IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
+        case _   => IO.pure(fields)
+      }
+      docs <- index.search(query, filters = filter, fields = storedFields, n = n)
+    } yield {
+      docs
     }
-    docs <- index.search(query, storedFields, n)
-  } yield {
-    docs
-  }
 
   def searchLucene(query: String, index: StoreReader, n: Int): IO[List[Document]] = for {
     defaultField <- IO.fromOption(index.mapping.fields.values.collectFirst {
@@ -99,16 +101,17 @@ object SearchRoute {
   object QueryParamDecoder extends OptionalQueryParamDecoderMatcher[String]("q")
   object SizeParamDecoder  extends OptionalQueryParamDecoderMatcher[Int]("size")
 
-  case class SearchRequest(query: Query, size: Int, fields: List[String])
+  case class SearchRequest(query: Query, filter: Filter = Filter(), size: Int = 10, fields: List[String] = Nil)
   object SearchRequest {
     implicit val searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     implicit val searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
-        query  <- c.downField("query").as[Query]
+        query  <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size   <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
+        filter <- c.downField("filter").as[Option[Filter]].map(_.getOrElse(Filter()))
         fields <- c.downField("fields").as[Option[List[String]]].map(_.getOrElse(Nil))
       } yield {
-        SearchRequest(query, size, fields)
+        SearchRequest(query, filter, size, fields)
       }
     )
   }

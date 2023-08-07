@@ -8,4 +8,5 @@ object Field {
   case class TextField(name: String, value: String)           extends Field
   case class TextListField(name: String, value: List[String]) extends Field
   case class IntField(name: String, value: Int)               extends Field
+  case class FloatField(name: String, value: Float)           extends Field
 }

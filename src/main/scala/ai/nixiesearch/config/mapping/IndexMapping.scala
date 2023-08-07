@@ -2,7 +2,7 @@ package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.core.{Document, Field, Logging}
-import io.circe.{ACursor, Decoder, Encoder, Json}
+import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 import cats.implicits.*
 
@@ -21,6 +21,7 @@ case class IndexMapping(
     fields: Map[String, FieldSchema[_ <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
+  val floatFields    = fields.collect { case (name, s: FloatFieldSchema) => name -> s }
   val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
 
@@ -102,9 +103,11 @@ object IndexMapping extends Logging {
     fieldValues <- fieldValues1.flatTraverse {
       case (fieldName, values @ head :: _) =>
         head match {
-          case f: TextField     => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
-          case f: TextListField => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
-          case f: IntField      => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
+          case f: TextField if fieldName == "id" => IO.pure(List(TextFieldSchema("id", filter = true)))
+          case f: TextField                      => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
+          case f: TextListField                  => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
+          case f: IntField                       => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
+          case f: FloatField                     => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
         }
       case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen
     }
@@ -128,9 +131,20 @@ object IndexMapping extends Logging {
         fields <- fieldJsons.traverse { case (name, json) =>
           FieldSchema.yaml.fieldSchemaDecoder(name).decodeJson(json)
         }
+
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
       } yield {
-        IndexMapping(name, alias = alias, fields = fields.map(f => f.name -> f).toMap, config = config)
+        val fieldsMap = fields.map(f => f.name -> f).toMap
+        val extendedFields = fieldsMap.get("id") match {
+          case Some(idMapping) =>
+            logger.warn("id field is internal field and it's mapping cannot be changed")
+            logger.warn("id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
+            fieldsMap.updated("id", TextFieldSchema("id", filter = true))
+          case None =>
+            fieldsMap.updated("id", TextFieldSchema("id", filter = true))
+        }
+        IndexMapping(name, alias = alias, fields = extendedFields, config = config)
+
       }
     )
 

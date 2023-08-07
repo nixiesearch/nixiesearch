@@ -1,6 +1,7 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
@@ -53,5 +54,27 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val after  = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
     val result = before.migrate(after).unsafeRunSync()
     result shouldBe after
+  }
+
+  "yaml decoder" should "add an implicit id field mapping" in {
+    val yaml =
+      """
+        |alias: prod
+        |fields:
+        |  title:
+        |    type: text
+        |    search: false""".stripMargin
+    val decoder = IndexMapping.yaml.indexMappingDecoder("test")
+    val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](decoder))
+    json shouldBe Right(
+      IndexMapping(
+        name = "test",
+        alias = List(Alias("prod")),
+        fields = Map(
+          "id"    -> TextFieldSchema("id", filter = true),
+          "title" -> TextFieldSchema("title")
+        )
+      )
+    )
   }
 }
