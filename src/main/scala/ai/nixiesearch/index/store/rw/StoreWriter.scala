@@ -47,7 +47,7 @@ case class StoreWriter(
             case Some(mapping) => FloatFieldWriter().write(field, mapping, buffer)
           }
       }
-      val finalized = fc.build(buffer)
+      val finalized = buffer // fc.build(buffer)
       all.add(finalized)
     })
     writer.addDocuments(all)

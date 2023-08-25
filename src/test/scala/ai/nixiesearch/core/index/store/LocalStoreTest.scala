@@ -24,7 +24,7 @@ class LocalStoreTest extends AnyFlatSpec with Matchers with StoreFixture {
       readerMaybe.isDefined shouldBe true
       val reader = readerMaybe.get
       val docs   = reader.search(MatchAllQuery(), List("id", "title", "price"), 10).unsafeRunSync()
-      docs shouldBe List(doc)
+      docs.hits shouldBe List(doc)
     }
   }
 

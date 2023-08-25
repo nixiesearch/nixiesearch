@@ -1,5 +1,7 @@
 package ai.nixiesearch.util
 
+import ai.nixiesearch.api.SearchRoute
+import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filter
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.mapping.IndexMapping
@@ -35,15 +37,25 @@ trait SearchTest extends AnyFlatSpec with BeforeAndAfterAll {
     }
     val searcher = store.reader(mapping).unsafeRunSync().get
 
-    def search(query: Query = MatchAllQuery(), filters: Filter = Filter()): List[String] = {
+    def search(query: Query = MatchAllQuery(), filters: Filter = Filter(), aggs: Aggs = Aggs()): List[String] = {
+      searchRaw(query, filters, aggs).hits
+        .flatMap(_.fields.collect { case TextField(_, value) => value })
+    }
+
+    def searchRaw(
+        query: Query = MatchAllQuery(),
+        filters: Filter = Filter(),
+        aggs: Aggs = Aggs()
+    ): SearchRoute.SearchResponse = {
       searcher
         .search(
           query,
           filters = filters,
-          fields = List("id")
+          fields = List("id"),
+          aggs = aggs
         )
         .unsafeRunSync()
-        .flatMap(_.fields.collect { case TextField(_, value) => value })
+
     }
   }
 

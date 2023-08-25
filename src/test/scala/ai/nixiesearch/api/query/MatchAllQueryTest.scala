@@ -16,13 +16,13 @@ class MatchAllQueryTest extends SearchTest with Matchers {
 
   it should "select all docs" in new Index {
     val docs = searcher.search(MatchAllQuery(), List("id"), 10).unsafeRunSync()
-    val ids  = docs.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val ids  = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("1", "2", "3")
   }
 
   it should "limit the number of docs" in new Index {
     val docs = searcher.search(MatchAllQuery(), List("id"), 1).unsafeRunSync()
-    val ids  = docs.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val ids  = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("1")
   }
 }
