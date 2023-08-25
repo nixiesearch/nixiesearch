@@ -4,13 +4,21 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.core.Field.*
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{BinaryDocValuesField, StoredField, StringField}
+import org.apache.lucene.document.{
+  BinaryDocValuesField,
+  SortedDocValuesField,
+  SortedSetDocValuesField,
+  StoredField,
+  StringField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.facet.FacetsConfig
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.util.BytesRef
-import org.apache.lucene.document.{Document => LuceneDocument}
+
 import java.util
+import scala.runtime.ByteRef
 
 case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] {
   import TextFieldWriter._
@@ -18,15 +26,12 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
     }
-    if (spec.facet) {
+    if (spec.facet || spec.sort) {
       val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
-      buffer.add(new SortedSetDocValuesFacetField(field.name, trimmed))
+      buffer.add(new SortedDocValuesField(field.name, new BytesRef(field.value)))
     }
     if (spec.filter || spec.facet) {
       buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
-    }
-    if (spec.sort) {
-      buffer.add(new BinaryDocValuesField(field.name, new BytesRef(field.value)))
     }
     spec.search match {
       case SearchType.LexicalSearch(_) =>

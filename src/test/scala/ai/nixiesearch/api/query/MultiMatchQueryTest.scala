@@ -27,7 +27,7 @@ class MultiMatchQueryTest extends SearchTest with Matchers {
 
   it should "select matching documents for a single-term query" in new Index {
     val docs = searcher.search(MultiMatchQuery("pajama", List("title", "desc")), List("id"), 10).unsafeRunSync()
-    val ids  = docs.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val ids  = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("3")
   }
 
@@ -36,7 +36,7 @@ class MultiMatchQueryTest extends SearchTest with Matchers {
       searcher
         .search(MultiMatchQuery("white pajama", List("title", "desc"), Operator.AND), List("id"), 10)
         .unsafeRunSync()
-    val ids = docs.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val ids = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe Nil
   }
 
@@ -45,7 +45,7 @@ class MultiMatchQueryTest extends SearchTest with Matchers {
       searcher
         .search(MultiMatchQuery("white pajama", List("title", "desc"), Operator.OR), List("id"), 10)
         .unsafeRunSync()
-    val ids = docs.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val ids = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("2", "3")
   }
 

@@ -34,7 +34,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with StoreFixture {
       val reader = store.reader(mapping).unsafeRunSync().get
 
       val docs = reader.search(MatchAllQuery(), List("id", "title", "count"), 10).unsafeRunSync()
-      docs shouldBe List(source)
+      docs.hits shouldBe List(source)
     }
   }
 }

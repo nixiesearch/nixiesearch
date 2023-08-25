@@ -2,11 +2,13 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.api.SearchRoute.{QueryParamDecoder, SearchRequest, SearchResponse, SizeParamDecoder}
+import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filter
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.core.aggregator.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.store.Store
 import ai.nixiesearch.index.store.rw.StoreReader
@@ -32,9 +34,8 @@ case class SearchRoute(store: Store) extends Route with Logging {
             for {
               query    <- request.as[SearchRequest]
               _        <- info(s"POST /$indexName/_search query=$query")
-              start    <- IO(System.currentTimeMillis())
               docs     <- searchDsl(query.query, query.filter, query.fields, index, query.size)
-              response <- Ok(SearchResponse.withStartTime(docs, start))
+              response <- Ok(docs)
             } yield {
               response
             }
@@ -59,7 +60,7 @@ case class SearchRoute(store: Store) extends Route with Logging {
                 case None    => searchDsl(MatchAllQuery(), Filter(), Nil, index, size.getOrElse(10))
               }
 
-              response <- Ok(SearchResponse.withStartTime(docs, start))
+              response <- Ok(docs)
             } yield {
               response
             }
@@ -67,18 +68,18 @@ case class SearchRoute(store: Store) extends Route with Logging {
         }
   }
 
-  def searchDsl(query: Query, filter: Filter, fields: List[String], index: StoreReader, n: Int): IO[List[Document]] =
+  def searchDsl(query: Query, filter: Filter, fields: List[String], index: StoreReader, n: Int): IO[SearchResponse] =
     for {
       storedFields <- fields match {
         case Nil => IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
         case _   => IO.pure(fields)
       }
-      docs <- index.search(query, filters = filter, fields = storedFields, n = n)
+      response <- index.search(query, filters = filter, fields = storedFields, n = n)
     } yield {
-      docs
+      response
     }
 
-  def searchLucene(query: String, index: StoreReader, n: Int): IO[List[Document]] = for {
+  def searchLucene(query: String, index: StoreReader, n: Int): IO[SearchResponse] = for {
     defaultField <- IO.fromOption(index.mapping.fields.values.collectFirst {
       case TextFieldSchema(name, LexicalSearch(_), _, _, _, _)     => name
       case TextListFieldSchema(name, LexicalSearch(_), _, _, _, _) => name
@@ -90,9 +91,9 @@ case class SearchRoute(store: Store) extends Route with Logging {
     responseFields <- IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
     parser         <- IO.pure(new QueryParser(defaultField, index.analyzer))
     query          <- IO(parser.parse(query))
-    docs           <- index.search(query, responseFields, n)
+    response       <- index.search(query, responseFields, n, Aggs())
   } yield {
-    docs
+    response
   }
 
 }
@@ -101,7 +102,13 @@ object SearchRoute {
   object QueryParamDecoder extends OptionalQueryParamDecoderMatcher[String]("q")
   object SizeParamDecoder  extends OptionalQueryParamDecoderMatcher[Int]("size")
 
-  case class SearchRequest(query: Query, filter: Filter = Filter(), size: Int = 10, fields: List[String] = Nil)
+  case class SearchRequest(
+      query: Query,
+      filter: Filter = Filter(),
+      size: Int = 10,
+      fields: List[String] = Nil,
+      aggs: Aggs = Aggs()
+  )
   object SearchRequest {
     implicit val searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     implicit val searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
@@ -110,23 +117,22 @@ object SearchRoute {
         size   <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filter <- c.downField("filter").as[Option[Filter]].map(_.getOrElse(Filter()))
         fields <- c.downField("fields").as[Option[List[String]]].map(_.getOrElse(Nil))
+        aggs   <- c.downField("aggs").as[Option[Aggs]].map(_.getOrElse(Aggs()))
       } yield {
-        SearchRequest(query, filter, size, fields)
+        SearchRequest(query, filter, size, fields, aggs)
       }
     )
   }
 
-  case class SearchResponse(took: Long, hits: List[Document]) {}
+  case class SearchResponse(took: Long, hits: List[Document], aggs: Map[String, AggregationResult]) {}
   object SearchResponse {
-    implicit val searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder
-    implicit val searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
-    def withStartTime(result: List[Document], start: Long) =
-      SearchResponse((System.currentTimeMillis() - start).toInt, result)
+    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder
+    given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
   }
 
-  implicit val searchRequestDecJson: EntityDecoder[IO, SearchRequest]   = jsonOf
-  implicit val searchRequestEncJson: EntityEncoder[IO, SearchRequest]   = jsonEncoderOf
-  implicit val searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
-  implicit val searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
+  given searchRequestDecJson: EntityDecoder[IO, SearchRequest]   = jsonOf
+  given searchRequestEncJson: EntityEncoder[IO, SearchRequest]   = jsonEncoderOf
+  given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
+  given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
 }

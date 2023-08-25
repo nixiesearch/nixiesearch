@@ -1,8 +1,12 @@
 package ai.nixiesearch.index.store.rw
 
+import ai.nixiesearch.api.SearchRoute.SearchResponse
+import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filter
 import ai.nixiesearch.api.query.Query
+import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.store.LocalStore.DirectoryMapping
@@ -14,12 +18,19 @@ import org.apache.lucene.search.{
   BooleanQuery,
   IndexSearcher,
   MatchAllDocsQuery,
+  MultiCollector,
   TopDocs,
+  TopScoreDocCollector,
   Query as LuceneQuery
 }
 import org.apache.lucene.store.Directory
 import org.apache.lucene.document.Document as LuceneDocument
+import org.apache.lucene.facet.FacetsCollector
+import org.apache.lucene.facet.FacetsCollector.MatchingDocs
 import org.apache.lucene.search.BooleanClause.Occur
+
+import scala.jdk.CollectionConverters.*
+import cats.implicits.*
 
 case class StoreReader(
     mapping: IndexMapping,
@@ -28,14 +39,45 @@ case class StoreReader(
     searcher: IndexSearcher,
     analyzer: Analyzer
 ) extends Logging {
-  def search(query: LuceneQuery, fields: List[String], n: Int): IO[List[Document]] = for {
-    top  <- IO(searcher.search(query, n))
-    docs <- collect(top, fields)
+  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = {
+    aggs.aggs.toList
+      .traverse { case (name, agg) =>
+        mapping.fields.get(agg.field) match {
+          case Some(field) if !field.facet =>
+            IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
+          case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
+          case Some(schema) =>
+            agg match {
+              case a @ Aggregation.TermAggregation(field, size) =>
+                TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+              case a @ Aggregation.RangeAggregation(field, ranges) =>
+                RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+            }
+        }
+      }
+      .map(_.toMap)
+
+  }
+  def search(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
+    start          <- IO(System.currentTimeMillis())
+    topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
+    facetCollector <- IO.pure(new FacetsCollector(false))
+    collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
+    _              <- IO(searcher.search(query, collector))
+    docs           <- collect(topCollector.topDocs(), fields)
+    aggs           <- aggregate(facetCollector, aggs)
+    end            <- IO(System.currentTimeMillis())
   } yield {
-    docs
+    SearchResponse(end - start, docs, aggs)
   }
 
-  def search(query: Query, fields: List[String] = Nil, n: Int = 10, filters: Filter = Filter()): IO[List[Document]] =
+  def search(
+      query: Query,
+      fields: List[String] = Nil,
+      n: Int = 10,
+      filters: Filter = Filter(),
+      aggs: Aggs = Aggs()
+  ): IO[SearchResponse] =
     for {
       compiled     <- query.compile(mapping)
       maybeFilters <- filters.compile(mapping)
@@ -53,9 +95,9 @@ case class StoreReader(
           }
         case None => IO.pure(compiled)
       }
-      docs <- search(merged, fields, n)
+      response <- search(merged, fields, n, aggs)
     } yield {
-      docs
+      response
     }
 
   def close(): IO[Unit] = info(s"closing index reader for index '${mapping.name}'") *> IO(reader.close())
