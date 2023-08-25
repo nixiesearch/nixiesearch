@@ -1,4 +1,4 @@
-Metarank welcomes any contribution that you do to code, documentation, bug reporting.
+Nixiesearch welcomes any contribution that you do to code, documentation, bug reporting.
 
 # Issues
 
