@@ -10,7 +10,7 @@ import org.apache.commons.io.IOUtils
 import java.io.{ByteArrayInputStream, File, FileInputStream}
 import java.nio.file.Path
 
-case class ModelCache(cacheDir: String) extends Logging {
+case class ModelFileCache(cacheDir: String) extends Logging {
   def getIfExists(dir: String, file: String): IO[Option[Array[Byte]]] = for {
     targetFile <- IO(new File(cacheDir + File.separator + dir + File.separator + file))
     contents <- targetFile.exists() match {
@@ -33,7 +33,7 @@ case class ModelCache(cacheDir: String) extends Logging {
   } yield {}
 }
 
-object ModelCache extends Logging {
+object ModelFileCache extends Logging {
   def create() = {
     for {
       topDir   <- cacheDir()
@@ -43,7 +43,7 @@ object ModelCache extends Logging {
       )
       _ <- info(s"using $nixieDir as local cache dir")
     } yield {
-      ModelCache(nixieDir.toString)
+      ModelFileCache(nixieDir.toString)
     }
   }
 

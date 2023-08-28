@@ -3,13 +3,13 @@ package ai.nixiesearch.core.index.store
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.util.{StoreFixture, TestDocument, TestIndexMapping}
+import ai.nixiesearch.util.{IndexFixture, TestDocument, TestIndexMapping}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 import org.apache.lucene.search.MatchAllDocsQuery
 
-class LocalStoreTest extends AnyFlatSpec with Matchers with StoreFixture {
+class LocalStoreTest extends AnyFlatSpec with Matchers with IndexFixture {
   val index = TestIndexMapping()
 
   it should "open/close store" in withStore { store => {} }
@@ -18,9 +18,9 @@ class LocalStoreTest extends AnyFlatSpec with Matchers with StoreFixture {
     {
       val writer = store.writer(index).unsafeRunSync()
       val doc    = TestDocument()
-      writer.addDocuments(List(doc))
+      writer.addDocuments(List(doc)).unsafeRunSync()
       writer.writer.commit()
-      val readerMaybe = store.reader(index).unsafeRunSync()
+      val readerMaybe = store.reader(index.name).unsafeRunSync()
       readerMaybe.isDefined shouldBe true
       val reader = readerMaybe.get
       val docs   = reader.search(MatchAllQuery(), List("id", "title", "price"), 10).unsafeRunSync()
@@ -32,10 +32,10 @@ class LocalStoreTest extends AnyFlatSpec with Matchers with StoreFixture {
     {
       val writer = store.writer(index).unsafeRunSync()
       val doc    = TestDocument()
-      writer.addDocuments(List(doc))
+      writer.addDocuments(List(doc)).unsafeRunSync()
       writer.writer.commit()
       val updatedMapping = index.copy(fields = index.fields ++ Map("desc" -> TextFieldSchema("desc")))
-      store.refresh(updatedMapping).unsafeRunSync()
+      writer.refreshMapping(updatedMapping).unsafeRunSync()
       val retrievedMapping = store.mapping(index.name).unsafeRunSync()
       retrievedMapping shouldBe Some(updatedMapping)
     }

@@ -1,6 +1,8 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.mapping.Language.English
+import ai.nixiesearch.core.nn.ModelHandle
+import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.generic.semiauto.*
 
@@ -9,7 +11,7 @@ sealed trait SearchType
 object SearchType {
   case object NoSearch extends SearchType
   case class SemanticSearch(
-      embed: String = "intfloat/e5-base-v2",
+      model: ModelHandle = HuggingFaceHandle("intfloat", "e5-base-v2"),
       language: Language = English
   ) extends SearchType
   case class LexicalSearch(language: Language = English) extends SearchType
@@ -42,10 +44,10 @@ object SearchType {
   object yaml {
     implicit val semanticSearchDecoder: Decoder[SemanticSearch] = Decoder.instance(c =>
       for {
-        embed <- c.downField("embed").as[Option[String]].map(_.getOrElse(SemanticSearch().embed))
+        model <- c.downField("model").as[Option[ModelHandle]].map(_.getOrElse(SemanticSearch().model))
         lang  <- c.downField("language").as[Option[Language]].map(_.getOrElse(SemanticSearch().language))
       } yield {
-        SemanticSearch(embed, lang)
+        SemanticSearch(model, lang)
       }
     )
     implicit val lexicalSearchDecoder: Decoder[LexicalSearch] = Decoder.instance(c =>

@@ -1,14 +1,15 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
 import io.circe.{Decoder, Json}
 import cats.implicits.*
 
 case class Config(
     api: ApiConfig = ApiConfig(),
     store: StoreConfig = LocalStoreConfig(),
-    search: Map[String, IndexMapping] = Map.empty
+    search: Map[String, IndexMapping] = Map.empty,
+    suggest: Map[String, IndexMapping] = Map.empty
 )
 
 object Config {
@@ -22,8 +23,12 @@ object Config {
       index <- indexJson.toList.traverse { case (name, json) =>
         IndexMapping.yaml.indexMappingDecoder(name).decodeJson(json)
       }
+      suggestJson <- c.downField("suggest").as[Option[Map[String, Json]]].map(_.getOrElse(Map.empty))
+      suggest <- suggestJson.toList.traverse { case (name, json) =>
+        SuggestMapping.yaml.suggesterMappingDecoder(name).decodeJson(json)
+      }
     } yield {
-      Config(api, store, index.map(i => i.name -> i).toMap)
+      Config(api, store, search = index.map(i => i.name -> i).toMap, suggest = suggest.map(s => s.name -> s).toMap)
     }
   )
 }

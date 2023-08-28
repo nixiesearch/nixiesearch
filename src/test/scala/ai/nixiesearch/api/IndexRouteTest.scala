@@ -5,8 +5,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
-import ai.nixiesearch.index.store.{LocalStore, Store}
-import ai.nixiesearch.util.{StoreFixture, TestIndexMapping}
+import ai.nixiesearch.util.{IndexFixture, TestIndexMapping}
 import org.http4s.{Entity, EntityDecoder, Method, Request, Response, Uri}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -18,11 +17,13 @@ import io.circe.{Decoder, Encoder}
 
 import java.nio.file.Files
 
-class IndexRouteTest extends AnyFlatSpec with Matchers with StoreFixture {
+class IndexRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
   import IndexRoute.*
   import ai.nixiesearch.util.HttpTest.*
 
-  it should "return index mapping on GET" in withStore { store =>
+  val index = TestIndexMapping()
+
+  it should "return index mapping on GET" in withStore(index) { store =>
     {
       val route = IndexRoute(store)
       val response =
@@ -31,7 +32,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with StoreFixture {
     }
   }
 
-  it should "fail on 404" in withStore { store =>
+  it should "fail on 404" in withStore(index) { store =>
     {
       val route = IndexRoute(store)
       val response =
@@ -40,7 +41,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with StoreFixture {
     }
   }
 
-  it should "accept docs for existing indices" in withStore { store =>
+  it should "accept docs for existing indices" in withStore(index) { store =>
     {
       val doc = Document(List(TextField("id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
       val response =
@@ -49,7 +50,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with StoreFixture {
     }
   }
 
-  it should "accept docs for new indices" in withStore { store =>
+  it should "accept docs for new indices" in withStore(index) { store =>
     {
       val doc = Document(List(TextField("id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
       val response =

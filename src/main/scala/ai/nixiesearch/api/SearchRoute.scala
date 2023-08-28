@@ -10,8 +10,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.aggregator.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.index.store.Store
-import ai.nixiesearch.index.store.rw.StoreReader
+import ai.nixiesearch.index.{IndexReader, IndexRegistry}
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -20,58 +19,46 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.lucene.queryparser.classic.QueryParser
 
-case class SearchRoute(store: Store) extends Route with Logging {
+case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
   val routes = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" =>
-      store
-        .mapping(indexName)
-        .flatMap {
-          case Some(mapping) => store.reader(mapping)
-          case None          => IO.none
-        }
-        .flatMap {
-          case Some(index) =>
-            for {
-              query    <- request.as[SearchRequest]
-              _        <- info(s"POST /$indexName/_search query=$query")
-              docs     <- searchDsl(query.query, query.filter, query.fields, index, query.size)
-              response <- Ok(docs)
-            } yield {
-              response
-            }
-          case None => NotFound(s"index $indexName is missing")
-        }
+      indices.reader(indexName).flatMap {
+        case Some(index) =>
+          for {
+            query    <- request.as[SearchRequest]
+            _        <- info(s"POST /$indexName/_search query=$query")
+            docs     <- searchDsl(query.query, query.filter, query.fields, index, query.size)
+            response <- Ok(docs)
+          } yield {
+            response
+          }
+        case None => NotFound(s"index $indexName is missing")
+      }
 
     case GET -> Root / indexName / "_search" :? QueryParamDecoder(query) :? SizeParamDecoder(size) =>
-      val b = 1
-      store
-        .mapping(indexName)
-        .flatMap {
-          case Some(mapping) => store.reader(mapping)
-          case None          => IO.none
-        }
-        .flatMap {
-          case Some(index) =>
-            for {
-              _     <- info(s"POST /$indexName/_search query=$query size=$size")
-              start <- IO(System.currentTimeMillis())
-              docs <- query match {
-                case Some(q) => searchLucene(q, index, size.getOrElse(10))
-                case None    => searchDsl(MatchAllQuery(), Filter(), Nil, index, size.getOrElse(10))
-              }
-
-              response <- Ok(docs)
-            } yield {
-              response
+      indices.reader(indexName).flatMap {
+        case Some(index) =>
+          for {
+            _     <- info(s"POST /$indexName/_search query=$query size=$size")
+            start <- IO(System.currentTimeMillis())
+            docs <- query match {
+              case Some(q) => searchLucene(q, index, size.getOrElse(10))
+              case None    => searchDsl(MatchAllQuery(), Filter(), Nil, index, size.getOrElse(10))
             }
-          case None => NotFound(s"index $indexName is missing")
-        }
+
+            response <- Ok(docs)
+          } yield {
+            response
+          }
+        case None => NotFound(s"index $indexName is missing")
+      }
   }
 
-  def searchDsl(query: Query, filter: Filter, fields: List[String], index: StoreReader, n: Int): IO[SearchResponse] =
+  def searchDsl(query: Query, filter: Filter, fields: List[String], index: IndexReader, n: Int): IO[SearchResponse] =
     for {
+      mapping <- index.mapping()
       storedFields <- fields match {
-        case Nil => IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
+        case Nil => IO(mapping.fields.values.filter(_.store).map(_.name).toList)
         case _   => IO.pure(fields)
       }
       response <- index.search(query, filters = filter, fields = storedFields, n = n)
@@ -79,16 +66,17 @@ case class SearchRoute(store: Store) extends Route with Logging {
       response
     }
 
-  def searchLucene(query: String, index: StoreReader, n: Int): IO[SearchResponse] = for {
-    defaultField <- IO.fromOption(index.mapping.fields.values.collectFirst {
+  def searchLucene(query: String, index: IndexReader, n: Int): IO[SearchResponse] = for {
+    mapping <- index.mapping()
+    defaultField <- IO.fromOption(mapping.fields.values.collectFirst {
       case TextFieldSchema(name, LexicalSearch(_), _, _, _, _)     => name
       case TextListFieldSchema(name, LexicalSearch(_), _, _, _, _) => name
     })(
       new Exception(
-        s"no text fields found in schema (existing fields: ${index.mapping.fields.keys.mkString("[", ",", "]")}"
+        s"no text fields found in schema (existing fields: ${mapping.fields.keys.mkString("[", ",", "]")}"
       )
     )
-    responseFields <- IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
+    responseFields <- IO(mapping.fields.values.filter(_.store).map(_.name).toList)
     parser         <- IO.pure(new QueryParser(defaultField, index.analyzer))
     query          <- IO(parser.parse(query))
     response       <- index.search(query, responseFields, n, Aggs())

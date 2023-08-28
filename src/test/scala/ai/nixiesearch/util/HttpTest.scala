@@ -1,7 +1,6 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.api.IndexRoute
-import ai.nixiesearch.index.store.Store
 import cats.effect.IO
 import io.circe.Encoder
 import org.http4s.{Entity, EntityDecoder, HttpRoutes, Method, Request, Response, Uri}

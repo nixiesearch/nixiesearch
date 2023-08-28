@@ -1,18 +1,22 @@
-package ai.nixiesearch.index.store.rw
+package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SearchResponse
+import ai.nixiesearch.api.SuggestRoute.{SuggestResponse, Suggestion}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filter
 import ai.nixiesearch.api.query.Query
-import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
-import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.config.StoreConfig
+import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.index.store.LocalStore.DirectoryMapping
-import cats.effect.IO
+import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
+import ai.nixiesearch.core.codec.{DocumentVisitor, SuggestVisitor}
+import ai.nixiesearch.core.nn.model.BiEncoderCache
+import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.index.{DirectoryReader, IndexReader}
+import org.apache.lucene.facet.FacetsCollector
+import org.apache.lucene.store.Directory
+import org.apache.lucene.index.IndexReader as LuceneIndexReader
+import org.apache.lucene.document.Document as LuceneDocument
 import org.apache.lucene.search.{
   BooleanClause,
   BooleanQuery,
@@ -23,24 +27,27 @@ import org.apache.lucene.search.{
   TopScoreDocCollector,
   Query as LuceneQuery
 }
-import org.apache.lucene.store.Directory
-import org.apache.lucene.document.Document as LuceneDocument
-import org.apache.lucene.facet.FacetsCollector
-import org.apache.lucene.facet.FacetsCollector.MatchingDocs
+import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 
-import scala.jdk.CollectionConverters.*
-import cats.implicits.*
+trait IndexReader extends Logging {
+  def name: String
+  def config: StoreConfig
+  def mappingRef: Ref[IO, Option[IndexMapping]]
+  def reader: LuceneIndexReader
+  def dir: Directory
+  def searcher: IndexSearcher
+  def analyzer: Analyzer
+  def encoders: BiEncoderCache
 
-case class StoreReader(
-    mapping: IndexMapping,
-    reader: IndexReader,
-    dir: Directory,
-    searcher: IndexSearcher,
-    analyzer: Analyzer
-) extends Logging {
-  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = {
-    aggs.aggs.toList
+  def mapping(): IO[IndexMapping] = mappingRef.get.flatMap {
+    case Some(value) => IO.pure(value)
+    case None        => IO.raiseError(new Exception("this should never happen"))
+  }
+
+  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = for {
+    mapping <- mapping()
+    result <- aggs.aggs.toList
       .traverse { case (name, agg) =>
         mapping.fields.get(agg.field) match {
           case Some(field) if !field.facet =>
@@ -57,7 +64,10 @@ case class StoreReader(
       }
       .map(_.toMap)
 
+  } yield {
+    result
   }
+
   def search(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
     start          <- IO(System.currentTimeMillis())
     topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
@@ -79,6 +89,7 @@ case class StoreReader(
       aggs: Aggs = Aggs()
   ): IO[SearchResponse] =
     for {
+      mapping      <- mapping()
       compiled     <- query.compile(mapping)
       maybeFilters <- filters.compile(mapping)
       merged <- maybeFilters match {
@@ -100,9 +111,20 @@ case class StoreReader(
       response
     }
 
-  def close(): IO[Unit] = info(s"closing index reader for index '${mapping.name}'") *> IO(reader.close())
+  def suggest(query: LuceneQuery, n: Int): IO[SuggestResponse] = for {
+    start        <- IO(System.currentTimeMillis())
+    topCollector <- IO.pure(TopScoreDocCollector.create(n, n))
+    _            <- IO(searcher.search(query, topCollector))
+    docs         <- collectSuggest(topCollector.topDocs())
+  } yield {
+    SuggestResponse(docs)
+  }
 
-  private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = IO {
+  def close(): IO[Unit] = info(s"closing index reader for index '$name'") *> IO(reader.close())
+
+  private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = for {
+    mapping <- mapping()
+  } yield {
     val fieldSet = fields.toSet
     val docs = top.scoreDocs.map(doc => {
       val visitor = DocumentVisitor(mapping, fieldSet)
@@ -111,11 +133,15 @@ case class StoreReader(
     })
     docs.toList
   }
-}
 
-object StoreReader {
-  def create(dm: DirectoryMapping): IO[StoreReader] = IO {
-    val reader = DirectoryReader.open(dm.dir)
-    StoreReader(dm.mapping, reader, dm.dir, new IndexSearcher(reader), dm.analyzer)
+  private def collectSuggest(top: TopDocs): IO[List[Suggestion]] = IO {
+    val docs = top.scoreDocs.flatMap(doc => {
+      val visitor = SuggestVisitor(SuggestMapping.SUGGEST_FIELD)
+      reader.storedFields().document(doc.doc, visitor)
+      visitor.getResult().map(text => Suggestion(text = text, score = doc.score))
+
+    })
+    docs.toList
   }
+
 }
