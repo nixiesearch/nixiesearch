@@ -5,7 +5,7 @@ import ai.djl.modality.nlp.bert.BertFullTokenizer
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.loader.ModelLoader
+import ai.nixiesearch.core.nn.model.loader.{HuggingFaceModelLoader, LocalModelLoader, ModelLoader}
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
 import ai.onnxruntime.{OrtEnvironment, OrtSession, TensorInfo}
@@ -29,18 +29,12 @@ object OnnxSession extends Logging {
 
   def load(
       handle: ModelHandle,
-      dim: Int,
-      modelFile: String = "pytorch_model.onnx",
-      vocabFile: String = "vocab.txt"
+      modelFile: String = "pytorch_model.onnx"
   ): IO[OnnxSession] =
     handle match {
-      case hh: HuggingFaceHandle => load(hh, dim, modelFile, vocabFile)
-      case lh: LocalModelHandle  => load(lh, dim, modelFile, vocabFile)
+      case hh: HuggingFaceHandle => HuggingFaceModelLoader.load(hh, modelFile)
+      case lh: LocalModelHandle  => LocalModelLoader.load(lh, modelFile)
     }
-
-  def load[T <: ModelHandle](handle: T, dim: Int, modelFile: String, vocabFile: String)(implicit
-      loader: ModelLoader[T]
-  ): IO[OnnxSession] = loader.load(handle, dim, modelFile, vocabFile)
 
   def load(model: InputStream, dic: InputStream, dim: Int): IO[OnnxSession] = IO {
     val tokens    = IOUtils.toString(dic, StandardCharsets.UTF_8).split('\n')

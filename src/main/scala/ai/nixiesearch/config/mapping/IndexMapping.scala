@@ -71,6 +71,7 @@ case class IndexMapping(
       case (Some(a: IntFieldSchema), Some(b: IntFieldSchema))           => IO.pure(Keep(b))
       case (Some(a: TextFieldSchema), Some(b: TextFieldSchema))         => IO.pure(Keep(b))
       case (Some(a: TextListFieldSchema), Some(b: TextListFieldSchema)) => IO.pure(Keep(b))
+      case (Some(a), Some(b)) if a == b                                 => IO.pure(Keep(b))
       case (Some(a), Some(b)) => IO.raiseError(new Exception(s"cannot migrate field schema $a to $b"))
       case (None, None) =>
         IO.raiseError(

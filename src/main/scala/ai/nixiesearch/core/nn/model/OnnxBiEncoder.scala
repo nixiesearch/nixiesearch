@@ -92,6 +92,10 @@ case class OnnxBiEncoder(env: OrtEnvironment, session: OrtSession, tokenizer: Be
     result
   }
 
+  def close() = {
+    session.close()
+  }
+
 }
 
 object OnnxBiEncoder {

@@ -5,7 +5,7 @@ import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, StoreFixture, TestIndexMapping}
+import ai.nixiesearch.util.{SearchTest, IndexFixture, TestIndexMapping}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -22,21 +22,21 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   )
 
   it should "search over lucene query syntax" in new Index {
-    val route = SearchRoute(store)
+    val route = SearchRoute(registry)
     val response =
       send[String, SearchResponse](route.routes, "http://localhost/test/_search?q=pajama", None, Method.GET)
     response.hits.size shouldBe 1
   }
 
   it should "search over lucene query syntax with empty query" in new Index {
-    val route = SearchRoute(store)
+    val route = SearchRoute(registry)
     val response =
       send[String, SearchResponse](route.routes, "http://localhost/test/_search", None, Method.GET)
     response.hits.size shouldBe 3
   }
 
   it should "search over dsl" in new Index {
-    val route   = SearchRoute(store)
+    val route   = SearchRoute(registry)
     val request = SearchRequest(MatchQuery("title", "pajama"), size = 10, fields = List("id"))
     val response =
       send[SearchRequest, SearchResponse](

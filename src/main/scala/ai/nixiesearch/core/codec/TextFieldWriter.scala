@@ -3,9 +3,12 @@ package ai.nixiesearch.core.codec
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.nn.model.BiEncoderCache
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   BinaryDocValuesField,
+  KnnFloatVectorField,
   SortedDocValuesField,
   SortedSetDocValuesField,
   StoredField,
@@ -14,13 +17,13 @@ import org.apache.lucene.document.{
 }
 import org.apache.lucene.facet.FacetsConfig
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
-import org.apache.lucene.index.IndexableField
+import org.apache.lucene.index.{IndexableField, VectorSimilarityFunction}
 import org.apache.lucene.util.BytesRef
 
 import java.util
 import scala.runtime.ByteRef
 
-case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] {
+case class TextFieldWriter(encoders: BiEncoderCache) extends FieldWriter[TextField, TextFieldSchema] with Logging {
   import TextFieldWriter._
   override def write(field: TextField, spec: TextFieldSchema, buffer: LuceneDocument): Unit = {
     if (spec.store) {
@@ -39,7 +42,15 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] {
           if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
           else field.value
         buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
-      case _ => // nope
+      case SearchType.SemanticSearch(model, language) =>
+        encoders.get(model) match {
+          case Some(encoder) =>
+            val encoded = encoder.embed(Array(field.value))(0)
+            buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
+          case None => logger.warn(s"model $model not found in cache, this should not happen")
+        }
+      case SearchType.NoSearch =>
+      // do nothing
     }
   }
 }

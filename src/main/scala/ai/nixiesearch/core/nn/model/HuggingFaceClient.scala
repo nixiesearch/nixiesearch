@@ -15,10 +15,10 @@ import org.http4s.client.Client
 import org.http4s.{EntityDecoder, Request, Uri}
 import org.typelevel.ci.CIString
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, File}
 import scala.concurrent.duration.*
 
-case class HuggingFaceClient(client: Client[IO], endpoint: Uri) extends Logging {
+case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFileCache) extends Logging {
 
   implicit val modelResponseDecoder: EntityDecoder[IO, ModelResponse] = jsonOf[IO, ModelResponse]
 
@@ -65,6 +65,16 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri) extends Logging 
         acc
       })
       .map(_.toByteArray)
+
+  def getCached(handle: HuggingFaceHandle, file: String): IO[Array[Byte]] = for {
+    modelDirName <- IO(handle.asList.mkString(File.separator))
+    bytes <- cache.getIfExists(modelDirName, file).flatMap {
+      case Some(bytes) => info(s"found $file in cache") *> IO.pure(bytes)
+      case None        => modelFile(handle, file).flatTap(bytes => cache.put(modelDirName, file, bytes))
+    }
+  } yield {
+    bytes
+  }
 }
 
 object HuggingFaceClient {
@@ -77,7 +87,7 @@ object HuggingFaceClient {
   implicit val modelSiblingCodec: Codec[Sibling]        = deriveCodec[Sibling]
   implicit val modelResponseCodec: Codec[ModelResponse] = deriveCodec[ModelResponse]
 
-  def create(endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] = for {
+  def create(cache: ModelFileCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] = for {
     uri <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
     client <- BlazeClientBuilder[IO]
       .withRequestTimeout(120.second)
@@ -85,7 +95,7 @@ object HuggingFaceClient {
       .withIdleTimeout(200.seconds)
       .resource
   } yield {
-    HuggingFaceClient(client, uri)
+    HuggingFaceClient(client, uri, cache)
   }
 
 }

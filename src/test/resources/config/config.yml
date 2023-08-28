@@ -3,6 +3,10 @@ api:
   port: 8080
 store:
   url: s3://bucket/prefix
+suggest:
+  newshiny:
+    model: nixiesearch/nixie-suggest-small-v1
+
 search:
   helloworld:
     fields:

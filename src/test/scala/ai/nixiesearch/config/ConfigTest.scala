@@ -7,6 +7,7 @@ import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.StoreConfig.S3StoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl}
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
@@ -34,6 +35,18 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               "title" -> TextFieldSchema(name = "title", search = SemanticSearch()),
               "desc"  -> TextFieldSchema(name = "desc", search = SemanticSearch()),
               "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
+            )
+          )
+        ),
+        suggest = Map(
+          "newshiny" -> IndexMapping(
+            name = "newshiny",
+            alias = Nil,
+            fields = Map(
+              "suggest" -> TextFieldSchema(
+                name = "suggest",
+                search = SemanticSearch(HuggingFaceHandle("nixiesearch", "nixie-suggest-small-v1"))
+              )
             )
           )
         )
