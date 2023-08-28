@@ -12,7 +12,7 @@ import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.Field.*
-import cats.effect.IO
+import cats.effect.{IO, Ref}
 
 case class IndexMapping(
     name: String,
@@ -84,6 +84,10 @@ case class IndexMapping(
 }
 
 object IndexMapping extends Logging {
+  case class MappingRef(ref: Ref[IO, Option[IndexMapping]]) {
+    def resource = ???
+  }
+
   sealed trait Migration {
     def field: FieldSchema[_ <: Field]
   }

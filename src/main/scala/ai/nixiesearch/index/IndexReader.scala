@@ -9,7 +9,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
-import cats.effect.IO
+import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.store.Directory
@@ -29,15 +29,22 @@ import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 
 trait IndexReader extends Logging {
+  def name: String
   def config: StoreConfig
-  def mapping: IndexMapping
+  def mappingRef: Ref[IO, Option[IndexMapping]]
   def reader: LuceneIndexReader
   def dir: Directory
   def searcher: IndexSearcher
   def analyzer: Analyzer
 
-  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = {
-    aggs.aggs.toList
+  def mapping(): IO[IndexMapping] = mappingRef.get.flatMap {
+    case Some(value) => IO.pure(value)
+    case None        => IO.raiseError(new Exception("this should never happen"))
+  }
+
+  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = for {
+    mapping <- mapping()
+    result <- aggs.aggs.toList
       .traverse { case (name, agg) =>
         mapping.fields.get(agg.field) match {
           case Some(field) if !field.facet =>
@@ -54,6 +61,8 @@ trait IndexReader extends Logging {
       }
       .map(_.toMap)
 
+  } yield {
+    result
   }
 
   def search(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
@@ -77,6 +86,7 @@ trait IndexReader extends Logging {
       aggs: Aggs = Aggs()
   ): IO[SearchResponse] =
     for {
+      mapping      <- mapping()
       compiled     <- query.compile(mapping)
       maybeFilters <- filters.compile(mapping)
       merged <- maybeFilters match {
@@ -98,9 +108,11 @@ trait IndexReader extends Logging {
       response
     }
 
-  def close(): IO[Unit] = info(s"closing index reader for index '${mapping.name}'") *> IO(reader.close())
+  def close(): IO[Unit] = info(s"closing index reader for index '$name'") *> IO(reader.close())
 
-  private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = IO {
+  private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = for {
+    mapping <- mapping()
+  } yield {
     val fieldSet = fields.toSet
     val docs = top.scoreDocs.map(doc => {
       val visitor = DocumentVisitor(mapping, fieldSet)

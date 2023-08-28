@@ -7,7 +7,6 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 
 trait Index {
-  def mapping: IndexMapping
 
   def reader(): Resource[IO, IndexReader]
   def writer(): Resource[IO, IndexWriter]

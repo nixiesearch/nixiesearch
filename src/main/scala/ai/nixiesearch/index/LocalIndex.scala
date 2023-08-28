@@ -35,10 +35,16 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
-case class LocalIndex(config: LocalStoreConfig, mapping: IndexMapping) extends Index with Logging {
+case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[IndexMapping]]) extends Index with Logging {
   import LocalIndex.*
+
+  def getMapping() = Resource.eval(mappingRef.get.flatMap {
+    case Some(value) => IO.pure(value)
+    case None        => IO.raiseError(new Exception("nope"))
+  })
   override def writer(): Resource[IO, LocalIndexWriter] = for {
-    _ <- Resource.eval(ensureWorkdirExists(config.url.path))
+    mapping <- getMapping()
+    _       <- Resource.eval(ensureWorkdirExists(config.url.path))
     indexMappings <- Resource.eval(
       ensureIndexDirExists(
         config.url.path,
@@ -47,13 +53,13 @@ case class LocalIndex(config: LocalStoreConfig, mapping: IndexMapping) extends I
       )
     )
     luceneDir    <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
-    mappingRef   <- Resource.eval(Ref.of[IO, IndexMapping](mapping))
     writerConfig <- Resource.pure(new IndexWriterConfig(luceneDir.analyzer))
     writer       <- Resource.eval(IO(LuceneIndexWriter(luceneDir.dir, writerConfig)))
     encoders     <- BiEncoderCache.create(luceneDir.mapping)
     _            <- Resource.eval(IO(writer.commit()))
   } yield {
     LocalIndexWriter(
+      name = mapping.name,
       config = config,
       mappingRef = mappingRef,
       writer = writer,
@@ -64,7 +70,8 @@ case class LocalIndex(config: LocalStoreConfig, mapping: IndexMapping) extends I
   }
 
   override def reader(): Resource[IO, LocalIndexReader] = for {
-    _ <- Resource.eval(ensureWorkdirExists(config.url.path))
+    mapping <- getMapping()
+    _       <- Resource.eval(ensureWorkdirExists(config.url.path))
     _ <- Resource.eval(
       ensureIndexDirExists(
         config.url.path,
@@ -77,8 +84,9 @@ case class LocalIndex(config: LocalStoreConfig, mapping: IndexMapping) extends I
     reader    <- Resource.eval(IO(DirectoryReader.open(luceneDir.dir)))
   } yield {
     LocalIndexReader(
+      name = mapping.name,
       config = config,
-      mapping = mapping,
+      mappingRef = mappingRef,
       reader = reader,
       dir = luceneDir.dir,
       searcher = new IndexSearcher(reader),
@@ -92,8 +100,9 @@ object LocalIndex extends Logging {
   import IndexMapping.json.*
 
   case class LocalIndexReader(
+      name: String,
       config: LocalStoreConfig,
-      mapping: IndexMapping,
+      mappingRef: Ref[IO, Option[IndexMapping]],
       reader: LuceneIndexReader,
       dir: Directory,
       searcher: IndexSearcher,
@@ -101,20 +110,17 @@ object LocalIndex extends Logging {
   ) extends IndexReader
 
   case class LocalIndexWriter(
+      name: String,
       config: LocalStoreConfig,
-      mappingRef: Ref[IO, IndexMapping],
+      mappingRef: Ref[IO, Option[IndexMapping]],
       writer: LuceneIndexWriter,
       directory: MMapDirectory,
       analyzer: Analyzer,
       encoders: BiEncoderCache
   ) extends IndexWriter
       with Logging {
-    override def mapping: IO[IndexMapping] = {
-      val br = 1
-      mappingRef.get
-    }
     override def refreshMapping(mapping: IndexMapping): IO[Unit] =
-      mappingRef.set(mapping) *> writeMapping(mapping, config.url.path)
+      mappingRef.set(Some(mapping)) *> writeMapping(mapping, config.url.path)
 
   }
 

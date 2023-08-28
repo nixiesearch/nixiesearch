@@ -58,8 +58,9 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
 
   def searchDsl(query: Query, filter: Filter, fields: List[String], index: IndexReader, n: Int): IO[SearchResponse] =
     for {
+      mapping <- index.mapping()
       storedFields <- fields match {
-        case Nil => IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
+        case Nil => IO(mapping.fields.values.filter(_.store).map(_.name).toList)
         case _   => IO.pure(fields)
       }
       response <- index.search(query, filters = filter, fields = storedFields, n = n)
@@ -68,15 +69,16 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
     }
 
   def searchLucene(query: String, index: IndexReader, n: Int): IO[SearchResponse] = for {
-    defaultField <- IO.fromOption(index.mapping.fields.values.collectFirst {
+    mapping <- index.mapping()
+    defaultField <- IO.fromOption(mapping.fields.values.collectFirst {
       case TextFieldSchema(name, LexicalSearch(_), _, _, _, _)     => name
       case TextListFieldSchema(name, LexicalSearch(_), _, _, _, _) => name
     })(
       new Exception(
-        s"no text fields found in schema (existing fields: ${index.mapping.fields.keys.mkString("[", ",", "]")}"
+        s"no text fields found in schema (existing fields: ${mapping.fields.keys.mkString("[", ",", "]")}"
       )
     )
-    responseFields <- IO(index.mapping.fields.values.filter(_.store).map(_.name).toList)
+    responseFields <- IO(mapping.fields.values.filter(_.store).map(_.name).toList)
     parser         <- IO.pure(new QueryParser(defaultField, index.analyzer))
     query          <- IO(parser.parse(query))
     response       <- index.search(query, responseFields, n, Aggs())
