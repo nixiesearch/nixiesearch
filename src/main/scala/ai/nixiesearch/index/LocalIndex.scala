@@ -52,7 +52,7 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     luceneDir    <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     writerConfig <- Resource.pure(new IndexWriterConfig(luceneDir.analyzer))
     writer       <- Resource.eval(IO(LuceneIndexWriter(luceneDir.dir, writerConfig)))
-    encoders     <- BiEncoderCache.create(luceneDir.mapping)
+    encoders     <- BiEncoderCache.create()
     _            <- Resource.eval(IO(writer.commit()))
   } yield {
     LocalIndexWriter(
@@ -79,7 +79,7 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     )
     luceneDir <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     reader    <- Resource.eval(IO(DirectoryReader.open(luceneDir.dir)))
-    encoders  <- BiEncoderCache.create(luceneDir.mapping)
+    encoders  <- BiEncoderCache.create()
   } yield {
     LocalIndexReader(
       name = mapping.name,

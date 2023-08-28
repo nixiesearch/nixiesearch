@@ -44,7 +44,7 @@ case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
     embed <- schema match {
       case TextFieldSchema(_, SemanticSearch(handle, _), _, _, _, _) =>
         for {
-          model   <- IO.fromOption(reader.encoders.get(handle))(new Exception(s"model $handle not found in cache"))
+          model   <- reader.encoders.get(handle)
           encoded <- IO(model.embed(Array(query.text)))
           head    <- IO.fromOption(encoded.headOption)(new Exception("encoder returned zero results"))
         } yield {

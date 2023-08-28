@@ -7,23 +7,44 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import cats.effect.std.{MapRef, Queue}
 import cats.implicits.*
 
-case class BiEncoderCache(encoders: Map[ModelHandle, OnnxBiEncoder]) {
-  def get(handle: ModelHandle) = encoders.get(handle)
+case class BiEncoderCache(
+    encoders: MapRef[IO, ModelHandle, Option[OnnxBiEncoder]],
+    shutdownQueue: Queue[IO, IO[Unit]]
+) extends Logging {
+  def get(handle: ModelHandle): IO[OnnxBiEncoder] = {
+    val ref = encoders(handle)
+    ref.get.flatMap {
+      case Some(existing) => IO.pure(existing)
+      case None =>
+        for {
+          _       <- info(s"Loading ONNX models: $handle")
+          session <- OnnxSession.load(handle)
+          enc = OnnxBiEncoder(session)
+          _ <- ref.set(Some(enc))
+          _ <- shutdownQueue.offer(IO(enc.close()))
+        } yield {
+          enc
+        }
+    }
+  }
+
+  def close(): IO[Unit] = shutdownQueue.tryTake.flatMap {
+    case Some(next) => next *> close()
+    case None       => IO.unit
+  }
 }
 
 object BiEncoderCache extends Logging {
-  def create(mapping: IndexMapping): Resource[IO, BiEncoderCache] = for {
-    searchModels <- Resource.eval(IO(mapping.fields.toList.map(_._2).collect {
-      case FieldSchema.TextFieldSchema(_, SemanticSearch(model, _), _, _, _, _)     => model
-      case FieldSchema.TextListFieldSchema(_, SemanticSearch(model, _), _, _, _, _) => model
-    }))
-    _ <- Resource.eval(info(s"Loading ONNX models: $searchModels"))
-    encoders <- Resource.make(
-      searchModels.traverse(h => OnnxSession.load(h).map(s => h -> OnnxBiEncoder(s))).map(_.toMap)
-    )(_.toList.map(_._2).traverse(bi => IO(bi.close())).void)
-  } yield {
-    BiEncoderCache(encoders)
+  def create(): Resource[IO, BiEncoderCache] = {
+    Resource.make(for {
+      queue <- Queue.bounded[IO, IO[Unit]](1024)
+      cache <- MapRef.ofConcurrentHashMap[IO, ModelHandle, OnnxBiEncoder]()
+    } yield {
+      BiEncoderCache(cache, queue)
+    })(_.close())
+
   }
 }

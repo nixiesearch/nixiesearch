@@ -4,7 +4,7 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.{BiEncoderCache, OnnxBiEncoder}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   BinaryDocValuesField,
@@ -23,9 +23,14 @@ import org.apache.lucene.util.BytesRef
 import java.util
 import scala.runtime.ByteRef
 
-case class TextFieldWriter(encoders: BiEncoderCache) extends FieldWriter[TextField, TextFieldSchema] with Logging {
+case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] with Logging {
   import TextFieldWriter._
-  override def write(field: TextField, spec: TextFieldSchema, buffer: LuceneDocument): Unit = {
+  override def write(
+      field: TextField,
+      spec: TextFieldSchema,
+      buffer: LuceneDocument,
+      encoder: Option[OnnxBiEncoder] = None
+  ): Unit = {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
     }
@@ -43,12 +48,10 @@ case class TextFieldWriter(encoders: BiEncoderCache) extends FieldWriter[TextFie
           else field.value
         buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
       case SearchType.SemanticSearch(model, language) =>
-        encoders.get(model) match {
-          case Some(encoder) =>
-            val encoded = encoder.embed(Array(field.value))(0)
-            buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
-          case None => logger.warn(s"model $model not found in cache, this should not happen")
-        }
+        encoder.foreach(encoder => {
+          val encoded = encoder.embed(Array(field.value))(0)
+          buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
+        })
       case SearchType.NoSearch =>
       // do nothing
     }

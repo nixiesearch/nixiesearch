@@ -1,7 +1,9 @@
 package ai.nixiesearch.index
 
+import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.codec.{FloatFieldWriter, IntFieldWriter, TextFieldWriter, TextListFieldWriter}
@@ -13,6 +15,7 @@ import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
+import cats.implicits.*
 
 trait IndexWriter extends Logging {
   def name: String
@@ -24,7 +27,7 @@ trait IndexWriter extends Logging {
   def analyzer: Analyzer
   def encoders: BiEncoderCache
 
-  lazy val textFieldWriter     = TextFieldWriter(encoders)
+  lazy val textFieldWriter     = TextFieldWriter()
   lazy val textListFieldWriter = TextListFieldWriter()
   lazy val intFieldWriter      = IntFieldWriter()
   lazy val floatFieldWriter    = FloatFieldWriter()
@@ -34,8 +37,14 @@ trait IndexWriter extends Logging {
     case None        => IO.raiseError(new Exception("this should never happen"))
   }
 
+  // todo: migrate to traverse
   def addDocuments(docs: List[Document]): IO[Unit] = for {
     mapping <- mapping()
+    handles <- IO(mapping.textFields.values.toList.collect {
+      case TextFieldSchema(_, SemanticSearch(handle, _), _, _, _, _) =>
+        handle
+    })
+    encoderCache <- handles.traverse(handle => encoders.get(handle).map(enc => handle -> enc)).map(_.toMap)
   } yield {
     val all = new util.ArrayList[LuceneDocument]()
     docs.foreach(doc => {
@@ -43,8 +52,14 @@ trait IndexWriter extends Logging {
       doc.fields.foreach {
         case field @ TextField(name, _) =>
           mapping.textFields.get(name) match {
-            case None          => logger.warn(s"text field '$name' is not defined in mapping")
-            case Some(mapping) => textFieldWriter.write(field, mapping, buffer)
+            case None => logger.warn(s"text field '$name' is not defined in mapping")
+            case Some(mapping) =>
+              mapping match {
+                case TextFieldSchema(_, SemanticSearch(handle, _), _, _, _, _) =>
+                  textFieldWriter.write(field, mapping, buffer, encoder = encoderCache.get(handle))
+                case _ => textFieldWriter.write(field, mapping, buffer, encoder = None)
+              }
+
           }
         case field @ TextListField(name, value) =>
           mapping.textListFields.get(name) match {
