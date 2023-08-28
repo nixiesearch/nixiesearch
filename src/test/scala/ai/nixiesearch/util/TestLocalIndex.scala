@@ -5,8 +5,6 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.index.LocalIndex
-import ai.nixiesearch.index.store.rw.{StoreReader, StoreWriter}
-import ai.nixiesearch.index.store.{LocalStore, Store}
 import cats.effect.{IO, Ref}
 import cats.effect.unsafe.implicits.global
 

@@ -5,7 +5,6 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
-import ai.nixiesearch.index.store.{LocalStore, Store}
 import ai.nixiesearch.util.{IndexFixture, TestIndexMapping}
 import org.http4s.{Entity, EntityDecoder, Method, Request, Response, Uri}
 import org.scalatest.flatspec.AnyFlatSpec

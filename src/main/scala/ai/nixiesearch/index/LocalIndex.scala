@@ -8,9 +8,7 @@ import ai.nixiesearch.config.mapping.IndexMapping.json.indexMappingDecoder
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.store.LocalStore.DirectoryMapping
 import ai.nixiesearch.index.store.Store
-import ai.nixiesearch.index.store.rw.{StoreReader, StoreWriter}
 import ai.nixiesearch.index.{IndexReader, IndexWriter}
 import cats.effect.{IO, Ref}
 import cats.effect.kernel.Resource
@@ -98,6 +96,10 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
 
 object LocalIndex extends Logging {
   import IndexMapping.json.*
+
+  case class DirectoryMapping(dir: MMapDirectory, mapping: IndexMapping, analyzer: Analyzer) {
+    def close(): IO[Unit] = IO(dir.close())
+  }
 
   case class LocalIndexReader(
       name: String,

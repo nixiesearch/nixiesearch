@@ -6,7 +6,6 @@ import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.codec.{FloatFieldWriter, IntFieldWriter, TextFieldWriter, TextListFieldWriter}
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.store.rw.{StoreReader, StoreWriter}
 import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.IndexWriter as LuceneIndexWriter
