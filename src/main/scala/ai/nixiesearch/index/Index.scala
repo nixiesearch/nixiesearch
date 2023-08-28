@@ -11,3 +11,7 @@ trait Index {
   def reader(): Resource[IO, IndexReader]
   def writer(): Resource[IO, IndexWriter]
 }
+
+object Index {
+  val MAPPING_FILE_NAME = "mapping.json"
+}

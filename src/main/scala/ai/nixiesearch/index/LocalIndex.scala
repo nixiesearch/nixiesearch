@@ -8,7 +8,6 @@ import ai.nixiesearch.config.mapping.IndexMapping.json.indexMappingDecoder
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.store.Store
 import ai.nixiesearch.index.{IndexReader, IndexWriter}
 import cats.effect.{IO, Ref}
 import cats.effect.kernel.Resource
@@ -80,6 +79,7 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     )
     luceneDir <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     reader    <- Resource.eval(IO(DirectoryReader.open(luceneDir.dir)))
+    encoders  <- BiEncoderCache.create(luceneDir.mapping)
   } yield {
     LocalIndexReader(
       name = mapping.name,
@@ -88,7 +88,8 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
       reader = reader,
       dir = luceneDir.dir,
       searcher = new IndexSearcher(reader),
-      analyzer = luceneDir.analyzer
+      analyzer = luceneDir.analyzer,
+      encoders = encoders
     )
   }
 
@@ -108,7 +109,8 @@ object LocalIndex extends Logging {
       reader: LuceneIndexReader,
       dir: Directory,
       searcher: IndexSearcher,
-      analyzer: Analyzer
+      analyzer: Analyzer,
+      encoders: BiEncoderCache
   ) extends IndexReader
 
   case class LocalIndexWriter(
@@ -121,8 +123,11 @@ object LocalIndex extends Logging {
       encoders: BiEncoderCache
   ) extends IndexWriter
       with Logging {
-    override def refreshMapping(mapping: IndexMapping): IO[Unit] =
-      mappingRef.set(Some(mapping)) *> writeMapping(mapping, config.url.path)
+    override def refreshMapping(mapping: IndexMapping): IO[Unit] = for {
+      _ <- mappingRef.set(Some(mapping))
+      _ <- writeMapping(mapping, config.url.path)
+      _ <- info(s"mapping updated for index ${mapping.name}")
+    } yield {}
 
   }
 
@@ -153,7 +158,7 @@ object LocalIndex extends Logging {
 
   private def openDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
     _             <- info(s"opening index ${mapping.name}")
-    mappingPath   <- IO(List(workdir, mapping.name, Store.MAPPING_FILE_NAME).mkString(File.separator))
+    mappingPath   <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
     mappingExists <- Files[IO].exists(Path(mappingPath))
     mapping <- mappingExists match {
       case true  => readMapping(mappingPath).flatMap(loaded => loaded.migrate(mapping))
@@ -190,7 +195,7 @@ object LocalIndex extends Logging {
         mapping.name,
         _ => IO.raiseError(new Exception("cannot update mapping"))
       )
-      mappingPath <- IO(List(workdir, mapping.name, Store.MAPPING_FILE_NAME).mkString(File.separator))
+      mappingPath <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
       _ <- Stream(mapping.asJson.spaces2SortKeys.getBytes(): _*)
         .through(writeOutputStream(IO(new FileOutputStream(new File(mappingPath)))))
         .compile

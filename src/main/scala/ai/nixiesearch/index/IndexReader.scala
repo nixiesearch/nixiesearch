@@ -1,14 +1,16 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SearchResponse
+import ai.nixiesearch.api.SuggestRoute.{SuggestResponse, Suggestion}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filter
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.StoreConfig
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.{DocumentVisitor, SuggestVisitor}
+import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.facet.FacetsCollector
@@ -36,6 +38,7 @@ trait IndexReader extends Logging {
   def dir: Directory
   def searcher: IndexSearcher
   def analyzer: Analyzer
+  def encoders: BiEncoderCache
 
   def mapping(): IO[IndexMapping] = mappingRef.get.flatMap {
     case Some(value) => IO.pure(value)
@@ -108,6 +111,15 @@ trait IndexReader extends Logging {
       response
     }
 
+  def suggest(query: LuceneQuery, n: Int): IO[SuggestResponse] = for {
+    start        <- IO(System.currentTimeMillis())
+    topCollector <- IO.pure(TopScoreDocCollector.create(n, n))
+    _            <- IO(searcher.search(query, topCollector))
+    docs         <- collectSuggest(topCollector.topDocs())
+  } yield {
+    SuggestResponse(docs)
+  }
+
   def close(): IO[Unit] = info(s"closing index reader for index '$name'") *> IO(reader.close())
 
   private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = for {
@@ -118,6 +130,16 @@ trait IndexReader extends Logging {
       val visitor = DocumentVisitor(mapping, fieldSet)
       reader.storedFields().document(doc.doc, visitor)
       visitor.asDocument()
+    })
+    docs.toList
+  }
+
+  private def collectSuggest(top: TopDocs): IO[List[Suggestion]] = IO {
+    val docs = top.scoreDocs.flatMap(doc => {
+      val visitor = SuggestVisitor(SuggestMapping.SUGGEST_FIELD)
+      reader.storedFields().document(doc.doc, visitor)
+      visitor.getResult().map(text => Suggestion(text = text, score = doc.score))
+
     })
     docs.toList
   }

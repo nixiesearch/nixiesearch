@@ -43,8 +43,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = "newshiny",
             alias = Nil,
             fields = Map(
-              "suggest" -> TextFieldSchema(
-                name = "suggest",
+              "id" -> TextFieldSchema(
+                name = "id",
                 search = SemanticSearch(HuggingFaceHandle("nixiesearch", "nixie-suggest-small-v1"))
               )
             )

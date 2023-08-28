@@ -11,7 +11,6 @@ import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.aggregator.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.{IndexReader, IndexRegistry}
-import ai.nixiesearch.index.store.Store
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}

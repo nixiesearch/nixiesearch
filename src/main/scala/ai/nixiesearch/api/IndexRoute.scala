@@ -3,7 +3,6 @@ package ai.nixiesearch.api
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.IndexRegistry
-import ai.nixiesearch.index.store.Store
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -33,7 +32,7 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
               updated <- IndexMapping.fromDocument(docs, indexName)
               merged  <- existing.dynamic(updated)
               writer  <- registry.writer(merged)
-              _       <- writer.refreshMapping(merged)
+              _       <- IO.whenA(merged != existing)(writer.refreshMapping(merged))
             } yield {
               merged
             }
@@ -52,7 +51,7 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
         }
     }
     writer   <- registry.writer(mapping)
-    _        <- IO(writer.addDocuments(docs))
+    _        <- writer.addDocuments(docs)
     response <- Ok(IndexResponse.withStartTime("created", start))
   } yield {
     response

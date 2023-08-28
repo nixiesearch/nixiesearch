@@ -7,7 +7,8 @@ import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import io.circe.Decoder
 
-object SuggesterMapping {
+object SuggestMapping {
+  val SUGGEST_FIELD = "id"
 
   object yaml {
     def suggesterMappingDecoder(name: String): Decoder[IndexMapping] = Decoder.instance(c =>
@@ -22,7 +23,7 @@ object SuggesterMapping {
           name = name,
           alias = alias,
           fields = Map(
-            "suggest" -> TextFieldSchema(name = "suggest", search = SemanticSearch(model = model))
+            SUGGEST_FIELD -> TextFieldSchema(name = SUGGEST_FIELD, search = SemanticSearch(model = model))
           )
         )
       }
