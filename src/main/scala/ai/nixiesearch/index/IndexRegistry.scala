@@ -65,7 +65,7 @@ case class IndexRegistry(
   }
 }
 
-object IndexRegistry {
+object IndexRegistry extends Logging {
   def create(config: LocalStoreConfig, indices: List[IndexMapping]): Resource[IO, IndexRegistry] = for {
     indicesRefMap <- Resource.eval(MapRef.ofConcurrentHashMap[IO, String, IndexMapping]())
     _ <- Resource.eval(
@@ -74,6 +74,7 @@ object IndexRegistry {
     readersRef <- Resource.eval(MapRef.ofConcurrentHashMap[IO, String, IndexReader]())
     writersRef <- Resource.eval(MapRef.ofConcurrentHashMap[IO, String, IndexWriter]())
     shutdown   <- Resource.eval(Queue.bounded[IO, IO[Unit]](1024))
+    _          <- Resource.eval(info(s"Index registry initialized: ${indices.size} indices"))
   } yield {
     IndexRegistry(
       config = config,
