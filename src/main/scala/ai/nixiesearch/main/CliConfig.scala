@@ -1,0 +1,82 @@
+package ai.nixiesearch.main
+
+import ai.nixiesearch.core.Logging
+import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
+import ai.nixiesearch.main.CliConfig.fileConverter
+import cats.effect.IO
+import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, ValueConverter, singleArgConverter}
+
+import java.io.File
+import scala.util.{Failure, Success, Try}
+
+case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) with Logging {
+  import CliConfig.*
+
+  object standalone extends Subcommand("standalone") {
+    val config =
+      opt[File](name = "config", short = 'c', descr = "Path to a config file", required = false)(fileConverter)
+  }
+  addSubcommand(standalone)
+
+  errorMessageHandler = (msg: String) => {
+    throw new Exception(msg)
+  }
+}
+
+object CliConfig extends Logging {
+  sealed trait CliArgs
+  object CliArgs {
+    case class StandaloneArgs(config: Option[File]) extends CliArgs
+  }
+
+  def load(args: List[String]): IO[CliArgs] = for {
+    parser <- IO(CliConfig(args))
+    _      <- IO(parser.verify())
+    opts <- parser.subcommand match {
+      case Some(standalone) =>
+        for {
+          config <- parseOption(parser.standalone.config)
+        } yield {
+          StandaloneArgs(config)
+        }
+      case None => IO.raiseError(new Exception("No command given"))
+    }
+  } yield {
+    opts
+  }
+
+  def parse[T](option: ScallopOption[T]): IO[T] = {
+    Try(option.toOption) match {
+      case Success(Some(value)) => IO.pure(value)
+      case Success(None)        => IO.raiseError(new Exception(s"missing required option ${option.name}"))
+      case Failure(ex)          => IO.raiseError(ex)
+    }
+  }
+
+  def parseOption[T](option: ScallopOption[T]): IO[Option[T]] = {
+    Try(option.toOption) match {
+      case Success(value) => IO.pure(value)
+      case Failure(ex)    => IO.raiseError(ex)
+    }
+  }
+
+  given fileConverter: ValueConverter[File] = singleArgConverter(string => {
+    val file = if (string.startsWith("/")) {
+      new File(string)
+    } else {
+      val prefix = System.getProperty("user.dir")
+      new File(s"$prefix/$string")
+    }
+    if (file.exists()) {
+      file
+    } else {
+      Option(file.getParentFile) match {
+        case Some(parent) if parent.exists() && parent.isDirectory =>
+          val other = Option(parent.listFiles()).map(_.map(_.getName).mkString("\n", "\n", "\n"))
+          throw new Exception(s"$file: file does not exist. Perhaps you've meant: $other")
+        case _ => throw new Exception(s"$file: file does not exist (and we cannot list parent directory)")
+      }
+
+    }
+  })
+}

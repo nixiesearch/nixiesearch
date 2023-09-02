@@ -2,8 +2,15 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
+import ai.nixiesearch.core.Logging
+import cats.effect.IO
 import io.circe.{Decoder, Json}
 import cats.implicits.*
+import org.apache.commons.io.IOUtils
+
+import java.io.{File, FileInputStream}
+import java.nio.charset.StandardCharsets
+import io.circe.yaml.parser.*
 
 case class Config(
     api: ApiConfig = ApiConfig(),
@@ -12,7 +19,7 @@ case class Config(
     suggest: Map[String, IndexMapping] = Map.empty
 )
 
-object Config {
+object Config extends Logging {
   case class ConfigParsingError(msg: String) extends Exception(msg)
 
   implicit val configDecoder: Decoder[Config] = Decoder.instance(c =>
@@ -31,4 +38,17 @@ object Config {
       Config(api, store, search = index.map(i => i.name -> i).toMap, suggest = suggest.map(s => s.name -> s).toMap)
     }
   )
+
+  def load(pathOption: Option[File]): IO[Config] = pathOption match {
+    case Some(file) =>
+      for {
+        text    <- IO(IOUtils.toString(new FileInputStream(file), StandardCharsets.UTF_8))
+        yaml    <- IO.fromEither(parse(text))
+        decoded <- IO.fromEither(yaml.as[Config])
+        _       <- info(s"Loaded config: $file")
+      } yield {
+        decoded
+      }
+    case None => info("No config file given, using defaults") *> IO.pure(Config())
+  }
 }
