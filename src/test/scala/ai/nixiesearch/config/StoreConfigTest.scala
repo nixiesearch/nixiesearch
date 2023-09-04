@@ -1,10 +1,10 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.StoreConfig.StoreUrl
-import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl}
+import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl, TmpUrl}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import io.circe.yaml.parser._
+import io.circe.yaml.parser.*
 
 class StoreConfigTest extends AnyFlatSpec with Matchers {
   it should "decode s3 with prefix" in {
@@ -25,5 +25,10 @@ class StoreConfigTest extends AnyFlatSpec with Matchers {
   it should "decode file with /" in {
     val result = parse("/foo/bar").flatMap(_.as[StoreUrl])
     result shouldBe Right(LocalStoreUrl("/foo/bar"))
+  }
+
+  it should "decode tmp" in {
+    val result = parse("tmp://foo").flatMap(_.as[StoreUrl])
+    result shouldBe Right(TmpUrl("foo"))
   }
 }

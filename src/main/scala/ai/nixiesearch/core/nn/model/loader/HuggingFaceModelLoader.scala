@@ -17,6 +17,8 @@ object HuggingFaceModelLoader extends Logging with ModelLoader[HuggingFaceHandle
         .create(cache)
         .use(hf =>
           for {
+            card       <- hf.model(handle)
+            _ <- info("")
             modelBytes <- hf.getCached(handle, modelFile)
             vocabBytes <- hf.getCached(handle, VOCAB_FILE)
             config <- hf

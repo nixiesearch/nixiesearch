@@ -1,7 +1,7 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.{Document, Logging}
+import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging}
 import ai.nixiesearch.index.IndexRegistry
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
@@ -21,8 +21,8 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
 
   def index(request: Request[IO], indexName: String): IO[Response[IO]] = for {
     start <- IO(System.currentTimeMillis())
-    docs  <- request.as[List[Document]].handleErrorWith(_ => request.as[Document].flatMap(doc => IO.pure(List(doc))))
-    _     <- info(s"PUT /$indexName/_index, payload: ${docs.size} docs")
+    docs  <- request.entity.body.through(JsonDocumentStream.parse).compile.toList
+    _     <- info(s"PUT /$indexName/_index, payload ${docs.size} docs")
     mapping <- registry.mapping(indexName).flatMap {
       case Some(existing) =>
         existing.config.mapping.dynamic match {
