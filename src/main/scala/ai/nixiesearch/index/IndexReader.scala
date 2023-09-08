@@ -81,35 +81,6 @@ trait IndexReader extends Logging {
     SearchResponse(end - start, docs, aggs)
   }
 
-  def search(
-      query: Query,
-      fields: List[String] = Nil,
-      n: Int = 10,
-      filters: Filter = Filter(),
-      aggs: Aggs = Aggs()
-  ): IO[SearchResponse] =
-    for {
-      mapping      <- mapping()
-      compiled     <- query.compile(mapping)
-      maybeFilters <- filters.compile(mapping)
-      merged <- maybeFilters match {
-        case Some(filterQuery) =>
-          IO {
-            compiled match {
-              case _: MatchAllDocsQuery => filterQuery
-              case other =>
-                val merged = new BooleanQuery.Builder()
-                merged.add(new BooleanClause(compiled, Occur.MUST))
-                merged.add(new BooleanClause(filterQuery, Occur.FILTER))
-                merged.build()
-            }
-          }
-        case None => IO.pure(compiled)
-      }
-      response <- search(merged, fields, n, aggs)
-    } yield {
-      response
-    }
 
   def suggest(query: LuceneQuery, n: Int): IO[SuggestResponse] = for {
     start        <- IO(System.currentTimeMillis())

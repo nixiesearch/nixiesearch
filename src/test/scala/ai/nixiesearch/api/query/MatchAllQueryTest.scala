@@ -1,5 +1,6 @@
 package ai.nixiesearch.api.query
 
+import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
@@ -15,14 +16,16 @@ class MatchAllQueryTest extends SearchTest with Matchers {
   )
 
   it should "select all docs" in new Index {
-    val docs = searcher.search(MatchAllQuery(), List("id"), 10).unsafeRunSync()
-    val ids  = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val request = SearchRequest(query = MatchAllQuery(), fields = List("id"))
+    val docs    = request.query.search(request, searcher).unsafeRunSync()
+    val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("1", "2", "3")
   }
 
   it should "limit the number of docs" in new Index {
-    val docs = searcher.search(MatchAllQuery(), List("id"), 1).unsafeRunSync()
-    val ids  = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+    val request = SearchRequest(query = MatchAllQuery(), fields = List("id"), size = 1)
+    val docs    = request.query.search(request, searcher).unsafeRunSync()
+    val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("1")
   }
 }

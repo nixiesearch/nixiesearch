@@ -7,10 +7,8 @@ import io.circe.Decoder
 import io.circe.generic.semiauto.*
 
 trait ModelLoader[T <: ModelHandle] {
-  val VOCAB_FILE  = "vocab.txt"
   val CONFIG_FILE = "config.json"
-  val MODEL_FILE  = "pytorch_model.onnx"
-  def load(handle: T, modelFile: String): IO[OnnxSession]
+  def load(handle: T): IO[OnnxSession]
 }
 
 object ModelLoader {

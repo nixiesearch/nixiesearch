@@ -13,9 +13,9 @@ import scala.collection.mutable.ArrayBuffer
 sealed trait Language {
   def analyzer: Analyzer
 
-  def analyze(query: String): List[String] = {
+  def analyze(field: String, query: String): List[String] = {
     val buf    = new ArrayBuffer[String]()
-    val stream = analyzer.tokenStream("dope", query)
+    val stream = analyzer.tokenStream(field, query)
     stream.reset()
     val term = stream.addAttribute(classOf[CharTermAttribute])
     while (stream.incrementToken()) {

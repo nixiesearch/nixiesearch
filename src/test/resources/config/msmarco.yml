@@ -1,5 +1,5 @@
 store:
-  url: tmp://msmarco/
+  url: file:///tmp/msmarco/
 
 search:
   msmarco:

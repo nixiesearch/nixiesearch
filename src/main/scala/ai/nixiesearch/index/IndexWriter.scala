@@ -80,7 +80,7 @@ trait IndexWriter extends Logging {
       all.add(buffer)
     })
     writer.addDocuments(all)
-    logger.info(s"wrote ${all.size()} docs")
+    // logger.info(s"wrote ${all.size()} docs")
   }
 
   def flush(): IO[Unit] = IO(writer.commit())

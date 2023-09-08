@@ -1,7 +1,7 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging}
+import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.IndexRegistry
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
@@ -9,6 +9,7 @@ import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
+import fs2.Stream
 
 case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
   import IndexRoute._
@@ -20,38 +21,29 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
   }
 
   def index(request: Request[IO], indexName: String): IO[Response[IO]] = for {
-    start <- IO(System.currentTimeMillis())
-    docs  <- request.entity.body.through(JsonDocumentStream.parse).compile.toList
-    _     <- info(s"PUT /$indexName/_index, payload ${docs.size} docs")
-    mapping <- registry.mapping(indexName).flatMap {
-      case Some(existing) =>
-        existing.config.mapping.dynamic match {
-          case false => IO.pure(existing)
-          case true =>
+    start   <- IO(System.currentTimeMillis())
+    mapping <- registry.mapping(indexName)
+    _ <- Stream
+      .eval(info(s"PUT /$indexName/_index"))
+      .flatMap(_ =>
+        request.entity.body
+          .through(JsonDocumentStream.parse)
+          .chunkN(16)
+          .unchunks
+          .through(PrintProgress.tap("indexed docs"))
+          .chunkN(16)
+          .evalScan(mapping)((mappingOption, chunk) =>
             for {
-              updated <- IndexMapping.fromDocument(docs, indexName)
-              merged  <- existing.dynamic(updated)
-              writer  <- registry.writer(merged)
-              _       <- IO.whenA(merged != existing)(writer.refreshMapping(merged))
+              mapping <- getMappingOrCreate(mappingOption, chunk.toList, indexName)
+              writer  <- registry.writer(mapping)
+              _       <- writer.addDocuments(chunk.toList)
             } yield {
-              merged
+              Some(mapping)
             }
-        }
-
-      case None =>
-        for {
-          _ <- warn(s"Index '$indexName' mapping not found, using dynamic mapping")
-          _ <- warn("Dynamic mapping is only recommended for testing. Prefer explicit mapping definition in config.")
-          generated <- IndexMapping.fromDocument(docs, indexName).map(_.withDynamicMapping(true))
-          _         <- info(s"Generated mapping $generated")
-          writer    <- registry.writer(generated)
-          _         <- writer.refreshMapping(generated)
-        } yield {
-          generated
-        }
-    }
-    writer   <- registry.writer(mapping)
-    _        <- writer.addDocuments(docs)
+          )
+      )
+      .compile
+      .drain
     response <- Ok(IndexResponse.withStartTime("created", start))
   } yield {
     response
@@ -81,6 +73,38 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
 
     }
   }
+
+  private def getMappingOrCreate(
+      mappingOption: Option[IndexMapping],
+      first: List[Document],
+      indexName: String
+  ): IO[IndexMapping] =
+    mappingOption match {
+      case Some(existing) =>
+        existing.config.mapping.dynamic match {
+          case false => IO.pure(existing)
+          case true =>
+            for {
+              updated <- IndexMapping.fromDocument(first, indexName)
+              merged  <- existing.dynamic(updated)
+              writer  <- registry.writer(merged)
+              _       <- IO.whenA(merged != existing)(writer.refreshMapping(merged))
+            } yield {
+              merged
+            }
+        }
+      case None =>
+        for {
+          _ <- warn(s"Index '$indexName' mapping not found, using dynamic mapping")
+          _ <- warn("Dynamic mapping is only recommended for testing. Prefer explicit mapping definition in config.")
+          generated <- IndexMapping.fromDocument(first, indexName).map(_.withDynamicMapping(true))
+          _         <- info(s"Generated mapping $generated")
+          writer    <- registry.writer(generated)
+          _         <- writer.refreshMapping(generated)
+        } yield {
+          generated
+        }
+    }
 }
 
 object IndexRoute {

@@ -8,7 +8,7 @@ import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
 
 case class Filter(include: Option[Predicate] = None, exclude: Option[Predicate] = None) {
-  def compile(mapping: IndexMapping): IO[Option[LuceneQuery]] = {
+  def toLuceneQuery(mapping: IndexMapping): IO[Option[LuceneQuery]] = {
     if (include.isEmpty) {
       exclude match {
         case Some(value) => value.compile(mapping).map(Option.apply)

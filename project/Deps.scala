@@ -8,11 +8,5 @@ object Deps {
   lazy val fs2Version       = "3.2.2"
   lazy val luceneVersion    = "9.7.0"
   lazy val awsVersion       = "2.20.48"
-
-  val httpsDeps = Seq(
-    "org.http4s" %% "http4s-dsl"          % http4sVersion,
-    "org.http4s" %% "http4s-blaze-server" % http4sVersion,
-    "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-    "org.http4s" %% "http4s-circe"        % http4sVersion
-  )
+  lazy val djlVersion = "0.23.0"
 }

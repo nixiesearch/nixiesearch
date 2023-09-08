@@ -47,9 +47,9 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
           if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
           else field.value
         buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
-      case SearchType.SemanticSearch(model, language) =>
+      case SearchType.SemanticSearch(model, prefix) =>
         encoder.foreach(encoder => {
-          val encoded = encoder.embed(Array(field.value))(0)
+          val encoded = encoder.embed(Array(prefix.document + field.value))(0)
           buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
         })
       case SearchType.NoSearch =>

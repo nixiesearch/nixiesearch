@@ -10,17 +10,24 @@ import io.circe.parser.*
 import java.io.{ByteArrayInputStream, File}
 
 object HuggingFaceModelLoader extends Logging with ModelLoader[HuggingFaceHandle] {
-  override def load(handle: HuggingFaceHandle, modelFile: String = MODEL_FILE): IO[OnnxSession] =
+  override def load(handle: HuggingFaceHandle): IO[OnnxSession] =
     for {
       cache <- ModelFileCache.create()
       sbert <- HuggingFaceClient
         .create(cache)
         .use(hf =>
           for {
-            card       <- hf.model(handle)
-            _ <- info("")
+            card <- hf.model(handle)
+
+            modelFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_.endsWith(".onnx")))(
+              new Exception("Cannot find ONNX model in repo")
+            )
+            tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
+              new Exception("Cannot find tokenizer.json in repo")
+            )
+            _          <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
             modelBytes <- hf.getCached(handle, modelFile)
-            vocabBytes <- hf.getCached(handle, VOCAB_FILE)
+            vocabBytes <- hf.getCached(handle, tokenizerFile)
             config <- hf
               .getCached(handle, CONFIG_FILE)
               .flatMap(bytes => IO.fromEither(decode[TransformersConfig](new String(bytes))))

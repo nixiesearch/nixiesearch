@@ -1,5 +1,6 @@
 package ai.nixiesearch.core.nn.model
 
+import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.djl.modality.nlp.DefaultVocabulary
 import ai.djl.modality.nlp.bert.BertFullTokenizer
 import ai.nixiesearch.core.Logging
@@ -16,7 +17,7 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters.*
 
-case class OnnxSession(env: OrtEnvironment, session: OrtSession, tokenizer: BertFullTokenizer, dim: Int) {
+case class OnnxSession(env: OrtEnvironment, session: OrtSession, tokenizer: HuggingFaceTokenizer, dim: Int) {
   def close(): Unit = {
     session.close()
     env.close()
@@ -27,19 +28,14 @@ object OnnxSession extends Logging {
   import ai.nixiesearch.core.nn.model.loader.HuggingFaceModelLoader.*
   import ai.nixiesearch.core.nn.model.loader.LocalModelLoader.*
 
-  def load(
-      handle: ModelHandle,
-      modelFile: String = "pytorch_model.onnx"
-  ): IO[OnnxSession] =
+  def load(handle: ModelHandle): IO[OnnxSession] =
     handle match {
-      case hh: HuggingFaceHandle => HuggingFaceModelLoader.load(hh, modelFile)
-      case lh: LocalModelHandle  => LocalModelLoader.load(lh, modelFile)
+      case hh: HuggingFaceHandle => HuggingFaceModelLoader.load(hh)
+      case lh: LocalModelHandle  => LocalModelLoader.load(lh)
     }
 
   def load(model: InputStream, dic: InputStream, dim: Int): IO[OnnxSession] = IO {
-    val tokens    = IOUtils.toString(dic, StandardCharsets.UTF_8).split('\n')
-    val vocab     = DefaultVocabulary.builder().add(tokens.toList.asJava).build()
-    val tokenizer = new BertFullTokenizer(vocab, true)
+    val tokenizer = HuggingFaceTokenizer.newInstance(dic, Map("padding" -> "true", "truncation" -> "true").asJava)
     val env       = OrtEnvironment.getEnvironment("sbert")
     val opts      = new SessionOptions()
     opts.setIntraOpNumThreads(Runtime.getRuntime.availableProcessors())

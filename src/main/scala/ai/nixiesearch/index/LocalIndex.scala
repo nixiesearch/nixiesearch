@@ -32,7 +32,9 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
-case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[IndexMapping]]) extends Index with Logging {
+case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[IndexMapping]], encoders: BiEncoderCache)
+    extends Index
+    with Logging {
   import LocalIndex.*
 
   def getMapping() = Resource.eval(mappingRef.get.flatMap {
@@ -52,7 +54,6 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     luceneDir    <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     writerConfig <- Resource.pure(new IndexWriterConfig(luceneDir.analyzer))
     writer       <- Resource.eval(IO(LuceneIndexWriter(luceneDir.dir, writerConfig)))
-    encoders     <- BiEncoderCache.create()
     _            <- Resource.eval(IO(writer.commit()))
   } yield {
     LocalIndexWriter(
@@ -79,7 +80,6 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     )
     luceneDir <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     reader    <- Resource.eval(IO(DirectoryReader.open(luceneDir.dir)))
-    encoders  <- BiEncoderCache.create()
   } yield {
     LocalIndexReader(
       name = mapping.name,

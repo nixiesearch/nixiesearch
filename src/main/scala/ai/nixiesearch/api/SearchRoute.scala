@@ -27,7 +27,7 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
           for {
             query    <- request.as[SearchRequest]
             _        <- info(s"POST /$indexName/_search query=$query")
-            docs     <- searchDsl(query.query, query.filter, query.fields, index, query.size)
+            docs     <- searchDsl(query, index)
             response <- Ok(docs)
           } yield {
             response
@@ -43,7 +43,7 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
             start <- IO(System.currentTimeMillis())
             docs <- query match {
               case Some(q) => searchLucene(q, index, size.getOrElse(10))
-              case None    => searchDsl(MatchAllQuery(), Filter(), Nil, index, size.getOrElse(10))
+              case None => searchDsl(SearchRequest(MatchAllQuery(), Filter(), size.getOrElse(10), Nil, Aggs()), index)
             }
 
             response <- Ok(docs)
@@ -54,14 +54,14 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
       }
   }
 
-  def searchDsl(query: Query, filter: Filter, fields: List[String], index: IndexReader, n: Int): IO[SearchResponse] =
+  def searchDsl(request: SearchRequest, index: IndexReader): IO[SearchResponse] =
     for {
       mapping <- index.mapping()
-      storedFields <- fields match {
+      storedFields <- request.fields match {
         case Nil => IO(mapping.fields.values.filter(_.store).map(_.name).toList)
-        case _   => IO.pure(fields)
+        case _   => IO.pure(request.fields)
       }
-      response <- index.search(query, filters = filter, fields = storedFields, n = n)
+      response <- request.query.search(request, index)
     } yield {
       response
     }

@@ -2,6 +2,7 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch}
 import ai.nixiesearch.config.mapping.SearchType
+import ai.nixiesearch.config.mapping.SearchType.yaml.searchTypeDecoder
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}
@@ -18,6 +19,17 @@ sealed trait FieldSchema[T <: Field] {
 }
 
 object FieldSchema {
+  object TextLikeFieldSchema {
+    def unapply(f: FieldSchema[_ <: Field]): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean)] =
+      f match {
+        case TextFieldSchema(name, search, store, sort, facet, filter) =>
+          Some((name, search, store, sort, facet, filter))
+        case TextListFieldSchema(name, search, store, sort, facet, filter) =>
+          Some((name, search, store, sort, facet, filter))
+        case _ => None
+      }
+  }
+
   case class TextFieldSchema(
       name: String,
       search: SearchType = NoSearch,
@@ -70,7 +82,7 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false
   ) extends FieldSchema[FloatField]
-  
+
   object FloatFieldSchema {
     def dynamicDefault(name: String) = new FloatFieldSchema(
       name = name,
@@ -94,7 +106,10 @@ object FieldSchema {
 
     def textFieldSchemaDecoder(name: String): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
-        search <- c.downField("search").as[Option[SearchType]].map(_.getOrElse(NoSearch))
+        search <- c
+          .downField("search")
+          .as[Option[SearchType]](Decoder.decodeOption(searchTypeDecoder))
+          .map(_.getOrElse(NoSearch))
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
         facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
@@ -151,6 +166,8 @@ object FieldSchema {
   }
 
   object json {
+    import SearchType.json.*
+
     implicit val textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
     implicit val textFieldSchemaDecoder: Decoder[TextFieldSchema] = deriveDecoder
 

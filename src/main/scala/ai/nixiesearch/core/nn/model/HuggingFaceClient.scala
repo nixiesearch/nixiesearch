@@ -79,23 +79,25 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
 
 object HuggingFaceClient {
   val HUGGINGFACE_API_ENDPOINT = "https://huggingface.co"
+
   case class ModelResponse(id: String, siblings: List[Sibling])
   object ModelResponse {
     case class Sibling(rfilename: String)
   }
 
-  implicit val modelSiblingCodec: Codec[Sibling]        = deriveCodec[Sibling]
-  implicit val modelResponseCodec: Codec[ModelResponse] = deriveCodec[ModelResponse]
+  given modelSiblingCodec: Codec[Sibling]        = deriveCodec
+  given modelResponseCodec: Codec[ModelResponse] = deriveCodec
 
-  def create(cache: ModelFileCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] = for {
-    uri <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
-    client <- BlazeClientBuilder[IO]
-      .withRequestTimeout(120.second)
-      .withConnectTimeout(120.second)
-      .withIdleTimeout(200.seconds)
-      .resource
-  } yield {
-    HuggingFaceClient(client, uri, cache)
-  }
+  def create(cache: ModelFileCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] =
+    for {
+      uri <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
+      client <- BlazeClientBuilder[IO]
+        .withRequestTimeout(120.second)
+        .withConnectTimeout(120.second)
+        .withIdleTimeout(200.seconds)
+        .resource
+    } yield {
+      HuggingFaceClient(client, uri, cache)
+    }
 
 }

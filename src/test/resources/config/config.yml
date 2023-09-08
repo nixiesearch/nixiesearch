@@ -21,7 +21,6 @@ search:
         search: # more advanced setup
           type: semantic
           model: intfloat/e5-base-v2
-          language: english
       price:
         type: int # can be also float/long/double
         filter: true # all numeric fields are filterable

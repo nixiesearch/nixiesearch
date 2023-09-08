@@ -34,7 +34,8 @@ libraryDependencies ++= Seq(
   "commons-io"                % "commons-io"               % "2.11.0",
   "commons-codec"             % "commons-codec"            % "1.16.0",
   "org.apache.commons"        % "commons-lang3"            % "3.12.0",
-  "ai.djl"                    % "api"                      % "0.23.0",
+  "ai.djl"                    % "api"                      % djlVersion,
+  "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
   "com.microsoft.onnxruntime" % "onnxruntime"              % "1.15.1"
 )
 

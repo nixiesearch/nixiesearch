@@ -36,7 +36,7 @@ class SearchTypeTest extends AnyFlatSpec with Matchers {
         |  type: semantic
         |  language: english""".stripMargin
     val result = decodeYaml(yaml)
-    result shouldBe Right(TextFieldSchema(name = "field", search = SemanticSearch(language = English)))
+    result shouldBe Right(TextFieldSchema(name = "field", search = SemanticSearch()))
   }
 
   def decodeYaml(yaml: String): Either[Throwable, FieldSchema[_ <: Field]] = {
