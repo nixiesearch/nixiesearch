@@ -16,12 +16,12 @@ import io.circe.syntax.*
 class IndexSnapshotTest extends AnyFlatSpec with Matchers with IndexFixture {
   val mapping = IndexMapping(
     name = "test",
-    fields = List(TextFieldSchema("id"), TextFieldSchema("title"), IntFieldSchema("count"))
+    fields = List(TextFieldSchema("_id"), TextFieldSchema("title"), IntFieldSchema("count"))
   )
 
   it should "make snapshot from directory" in withStore(mapping) { store =>
     {
-      val source = Document(List(TextField("id", "1"), TextField("title", "foo"), IntField("count", 1)))
+      val source = Document(List(TextField("_id", "1"), TextField("title", "foo"), IntField("count", 1)))
       val writer = store.writer(mapping).unsafeRunSync()
       writer.addDocuments(List(source)).unsafeRunSync()
       writer.writer.commit()

@@ -3,6 +3,7 @@ package ai.nixiesearch.api
 import ai.nixiesearch.api.SuggestRoute.{SuggestRequest, SuggestResponse}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
+import ai.nixiesearch.config.mapping.SuggestMapping.SUGGEST_FIELD
 import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
@@ -42,7 +43,7 @@ class SuggestRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
         send[Document, IndexResponse](
           IndexRoute(store).routes,
           "http://localhost/test/_index",
-          Some(Document(List(TextField("id", "hello")))),
+          Some(Document(List(TextField(SUGGEST_FIELD, "hello")))),
           Method.PUT
         )
       response.result shouldBe "created"
@@ -52,9 +53,9 @@ class SuggestRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
   it should "autocomplete" in withStore(mapping) { store =>
     {
       val docs = List(
-        Document(List(TextField("id", "hello"))),
-        Document(List(TextField("id", "help"))),
-        Document(List(TextField("id", "hip hop")))
+        Document(List(TextField(SUGGEST_FIELD, "hello"))),
+        Document(List(TextField(SUGGEST_FIELD, "help"))),
+        Document(List(TextField(SUGGEST_FIELD, "hip hop")))
       )
       val indexResponse =
         send[List[Document], IndexResponse](

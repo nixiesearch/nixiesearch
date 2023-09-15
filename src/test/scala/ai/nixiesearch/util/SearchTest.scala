@@ -1,15 +1,18 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.api.SearchRoute
+import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.aggregation.Aggs
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.index.{IndexRegistry, LocalIndex}
+import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
 import org.apache.commons.io.FileUtils
@@ -45,23 +48,29 @@ trait SearchTest extends AnyFlatSpec with BeforeAndAfterAll {
     }
     val searcher = registry.reader(mapping.name).unsafeRunSync().get
 
-    def search(query: Query = MatchAllQuery(), filters: Filter = Filter(), aggs: Aggs = Aggs()): List[String] = {
-      searchRaw(query, filters, aggs).hits
+    def search(
+        query: Query = MatchAllQuery(),
+        filters: Filters = Filters(),
+        aggs: Aggs = Aggs(),
+        fields: List[String] = List("_id"),
+        n: Int = 10
+    ): List[String] = {
+      Searcher
+        .search(SearchRequest(query, filters, n, NonEmptyList.fromListUnsafe(fields), aggs), searcher)
+        .unsafeRunSync()
+        .hits
         .flatMap(_.fields.collect { case TextField(_, value) => value })
     }
 
     def searchRaw(
         query: Query = MatchAllQuery(),
-        filters: Filter = Filter(),
-        aggs: Aggs = Aggs()
+        filters: Filters = Filters(),
+        aggs: Aggs = Aggs(),
+        fields: List[String] = List("_id"),
+        n: Int = 10
     ): SearchRoute.SearchResponse = {
-      searcher
-        .search(
-          query,
-          filters = filters,
-          fields = List("id"),
-          aggs = aggs
-        )
+      Searcher
+        .search(SearchRequest(query, filters, n, NonEmptyList.fromListUnsafe(fields), aggs), searcher)
         .unsafeRunSync()
 
     }

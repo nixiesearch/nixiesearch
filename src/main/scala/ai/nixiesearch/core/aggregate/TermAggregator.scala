@@ -1,9 +1,9 @@
-package ai.nixiesearch.core.aggregator
+package ai.nixiesearch.core.aggregate
 
 import ai.nixiesearch.api.aggregation.Aggregation.TermAggregation
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.aggregator.AggregationResult.{TermAggregationResult, TermCount}
+import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import cats.effect.IO
 import org.apache.lucene.index.{DocValues, IndexReader}
 import org.apache.lucene.facet.{FacetsCollector, FacetsConfig, StringDocValuesReaderState, StringValueFacetCounts}

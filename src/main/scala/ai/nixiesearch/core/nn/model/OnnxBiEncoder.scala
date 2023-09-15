@@ -1,73 +1,45 @@
 package ai.nixiesearch.core.nn.model
 
+import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.djl.modality.nlp.bert.BertFullTokenizer
 import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}
+
 import scala.jdk.CollectionConverters.*
 import java.nio.LongBuffer
 import scala.collection.mutable.ArrayBuffer
 
-case class OnnxBiEncoder(env: OrtEnvironment, session: OrtSession, tokenizer: BertFullTokenizer, dim: Int) {
-  val vocab = tokenizer.getVocabulary
-  val cls   = vocab.getIndex("[CLS]")
-  val sep   = vocab.getIndex("[SEP]")
-  val pad   = vocab.getIndex("[PAD]")
+case class OnnxBiEncoder(
+    env: OrtEnvironment,
+    session: OrtSession,
+    tokenizer: HuggingFaceTokenizer,
+    dim: Int
+) {
 
+  def embed(doc: String): Array[Float] = embed(Array(doc))(0)
   def embed(batch: Array[String]): Array[Array[Float]] = {
-    val textTokens = batch.map(sentence => tokenize(sentence))
-    val maxLength  = textTokens.map(_.length).max
-    val tensorSize = batch.length * maxLength
-    val tokens     = new Array[Long](tensorSize)
-    val tokenTypes = new Array[Long](tensorSize)
-    val attMask    = new Array[Long](tensorSize)
+    val encoded = tokenizer.batchEncode(batch)
 
-    var s = 0
-    var i = 0
-    while (s < batch.length) {
-      var j = 0
-      while (j < math.max(maxLength, textTokens(s).length)) {
-        if (j < textTokens(s).length) {
-          tokens(i) = textTokens(s)(j)
-          tokenTypes(i) = 0 // ???
-          attMask(i) = 1
-        } else {
-          tokens(i) = pad
-          tokenTypes(i) = 0
-          attMask(i) = 0
-        }
-        i += 1
-        j += 1
-      }
-      s += 1
-    }
-    val tensorDim = Array(batch.length.toLong, maxLength.toLong)
-    val args = Map(
-      "input_ids"      -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim),
-      "token_type_ids" -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim),
-      "attention_mask" -> OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
-    )
+    val tokens       = encoded.flatMap(e => e.getIds)
+    val tokenLengths = encoded.map(e => e.getAttentionMask.sum.toInt)
+    val tokenTypes   = encoded.flatMap(e => e.getTypeIds)
+    val attMask      = encoded.flatMap(e => e.getAttentionMask)
+
+    val tensorDim = Array(batch.length.toLong, encoded(0).getIds.length)
+    val args = session.getInputNames.asScala.map {
+      case n @ "input_ids"      => n -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
+      case n @ "token_type_ids" => n -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
+      case n @ "attention_mask" => n -> OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
+    }.toMap
     val result     = session.run(args.asJava)
     val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
-    val normalized = avgpool(tensor, textTokens, dim)
+    val normalized = avgpool(tensor, tokenLengths, dim)
     result.close()
     args.values.foreach(_.close())
     normalized
   }
 
-  def tokenize(sentence: String): Array[Long] = {
-    val buffer = new ArrayBuffer[Long]()
-    buffer.append(cls)
-    tokenizer
-      .tokenize(sentence)
-      .asScala
-      .foreach(t => {
-        buffer.append(vocab.getIndex(t))
-      })
-    buffer.append(sep)
-    buffer.toArray
-  }
-
-  def avgpool(tensor: Array[Array[Array[Float]]], tokens: Array[Array[Long]], dim: Int): Array[Array[Float]] = {
-    val result = new Array[Array[Float]](tokens.length)
+  def avgpool(tensor: Array[Array[Array[Float]]], tokenLengths: Array[Int], dim: Int): Array[Array[Float]] = {
+    val result = new Array[Array[Float]](tokenLengths.length)
     var s      = 0
     while (s < tensor.length) {
       val embed = new Array[Float](dim)
@@ -77,7 +49,7 @@ case class OnnxBiEncoder(env: OrtEnvironment, session: OrtSession, tokenizer: Be
         var cnt = 0
         var j   = 0
         while (j < tensor(s).length) {
-          if (j < tokens(s).length) {
+          if (j < tokenLengths(s)) {
             sum += tensor(s)(j)(i)
             cnt += 1
           }

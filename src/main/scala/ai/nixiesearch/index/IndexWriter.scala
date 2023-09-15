@@ -1,12 +1,13 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.StoreConfig
+import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
+import ai.nixiesearch.config.{FieldSchema, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
+import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
-import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.core.codec.{FloatFieldWriter, IntFieldWriter, TextFieldWriter, TextListFieldWriter}
+import ai.nixiesearch.core.{Document, Field, Logging}
+import ai.nixiesearch.core.codec.{FieldWriter, FloatFieldWriter, IntFieldWriter, TextFieldWriter, TextListFieldWriter}
+import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
@@ -37,14 +38,14 @@ trait IndexWriter extends Logging {
     case None        => IO.raiseError(new Exception("this should never happen"))
   }
 
-  // todo: migrate to traverse
   def addDocuments(docs: List[Document]): IO[Unit] = for {
     mapping <- mapping()
     handles <- IO(mapping.textFields.values.toList.collect {
-      case TextFieldSchema(_, SemanticSearch(handle, _), _, _, _, _) =>
+      case TextFieldSchema(_, SemanticSearchLikeType(handle, _), _, _, _, _) =>
         handle
     })
-    encoderCache <- handles.traverse(handle => encoders.get(handle).map(enc => handle -> enc)).map(_.toMap)
+    fieldStrings    <- IO(strings(mapping, docs))
+    embeddedStrings <- embed(fieldStrings, encoders)
   } yield {
     val all = new util.ArrayList[LuceneDocument]()
     docs.foreach(doc => {
@@ -55,16 +56,16 @@ trait IndexWriter extends Logging {
             case None => logger.warn(s"text field '$name' is not defined in mapping")
             case Some(mapping) =>
               mapping match {
-                case TextFieldSchema(_, SemanticSearch(handle, _), _, _, _, _) =>
-                  textFieldWriter.write(field, mapping, buffer, encoder = encoderCache.get(handle))
-                case _ => textFieldWriter.write(field, mapping, buffer, encoder = None)
+                case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _) =>
+                  textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
+                case _ => textFieldWriter.write(field, mapping, buffer, Map.empty)
               }
 
           }
         case field @ TextListField(name, value) =>
           mapping.textListFields.get(name) match {
             case None          => logger.warn(s"text[] field '$name' is not defined in mapping")
-            case Some(mapping) => textListFieldWriter.write(field, mapping, buffer)
+            case Some(mapping) => textListFieldWriter.write(field, mapping, buffer, Map.empty)
           }
         case field @ IntField(name, value) =>
           mapping.intFields.get(name) match {
@@ -80,7 +81,43 @@ trait IndexWriter extends Logging {
       all.add(buffer)
     })
     writer.addDocuments(all)
-    logger.info(s"wrote ${all.size()} docs")
+  }
+
+  def strings(mapping: IndexMapping, docs: List[Document]): Map[SemanticSearchLikeType, List[String]] = {
+    val candidates = for {
+      doc   <- docs
+      field <- doc.fields
+      model <- mapping.fields.get(field.name).toList.collect {
+        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _) => tpe
+      }
+      string <- field match {
+        case TextField(name, value)      => List(value)
+        case TextListField(name, values) => values
+        case _                           => Nil
+      }
+    } yield {
+      model -> string
+    }
+    candidates.groupMap(_._1)(_._2)
+  }
+
+  def embed(
+      targets: Map[SemanticSearchLikeType, List[String]],
+      encoders: BiEncoderCache
+  ): IO[Map[SemanticSearchLikeType, Map[String, Array[Float]]]] = {
+    targets.toList
+      .traverse { case (tpe, strings) =>
+        for {
+          encoder <- encoders.get(tpe.model)
+          encoded <- strings
+            .grouped(64)
+            .toList
+            .flatTraverse(batch => IO(batch.zip(encoder.embed(batch.map(s => tpe.prefix.document + s).toArray))))
+        } yield {
+          tpe -> encoded.toMap
+        }
+      }
+      .map(_.toMap)
   }
 
   def flush(): IO[Unit] = IO(writer.commit())

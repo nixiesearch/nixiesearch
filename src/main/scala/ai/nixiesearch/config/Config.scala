@@ -49,6 +49,13 @@ object Config extends Logging {
       } yield {
         decoded
       }
-    case None => info("No config file given, using defaults") *> IO.pure(Config())
+    case None =>
+      for {
+        _    <- info("No config file given, using defaults")
+        dflt <- IO.pure(Config())
+        _    <- info(s"Store: ${dflt.store}")
+      } yield {
+        dflt
+      }
   }
 }

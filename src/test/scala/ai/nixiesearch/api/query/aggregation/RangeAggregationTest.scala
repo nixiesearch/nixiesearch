@@ -3,7 +3,7 @@ package ai.nixiesearch.api.query.aggregation
 import ai.nixiesearch.api.aggregation.Aggregation.AggRange.{RangeFrom, RangeFromTo, RangeTo}
 import ai.nixiesearch.api.aggregation.Aggregation.RangeAggregation
 import ai.nixiesearch.api.aggregation.Aggs
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeLte
 import ai.nixiesearch.api.query.MultiMatchQuery
@@ -12,7 +12,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
-import ai.nixiesearch.core.aggregator.AggregationResult.{RangeAggregationResult, RangeCount}
+import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 
@@ -22,7 +22,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = "test",
     fields = List(
-      TextFieldSchema("id", filter = true),
+      TextFieldSchema("_id", filter = true),
       TextFieldSchema("title", search = LexicalSearch()),
       TextFieldSchema("color", filter = true, facet = true),
       IntFieldSchema("count", facet = true, filter = true),
@@ -32,7 +32,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   val index = List(
     Document(
       List(
-        TextField("id", "1"),
+        TextField("_id", "1"),
         TextField("title", "long socks"),
         TextField("color", "red"),
         IntField("count", 1),
@@ -41,7 +41,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "2"),
+        TextField("_id", "2"),
         TextField("title", "sleeveless jacket"),
         TextField("color", "red"),
         IntField("count", 2),
@@ -50,7 +50,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "3"),
+        TextField("_id", "3"),
         TextField("title", "short socks"),
         TextField("color", "red"),
         IntField("count", 3),
@@ -59,7 +59,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "4"),
+        TextField("_id", "4"),
         TextField("title", "winter socks"),
         TextField("color", "white"),
         IntField("count", 4),
@@ -68,7 +68,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "5"),
+        TextField("_id", "5"),
         TextField("title", "evening dress"),
         TextField("color", "white"),
         IntField("count", 5),
@@ -77,7 +77,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "6"),
+        TextField("_id", "6"),
         TextField("title", "winter socks"),
         TextField("color", "black"),
         IntField("count", 6),
@@ -111,7 +111,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate and filter" in new Index {
     val result = searchRaw(
       aggs = Aggs(Map("count" -> RangeAggregation("count", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4))))),
-      filters = Filter(include = Some(RangeLte("count", 2.5)))
+      filters = Filters(include = Some(RangeLte("count", 2.5)))
     )
     result.aggs shouldBe Map(
       "count" -> RangeAggregationResult(

@@ -7,8 +7,8 @@ import io.circe.generic.semiauto.*
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
 
-case class Filter(include: Option[Predicate] = None, exclude: Option[Predicate] = None) {
-  def compile(mapping: IndexMapping): IO[Option[LuceneQuery]] = {
+case class Filters(include: Option[Predicate] = None, exclude: Option[Predicate] = None) {
+  def toLuceneQuery(mapping: IndexMapping): IO[Option[LuceneQuery]] = {
     if (include.isEmpty) {
       exclude match {
         case Some(value) => value.compile(mapping).map(Option.apply)
@@ -38,7 +38,7 @@ case class Filter(include: Option[Predicate] = None, exclude: Option[Predicate] 
 
 }
 
-object Filter {
-  implicit val filterEncoder: Encoder[Filter] = deriveEncoder
-  implicit val filterDecoder: Decoder[Filter] = deriveDecoder
+object Filters {
+  implicit val filterEncoder: Encoder[Filters] = deriveEncoder
+  implicit val filterDecoder: Decoder[Filters] = deriveDecoder
 }

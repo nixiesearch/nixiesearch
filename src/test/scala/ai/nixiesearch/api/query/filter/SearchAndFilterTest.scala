@@ -1,6 +1,6 @@
 package ai.nixiesearch.api.query.filter
 
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
@@ -15,20 +15,20 @@ class SearchAndFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = "test",
     fields = List(
-      TextFieldSchema("id", filter = true),
+      TextFieldSchema("_id", filter = true),
       TextFieldSchema("color", filter = true),
       TextFieldSchema("title", search = LexicalSearch())
     )
   )
   val index = List(
-    Document(List(TextField("id", "1"), TextField("color", "red"), TextField("title", "big jacket"))),
-    Document(List(TextField("id", "2"), TextField("color", "white"), TextField("title", "evening dress"))),
-    Document(List(TextField("id", "3"), TextField("color", "red"), TextField("title", "branded dress")))
+    Document(List(TextField("_id", "1"), TextField("color", "red"), TextField("title", "big jacket"))),
+    Document(List(TextField("_id", "2"), TextField("color", "white"), TextField("title", "evening dress"))),
+    Document(List(TextField("_id", "3"), TextField("color", "red"), TextField("title", "branded dress")))
   )
 
   it should "search and filter" in new Index {
     val results =
-      search(query = MatchQuery("title", "dress"), filters = Filter(include = Some(TermPredicate("color", "red"))))
+      search(query = MatchQuery("title", "dress"), filters = Filters(include = Some(TermPredicate("color", "red"))))
     results shouldBe List("3")
   }
 }

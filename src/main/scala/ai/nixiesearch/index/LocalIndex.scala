@@ -32,7 +32,9 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
-case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[IndexMapping]]) extends Index with Logging {
+case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[IndexMapping]], encoders: BiEncoderCache)
+    extends Index
+    with Logging {
   import LocalIndex.*
 
   def getMapping() = Resource.eval(mappingRef.get.flatMap {
@@ -52,7 +54,6 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     luceneDir    <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     writerConfig <- Resource.pure(new IndexWriterConfig(luceneDir.analyzer))
     writer       <- Resource.eval(IO(LuceneIndexWriter(luceneDir.dir, writerConfig)))
-    encoders     <- BiEncoderCache.create()
     _            <- Resource.eval(IO(writer.commit()))
   } yield {
     LocalIndexWriter(
@@ -79,7 +80,6 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
     )
     luceneDir <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
     reader    <- Resource.eval(IO(DirectoryReader.open(luceneDir.dir)))
-    encoders  <- BiEncoderCache.create()
   } yield {
     LocalIndexReader(
       name = mapping.name,
@@ -96,7 +96,7 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
 }
 
 object LocalIndex extends Logging {
-  import IndexMapping.json.*
+  import IndexMapping.json.given
 
   case class DirectoryMapping(dir: MMapDirectory, mapping: IndexMapping, analyzer: Analyzer) {
     def close(): IO[Unit] = IO(dir.close())
@@ -157,7 +157,7 @@ object LocalIndex extends Logging {
   } yield {}
 
   private def openDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
-    _             <- info(s"opening index ${mapping.name}")
+    _             <- info(s"opening directory ${mapping.name}")
     mappingPath   <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
     mappingExists <- Files[IO].exists(Path(mappingPath))
     mapping <- mappingExists match {

@@ -84,10 +84,6 @@ case class IndexMapping(
 }
 
 object IndexMapping extends Logging {
-  case class MappingRef(ref: Ref[IO, Option[IndexMapping]]) {
-    def resource = ???
-  }
-
   sealed trait Migration {
     def field: FieldSchema[_ <: Field]
   }
@@ -108,11 +104,11 @@ object IndexMapping extends Logging {
     fieldValues <- fieldValues1.flatTraverse {
       case (fieldName, values @ head :: _) =>
         head match {
-          case f: TextField if fieldName == "id" => IO.pure(List(TextFieldSchema("id", filter = true)))
-          case f: TextField                      => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
-          case f: TextListField                  => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
-          case f: IntField                       => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
-          case f: FloatField                     => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
+          case f: TextField if fieldName == "_id" => IO.pure(List(TextFieldSchema("_id", filter = true)))
+          case f: TextField                       => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
+          case f: TextListField                   => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
+          case f: IntField                        => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
+          case f: FloatField                      => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
         }
       case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen
     }
@@ -121,11 +117,11 @@ object IndexMapping extends Logging {
   }
 
   object Alias {
-    implicit val aliasDecoder: Decoder[Alias] = Decoder.decodeString.emapTry {
+    given aliasDecoder: Decoder[Alias] = Decoder.decodeString.emapTry {
       case ""    => Failure(new Exception("index alias cannot be empty"))
       case other => Success(Alias(other))
     }
-    implicit val aliasEncoder: Encoder[Alias] = Encoder.encodeString.contramap(_.name)
+    given aliasEncoder: Encoder[Alias] = Encoder.encodeString.contramap(_.name)
   }
 
   object yaml {
@@ -140,13 +136,13 @@ object IndexMapping extends Logging {
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
-        val extendedFields = fieldsMap.get("id") match {
+        val extendedFields = fieldsMap.get("_id") match {
           case Some(idMapping) =>
-            logger.warn("id field is internal field and it's mapping cannot be changed")
-            logger.warn("id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
-            fieldsMap.updated("id", TextFieldSchema("id", filter = true))
+            logger.warn("_id field is internal field and it's mapping cannot be changed")
+            logger.warn("_id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
+            fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
           case None =>
-            fieldsMap.updated("id", TextFieldSchema("id", filter = true))
+            fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
         IndexMapping(name, alias = alias, fields = extendedFields, config = config)
 
@@ -163,9 +159,10 @@ object IndexMapping extends Logging {
   }
 
   object json {
-    import FieldSchema.json._
-    implicit val indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
-    implicit val indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder
+    import FieldSchema.json.given
+    import SearchType.json.given
+    given indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
+    given indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder
   }
 
 }

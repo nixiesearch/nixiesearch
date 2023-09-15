@@ -2,18 +2,19 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.Hostname
 import ai.nixiesearch.config.StoreConfig.StoreUrl
-import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl}
+import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl, TmpUrl}
 import io.circe.{Decoder, DecodingFailure}
 import io.circe.generic.semiauto.deriveDecoder
 
-import java.nio.file.{Path, Paths}
+import java.io.File
+import java.nio.file.{Files, Path, Paths}
 import scala.util.{Failure, Success}
 
 sealed trait StoreConfig {
   def url: StoreUrl
 }
 object StoreConfig {
-  val DEFAULT_WORKDIR = "/var/lib/nixiesearch"
+  val DEFAULT_WORKDIR = System.getProperty("user.dir")
 
   case class S3StoreConfig(url: S3StoreUrl, workdir: Path)                         extends StoreConfig
   case class LocalStoreConfig(url: LocalStoreUrl = LocalStoreUrl(DEFAULT_WORKDIR)) extends StoreConfig
@@ -28,6 +29,7 @@ object StoreConfig {
         } yield {
           S3StoreConfig(s3, workdir.getOrElse(Paths.get(DEFAULT_WORKDIR)))
         }
+      case Right(url: TmpUrl) => Right(LocalStoreConfig(LocalStoreUrl(Files.createTempDirectory(url.prefix).toString)))
       case Right(url: LocalStoreUrl) => Right(LocalStoreConfig(url))
     }
   )
@@ -36,13 +38,16 @@ object StoreConfig {
   object StoreUrl {
     case class S3StoreUrl(bucket: String, prefix: String)    extends StoreUrl
     case class LocalStoreUrl(path: String = DEFAULT_WORKDIR) extends StoreUrl
+    case class TmpUrl(prefix: String)                        extends StoreUrl
 
+    val tmpFormat        = "tmp://([a-z0-9\\.\\-]+)/?".r
     val s3formatNoPrefix = "s3://([a-z0-9\\.\\-]+)/?".r
     val s3formatPrefix   = "s3://([a-z0-9\\.\\-]+)/([a-zA-Z0-9/!\\-\\._\\*\\(\\)]+)".r
     val fileFormat       = "file://?(/.*)".r
     val slashFormat      = "(/.*)".r
 
     implicit val storeUrlDecoder: Decoder[StoreUrl] = Decoder.decodeString.emapTry {
+      case tmpFormat(prefix)              => Success(TmpUrl(prefix))
       case fileFormat(path)               => Success(LocalStoreUrl(path))
       case slashFormat(path)              => Success(LocalStoreUrl(path))
       case s3formatNoPrefix(bucket)       => Success(S3StoreUrl(bucket, "nixiesearch"))

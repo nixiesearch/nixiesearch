@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.aggregation.json
 
 import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.aggregation.Aggregation.TermAggregation
-import ai.nixiesearch.core.aggregator.AggregationResult.{TermAggregationResult, TermCount}
+import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.syntax.*

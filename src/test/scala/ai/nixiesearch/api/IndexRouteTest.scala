@@ -43,7 +43,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
 
   it should "accept docs for existing indices" in withStore(index) { store =>
     {
-      val doc = Document(List(TextField("id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
+      val doc = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
       val response =
         send[Document, IndexResponse](IndexRoute(store).routes, "http://localhost/test/_index", Some(doc), Method.PUT)
       response.result shouldBe "created"
@@ -52,7 +52,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
 
   it should "accept docs for new indices" in withStore(index) { store =>
     {
-      val doc = Document(List(TextField("id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
+      val doc = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
       val response =
         send[Document, IndexResponse](IndexRoute(store).routes, "http://localhost/test2/_index", Some(doc), Method.PUT)
       response.result shouldBe "created"
@@ -61,11 +61,11 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
 
   it should "update dynamic mapping on new documents" in withStore { store =>
     {
-      val doc1 = Document(List(TextField("id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
+      val doc1 = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
       val response1 =
         send[Document, IndexResponse](IndexRoute(store).routes, "http://localhost/test2/_index", Some(doc1), Method.PUT)
       response1.result shouldBe "created"
-      val doc2 = Document(List(TextField("id", "1"), TextField("desc", "foo bar"), IntField("price", 10)))
+      val doc2 = Document(List(TextField("_id", "1"), TextField("desc", "foo bar"), IntField("price", 10)))
       val response2 =
         send[Document, IndexResponse](IndexRoute(store).routes, "http://localhost/test2/_index", Some(doc2), Method.PUT)
       response2.result shouldBe "created"

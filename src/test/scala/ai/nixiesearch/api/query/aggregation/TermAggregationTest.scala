@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.aggregation
 
 import ai.nixiesearch.api.aggregation.Aggregation.TermAggregation
 import ai.nixiesearch.api.aggregation.Aggs
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.MultiMatchQuery
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema, TextListFieldSchema}
@@ -10,7 +10,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField, TextListField}
-import ai.nixiesearch.core.aggregator.AggregationResult.{TermAggregationResult, TermCount}
+import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -21,7 +21,7 @@ class TermAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = "test",
     fields = List(
-      TextFieldSchema("id", filter = true),
+      TextFieldSchema("_id", filter = true),
       TextFieldSchema("title", search = LexicalSearch()),
       TextFieldSchema("color", filter = true, facet = true),
       TextListFieldSchema("size", filter = true, facet = true),
@@ -31,7 +31,7 @@ class TermAggregationTest extends SearchTest with Matchers {
   val index = List(
     Document(
       List(
-        TextField("id", "1"),
+        TextField("_id", "1"),
         TextField("title", "long socks"),
         TextField("color", "red"),
         TextListField("size", "1", "2"),
@@ -40,7 +40,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "2"),
+        TextField("_id", "2"),
         TextField("title", "sleeveless jacket"),
         TextField("color", "red"),
         TextListField("size", "2"),
@@ -49,7 +49,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "3"),
+        TextField("_id", "3"),
         TextField("title", "short socks"),
         TextField("color", "red"),
         TextListField("size", "2"),
@@ -58,7 +58,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "4"),
+        TextField("_id", "4"),
         TextField("title", "winter socks"),
         TextField("color", "white"),
         TextListField("size", "1", "2"),
@@ -67,7 +67,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "5"),
+        TextField("_id", "5"),
         TextField("title", "evening dress"),
         TextField("color", "white"),
         TextListField("size", "1", "2"),
@@ -76,7 +76,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("id", "6"),
+        TextField("_id", "6"),
         TextField("title", "winter socks"),
         TextField("color", "black"),
         TextListField("size", "1", "2"),
@@ -110,7 +110,7 @@ class TermAggregationTest extends SearchTest with Matchers {
   it should "aggregate by color when filtering" in new Index {
     val result = searchRaw(
       aggs = Aggs(Map("color" -> TermAggregation("color", 10))),
-      filters = Filter(include = Some(TermPredicate("size", "1")))
+      filters = Filters(include = Some(TermPredicate("size", "1")))
     )
     result.aggs shouldBe Map(
       "color" -> TermAggregationResult(List(TermCount("white", 2), TermCount("black", 1), TermCount("red", 1)))

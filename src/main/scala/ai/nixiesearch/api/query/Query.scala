@@ -1,14 +1,21 @@
 package ai.nixiesearch.api.query
 
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
+import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.{Document, Logging}
+import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.index.IndexReader
+import cats.data.NonEmptyList
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import org.apache.lucene.search.Query as LuceneQuery
+import org.apache.lucene.facet.FacetsCollector
+import org.apache.lucene.search.{IndexSearcher, TopDocs, Query as LuceneQuery}
+import cats.implicits.*
 
-trait Query extends Logging {
-  def compile(mapping: IndexMapping): IO[LuceneQuery]
-}
+trait Query extends Logging
 
 object Query extends Logging {
 

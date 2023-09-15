@@ -4,6 +4,8 @@ import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
+import java.util.UUID
+
 case class Document(fields: List[Field])
 
 object Document {
@@ -26,21 +28,30 @@ object Document {
           case None => Left(DecodingFailure(s"document should be a JSON object: ${c.value}", c.history))
           case Some(obj) =>
             val fields = obj.toMap
-            fields.get("id") match {
-              case None =>
-                Left(
-                  DecodingFailure(
-                    s"document is missing an 'id' field. Current fields: ${fields.keys.mkString("[", ",", "]")}",
-                    c.history
-                  )
+            val decoded = fields.toList.traverse {
+              case ("_id", json) =>
+                json.fold[Either[DecodingFailure, Field]](
+                  jsonNull = Right(TextField("_id", UUID.randomUUID().toString)),
+                  jsonBoolean = bool =>
+                    Left(DecodingFailure(s"_id field can be either a number or a string, got $bool", c.history)),
+                  jsonNumber = num =>
+                    num.toLong match {
+                      case Some(long) => Right(TextField("_id", num.toString))
+                      case None =>
+                        Left(
+                          DecodingFailure(
+                            s"_id field cannot be a real number, but string|long|uuid, got $num",
+                            c.history
+                          )
+                        )
+                    },
+                  jsonString = str => Right(TextField("_id", str)),
+                  jsonArray = arr => Left(DecodingFailure(s"_id field cannot be an array, got $arr", c.history)),
+                  jsonObject = obj => Left(DecodingFailure(s"_id field cannot be an object, got $obj", c.history))
                 )
-              case Some(json) =>
-                json.asString match {
-                  case None => Left(DecodingFailure(s"document 'id' field should have a string type", c.history))
-                  case Some(id) =>
-                    obj.toList.traverse(x => decodeField(c, x._1, x._2)).map(fields => Document(fields))
-                }
+              case (key, json) => decodeField(c, key, json)
             }
+            decoded.map(fields => Document(fields))
         }
       )
       .ensure(_.fields.nonEmpty, "document cannot contain zero fields")
@@ -51,7 +62,8 @@ object Document {
     jsonNumber = n =>
       n.toInt match {
         case Some(int) => Right(IntField(name, int))
-        case None      => Left(DecodingFailure("cannot parse numeric field", c.history))
+        case None      => Right(FloatField(name, n.toFloat))
+
       },
     jsonString = s => Right(TextField(name, s)),
     jsonArray = _ => Left(DecodingFailure("cannot parse array field", c.history)),
