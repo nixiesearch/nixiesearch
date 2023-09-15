@@ -16,8 +16,7 @@ import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import java.nio.file.Files
 import cats.effect.unsafe.implicits.global
 import org.apache.lucene.search.MatchAllDocsQuery
-import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.core.Field.IntField
+import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
 import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.util.IndexFixture
 import cats.data.NonEmptyList
@@ -38,7 +37,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with IndexFixture {
 
       val request = SearchRequest(MatchAllQuery(), fields = NonEmptyList.of("_id", "title", "count"))
       val docs    = Searcher.search(request, reader).unsafeRunSync()
-      docs.hits shouldBe List(source)
+      docs.hits shouldBe List(Document(source.fields :+ FloatField("_score", 1.0)))
     }
   }
 }

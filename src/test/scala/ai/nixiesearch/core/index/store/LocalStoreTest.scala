@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.Field.FloatField
 import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.util.{IndexFixture, TestDocument, TestIndexMapping}
 import cats.data.NonEmptyList
@@ -28,7 +29,7 @@ class LocalStoreTest extends AnyFlatSpec with Matchers with IndexFixture {
       val reader  = readerMaybe.get
       val request = SearchRequest(MatchAllQuery(), fields = NonEmptyList.of("_id", "title", "price"))
       val docs    = Searcher.search(request, reader).unsafeRunSync()
-      docs.hits shouldBe List(doc)
+      docs.hits shouldBe List(Document(doc.fields :+ FloatField("_score", 1.0f)))
     }
   }
 

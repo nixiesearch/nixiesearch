@@ -62,7 +62,8 @@ object Document {
     jsonNumber = n =>
       n.toInt match {
         case Some(int) => Right(IntField(name, int))
-        case None      => Left(DecodingFailure("cannot parse numeric field", c.history))
+        case None      => Right(FloatField(name, n.toFloat))
+
       },
     jsonString = s => Right(TextField(name, s)),
     jsonArray = _ => Left(DecodingFailure("cannot parse array field", c.history)),
