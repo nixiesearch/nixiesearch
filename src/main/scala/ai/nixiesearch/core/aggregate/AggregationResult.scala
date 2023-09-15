@@ -1,4 +1,4 @@
-package ai.nixiesearch.core.aggregator
+package ai.nixiesearch.core.aggregate
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*

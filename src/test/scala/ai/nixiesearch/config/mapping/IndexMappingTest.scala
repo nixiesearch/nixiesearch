@@ -1,8 +1,9 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import org.scalatest.flatspec.AnyFlatSpec
@@ -10,6 +11,8 @@ import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 
 import scala.util.Try
+import io.circe.syntax.*
+import io.circe.parser.*
 
 class IndexMappingTest extends AnyFlatSpec with Matchers {
   it should "create mapping from document with string fields" in {
@@ -56,6 +59,22 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     result shouldBe after
   }
 
+  it should "encode-decode a json schema" in {
+    import IndexMapping.json.given
+    val mapping = IndexMapping(
+      name = "foo",
+      alias = List(Alias("bar")),
+      config = IndexConfig(mapping = MappingConfig(dynamic = true)),
+      fields = Map(
+        "text" -> TextFieldSchema("text", search = SemanticSearch()),
+        "int"  -> IntFieldSchema("int", facet = true)
+      )
+    )
+    val json    = mapping.asJson.noSpaces
+    val decoded = decode[IndexMapping](json)
+    decoded shouldBe Right(mapping)
+  }
+
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =
       """
@@ -71,7 +90,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         name = "test",
         alias = List(Alias("prod")),
         fields = Map(
-          "id"    -> TextFieldSchema("id", filter = true),
+          "_id"    -> TextFieldSchema("_id", filter = true),
           "title" -> TextFieldSchema("title")
         )
       )

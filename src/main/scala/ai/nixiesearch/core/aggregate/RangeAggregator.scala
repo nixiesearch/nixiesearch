@@ -1,10 +1,10 @@
-package ai.nixiesearch.core.aggregator
+package ai.nixiesearch.core.aggregate
 
 import ai.nixiesearch.api.aggregation.Aggregation.{AggRange, RangeAggregation, TermAggregation}
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema}
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.aggregator.AggregationResult.{RangeAggregationResult, RangeCount}
+import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import cats.effect.IO
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.facet.range.{DoubleRange, DoubleRangeFacetCounts, LongRange, LongRangeFacetCounts}

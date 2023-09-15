@@ -96,7 +96,7 @@ case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[Index
 }
 
 object LocalIndex extends Logging {
-  import IndexMapping.json.*
+  import IndexMapping.json.given
 
   case class DirectoryMapping(dir: MMapDirectory, mapping: IndexMapping, analyzer: Analyzer) {
     def close(): IO[Unit] = IO(dir.close())
@@ -157,7 +157,7 @@ object LocalIndex extends Logging {
   } yield {}
 
   private def openDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
-    _             <- info(s"opening index ${mapping.name}")
+    _             <- info(s"opening directory ${mapping.name}")
     mappingPath   <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
     mappingExists <- Files[IO].exists(Path(mappingPath))
     mapping <- mappingExists match {

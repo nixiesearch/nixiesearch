@@ -55,11 +55,12 @@ case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: Docu
 //    Json.fromJsonObject(JsonObject.fromIterable(fields))
 //  }
 
-  def asDocument(): Document = {
+  def asDocument(score: Float): Document = {
     val fields = List.concat(
       doc.text.map(f => TextField(f._1, f._2)),
       doc.textList.map(f => TextListField(f._1, f._2.toList)),
-      doc.int.map(f => IntField(f._1, f._2))
+      doc.int.map(f => IntField(f._1, f._2)),
+      List(FloatField("_score", score))
     )
     Document(fields)
   }

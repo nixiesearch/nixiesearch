@@ -1,6 +1,6 @@
 package ai.nixiesearch.api.query.filter.json
 
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.AndPredicate
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGteLte
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
@@ -23,9 +23,9 @@ class FilterJsonTest extends AnyFlatSpec with Matchers {
         |            "term": {"tag": "out-of-stock"}
         |        }
         |    }""".stripMargin
-    val decoded = decode[Filter](json)
+    val decoded = decode[Filters](json)
     decoded shouldBe Right(
-      Filter(
+      Filters(
         include = Some(AndPredicate(List(TermPredicate("tag", "red"), RangeGteLte("price", 100, 1000)))),
         exclude = Some(TermPredicate("tag", "out-of-stock"))
       )

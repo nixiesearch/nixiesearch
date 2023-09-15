@@ -7,8 +7,8 @@ import fs2.Stream
 import cats.effect.unsafe.implicits.global
 
 class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
-  val doc      = """{"id":"1","text":"foo"}"""
-  val expected = Document(List(TextField("id", "1"), TextField("text", "foo")))
+  val doc      = """{"_id":"1","text":"foo"}"""
+  val expected = Document(List(TextField("_id", "1"), TextField("text", "foo")))
 
   it should "decode raw json" in {
     val result = Stream(doc.getBytes(): _*).through(JsonDocumentStream.parse).compile.toList.unsafeRunSync()

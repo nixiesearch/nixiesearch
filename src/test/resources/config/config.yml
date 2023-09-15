@@ -10,9 +10,6 @@ suggest:
 search:
   helloworld:
     fields:
-      id:
-        type: text
-        search: false # just a stored field. all fields are stored by-default
       title:
         type: text
         search: semantic
@@ -20,7 +17,7 @@ search:
         type: text
         search: # more advanced setup
           type: semantic
-          model: intfloat/e5-base-v2
+          model: nixiesearch/e5-small-v2-onnx
       price:
         type: int # can be also float/long/double
         filter: true # all numeric fields are filterable

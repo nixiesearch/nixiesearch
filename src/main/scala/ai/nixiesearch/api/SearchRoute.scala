@@ -3,29 +3,35 @@ package ai.nixiesearch.api
 import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.api.SearchRoute.{QueryParamDecoder, SearchRequest, SearchResponse, SizeParamDecoder}
 import ai.nixiesearch.api.aggregation.Aggs
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
-import ai.nixiesearch.core.aggregator.AggregationResult
+import ai.nixiesearch.core.aggregate.AggregationResult
+import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.{IndexReader, IndexRegistry}
+import cats.data.NonEmptyList
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
+import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.lucene.queryparser.classic.QueryParser
 
 case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
+  val emptyRequest = SearchRequest(query = MatchAllQuery())
   val routes = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" =>
       indices.reader(indexName).flatMap {
         case Some(index) =>
           for {
-            query    <- request.as[SearchRequest]
+            query <- request.entity match {
+              case Entity.Empty => IO.pure(emptyRequest)
+              case _            => request.as[SearchRequest]
+            }
             _        <- info(s"POST /$indexName/_search query=$query")
             docs     <- searchDsl(query, index)
             response <- Ok(docs)
@@ -43,7 +49,7 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
             start <- IO(System.currentTimeMillis())
             docs <- query match {
               case Some(q) => searchLucene(q, index, size.getOrElse(10))
-              case None => searchDsl(SearchRequest(MatchAllQuery(), Filter(), size.getOrElse(10), Nil, Aggs()), index)
+              case None    => searchDsl(emptyRequest, index)
             }
 
             response <- Ok(docs)
@@ -56,12 +62,8 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
 
   def searchDsl(request: SearchRequest, index: IndexReader): IO[SearchResponse] =
     for {
-      mapping <- index.mapping()
-      storedFields <- request.fields match {
-        case Nil => IO(mapping.fields.values.filter(_.store).map(_.name).toList)
-        case _   => IO.pure(request.fields)
-      }
-      response <- request.query.search(request, index)
+      mapping  <- index.mapping()
+      response <- Searcher.search(request, index)
     } yield {
       response
     }
@@ -79,7 +81,7 @@ case class SearchRoute(indices: IndexRegistry) extends Route with Logging {
     responseFields <- IO(mapping.fields.values.filter(_.store).map(_.name).toList)
     parser         <- IO.pure(new QueryParser(defaultField, index.analyzer))
     query          <- IO(parser.parse(query))
-    response       <- index.search(query, responseFields, n, Aggs())
+    response       <- index.searchLucene(query, responseFields, n, Aggs())
   } yield {
     response
   }
@@ -92,20 +94,24 @@ object SearchRoute {
 
   case class SearchRequest(
       query: Query,
-      filter: Filter = Filter(),
+      filter: Filters = Filters(),
       size: Int = 10,
-      fields: List[String] = Nil,
+      fields: NonEmptyList[String] = NonEmptyList.one("_id"),
       aggs: Aggs = Aggs()
   )
   object SearchRequest {
-    implicit val searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
-    implicit val searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
+    given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
+    given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
         query  <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size   <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
-        filter <- c.downField("filter").as[Option[Filter]].map(_.getOrElse(Filter()))
-        fields <- c.downField("fields").as[Option[List[String]]].map(_.getOrElse(Nil))
-        aggs   <- c.downField("aggs").as[Option[Aggs]].map(_.getOrElse(Aggs()))
+        filter <- c.downField("filter").as[Option[Filters]].map(_.getOrElse(Filters()))
+        fields <- c.downField("fields").as[Option[List[String]]].map {
+          case Some(Nil)          => NonEmptyList.one("_id")
+          case Some(head :: tail) => NonEmptyList(head, tail)
+          case None               => NonEmptyList.one("_id")
+        }
+        aggs <- c.downField("aggs").as[Option[Aggs]].map(_.getOrElse(Aggs()))
       } yield {
         SearchRequest(query, filter, size, fields, aggs)
       }
@@ -117,6 +123,7 @@ object SearchRoute {
     given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder
     given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
   }
+  import SearchRequest.given
 
   given searchRequestDecJson: EntityDecoder[IO, SearchRequest]   = jsonOf
   given searchRequestEncJson: EntityEncoder[IO, SearchRequest]   = jsonEncoderOf

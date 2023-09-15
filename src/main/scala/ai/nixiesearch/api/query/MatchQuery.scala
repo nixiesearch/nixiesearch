@@ -30,76 +30,7 @@ import org.apache.lucene.search.BooleanClause.Occur
 
 import scala.util.{Failure, Success}
 
-case class MatchQuery(field: String, query: String, operator: Operator = OR) extends Query with Logging {
-  override def search(request: SearchRequest, reader: IndexReader): IO[SearchResponse] = {
-    for {
-      mapping <- reader.mapping()
-      fieldSchema <- IO.fromOption(mapping.fields.get(field))(
-        new Exception(s"cannot search over a non-existent field $field")
-      )
-      result <- fieldSchema match {
-        case TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _) =>
-          searchSemantic(request, reader, model, prefix, mapping)
-        case TextLikeFieldSchema(_, LexicalSearch(language), _, _, _, _) =>
-          searchLexical(request, reader, language, mapping)
-        case other => IO.raiseError(new Exception(s"cannot search over a non-text field $other"))
-      }
-    } yield {
-      result
-    }
-
-  }
-
-  def searchLexical(request: SearchRequest, reader: IndexReader, language: Language, mapping: IndexMapping) = for {
-    start   <- IO(System.currentTimeMillis())
-    terms   <- IO(language.analyze(field, query))
-    builder <- IO.pure(new BooleanQuery.Builder())
-    _ <- IO(
-      terms.foreach(term => builder.add(new BooleanClause(new TermQuery(new Term(field, term)), operator.occur)))
-    )
-    filterOption <- request.filter.toLuceneQuery(mapping)
-    _ <- filterOption match {
-      case Some(value) => IO(builder.add(new BooleanClause(value, Occur.FILTER)))
-      case None        => IO.unit
-    }
-    query          <- IO(builder.build())
-    topCollector   <- IO.pure(TopScoreDocCollector.create(request.size, request.size))
-    facetCollector <- IO.pure(new FacetsCollector(false))
-    collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
-    _              <- IO(reader.searcher.search(query, collector))
-    docs           <- collect(mapping, reader, topCollector.topDocs(), request.fields)
-    aggs           <- aggregate(mapping, reader, facetCollector, request.aggs)
-    end            <- IO(System.currentTimeMillis())
-  } yield {
-    SearchResponse(end - start, docs, aggs)
-  }
-
-  def searchSemantic(
-      request: SearchRequest,
-      reader: IndexReader,
-      model: ModelHandle,
-      prefix: ModelPrefix,
-      mapping: IndexMapping
-  ) = for {
-    start        <- IO(System.currentTimeMillis())
-    encoder      <- reader.encoders.get(model)
-    queryEmbed   <- IO(encoder.embed(prefix.query + query))
-    filterOption <- request.filter.toLuceneQuery(mapping)
-    query <- filterOption match {
-      case Some(filter) => IO(new KnnFloatVectorQuery(field, queryEmbed, request.size, filter))
-      case None         => IO(new KnnFloatVectorQuery(field, queryEmbed, request.size))
-    }
-    topCollector   <- IO.pure(TopScoreDocCollector.create(request.size, request.size))
-    facetCollector <- IO.pure(new FacetsCollector(false))
-    collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
-    _              <- IO(reader.searcher.search(query, collector))
-    docs           <- collect(mapping, reader, topCollector.topDocs(), request.fields)
-    aggs           <- aggregate(mapping, reader, facetCollector, request.aggs)
-    end            <- IO(System.currentTimeMillis())
-  } yield {
-    SearchResponse(end - start, docs, aggs)
-  }
-}
+case class MatchQuery(field: String, query: String, operator: Operator = OR) extends Query with Logging
 
 object MatchQuery {
   sealed trait Operator {

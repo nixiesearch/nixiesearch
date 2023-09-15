@@ -14,39 +14,30 @@ class MultiMatchQueryTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = "test",
     fields = List(
-      TextFieldSchema(name = "id"),
+      TextFieldSchema(name = "_id"),
       TextFieldSchema(name = "title", search = LexicalSearch(), sort = true),
       TextFieldSchema(name = "desc", search = LexicalSearch(), sort = true)
     )
   )
   val index = List(
-    Document(List(TextField("id", "1"), TextField("title", "dress"), TextField("desc", "red"))),
-    Document(List(TextField("id", "2"), TextField("title", "dress"), TextField("desc", "white"))),
-    Document(List(TextField("id", "3"), TextField("title", "pajama"), TextField("desc", "red")))
+    Document(List(TextField("_id", "1"), TextField("title", "dress"), TextField("desc", "red"))),
+    Document(List(TextField("_id", "2"), TextField("title", "dress"), TextField("desc", "white"))),
+    Document(List(TextField("_id", "3"), TextField("title", "pajama"), TextField("desc", "red")))
   )
 
   it should "select matching documents for a single-term query" in new Index {
-    val docs = searcher.search(MultiMatchQuery("pajama", List("title", "desc")), List("id"), 10).unsafeRunSync()
-    val ids  = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
-    ids shouldBe List("3")
+    val docs = search(MultiMatchQuery("pajama", List("title", "desc")))
+    docs shouldBe List("3")
   }
 
   it should "select docs for a multi-term query and AND" in new Index {
-    val docs =
-      searcher
-        .search(MultiMatchQuery("white pajama", List("title", "desc"), Operator.AND), List("id"), 10)
-        .unsafeRunSync()
-    val ids = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
-    ids shouldBe Nil
+    val docs = search(MultiMatchQuery("white pajama", List("title", "desc"), Operator.AND))
+    docs shouldBe Nil
   }
 
   it should "select docs for a multi-term query and OR" in new Index {
-    val docs =
-      searcher
-        .search(MultiMatchQuery("white pajama", List("title", "desc"), Operator.OR), List("id"), 10)
-        .unsafeRunSync()
-    val ids = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
-    ids shouldBe List("2", "3")
+    val docs = search(MultiMatchQuery("white pajama", List("title", "desc"), Operator.OR))
+    docs shouldBe List("3", "2")
   }
 
 }

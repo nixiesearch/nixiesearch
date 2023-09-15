@@ -1,9 +1,10 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
+import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.IO
@@ -81,8 +82,7 @@ object IndexRegistry extends Logging {
     _          <- Resource.eval(info(s"Index registry initialized: ${indices.size} indices"))
     encoders   <- BiEncoderCache.create()
     modelsToPreload <- Resource.eval(IO(indices.flatMap(_.fields.values.collect {
-      case FieldSchema.TextFieldSchema(_, SemanticSearch(model, _), _, _, _, _) => model
-      case FieldSchema.TextFieldSchema(_, SemanticSearch(model, _), _, _, _, _) => model
+      case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _) => model
     })))
     _ <- Resource.eval(modelsToPreload.traverse(handle => encoders.get(handle)).void)
   } yield {

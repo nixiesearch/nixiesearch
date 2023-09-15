@@ -21,11 +21,13 @@ case class IndexSnapshot(mapping: IndexMapping, files: List[IndexFile])
 object IndexSnapshot {
   case class IndexFile(name: String, size: Long, md5: String, updated: Long)
 
-  import IndexMapping.json._
-  implicit val indexFileEncoder: Encoder[IndexFile]         = deriveEncoder
-  implicit val indexFileDecoder: Decoder[IndexFile]         = deriveDecoder
-  implicit val indexSnapshotEncoder: Encoder[IndexSnapshot] = deriveEncoder
-  implicit val indexSnapshotDecoder: Decoder[IndexSnapshot] = deriveDecoder
+  import IndexMapping.json.given
+  import ai.nixiesearch.config.FieldSchema.json.given
+
+  given indexFileEncoder: Encoder[IndexFile]         = deriveEncoder
+  given indexFileDecoder: Decoder[IndexFile]         = deriveDecoder
+  given indexSnapshotEncoder: Encoder[IndexSnapshot] = deriveEncoder
+  given indexSnapshotDecoder: Decoder[IndexSnapshot] = deriveDecoder
 
   def fromDirectory(mapping: IndexMapping, dir: MMapDirectory): IO[IndexSnapshot] = {
     val files = for {

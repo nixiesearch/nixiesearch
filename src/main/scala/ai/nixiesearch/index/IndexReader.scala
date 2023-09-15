@@ -3,12 +3,12 @@ package ai.nixiesearch.index
 import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.SuggestRoute.{SuggestResponse, Suggestion}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
-import ai.nixiesearch.api.filter.Filter
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
+import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.{DocumentVisitor, SuggestVisitor}
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
@@ -68,7 +68,7 @@ trait IndexReader extends Logging {
     result
   }
 
-  def search(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
+  def searchLucene(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
     start          <- IO(System.currentTimeMillis())
     topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
     facetCollector <- IO.pure(new FacetsCollector(false))
@@ -80,7 +80,6 @@ trait IndexReader extends Logging {
   } yield {
     SearchResponse(end - start, docs, aggs)
   }
-
 
   def suggest(query: LuceneQuery, n: Int): IO[SuggestResponse] = for {
     start        <- IO(System.currentTimeMillis())
@@ -100,7 +99,7 @@ trait IndexReader extends Logging {
     val docs = top.scoreDocs.map(doc => {
       val visitor = DocumentVisitor(mapping, fieldSet)
       reader.storedFields().document(doc.doc, visitor)
-      visitor.asDocument()
+      visitor.asDocument(doc.score)
     })
     docs.toList
   }

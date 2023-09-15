@@ -8,8 +8,8 @@ import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.loader.{HuggingFaceModelLoader, LocalModelLoader, ModelLoader}
 import ai.onnxruntime.OrtSession.SessionOptions
-import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
-import ai.onnxruntime.{OrtEnvironment, OrtSession, TensorInfo}
+import ai.onnxruntime.OrtSession.SessionOptions.{ExecutionMode, OptLevel}
+import ai.onnxruntime.{OrtEnvironment, OrtLoggingLevel, OrtSession, TensorInfo}
 import cats.effect.IO
 import org.apache.commons.io.{FileUtils, IOUtils}
 
@@ -38,10 +38,11 @@ object OnnxSession extends Logging {
     val tokenizer = HuggingFaceTokenizer.newInstance(dic, Map("padding" -> "true", "truncation" -> "true").asJava)
     val env       = OrtEnvironment.getEnvironment("sbert")
     val opts      = new SessionOptions()
-    opts.setIntraOpNumThreads(Runtime.getRuntime.availableProcessors())
+    // opts.setIntraOpNumThreads(Runtime.getRuntime.availableProcessors())
     opts.setOptimizationLevel(OptLevel.ALL_OPT)
+    //opts.addCUDA()
     val modelBytes = IOUtils.toByteArray(model)
-    val session    = env.createSession(modelBytes)
+    val session    = env.createSession(modelBytes, opts)
     val size       = FileUtils.byteCountToDisplaySize(modelBytes.length)
     val inputs     = session.getInputNames.asScala.toList
     val outputs    = session.getOutputNames.asScala.toList

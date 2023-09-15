@@ -12,7 +12,7 @@ import io.circe.generic.semiauto.*
 import fs2.Stream
 
 case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
-  import IndexRoute._
+  import IndexRoute.{given, *}
 
   val routes = HttpRoutes.of[IO] {
     case POST -> Root / indexName / "_flush"          => flush(indexName)
@@ -28,10 +28,10 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
       .flatMap(_ =>
         request.entity.body
           .through(JsonDocumentStream.parse)
-          .chunkN(16)
+          .chunkN(64)
           .unchunks
           .through(PrintProgress.tap("indexed docs"))
-          .chunkN(16)
+          .chunkN(64)
           .evalScan(mapping)((mappingOption, chunk) =>
             for {
               mapping <- getMappingOrCreate(mappingOption, chunk.toList, indexName)
@@ -114,7 +114,7 @@ object IndexRoute {
   }
   implicit val indexResponseCodec: Codec[IndexResponse] = deriveCodec
 
-  import ai.nixiesearch.config.mapping.IndexMapping.json._
+  import ai.nixiesearch.config.mapping.IndexMapping.json.given
 
   implicit val schemaJson: EntityEncoder[IO, IndexMapping]                = jsonEncoderOf
   implicit val singleDocJson: EntityDecoder[IO, Document]                 = jsonOf

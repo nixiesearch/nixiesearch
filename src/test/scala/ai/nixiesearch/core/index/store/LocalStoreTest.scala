@@ -1,9 +1,12 @@
 package ai.nixiesearch.core.index.store
 
+import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.util.{IndexFixture, TestDocument, TestIndexMapping}
+import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -22,8 +25,9 @@ class LocalStoreTest extends AnyFlatSpec with Matchers with IndexFixture {
       writer.writer.commit()
       val readerMaybe = store.reader(index.name).unsafeRunSync()
       readerMaybe.isDefined shouldBe true
-      val reader = readerMaybe.get
-      val docs   = reader.search(MatchAllQuery(), List("id", "title", "price"), 10).unsafeRunSync()
+      val reader  = readerMaybe.get
+      val request = SearchRequest(MatchAllQuery(), fields = NonEmptyList.of("_id", "title", "price"))
+      val docs    = Searcher.search(request, reader).unsafeRunSync()
       docs.hits shouldBe List(doc)
     }
   }

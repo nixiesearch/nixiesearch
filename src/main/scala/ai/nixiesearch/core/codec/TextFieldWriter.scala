@@ -2,6 +2,7 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearchLike, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.{BiEncoderCache, OnnxBiEncoder}
@@ -29,7 +30,7 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       field: TextField,
       spec: TextFieldSchema,
       buffer: LuceneDocument,
-      encoder: Option[OnnxBiEncoder] = None
+      embeddings: Map[String, Array[Float]]
   ): Unit = {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
@@ -42,18 +43,23 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
     }
     spec.search match {
-      case SearchType.LexicalSearch(_) =>
+      case LexicalSearchLike(language) =>
         val trimmed =
           if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
           else field.value
         buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
-      case SearchType.SemanticSearch(model, prefix) =>
-        encoder.foreach(encoder => {
-          val encoded = encoder.embed(Array(prefix.document + field.value))(0)
-          buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
-        })
-      case SearchType.NoSearch =>
-      // do nothing
+
+      case _ => //
+    }
+    spec.search match {
+      case SemanticSearchLikeType(model, prefix) =>
+        embeddings.get(field.value) match {
+          case Some(encoded) =>
+            buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
+          case None => // wtf
+        }
+      case _ =>
+      //
     }
   }
 }

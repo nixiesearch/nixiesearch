@@ -4,57 +4,18 @@ import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.core.aggregator.{AggregationResult, RangeAggregator, TermAggregator}
+import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.IndexReader
+import cats.data.NonEmptyList
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.search.{IndexSearcher, TopDocs, Query as LuceneQuery}
 import cats.implicits.*
 
-trait Query extends Logging {
-  def search(request: SearchRequest, reader: IndexReader): IO[SearchResponse]
-
-  def aggregate(
-      mapping: IndexMapping,
-      reader: IndexReader,
-      collector: FacetsCollector,
-      aggs: Aggs
-  ): IO[Map[String, AggregationResult]] = aggs.aggs.toList
-    .traverse { case (name, agg) =>
-      mapping.fields.get(agg.field) match {
-        case Some(field) if !field.facet =>
-          IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
-        case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
-        case Some(schema) =>
-          agg match {
-            case a @ Aggregation.TermAggregation(field, size) =>
-              TermAggregator.aggregate(reader.reader, a, collector, schema).map(result => name -> result)
-            case a @ Aggregation.RangeAggregation(field, ranges) =>
-              RangeAggregator.aggregate(reader.reader, a, collector, schema).map(result => name -> result)
-          }
-      }
-    }
-    .map(_.toMap)
-
-  protected def collect(
-      mapping: IndexMapping,
-      reader: IndexReader,
-      top: TopDocs,
-      fields: List[String]
-  ): IO[List[Document]] = IO {
-    val fieldSet = fields.toSet
-    val docs = top.scoreDocs.map(doc => {
-      val visitor = DocumentVisitor(mapping, fieldSet)
-      reader.reader.storedFields().document(doc.doc, visitor)
-      visitor.asDocument()
-    })
-    docs.toList
-  }
-
-}
+trait Query extends Logging
 
 object Query extends Logging {
 

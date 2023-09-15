@@ -8,7 +8,7 @@ object TestIndexMapping {
   def apply() = IndexMapping(
     name = "test",
     fields = List(
-      TextFieldSchema(name = "id"),
+      TextFieldSchema(name = "_id", filter = true),
       TextFieldSchema(name = "title", search = LexicalSearch(), sort = true),
       IntFieldSchema(name = "price", sort = true, facet = true, filter = true)
     )

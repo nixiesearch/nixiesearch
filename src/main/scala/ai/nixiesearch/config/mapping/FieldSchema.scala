@@ -19,14 +19,17 @@ sealed trait FieldSchema[T <: Field] {
 }
 
 object FieldSchema {
+  sealed trait TextLikeFieldSchema[T <: Field] extends FieldSchema[T] {
+    def search: SearchType
+  }
+
   object TextLikeFieldSchema {
-    def unapply(f: FieldSchema[_ <: Field]): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean)] =
+    def unapply(f: TextLikeFieldSchema[_ <: Field]): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean)] =
       f match {
         case TextFieldSchema(name, search, store, sort, facet, filter) =>
           Some((name, search, store, sort, facet, filter))
         case TextListFieldSchema(name, search, store, sort, facet, filter) =>
           Some((name, search, store, sort, facet, filter))
-        case _ => None
       }
   }
 
@@ -37,7 +40,8 @@ object FieldSchema {
       sort: Boolean = false,
       facet: Boolean = false,
       filter: Boolean = false
-  ) extends FieldSchema[TextField]
+  ) extends TextLikeFieldSchema[TextField]
+      with FieldSchema[TextField]
 
   object TextFieldSchema {
     def dynamicDefault(name: String) = new TextFieldSchema(
@@ -56,7 +60,8 @@ object FieldSchema {
       sort: Boolean = false,
       facet: Boolean = false,
       filter: Boolean = false
-  ) extends FieldSchema[TextListField]
+  ) extends TextLikeFieldSchema[TextListField]
+      with FieldSchema[TextListField]
 
   object TextListFieldSchema {
     def dynamicDefault(name: String) = new TextListFieldSchema(
@@ -102,7 +107,7 @@ object FieldSchema {
   }
 
   object yaml {
-    import SearchType.yaml.*
+    import SearchType.yaml.given
 
     def textFieldSchemaDecoder(name: String): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
@@ -166,28 +171,28 @@ object FieldSchema {
   }
 
   object json {
-    import SearchType.json.*
+    import SearchType.json.given
 
-    implicit val textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
-    implicit val textFieldSchemaDecoder: Decoder[TextFieldSchema] = deriveDecoder
+    given textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
+    given textFieldSchemaDecoder: Decoder[TextFieldSchema] = deriveDecoder
 
-    implicit val textListFieldSchemaEncoder: Encoder[TextListFieldSchema] = deriveEncoder
-    implicit val textListFieldSchemaDecoder: Decoder[TextListFieldSchema] = deriveDecoder
+    given textListFieldSchemaEncoder: Encoder[TextListFieldSchema] = deriveEncoder
+    given textListFieldSchemaDecoder: Decoder[TextListFieldSchema] = deriveDecoder
 
-    implicit val intFieldSchemaDecoder: Decoder[IntFieldSchema] = deriveDecoder
-    implicit val intFieldSchemaEncoder: Encoder[IntFieldSchema] = deriveEncoder
+    given intFieldSchemaDecoder: Decoder[IntFieldSchema] = deriveDecoder
+    given intFieldSchemaEncoder: Encoder[IntFieldSchema] = deriveEncoder
 
-    implicit val floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = deriveDecoder
-    implicit val floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
+    given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = deriveDecoder
+    given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
 
-    implicit val fieldSchemaEncoder: Encoder[FieldSchema[_ <: Field]] = Encoder.instance {
+    given fieldSchemaEncoder: Encoder[FieldSchema[_ <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: FloatFieldSchema    => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
       case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
     }
 
-    implicit val fieldSchemaDecoder: Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
+    given fieldSchemaDecoder: Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Right("int")    => intFieldSchemaDecoder.tryDecode(c)
         case Right("float")  => floatFieldSchemaDecoder.tryDecode(c)

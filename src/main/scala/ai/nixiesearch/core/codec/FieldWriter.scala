@@ -7,5 +7,5 @@ import org.apache.lucene.index.{IndexWriter, IndexableField}
 import org.apache.lucene.document.Document as LuceneDocument
 
 trait FieldWriter[T <: Field, S <: FieldSchema[T]] extends Logging {
-  def write(field: T, spec: S, buffer: LuceneDocument, encoder: Option[OnnxBiEncoder]): Unit
+  def write(field: T, spec: S, buffer: LuceneDocument, embeddings: Map[String, Array[Float]]): Unit
 }

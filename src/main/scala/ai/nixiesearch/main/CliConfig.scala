@@ -39,7 +39,7 @@ object CliConfig extends Logging {
         } yield {
           StandaloneArgs(config)
         }
-      case None => IO.raiseError(new Exception("No command given"))
+      case None => IO.raiseError(new Exception("No command given. If unsure, try 'nixiesearch standalone'"))
     }
   } yield {
     opts

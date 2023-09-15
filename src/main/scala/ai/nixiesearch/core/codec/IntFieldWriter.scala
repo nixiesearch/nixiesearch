@@ -3,7 +3,12 @@ package ai.nixiesearch.core.codec
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.core.Field.IntField
 import ai.nixiesearch.core.nn.model.OnnxBiEncoder
-import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  NumericDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.Document as LuceneDocument
@@ -11,7 +16,12 @@ import org.apache.lucene.document.Document as LuceneDocument
 import java.util
 
 case class IntFieldWriter() extends FieldWriter[IntField, IntFieldSchema] {
-  override def write(field: IntField, spec: IntFieldSchema, buffer: LuceneDocument, encoder: Option[OnnxBiEncoder] = None): Unit = {
+  override def write(
+      field: IntField,
+      spec: IntFieldSchema,
+      buffer: LuceneDocument,
+      embeddings: Map[String, Array[Float]] = Map.empty
+  ): Unit = {
     if (spec.filter || spec.sort) {
       buffer.add(new org.apache.lucene.document.IntField(field.name, field.value, Store.NO))
     }

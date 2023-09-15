@@ -16,9 +16,9 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
 
   val mapping = TestIndexMapping()
   val index = List(
-    Document(List(TextField("id", "1"), TextField("title", "red dress"))),
-    Document(List(TextField("id", "2"), TextField("title", "white dress"))),
-    Document(List(TextField("id", "3"), TextField("title", "red pajama")))
+    Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
+    Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
+    Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
   )
 
   it should "search over lucene query syntax" in new Index {
@@ -35,13 +35,25 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     response.hits.size shouldBe 3
   }
 
-  it should "search over dsl" in new Index {
-    val route   = SearchRoute(registry)
-    val request = SearchRequest(MatchQuery("title", "pajama"), size = 10, fields = List("id"))
+  it should "search over dsl with empty query" in new Index {
+    val route = SearchRoute(registry)
     val response =
       send[SearchRequest, SearchResponse](
         route.routes,
-        "http://localhost/test/_search?q=pajama",
+        "http://localhost/test/_search",
+        None,
+        Method.POST
+      )
+    response.hits.size shouldBe 3
+  }
+
+  it should "search over dsl" in new Index {
+    val route   = SearchRoute(registry)
+    val request = SearchRequest(MatchQuery("title", "pajama"), size = 10)
+    val response =
+      send[SearchRequest, SearchResponse](
+        route.routes,
+        "http://localhost/test/_search",
         Some(request),
         Method.POST
       )
