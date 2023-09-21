@@ -9,17 +9,17 @@
 
 Nixiesearch is an experimental hybrid search engine, focused on simplicity and developer UX: 
 * **zero configuration**: batteries included, but everything is tunable.
-* **state-of-the-art search quality**: combinging [Lucene](https://lucene.apache.org/)-powered lexical retrieval, bi/cross-encoder 
+* **state-of-the-art search quality**: combinging [Lucene](https://lucene.apache.org/)-powered lexical retrieval, bi-encoder 
 retrieval and [LambdaMART Learn-to-Rank](https://xgboost.readthedocs.io/en/latest/tutorials/learning_to_rank.html) reranking for the best search quality.
-* *(coming soon)* **cloud-native**: stateless searchers allow smooth auto-scaling in Kubernetes.
 * *(coming soon)*) **fine-tuned for your data**: fine-tune semantic search models like [E5](https://huggingface.co/intfloat/e5-base-v2) 
 or [MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) for your data out-of-the-box.
+* *(coming soon)* **cloud-native**: stateless searchers allow smooth auto-scaling in Kubernetes.
 
 ### Why Nixiesearch?
 
 Unlike some of the other vector search engines:
 
-* *(coming soon)* **Supports facets, rich boolean filtering, sorting and autocomplete**: things you got used to in traditional search engines.
+* **Supports facets, rich boolean filtering, sorting and autocomplete**: things you got used to in traditional search engines.
 * **Text in, text out**: LLM embedding is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search
 queries will return what you expect, and not what the LLM hallucinates about.
@@ -86,7 +86,7 @@ No more red index status and cluster split-brains due to indexer overload.
 * **Pull-based indexing**: pull updated documents right from [Kafka](https://kafka.apache.org/) in real-time, no need for
 separate indexing ETL jobs with limited throughput.
 
-Nixiesearch uses [RRF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) for combinging text and neural search results.
+Nixiesearch uses [RRF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) for combining text and neural search results.
 
 ## Limitations
 
@@ -103,9 +103,15 @@ At the moment, Nixiesearch is in the process of active development, so please re
 - [x] Index mapping
 - [x] Config file parsing
 - [x] Lexical search with Lucene
+- [x] Semantic search with Lucene
+- [x] Hybrid search
+- [x] MSMARCO E2E hybrid test
+- [x] Facets for terms and ranges
+- [x] Boolean filtering for lexical/semantic search
+- [x] Autocomplete suggestions
 - [ ] S3 index sync
-- [ ] Semantic bi-encoder search
 - [ ] LLM fine-tuning
+- [ ] Cut-off threshold prediction for semantic search
 
 License
 =====
