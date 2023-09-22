@@ -1,0 +1,143 @@
+# Project information
+site_name: nixiesearch
+site_url: https://nixiesearch.ai
+site_description: >-
+  Nixiesearch is an open-source hybrid search engine, which can fine-tune to your documents.
+
+# Repository
+repo_url: https://github.com/nixiesearch/nixiesearch
+repo_name: nixiesearch/nixiesearch
+edit_uri: edit/master/docs/
+
+#Copyright
+copyright: © 2023 nixiesearch
+
+# Configuration
+theme:
+  name: material
+  custom_dir: docs/overrides
+  #logo: assets/images/logo.svg
+  #favicon: assets/images/dstack-fav-32.ico
+  icon:
+#    repo: custom/github
+    edit: material/pencil
+#  font:
+#    text: Source Sans Pro
+#    code: IBM Plex Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: lilac
+  features:
+    #    - navigation.path
+    - content.code.copy
+    - content.action.edit
+    #    - navigation.indexes
+    - navigation.tabs
+    #    - navigation.instant
+    #    - toc.integrate
+    - navigation.sections
+    #    - navigation.expand
+    - navigation.top
+    - announce.dismiss
+    - navigation.tracking
+    - navigation.footer
+
+# Plugins
+plugins:
+#  - blog:
+#      blog_dir: blog
+#      blog_toc: true
+  - social:
+      cards_layout_options:
+        background_color: "black"
+        color: "#FFFFFF"
+        font_family: Roboto
+  - search
+#  - typeset
+
+# Extensions
+markdown_extensions:
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - attr_list
+  - def_list
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      toc_depth: 3
+      permalink: true
+  - md_in_html
+  - footnotes
+  - tables
+
+# Customization
+#extra_css:
+#  - assets/stylesheets/extra.css
+#  - assets/stylesheets/termynal.css
+#  - assets/stylesheets/landing.css
+#extra_javascript:
+#  - assets/javascripts/extra.js
+extra:
+  homepage: /
+  generator: false
+#  analytics:
+#    provider: google
+#    property: G-JX21114P7B
+  social:
+    - icon: /fontawesome/brands/github
+      link: https://github.com/nixiesearch/nixiesearch
+    - icon: /fontawesome/brands/docker
+      link: https://hub.docker.com/r/nixiesearch/nixiesearch
+  status:
+    new: Recently added
+
+# Page tree
+nav:
+  - Docs:
+    - What is Nixiesearch: index.md
+    - Getting started:
+        - Quickstart: quickstart.md
+        - Installation: install.md
+    - Concepts:
+        - Design: concepts/design.md
+        - Building index: concepts/index.md
+        - Search: concepts/search.md
+        - Autocomplete: concepts/autocomplete.md
+        - Deployment: concepts/deploy.md
+    - Reference:
+        - API:
+            - Index: reference/api/index.md
+            - Search: reference/api/search.md
+            - Suggest: reference/api/suggest.md
+            - Metrics: reference/api/metrics.md
+        - Configuration:
+            - Overview: reference/config/overview.md
+            - API: reference/config/api.md
+            - Index sync: reference/config/store.md
+            - Autocomplete index: reference/config/autocomplete.md
+            - Index mapping: reference/config/mapping.md
+        - Command-line interface:
+            - nixiesearch standalone: reference/cli/standalone.md
+            - nixiesearch index: reference/cli/index.md
+            - nixiesearch search: reference/cli/search.md
+            - nixiesearch finetune: reference/cli/finetune.md
+  - Blog: https://medium.com/nixiesearch/
+  - Slack: https://twitter.com/musk/
+  - Contact us: https://twitter.com/musk/
