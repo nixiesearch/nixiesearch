@@ -8,3 +8,5 @@ metals.sbt
 project/project
 project/target
 target/
+docs/.venv
+.cache

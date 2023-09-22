@@ -36,7 +36,7 @@ libraryDependencies ++= Seq(
   "org.apache.commons"        % "commons-lang3"            % "3.13.0",
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
-  "com.microsoft.onnxruntime" % "onnxruntime_gpu"          % "1.16.0-rc1",
+  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.16.0-rc1",
   "com.github.luben"          % "zstd-jni"                 % "1.5.5-4"
 )
 
@@ -47,3 +47,65 @@ scalacOptions ++= Seq(
   "-release:11",
   "-no-indent"
 )
+
+Compile / mainClass := Some("ai.nixiesearch.main.Main")
+
+Compile / discoveredMainClasses := Seq()
+
+val PLATFORM = "amd64"
+
+enablePlugins(DockerPlugin)
+
+docker / dockerfile := {
+  val artifact: File     = assembly.value
+  val artifactTargetPath = s"/app/${artifact.name}"
+
+  new Dockerfile {
+    from(s"--platform=$PLATFORM ubuntu:jammy-20230308")
+    runRaw(
+      List(
+        "apt-get update",
+        "apt-get install -y --no-install-recommends openjdk-19-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
+        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
+        "rm -rf /var/lib/apt/lists/*"
+      ).mkString(" && ")
+    )
+    env(
+      Map(
+        "LANG"     -> "en_US.UTF-8  ",
+        "LANGUAGE" -> "en_US:en ",
+        "LC_ALL"   -> "en_US.UTF-8  "
+      )
+    )
+    add(new File("deploy/nixiesearch.sh"), "/nixiesearch.sh")
+    add(artifact, artifactTargetPath)
+    entryPoint("/nixiesearch.sh")
+    cmd("--help")
+  }
+}
+
+docker / imageNames := Seq(
+  ImageName(s"shutty/nixiesearch:latest")
+)
+
+docker / buildOptions := BuildOptions(
+  removeIntermediateContainers = BuildOptions.Remove.Always,
+  pullBaseImage = BuildOptions.Pull.Always
+)
+
+ThisBuild / assemblyMergeStrategy := {
+  case PathList("module-info.class")                                         => MergeStrategy.discard
+  case "META-INF/io.netty.versions.properties"                               => MergeStrategy.first
+  case "META-INF/MANIFEST.MF"                                                => MergeStrategy.discard
+  case "META-INF/native-image/reflect-config.json"                           => MergeStrategy.concat
+  case "META-INF/native-image/io.netty/netty-common/native-image.properties" => MergeStrategy.first
+  case "META-INF/okio.kotlin_module"                                         => MergeStrategy.first
+  case "findbugsExclude.xml"                                                 => MergeStrategy.discard
+  case "log4j2-test.properties"                                              => MergeStrategy.discard
+  case x if x.endsWith("/module-info.class")                                 => MergeStrategy.discard
+  case x =>
+    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+    oldStrategy(x)
+}
+
+assembly / assemblyJarName := "nixiesearch.jar"
