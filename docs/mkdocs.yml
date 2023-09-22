@@ -15,7 +15,7 @@ copyright: © 2023 nixiesearch
 # Configuration
 theme:
   name: material
-  custom_dir: docs/overrides
+  #custom_dir: docs/overrides
   #logo: assets/images/logo.svg
   #favicon: assets/images/dstack-fav-32.ico
   icon:
