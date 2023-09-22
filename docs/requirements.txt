@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:58ea0a7d9eca9535d547de12be18f4b9c6fe813016d74ea41203a2851b78795d
-size 33
+mkdocs-material[imaging] == 9.4.0
