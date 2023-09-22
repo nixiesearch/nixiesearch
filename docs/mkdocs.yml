@@ -83,7 +83,6 @@ markdown_extensions:
   - toc:
       toc_depth: 3
       permalink: true
-  - attr_list
   - md_in_html
   - footnotes
   - tables
@@ -117,7 +116,7 @@ nav:
         - Quickstart: quickstart.md
         - Installation: install.md
     - Concepts:
-        - Setup: concepts/setup.md
+        - Design: concepts/design.md
         - Building index: concepts/index.md
         - Search: concepts/search.md
         - Autocomplete: concepts/autocomplete.md
@@ -127,7 +126,7 @@ nav:
             - Index: reference/api/index.md
             - Search: reference/api/search.md
             - Suggest: reference/api/suggest.md
-            - Metrocs: reference/api/metrics.md
+            - Metrics: reference/api/metrics.md
         - Configuration:
             - Overview: reference/config/overview.md
             - API: reference/config/api.md
@@ -139,3 +138,6 @@ nav:
             - nixiesearch index: reference/cli/index.md
             - nixiesearch search: reference/cli/search.md
             - nixiesearch finetune: reference/cli/finetune.md
+  - Blog: https://medium.com/nixiesearch/
+  - Slack: https://twitter.com/musk/
+  - Contact us: https://twitter.com/musk/
