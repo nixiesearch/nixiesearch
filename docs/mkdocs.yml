@@ -125,6 +125,8 @@ nav:
         - API:
             - Index: reference/api/index.md
             - Search: reference/api/search.md
+                - Filters: reference/api/search/filters.md
+                - Facets: reference/api/search/facets.md
             - Suggest: reference/api/suggest.md
             - Metrics: reference/api/metrics.md
         - Configuration:
@@ -137,7 +139,7 @@ nav:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md
             - nixiesearch search: reference/cli/search.md
-            - nixiesearch finetune: reference/cli/finetune.md
+#            - nixiesearch finetune: reference/cli/finetune.md
   - Blog: https://medium.com/nixiesearch/
   - Slack: https://twitter.com/musk/
   - Contact us: https://twitter.com/musk/
