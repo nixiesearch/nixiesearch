@@ -124,9 +124,10 @@ nav:
     - Reference:
         - API:
             - Index: reference/api/index.md
-            - Search: reference/api/search.md
-                - Filters: reference/api/search/filters.md
-                - Facets: reference/api/search/facets.md
+            - Search:
+                - Queries: reference/api/search/query.md
+                - Filters: reference/api/search/filter.md
+                - Facets: reference/api/search/facet.md
             - Suggest: reference/api/suggest.md
             - Metrics: reference/api/metrics.md
         - Configuration:
