@@ -1,6 +1,6 @@
 import Deps.*
 
-version := "0.0.1-SNAPSHOT"
+version := "0.0.1"
 
 scalaVersion := "3.3.1"
 
@@ -85,7 +85,7 @@ docker / dockerfile := {
 }
 
 docker / imageNames := Seq(
-  ImageName(s"shutty/nixiesearch:latest")
+  ImageName(s"nixiesearch/nixiesearch:latest")
 )
 
 docker / buildOptions := BuildOptions(
