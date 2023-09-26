@@ -7,6 +7,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.index.local.LocalIndex
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.{MapRef, Queue}

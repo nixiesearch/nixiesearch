@@ -11,7 +11,8 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.search.Searcher
-import ai.nixiesearch.index.{IndexRegistry, LocalIndex}
+import ai.nixiesearch.index.IndexRegistry
+import ai.nixiesearch.index.local.LocalIndex
 import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global

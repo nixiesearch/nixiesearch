@@ -5,7 +5,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.LocalIndex
+import ai.nixiesearch.index.local.LocalIndex
 import cats.effect.{IO, Ref}
 import cats.effect.unsafe.implicits.global
 

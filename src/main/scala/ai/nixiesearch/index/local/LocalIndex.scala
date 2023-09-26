@@ -1,4 +1,4 @@
-package ai.nixiesearch.index
+package ai.nixiesearch.index.local
 
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig
@@ -8,25 +8,25 @@ import ai.nixiesearch.config.mapping.IndexMapping.json.indexMappingDecoder
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.{IndexReader, IndexWriter}
-import cats.effect.{IO, Ref}
+import ai.nixiesearch.index.{Index, IndexReader, IndexWriter}
 import cats.effect.kernel.Resource
+import cats.effect.{IO, Ref}
+import fs2.Stream
+import fs2.io.*
 import fs2.io.file.{Files, Path}
+import io.circe.parser.*
+import io.circe.syntax.*
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
-import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.store.{Directory, MMapDirectory}
 import org.apache.lucene.index.{
   DirectoryReader,
   IndexWriterConfig,
   IndexReader as LuceneIndexReader,
   IndexWriter as LuceneIndexWriter
 }
-import fs2.Stream
-import fs2.io.*
-import io.circe.syntax.*
-import io.circe.parser.*
+import org.apache.lucene.search.IndexSearcher
+import org.apache.lucene.store.{Directory, MMapDirectory}
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Paths
@@ -102,17 +102,6 @@ object LocalIndex extends Logging {
     def close(): IO[Unit] = IO(dir.close())
   }
 
-  case class LocalIndexReader(
-      name: String,
-      config: LocalStoreConfig,
-      mappingRef: Ref[IO, Option[IndexMapping]],
-      reader: LuceneIndexReader,
-      dir: Directory,
-      searcher: IndexSearcher,
-      analyzer: Analyzer,
-      encoders: BiEncoderCache
-  ) extends IndexReader
-
   case class LocalIndexWriter(
       name: String,
       config: LocalStoreConfig,
@@ -156,7 +145,7 @@ object LocalIndex extends Logging {
 
   } yield {}
 
-  private def openDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
+  def openDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
     _             <- info(s"opening directory ${mapping.name}")
     mappingPath   <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
     mappingExists <- Files[IO].exists(Path(mappingPath))
@@ -171,7 +160,7 @@ object LocalIndex extends Logging {
     DirectoryMapping(directory, mapping, analyzer)
   }
 
-  private def createAnalyzer(mapping: IndexMapping): IO[Analyzer] = IO {
+  def createAnalyzer(mapping: IndexMapping): IO[Analyzer] = IO {
     val fieldAnalyzers = mapping.fields.values.collect {
       case TextFieldSchema(name, LexicalSearch(language), _, _, _, _)     => name -> language.analyzer
       case TextListFieldSchema(name, LexicalSearch(language), _, _, _, _) => name -> language.analyzer
@@ -179,7 +168,7 @@ object LocalIndex extends Logging {
     new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
   }
 
-  private def readMapping(file: String): IO[IndexMapping] =
+  def readMapping(file: String): IO[IndexMapping] =
     readInputStream(IO(new FileInputStream(new File(file))), 1024)
       .through(fs2.text.utf8.decode)
       .compile
@@ -187,7 +176,7 @@ object LocalIndex extends Logging {
       .map(_.mkString)
       .flatMap(json => IO.fromEither(decode[IndexMapping](json)))
 
-  private def writeMapping(mapping: IndexMapping, workdir: String): IO[Unit] = {
+  def writeMapping(mapping: IndexMapping, workdir: String): IO[Unit] = {
     for {
       _ <- ensureWorkdirExists(workdir)
       _ <- ensureIndexDirExists(
