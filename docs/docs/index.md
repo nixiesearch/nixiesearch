@@ -12,7 +12,7 @@ Nixiesearch is an experimental hybrid search engine, focused on simplicity and d
 * **zero configuration**: batteries included, but everything is tunable.
 * **state-of-the-art search quality**: combinging [Lucene](https://lucene.apache.org/)-powered lexical retrieval, bi-encoder
   retrieval and [LambdaMART Learn-to-Rank](https://xgboost.readthedocs.io/en/latest/tutorials/learning_to_rank.html) reranking for the best search quality.
-* *(coming soon)*) **fine-tuned for your data**: fine-tune semantic search models like [E5](https://huggingface.co/intfloat/e5-base-v2)
+* *(coming soon)* **fine-tuned for your data**: fine-tune semantic search models like [E5](https://huggingface.co/intfloat/e5-base-v2)
   or [MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) for your data out-of-the-box.
 * *(coming soon)* **cloud-native**: stateless searchers allow smooth auto-scaling in Kubernetes.
 

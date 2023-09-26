@@ -93,6 +93,7 @@ docker / dockerfile := {
 }
 
 docker / imageNames := Seq(
+  ImageName(s"nixiesearch/nixiesearch:${version.value}"),
   ImageName(s"nixiesearch/nixiesearch:latest")
 )
 
