@@ -1,12 +1,12 @@
-name: docs
+name: Check mkdocs syntax
 on:
   push:
-    branches:
-      - master
-permissions:
-  contents: write
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
 jobs:
-  deploy:
+  mkdocs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,4 +21,4 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install -r docs/requirements.txt
-      - run: mkdocs gh-deploy --force -f docs/mkdocs.yml
+      - run: mkdocs build --clean -f docs/mkdocs.yml
