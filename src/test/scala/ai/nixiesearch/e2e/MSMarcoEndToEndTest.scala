@@ -8,6 +8,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.index.IndexRegistry
+import ai.nixiesearch.util.TestIndexRegistry
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -25,16 +26,9 @@ import scodec.bits.ByteVector
 
 class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers {
   it should "load docs and search" in {
-    val dir = Files.createTempDirectory("nixie-msmarco")
-    dir.toFile.deleteOnExit()
-    val pwd  = System.getProperty("user.dir")
+    val pwd = System.getProperty("user.dir")
     val conf = Config.load(Some(new File(s"$pwd/src/test/resources/config/msmarco.yml"))).unsafeRunSync()
-    val registry =
-      IndexRegistry
-        .create(LocalStoreConfig(LocalStoreUrl(dir.toString)), conf.search.values.toList)
-        .allocated
-        .unsafeRunSync()
-        ._1
+    val registry = TestIndexRegistry(conf.search.values.toList)
 
     val indexApi  = IndexRoute(registry)
     val searchApi = SearchRoute(registry)
@@ -66,7 +60,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers {
       uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_index"),
       entity = Entity.strict(ByteVector.view(jsonPayload.getBytes()))
     )
-    indexApi.index(indexRequest, "msmarco").unsafeRunSync()
+    indexApi.handleIndex(indexRequest, "msmarco").unsafeRunSync()
     indexApi.flush("msmarco").unsafeRunSync()
 
     val searchRequest = SearchRequest(MatchQuery("text", "manhattan"))

@@ -9,8 +9,9 @@ import java.util.UUID
 case class Document(fields: List[Field])
 
 object Document {
+  def apply(head: Field, tail: Field*) = new Document(head +: tail.toList)
 
-  implicit val documentEncoder: Encoder[Document] =
+  given documentEncoder: Encoder[Document] =
     Encoder.instance(doc => {
       val fields = doc.fields.map {
         case FloatField(name, value)          => (name, Json.fromFloatOrNull(value))
@@ -21,7 +22,7 @@ object Document {
       Json.fromJsonObject(JsonObject.fromIterable(fields))
     })
 
-  implicit val documentDecoder: Decoder[Document] =
+  given documentDecoder: Decoder[Document] =
     Decoder
       .instance(c =>
         c.value.asObject match {

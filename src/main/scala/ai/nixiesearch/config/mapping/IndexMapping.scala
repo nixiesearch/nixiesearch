@@ -104,7 +104,7 @@ object IndexMapping extends Logging {
     fieldValues <- fieldValues1.flatTraverse {
       case (fieldName, values @ head :: _) =>
         head match {
-          case f: TextField if fieldName == "_id" => IO.pure(List(TextFieldSchema("_id", filter = true)))
+          case f: TextField if fieldName == "_id" => IO.pure(List(TextFieldSchema.idDefault()))
           case f: TextField                       => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
           case f: TextListField                   => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
           case f: IntField                        => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
@@ -113,7 +113,10 @@ object IndexMapping extends Logging {
       case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen
     }
   } yield {
-    IndexMapping(indexName, fieldValues)
+    val withId =
+      if (fieldValues.exists(_.name == "_id")) fieldValues
+      else fieldValues :+ TextFieldSchema.idDefault()
+    IndexMapping(indexName, withId)
   }
 
   object Alias {
