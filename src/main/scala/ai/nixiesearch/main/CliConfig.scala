@@ -4,7 +4,8 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import ai.nixiesearch.main.CliConfig.fileConverter
 import cats.effect.IO
-import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, ValueConverter, singleArgConverter}
+import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
+import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, ValueConverter, singleArgConverter, throwError}
 
 import java.io.File
 import scala.util.{Failure, Success, Try}
@@ -18,8 +19,20 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
   }
   addSubcommand(standalone)
 
-  errorMessageHandler = (msg: String) => {
-    throw new Exception(msg)
+  override protected def onError(e: Throwable): Unit = e match {
+    case r: ScallopResult if !throwError.value =>
+      r match {
+        case Help("") =>
+          logger.info("\n" + builder.getFullHelpString())
+        case Help(subname) =>
+          logger.info("\n" + builder.findSubbuilder(subname).get.getFullHelpString())
+        case Version =>
+          "\n" + getVersionString().foreach(logger.info)
+        case ScallopException(message) => errorMessageHandler(message)
+        // following should never match, but just in case
+        case other: ScallopException => errorMessageHandler(other.getMessage)
+      }
+    case e => throw e
   }
 }
 
