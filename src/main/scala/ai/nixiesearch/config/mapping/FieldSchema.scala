@@ -1,6 +1,6 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch}
+import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, NoSearch}
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.config.mapping.SearchType.yaml.searchTypeDecoder
 import ai.nixiesearch.core.Field
@@ -44,9 +44,10 @@ object FieldSchema {
       with FieldSchema[TextField]
 
   object TextFieldSchema {
+    def idDefault() = TextFieldSchema("_id", filter = true)
     def dynamicDefault(name: String) = new TextFieldSchema(
       name = name,
-      search = LexicalSearch(),
+      search = HybridSearch(),
       sort = true,
       facet = true,
       filter = true
