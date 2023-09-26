@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - jvm: 17
-            platform: ubuntu-22.04
+          - jvm: 21
+            platform: ubuntu-23.04
 
     steps:
     - uses: actions/checkout@v2
