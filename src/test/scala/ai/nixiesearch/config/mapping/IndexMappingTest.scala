@@ -3,7 +3,7 @@ package ai.nixiesearch.config.mapping
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearch}
+import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,7 +20,8 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     result shouldBe IndexMapping(
       name = "test",
       fields = List(
-        TextFieldSchema("title", search = LexicalSearch(), sort = true, facet = true, filter = true)
+        TextFieldSchema("title", search = HybridSearch(), sort = true, facet = true, filter = true),
+        TextFieldSchema("_id", filter = true)
       )
     )
   }
@@ -90,7 +91,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         name = "test",
         alias = List(Alias("prod")),
         fields = Map(
-          "_id"    -> TextFieldSchema("_id", filter = true),
+          "_id"   -> TextFieldSchema("_id", filter = true),
           "title" -> TextFieldSchema("title")
         )
       )
