@@ -15,8 +15,10 @@ This guide assumes that you already have the following available:
 
 For this quickstart we will use a sample of the [MSMARCO](https://microsoft.github.io/msmarco/) dataset, which contains text documents from the [Bing](https://www.bing.com/) search engine. The following command will fetch the sample data to your current directory:
 ```
-$ curl -L -O http://nixiesearch.ai/data/msmarco.json
+curl -L -O http://nixiesearch.ai/data/msmarco.json
+```
 
+```text
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   162  100   162    0     0   3636      0 --:--:-- --:--:-- --:--:--  3681
@@ -39,8 +41,10 @@ Data format is JSONL, where each line is a separate json object - and there are 
 
 Nixiesearch is distributed as a Docker container, which can be run with the following command:
 ```
-$ docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
+docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
+```
 
+```text
 12:40:47.325 INFO  ai.nixiesearch.main.Main$ - Staring Nixiesearch
 12:40:47.460 INFO  ai.nixiesearch.config.Config$ - No config file given, using defaults
 12:40:47.466 INFO  ai.nixiesearch.config.Config$ - Store: LocalStoreConfig(LocalStoreUrl(/))
@@ -78,8 +82,10 @@ After you start the Nixiesearch service in the `standalone` mode listening on po
 Nixiesearch uses a similar API semantics as Elasticsearch, so to upload docs for indexing, you need to make a HTTP PUT request to the `/<index-name>/_index` endpoint:
 
 ```
-$ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
+curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
+```
 
+```json
 {"result":"created","took":8256}
 ```
 
@@ -89,8 +95,9 @@ As Nixiesearch is running an LLM embedding model inference inside, indexing larg
 
 As we used dynamic mapping generation based on indexed documents, you may be curious how the resulting mapping may look like. You can see it with the following REST call:
 ```
-$ curl http://localhost:8080/msmarco/_mapping
-
+curl http://localhost:8080/msmarco/_mapping
+```
+```json
 {
   "name": "msmarco",
   "alias": [],
@@ -146,9 +153,10 @@ Query DSL in Nixiesearch is inspired but not compatible with the JSON syntax use
 To perform a single-field hybrid search over our newly-created `msmarco` index, run the following cURL command:
 
 ```
-$ curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
+curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
     http://localhost:8080/msmarco/_search
-    
+```
+```json    
 {
   "took": 13,
   "hits": [

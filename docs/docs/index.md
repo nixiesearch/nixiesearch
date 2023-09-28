@@ -31,9 +31,11 @@ The project is on early stages of development and not intended for a production 
 ## Usage
 
 Get the sample [MS MARCO](https://microsoft.github.io/msmarco/) dataset:
+```shell
+curl -L -O http://nixiesearch.ai/data/msmarco.json
 ```
-$ curl -L -O http://nixiesearch.ai/data/msmarco.json
 
+```text
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   162  100   162    0     0   3636      0 --:--:-- --:--:-- --:--:--  3681
@@ -42,9 +44,11 @@ $ curl -L -O http://nixiesearch.ai/data/msmarco.json
 
 Run the Nixiesearch [docker container](https://hub.docker.com/r/nixiesearch/nixiesearch):
 
+```shell
+docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
 ```
-$ docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
 
+```text
 12:40:47.325 INFO  ai.nixiesearch.main.Main$ - Staring Nixiesearch
 12:40:47.460 INFO  ai.nixiesearch.config.Config$ - No config file given, using defaults
 12:40:47.466 INFO  ai.nixiesearch.config.Config$ - Store: LocalStoreConfig(LocalStoreUrl(/))
@@ -62,17 +66,21 @@ $ docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
 
 Build an index for a hybrid search:
 
+```shell
+curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 ```
-$ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 
+```json
 {"result":"created","took":8256}
 ```
 
 Send the search query:
-```
-$ curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
+```shell
+curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
     http://localhost:8080/msmarco/_search
-    
+```
+
+```json
 {
   "took": 13,
   "hits": [
