@@ -136,6 +136,7 @@ nav:
             - Overview: reference/config/overview.md
             - API: reference/config/api.md
             - Persistence:
+                - Overview: reference/config/persistence/overview.md
                 - In-memory: reference/config/persistence/inmemory.md
                 - Local file: reference/config/persistence/file.md
                 - S3: reference/config/persistence/s3.md

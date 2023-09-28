@@ -62,6 +62,10 @@ Options breakdown:
 * `-p 8080:8080`: expose the port 8080.
 * `standalone`: a Nixiesearch running mode, with colocated indexer and searcher processes.
 
+> **Note**: Standalone mode in Nixiesearch is made for testing and does not need a config file. But this mode has its own trade-offs:
+> * When started from Docker, there is **no persistence**: all your indexed documents are stored in RAM and will be lost after restart. See the [Persistence](reference/config/persistence/overview.md) chapter on setting it up.
+> * **Dynamic mapping** is enabled: Nixiesearch will try to deduce index schema based on documents it indexes. As it cannot know upfront which fields are you going to use for search, filtering and faceting, it marks every field as searchable, filterable and facetable - which wastes a lot of disk space. See the [Index mapping](reference/config/mapping.md) section for details.
+
 ## Indexing data
 
 After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs!
@@ -80,5 +84,103 @@ $ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 
 As Nixiesearch is running an LLM embedding model inference inside, indexing large document corpus on CPU may take a while.
 
+## Index mapping
+
+As we used dynamic mapping generation based on indexed documents, you may be curious how the resulting mapping may look like. You can see it with the following REST call:
+```
+$ curl http://localhost:8080/msmarco/_mapping
+
+{
+  "name": "msmarco",
+  "alias": [],
+  "config": {
+    "mapping": {
+      "dynamic": true
+    }
+  },
+  "fields": {
+    "_id": {
+      "type": "text",
+      "name": "_id",
+      "search": {
+        "type": "disabled"
+      },
+      "store": true,
+      "sort": false,
+      "facet": false,
+      "filter": true
+    },
+    "text": {
+      "type": "text",
+      "name": "text",
+      "search": {
+        "type": "hybrid",
+        "model": "nixiesearch/e5-small-v2-onnx",
+        "prefix": {
+          "query": "query: ",
+          "document": "passage: "
+        },
+        "language": "english"
+      },
+      "store": true,
+      "sort": true,
+      "facet": true,
+      "filter": true
+    }
+  }
+}
+```
+
+As you can see, Nixiesearch made a couple of indexing decisions, which may be not optimal for a production use, but quite nice for testing. So for the `text` field:
+* it is marked as `sort: true`. Building a sorted field requires constructing a separate Lucene `DocValues` field, which is usually kept in RAM while searching.
+* it can be used for full-text search with`search.type: hybrid`. But using hybrid/semantic search fields requires running a LLM inference on indexing, which may take a lot of CPU resources.
+
+In production deployments we highly advise using the explicit index mapping. For more details, see [Index mapping](reference/config/mapping.md) section of documentation.
+
 ## Sending requests
 
+Query DSL in Nixiesearch is inspired but not compatible with the JSON syntax used in [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html)/[OpenSearch](https://opensearch.org/docs/latest/query-dsl/index/) Query DSL. 
+
+To perform a single-field hybrid search over our newly-created `msmarco` index, run the following cURL command:
+
+```
+$ curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
+    http://localhost:8080/msmarco/_search
+    
+{
+  "took": 13,
+  "hits": [
+    {
+      "_id": "8035959",
+      "text": "Climate & Weather Averages in New York, New York, USA.",
+      "_score": 0.016666668
+    },
+    {
+      "_id": "2384898",
+      "text": "Consulate General of the Republic of Korea in New York.",
+      "_score": 0.016393442
+    },
+    {
+      "_id": "2241745",
+      "text": "This is a list of the tallest buildings in New York City.",
+      "_score": 0.016129032
+    }
+}
+```
+
+This query effectively performed a hybrid search:
+
+* for lexical search, it built and executed a Lucene query of `text:new text:york`
+* for semantic search, it computed an LLM embedding of the query `new york` and performed an a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
+* combined results of both searches into a single ranking with the [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
+
+## Next steps
+
+If you want to continue learning about Nixiesearch, these sections of documentation are great next steps:
+
+* [An overview of Nixiesearch design](concepts/design.md) to understand how it differs from existing search engines.
+* Using [Filters](concepts/search.md#filters) and [Facets](concepts/search.md#facets) while searching.
+* [How it should be deployed](concepts/deploy.md) in a production environment.
+* Building [semantic autocomplete](concepts/autocomplete.md) index for search-as-you-type support.
+
+If you have a question not covered in these docs and want to chat with the team behind Nixiesearch, you're welcome to join our [Community Slack](https://communityinviter.com/apps/nixiesearch/nixiesearch)

@@ -9,9 +9,9 @@ name := "nixiesearch"
 
 libraryDependencies ++= Seq(
   "org.typelevel"            %% "cats-effect"              % "3.5.1",
-  "org.scalatest"            %% "scalatest"                % scalatestVersion % "test,it",
-  "org.scalactic"            %% "scalactic"                % scalatestVersion % "test,it",
-  "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test,it",
+  "org.scalatest"            %% "scalatest"                % scalatestVersion % "test",
+  "org.scalactic"            %% "scalactic"                % scalatestVersion % "test",
+  "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test",
   "ch.qos.logback"            % "logback-classic"          % "1.4.11",
   "io.circe"                 %% "circe-yaml"               % circeYamlVersion,
   "io.circe"                 %% "circe-core"               % circeVersion,
@@ -45,7 +45,7 @@ scalacOptions ++= Seq(
   "-feature",
   "-deprecation",
   "-Xfatal-warnings",
-  "-release:11",
+  "-release:20",
   "-no-indent"
 )
 
@@ -66,7 +66,7 @@ docker / dockerfile := {
     runRaw(
       List(
         "apt-get update",
-        "apt-get install -y --no-install-recommends openjdk-21-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
+        "apt-get install -y --no-install-recommends openjdk-20-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
         "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
         "rm -rf /var/lib/apt/lists/*"
       ).mkString(" && ")
