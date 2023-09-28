@@ -73,9 +73,9 @@ docker / dockerfile := {
     runRaw(
       List(
         "mkdir -p /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/",
-        "curl https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/model.onnx -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/model.onnx",
-        "curl https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/config.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/config.json",
-        "curl https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/tokenizer.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/tokenizer.json"
+        "curl -L https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/model.onnx -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/model.onnx",
+        "curl -L https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/config.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/config.json",
+        "curl -L https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/tokenizer.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/tokenizer.json"
       ).mkString(" && ")
     )
     env(
