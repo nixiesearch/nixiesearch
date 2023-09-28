@@ -12,7 +12,7 @@ import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAg
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.core.search.lucene.{LexicalLuceneQuery, MatchAllLuceneQuery, SemanticLuceneQuery}
-import ai.nixiesearch.index.IndexReader
+import ai.nixiesearch.index.{Index, IndexReader}
 import cats.data.NonEmptyList
 import cats.effect.IO
 import org.apache.lucene.facet.FacetsCollector
@@ -38,25 +38,28 @@ import scala.collection.mutable
 object Searcher {
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
 
-  def search(request: SearchRequest, reader: IndexReader): IO[SearchResponse] = for {
+  def search(request: SearchRequest, index: Index): IO[SearchResponse] = for {
     start   <- IO(System.currentTimeMillis())
-    mapping <- reader.mapping()
+    mapping <- index.mappingRef.get
     queries <- request.query match {
       case MatchAllQuery() => MatchAllLuceneQuery.create(request.filter, mapping)
       case MatchQuery(field, query, operator) =>
-        fieldQuery(mapping, request.filter, field, query, operator.occur, request.size, reader.encoders)
+        fieldQuery(mapping, request.filter, field, query, operator.occur, request.size, index.encoders)
       case MultiMatchQuery(query, fields, operator) =>
         fields
           .traverse(field =>
-            fieldQuery(mapping, request.filter, field, query, operator.occur, request.size, reader.encoders)
+            fieldQuery(mapping, request.filter, field, query, operator.occur, request.size, index.encoders)
           )
           .map(_.flatten)
     }
-    fieldTopDocs  <- queries.traverse(query => searchField(reader.searcher, query, request.size))
+    _             <- index.syncReader()
+    searcher      <- index.searcherRef.get
+    mapping       <- index.mappingRef.get
+    fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size))
     mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets)))
     mergedTopDocs <- reciprocalRank(fieldTopDocs.map(_.docs))
-    aggs          <- aggregate(mapping, reader, mergedFacets, request.aggs)
-    collected     <- collect(mapping, reader, mergedTopDocs, request.fields)
+    aggs          <- aggregate(mapping, index, mergedFacets, request.aggs)
+    collected     <- collect(mapping, index, mergedTopDocs, request.fields)
     end           <- IO(System.currentTimeMillis())
   } yield {
     SearchResponse(
@@ -65,6 +68,29 @@ object Searcher {
       aggs = aggs
     )
   }
+
+  def searchLucene(
+      query: LuceneQuery,
+      fields: List[String],
+      n: Int,
+      aggs: Aggs,
+      index: Index
+  ): IO[SearchResponse] =
+    for {
+      start          <- IO(System.currentTimeMillis())
+      topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
+      facetCollector <- IO.pure(new FacetsCollector(false))
+      collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
+      _              <- index.syncReader()
+      searcher       <- index.searcherRef.get
+      mapping        <- index.mappingRef.get
+      _              <- IO(searcher.search(query, collector))
+      docs           <- collect(mapping, index, topCollector.topDocs(), fields)
+      aggs           <- aggregate(mapping, index, facetCollector, aggs)
+      end            <- IO(System.currentTimeMillis())
+    } yield {
+      SearchResponse(end - start, docs, aggs)
+    }
 
   def fieldQuery(
       mapping: IndexMapping,
@@ -150,39 +176,47 @@ object Searcher {
 
   def aggregate(
       mapping: IndexMapping,
-      reader: IndexReader,
+      index: Index,
       collector: FacetsCollector,
       aggs: Aggs
-  ): IO[Map[String, AggregationResult]] = aggs.aggs.toList
-    .traverse { case (name, agg) =>
-      mapping.fields.get(agg.field) match {
-        case Some(field) if !field.facet =>
-          IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
-        case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
-        case Some(schema) =>
-          agg match {
-            case a @ Aggregation.TermAggregation(field, size) =>
-              TermAggregator.aggregate(reader.reader, a, collector, schema).map(result => name -> result)
-            case a @ Aggregation.RangeAggregation(field, ranges) =>
-              RangeAggregator.aggregate(reader.reader, a, collector, schema).map(result => name -> result)
-          }
+  ): IO[Map[String, AggregationResult]] = for {
+    reader <- index.readerRef.get
+    result <- aggs.aggs.toList
+      .traverse { case (name, agg) =>
+        mapping.fields.get(agg.field) match {
+          case Some(field) if !field.facet =>
+            IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
+          case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
+          case Some(schema) =>
+            agg match {
+              case a @ Aggregation.TermAggregation(field, size) =>
+                TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+              case a @ Aggregation.RangeAggregation(field, ranges) =>
+                RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+            }
+        }
       }
-    }
-    .map(_.toMap)
+      .map(_.toMap)
+  } yield { result }
 
   protected def collect(
       mapping: IndexMapping,
-      reader: IndexReader,
+      index: Index,
       top: TopDocs,
-      fields: NonEmptyList[String]
-  ): IO[List[Document]] = IO {
-    val fieldSet = fields.toList.toSet
-    val docs = top.scoreDocs.map(doc => {
-      val visitor = DocumentVisitor(mapping, fieldSet)
-      reader.reader.storedFields().document(doc.doc, visitor)
-      visitor.asDocument(doc.score)
-    })
-    docs.toList
+      fields: List[String]
+  ): IO[List[Document]] = for {
+    reader <- index.readerRef.get
+    docs <- IO {
+      val fieldSet = fields.toSet
+      val docs = top.scoreDocs.map(doc => {
+        val visitor = DocumentVisitor(mapping, fieldSet)
+        reader.storedFields().document(doc.doc, visitor)
+        visitor.asDocument(doc.score)
+      })
+      docs.toList
+    }
+  } yield {
+    docs
   }
 
 }

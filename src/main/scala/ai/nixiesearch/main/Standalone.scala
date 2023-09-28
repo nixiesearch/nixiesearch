@@ -2,7 +2,7 @@ package ai.nixiesearch.main
 
 import ai.nixiesearch.api.{HealthRoute, IndexRoute, SearchRoute, SuggestRoute}
 import ai.nixiesearch.config.Config
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.IndexRegistry
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
@@ -16,8 +16,9 @@ object Standalone extends Logging {
     config  <- Config.load(args.config)
     indices <- IO(config.search.values.toList ++ config.suggest.values.toList)
     store <- config.store match {
-      case s: LocalStoreConfig => IO.pure(s)
-      case other               => IO.raiseError(new Exception(s"store $other not supported"))
+      case s: LocalStoreConfig  => IO.pure(s)
+      case s: MemoryStoreConfig => IO.pure(s)
+      case other                => IO.raiseError(new Exception(s"store $other not supported"))
     }
     _ <- IndexRegistry
       .create(store, indices)

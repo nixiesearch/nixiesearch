@@ -20,7 +20,7 @@ class BoolFilterTest extends SearchTest with Matchers {
       FloatFieldSchema("price", filter = true)
     )
   )
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("color", "red"), FloatField("price", 10))),
     Document(List(TextField("_id", "2"), TextField("color", "white"), FloatField("price", 20))),
     Document(List(TextField("_id", "3"), TextField("color", "red"), FloatField("price", 30))),

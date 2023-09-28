@@ -11,7 +11,7 @@ import cats.effect.unsafe.implicits.global
 import java.nio.file.{Files, Path}
 import scala.collection.mutable.ArrayBuffer
 
-trait IndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
+trait LocalIndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
   private val pendingDeleteDirs = new ArrayBuffer[Path]()
 
   override def afterAll() = {
@@ -21,6 +21,7 @@ trait IndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
 
   def withStore(index: IndexMapping)(code: IndexRegistry => Any): Unit = {
     val dir = Files.createTempDirectory("nixie")
+    println(dir)
     dir.toFile.deleteOnExit()
     val (registry, shutdown) =
       IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), List(index)).allocated.unsafeRunSync()

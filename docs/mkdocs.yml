@@ -135,7 +135,10 @@ nav:
         - Configuration:
             - Overview: reference/config/overview.md
             - API: reference/config/api.md
-            - Index sync: reference/config/store.md
+            - Persistence:
+                - In-memory: reference/config/persistence/inmemory.md
+                - Local file: reference/config/persistence/file.md
+                - S3: reference/config/persistence/s3.md
             - Autocomplete index: reference/config/autocomplete.md
             - Index mapping: reference/config/mapping.md
         - Command-line interface:

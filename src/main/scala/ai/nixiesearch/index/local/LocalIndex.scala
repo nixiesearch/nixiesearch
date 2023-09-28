@@ -2,16 +2,14 @@ package ai.nixiesearch.index.local
 
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.IndexMapping.json.indexMappingDecoder
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.{Index, IndexReader, IndexWriter}
 import cats.effect.kernel.Resource
 import cats.effect.{IO, Ref}
-import fs2.Stream
 import fs2.io.*
 import fs2.io.file.{Files, Path}
 import io.circe.parser.*
@@ -22,102 +20,66 @@ import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.index.{
   DirectoryReader,
   IndexWriterConfig,
-  IndexReader as LuceneIndexReader,
-  IndexWriter as LuceneIndexWriter
+  IndexWriter as LuceneIndexWriter,
+  IndexReader as LuceneIndexReader
 }
 import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.store.{Directory, MMapDirectory}
+import org.apache.lucene.store.{ByteBuffersDirectory, Directory, IOContext, MMapDirectory}
 
-import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
-case class LocalIndex(config: LocalStoreConfig, mappingRef: Ref[IO, Option[IndexMapping]], encoders: BiEncoderCache)
-    extends Index
+case class LocalIndex(
+    name: String,
+    directory: Directory,
+    analyzer: Analyzer,
+    mappingRef: Ref[IO, IndexMapping],
+    encoders: BiEncoderCache,
+    readerRef: Ref[IO, DirectoryReader],
+    searcherRef: Ref[IO, IndexSearcher],
+    writer: LuceneIndexWriter,
+    dirtyRef: Ref[IO, Boolean]
+) extends Index
     with Logging {
-  import LocalIndex.*
-
-  def getMapping() = Resource.eval(mappingRef.get.flatMap {
-    case Some(value) => IO.pure(value)
-    case None        => IO.raiseError(new Exception("nope"))
-  })
-  override def writer(): Resource[IO, LocalIndexWriter] = for {
-    mapping <- getMapping()
-    _       <- Resource.eval(ensureWorkdirExists(config.url.path))
-    indexMappings <- Resource.eval(
-      ensureIndexDirExists(
-        config.url.path,
-        mapping.name,
-        whenMissing = indexPath => info(s"creating index dir $indexPath") *> Files[IO].createDirectory(indexPath)
-      )
-    )
-    luceneDir    <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
-    writerConfig <- Resource.pure(new IndexWriterConfig(luceneDir.analyzer))
-    writer       <- Resource.eval(IO(LuceneIndexWriter(luceneDir.dir, writerConfig)))
-    _            <- Resource.eval(IO(writer.commit()))
-  } yield {
-    LocalIndexWriter(
-      name = mapping.name,
-      config = config,
-      mappingRef = mappingRef,
-      writer = writer,
-      directory = luceneDir.dir,
-      analyzer = luceneDir.analyzer,
-      encoders = encoders
-    )
-  }
-
-  override def reader(): Resource[IO, LocalIndexReader] = for {
-    mapping <- getMapping()
-    _       <- Resource.eval(ensureWorkdirExists(config.url.path))
-    _ <- Resource.eval(
-      ensureIndexDirExists(
-        config.url.path,
-        mapping.name,
-        whenMissing =
-          indexPath => IO.raiseError(new Exception(s"Cannot create reader for a never written index $indexPath"))
-      )
-    )
-    luceneDir <- Resource.make(openDirectory(config.url.path, mapping))(_.close())
-    reader    <- Resource.eval(IO(DirectoryReader.open(luceneDir.dir)))
-  } yield {
-    LocalIndexReader(
-      name = mapping.name,
-      config = config,
-      mappingRef = mappingRef,
-      reader = reader,
-      dir = luceneDir.dir,
-      searcher = new IndexSearcher(reader),
-      analyzer = luceneDir.analyzer,
-      encoders = encoders
-    )
-  }
-
+  override def close(): IO[Unit] = for {
+    mapping <- mappingRef.get
+    _       <- info(s"closing index ${mapping.name}")
+    _       <- readerRef.get.map(_.close())
+    // _ <- writerRef.get.map(_.close())
+    _ <- IO(directory.close())
+  } yield {}
 }
 
 object LocalIndex extends Logging {
   import IndexMapping.json.given
 
-  case class DirectoryMapping(dir: MMapDirectory, mapping: IndexMapping, analyzer: Analyzer) {
-    def close(): IO[Unit] = IO(dir.close())
+  case class DirectoryMapping(dir: Directory, mapping: IndexMapping, analyzer: Analyzer)
+
+  def create(config: LocalStoreConfig, mappingConfig: IndexMapping, encoders: BiEncoderCache): IO[LocalIndex] = for {
+    _           <- ensureWorkdirExists(config.url.path)
+    dm          <- openFileDirectory(config.url.path, mappingConfig)
+    writer      <- IO(new LuceneIndexWriter(dm.dir, new IndexWriterConfig(dm.analyzer)))
+    _           <- IO(writer.commit()) // to create empty segment
+    reader      <- IO(DirectoryReader.open(writer))
+    mappingRef  <- Ref.of[IO, IndexMapping](dm.mapping)
+    readerRef   <- Ref.of[IO, DirectoryReader](reader)
+    searcherRef <- Ref.of[IO, IndexSearcher](new IndexSearcher(reader))
+    dirtyRef    <- Ref.of[IO, Boolean](false)
+  } yield {
+    LocalIndex(mappingConfig.name, dm.dir, dm.analyzer, mappingRef, encoders, readerRef, searcherRef, writer, dirtyRef)
   }
 
-  case class LocalIndexWriter(
-      name: String,
-      config: LocalStoreConfig,
-      mappingRef: Ref[IO, Option[IndexMapping]],
-      writer: LuceneIndexWriter,
-      directory: MMapDirectory,
-      analyzer: Analyzer,
-      encoders: BiEncoderCache
-  ) extends IndexWriter
-      with Logging {
-    override def refreshMapping(mapping: IndexMapping): IO[Unit] = for {
-      _ <- mappingRef.set(Some(mapping))
-      _ <- writeMapping(mapping, config.url.path)
-      _ <- info(s"mapping updated for index ${mapping.name}")
-    } yield {}
-
+  def create(config: MemoryStoreConfig, mappingConfig: IndexMapping, encoders: BiEncoderCache): IO[LocalIndex] = for {
+    dm          <- openMemoryDirectory(mappingConfig)
+    writer      <- IO(new LuceneIndexWriter(dm.dir, new IndexWriterConfig(dm.analyzer)))
+    _           <- IO(writer.commit()) // to create empty segment
+    reader      <- IO(DirectoryReader.open(writer))
+    readerRef   <- Ref.of[IO, DirectoryReader](reader)
+    searcherRef <- Ref.of[IO, IndexSearcher](new IndexSearcher(reader))
+    mappingRef  <- Ref.of[IO, IndexMapping](mappingConfig)
+    dirtyRef    <- Ref.of[IO, Boolean](false)
+  } yield {
+    LocalIndex(mappingConfig.name, dm.dir, dm.analyzer, mappingRef, encoders, readerRef, searcherRef, writer, dirtyRef)
   }
 
   private def ensureWorkdirExists(workdir: String): IO[Unit] = for {
@@ -132,31 +94,25 @@ object LocalIndex extends Logging {
     )
   } yield {}
 
-  private def ensureIndexDirExists(workdir: String, index: String, whenMissing: Path => IO[Unit]): IO[Unit] = for {
-    indexDir  <- IO(List(workdir, index).mkString(File.separator))
-    indexPath <- IO.pure(Path(indexDir))
-    exists    <- Files[IO].exists(indexPath)
-    isDir     <- Files[IO].isDirectory(indexPath)
-    _         <- IO.whenA(exists && isDir)(info(s"index $index local directory $indexDir found in the workdir"))
-    _ <- IO.whenA(exists && !isDir)(
-      IO.raiseError(new Exception(s"index $index path $indexDir should be a directory, but it's not"))
-    )
-    _ <- IO.whenA(!exists)(whenMissing(indexPath))
-
-  } yield {}
-
-  def openDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
-    _             <- info(s"opening directory ${mapping.name}")
-    mappingPath   <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
-    mappingExists <- Files[IO].exists(Path(mappingPath))
+  def openFileDirectory(workdir: String, mapping: IndexMapping): IO[DirectoryMapping] = for {
+    _             <- info(s"opening file directory for index ${mapping.name}")
+    directory     <- IO(new MMapDirectory(Paths.get(workdir, mapping.name)))
+    mappingExists <- IO(directory.listAll().contains(Index.MAPPING_FILE_NAME))
     mapping <- mappingExists match {
-      case true  => readMapping(mappingPath).flatMap(loaded => loaded.migrate(mapping))
-      case false => writeMapping(mapping, workdir) *> IO(mapping)
+      case true  => readMapping(directory).flatMap(loaded => loaded.migrate(mapping))
+      case false => writeMapping(mapping, directory) *> IO(mapping)
     }
-    directory <- IO(new MMapDirectory(Paths.get(workdir, mapping.name)))
+    analyzer <- createAnalyzer(mapping)
+  } yield {
+    DirectoryMapping(directory, mapping, analyzer)
+  }
+
+  def openMemoryDirectory(mapping: IndexMapping): IO[DirectoryMapping] = for {
+    _         <- info(s"opening in-memory directory for index ${mapping.name}")
+    directory <- IO(new ByteBuffersDirectory())
+    _         <- writeMapping(mapping, directory)
     analyzer  <- createAnalyzer(mapping)
   } yield {
-
     DirectoryMapping(directory, mapping, analyzer)
   }
 
@@ -168,28 +124,37 @@ object LocalIndex extends Logging {
     new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
   }
 
-  def readMapping(file: String): IO[IndexMapping] =
-    readInputStream(IO(new FileInputStream(new File(file))), 1024)
-      .through(fs2.text.utf8.decode)
-      .compile
-      .toList
-      .map(_.mkString)
-      .flatMap(json => IO.fromEither(decode[IndexMapping](json)))
-
-  def writeMapping(mapping: IndexMapping, workdir: String): IO[Unit] = {
-    for {
-      _ <- ensureWorkdirExists(workdir)
-      _ <- ensureIndexDirExists(
-        workdir,
-        mapping.name,
-        _ => IO.raiseError(new Exception("cannot update mapping"))
+  def readMapping(dir: Directory): IO[IndexMapping] = for {
+    len <- IO(dir.fileLength(Index.MAPPING_FILE_NAME).toInt)
+    buf <- IO.pure(new Array[Byte](len))
+    mapping <- Resource
+      .make(IO(dir.openInput(Index.MAPPING_FILE_NAME, IOContext.READ)))(input => IO(input.close()))
+      .use(input =>
+        for {
+          _       <- IO(input.readBytes(buf, 0, len))
+          decoded <- IO.fromEither(decode[IndexMapping](new String(buf)))
+        } yield {
+          decoded
+        }
       )
-      mappingPath <- IO(List(workdir, mapping.name, Index.MAPPING_FILE_NAME).mkString(File.separator))
-      _ <- Stream(mapping.asJson.spaces2SortKeys.getBytes(): _*)
-        .through(writeOutputStream(IO(new FileOutputStream(new File(mappingPath)))))
-        .compile
-        .drain
-        .flatMap(_ => info(s"wrote mapping file $mappingPath for an index ${mapping.name}"))
-    } yield {}
+  } yield {
+    mapping
+  }
+
+  def writeMapping(mapping: IndexMapping, dir: Directory): IO[Unit] = {
+    Resource
+      .make(for {
+        mappingExists <- IO(dir.listAll().contains(Index.MAPPING_FILE_NAME))
+        _             <- IO.whenA(mappingExists)(IO(dir.deleteFile(Index.MAPPING_FILE_NAME)))
+      } yield {
+        dir.createOutput(Index.MAPPING_FILE_NAME, IOContext.DEFAULT)
+      })(out => IO(out.close()))
+      .use(output =>
+        for {
+          json <- IO(mapping.asJson.spaces2SortKeys.getBytes())
+          _    <- info(s"wrote mapping file for an index ${mapping.name}")
+          _    <- IO(output.writeBytes(json, json.length))
+        } yield {}
+      )
   }
 }

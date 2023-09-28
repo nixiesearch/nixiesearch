@@ -5,7 +5,7 @@ import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, IndexFixture, TestIndexMapping}
+import ai.nixiesearch.util.{SearchTest, LocalIndexFixture, TestIndexMapping}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -15,7 +15,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import SearchRoute.*
 
   val mapping = TestIndexMapping()
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))

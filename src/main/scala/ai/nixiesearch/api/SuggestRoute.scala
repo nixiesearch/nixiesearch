@@ -5,6 +5,7 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.mapping.SuggestMapping
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.search.Suggester
 import ai.nixiesearch.index.IndexRegistry
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder}
@@ -16,7 +17,7 @@ import org.apache.lucene.search.KnnFloatVectorQuery
 
 case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
   val routes = HttpRoutes.of[IO] { case request @ POST -> Root / indexName / "_suggest" =>
-    indices.reader(indexName).flatMap {
+    indices.index(indexName).flatMap {
       case Some(index) =>
         for {
           query    <- request.as[SuggestRequest]
@@ -29,22 +30,19 @@ case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
     }
   }
 
-  def suggest(index: String, query: SuggestRequest): IO[Response[IO]] = for {
-    mapping <- indices.mapping(index).flatMap {
+  def suggest(indexName: String, query: SuggestRequest): IO[Response[IO]] = for {
+    index <- indices.index(indexName).flatMap {
       case Some(value) => IO.pure(value)
-      case None        => IO.raiseError(new Exception(s"index $index not found"))
+      case None        => IO.raiseError(new Exception(s"index $indexName not found"))
     }
-    reader <- indices.reader(index).flatMap {
-      case Some(value) => IO.pure(value)
-      case None        => IO.raiseError(new Exception(s"index $index not found"))
-    }
+    mapping <- index.mappingRef.get
     schema <- IO.fromOption(mapping.fields.get(SuggestMapping.SUGGEST_FIELD))(
       new Exception(s"field ${SuggestMapping.SUGGEST_FIELD} missing")
     )
     embed <- schema match {
       case TextFieldSchema(_, SemanticSearch(handle, _), _, _, _, _) =>
         for {
-          model   <- reader.encoders.get(handle)
+          model   <- index.encoders.get(handle)
           encoded <- IO(model.embed(Array(query.text)))
           head    <- IO.fromOption(encoded.headOption)(new Exception("encoder returned zero results"))
         } yield {
@@ -53,7 +51,7 @@ case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
       case _ => IO.raiseError(new Exception(s"suggest field has wrong schema: $schema"))
     }
     knnquery <- IO(new KnnFloatVectorQuery(SuggestMapping.SUGGEST_FIELD, embed, query.size))
-    response <- reader.suggest(knnquery, query.size)
+    response <- Suggester.suggest(index, knnquery, query.size)
     ok       <- Ok(response)
   } yield {
     ok

@@ -29,7 +29,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
       FloatFieldSchema("fcount", facet = true)
     )
   )
-  val index = List(
+  val docs = List(
     Document(
       List(
         TextField("_id", "1"),

@@ -19,7 +19,7 @@ class RangeFilterTest extends SearchTest with Matchers {
       FloatFieldSchema("price", filter = true)
     )
   )
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), IntField("count", 10), FloatField("price", 10.0))),
     Document(List(TextField("_id", "2"), IntField("count", 15), FloatField("price", 15.0))),
     Document(List(TextField("_id", "3"), IntField("count", 20), FloatField("price", 20.0))),

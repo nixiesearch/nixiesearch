@@ -15,7 +15,7 @@ import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.store.Directory
-import org.apache.lucene.index.IndexReader as LuceneIndexReader
+import org.apache.lucene.index.{DirectoryReader, IndexReader as LuceneIndexReader, IndexWriter as LuceneIndexWriter}
 import org.apache.lucene.document.Document as LuceneDocument
 import org.apache.lucene.search.{
   BooleanClause,
@@ -31,87 +31,83 @@ import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 
 trait IndexReader extends Logging {
-  def name: String
-  def config: StoreConfig
-  def mappingRef: Ref[IO, Option[IndexMapping]]
-  def reader: LuceneIndexReader
-  def dir: Directory
-  def searcher: IndexSearcher
-  def analyzer: Analyzer
-  def encoders: BiEncoderCache
+  def mappingRef: Ref[IO, IndexMapping]
+  def readerRef: Ref[IO, DirectoryReader]
+  def searcherRef: Ref[IO, IndexSearcher]
+  def writer: LuceneIndexWriter
+  def dirtyRef: Ref[IO, Boolean]
 
-  def mapping(): IO[IndexMapping] = mappingRef.get.flatMap {
-    case Some(value) => IO.pure(value)
-    case None        => IO.raiseError(new Exception("this should never happen"))
-  }
+//  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = for {
+//    mapping <- mappingRef.get
+//    reader  <- readerRef.get
+//    result <- aggs.aggs.toList
+//      .traverse { case (name, agg) =>
+//        mapping.fields.get(agg.field) match {
+//          case Some(field) if !field.facet =>
+//            IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
+//          case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
+//          case Some(schema) =>
+//            agg match {
+//              case a @ Aggregation.TermAggregation(field, size) =>
+//                TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+//              case a @ Aggregation.RangeAggregation(field, ranges) =>
+//                RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+//            }
+//        }
+//      }
+//      .map(_.toMap)
+//
+//  } yield {
+//    result
+//  }
 
-  def aggregate(collector: FacetsCollector, aggs: Aggs): IO[Map[String, AggregationResult]] = for {
-    mapping <- mapping()
-    result <- aggs.aggs.toList
-      .traverse { case (name, agg) =>
-        mapping.fields.get(agg.field) match {
-          case Some(field) if !field.facet =>
-            IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
-          case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
-          case Some(schema) =>
-            agg match {
-              case a @ Aggregation.TermAggregation(field, size) =>
-                TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
-              case a @ Aggregation.RangeAggregation(field, ranges) =>
-                RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
-            }
-        }
-      }
-      .map(_.toMap)
+//  def searchLucene(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
+//    start          <- IO(System.currentTimeMillis())
+//    topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
+//    facetCollector <- IO.pure(new FacetsCollector(false))
+//    collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
+//    searcher       <- getOrReopenSearcher()
+//    _              <- IO(searcher.search(query, collector))
+//    docs           <- collect(topCollector.topDocs(), fields)
+//    aggs           <- aggregate(facetCollector, aggs)
+//    end            <- IO(System.currentTimeMillis())
+//  } yield {
+//    SearchResponse(end - start, docs, aggs)
+//  }
 
-  } yield {
-    result
-  }
+//  private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = for {
+//    reader  <- readerRef.get
+//    mapping <- mappingRef.get
+//    docs <- IO {
+//      val fieldSet = fields.toSet
+//      val docs = top.scoreDocs.map(doc => {
+//        val visitor = DocumentVisitor(mapping, fieldSet)
+//        reader.storedFields().document(doc.doc, visitor)
+//        visitor.asDocument(doc.score)
+//      })
+//      docs.toList
+//    }
+//  } yield {
+//    docs
+//  }
 
-  def searchLucene(query: LuceneQuery, fields: List[String], n: Int, aggs: Aggs): IO[SearchResponse] = for {
-    start          <- IO(System.currentTimeMillis())
-    topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
-    facetCollector <- IO.pure(new FacetsCollector(false))
-    collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
-    _              <- IO(searcher.search(query, collector))
-    docs           <- collect(topCollector.topDocs(), fields)
-    aggs           <- aggregate(facetCollector, aggs)
-    end            <- IO(System.currentTimeMillis())
-  } yield {
-    SearchResponse(end - start, docs, aggs)
-  }
-
-  def suggest(query: LuceneQuery, n: Int): IO[SuggestResponse] = for {
-    start        <- IO(System.currentTimeMillis())
-    topCollector <- IO.pure(TopScoreDocCollector.create(n, n))
-    _            <- IO(searcher.search(query, topCollector))
-    docs         <- collectSuggest(topCollector.topDocs())
-  } yield {
-    SuggestResponse(docs)
-  }
-
-  def close(): IO[Unit] = info(s"closing index reader for index '$name'") *> IO(reader.close())
-
-  private def collect(top: TopDocs, fields: List[String]): IO[List[Document]] = for {
-    mapping <- mapping()
-  } yield {
-    val fieldSet = fields.toSet
-    val docs = top.scoreDocs.map(doc => {
-      val visitor = DocumentVisitor(mapping, fieldSet)
-      reader.storedFields().document(doc.doc, visitor)
-      visitor.asDocument(doc.score)
-    })
-    docs.toList
-  }
-
-  private def collectSuggest(top: TopDocs): IO[List[Suggestion]] = IO {
-    val docs = top.scoreDocs.flatMap(doc => {
-      val visitor = SuggestVisitor(SuggestMapping.SUGGEST_FIELD)
-      reader.storedFields().document(doc.doc, visitor)
-      visitor.getResult().map(text => Suggestion(text = text, score = doc.score))
-
-    })
-    docs.toList
-  }
+  def syncReader(): IO[Unit] = for {
+    dirty <- dirtyRef.get // should be atomic
+    _ <- dirty match {
+      case false => searcherRef.get
+      case true =>
+        for {
+          _           <- info("index contains new writes, reopening reader+searcher")
+          oldSearcher <- searcherRef.get
+          oldReader   <- readerRef.get
+          newReader   <- IO(DirectoryReader.openIfChanged(oldReader, writer))
+          newSearcher <- IO(new IndexSearcher(newReader))
+          _           <- readerRef.set(newReader)
+          _           <- IO(oldReader.close())
+          _           <- searcherRef.set(newSearcher)
+          _           <- dirtyRef.set(false)
+        } yield {}
+    }
+  } yield {}
 
 }

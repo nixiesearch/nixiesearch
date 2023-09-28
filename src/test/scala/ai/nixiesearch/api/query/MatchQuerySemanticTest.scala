@@ -22,7 +22,7 @@ class MatchQuerySemanticTest extends SearchTest with Matchers {
       TextListFieldSchema(name = "cat", search = NoSearch, filter = true)
     )
   )
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"), TextListField("cat", "a", "b"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"), TextListField("cat", "b", "c"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama"), TextListField("cat", "c", "a")))

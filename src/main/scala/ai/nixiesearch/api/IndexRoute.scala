@@ -29,18 +29,21 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
   }
 
   def index(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
-    start   <- IO(System.currentTimeMillis())
-    mapping <- registry.mapping(indexName)
+    start         <- IO(System.currentTimeMillis())
+    mappingOption <- registry.mapping(indexName)
     _ <- request
       .chunkN(64)
       .unchunks
       .through(PrintProgress.tap("indexed docs"))
       .chunkN(64)
-      .evalScan(mapping)((mappingOption, chunk) =>
+      .evalScan(mappingOption)((mo, chunk) =>
         for {
-          mapping <- getMappingOrCreate(mappingOption, chunk.toList, indexName)
-          writer  <- registry.writer(mapping)
-          _       <- writer.addDocuments(chunk.toList)
+          mapping <- getMappingOrCreate(mo, chunk.toList, indexName)
+          index <- registry.index(mapping.name).flatMap {
+            case Some(value) => IO.pure(value)
+            case None        => IO.raiseError(new Exception("index not found, weird"))
+          }
+          _ <- index.addDocuments(chunk.toList)
         } yield {
           Some(mapping)
         }
@@ -60,19 +63,16 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
   def mapping(indexName: String): IO[Option[IndexMapping]] = registry.mapping(indexName)
 
   def flush(indexName: String): IO[Response[IO]] = {
-    registry.mapping(indexName).flatMap {
+    registry.index(indexName).flatMap {
       case None => NotFound(s"index $indexName is missing in config file")
-      case Some(mapping) =>
-        registry.writer(mapping).flatMap { writer =>
-          for {
-            start    <- IO(System.currentTimeMillis())
-            _        <- info(s"POST /$indexName/_flush")
-            _        <- writer.flush()
-            response <- Ok(IndexResponse.withStartTime("flushed", start))
-          } yield {
-            response
-          }
-
+      case Some(index) =>
+        for {
+          start    <- IO(System.currentTimeMillis())
+          _        <- info(s"POST /$indexName/_flush")
+          _        <- index.flush()
+          response <- Ok(IndexResponse.withStartTime("flushed", start))
+        } yield {
+          response
         }
 
     }
@@ -91,8 +91,9 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
             for {
               updated <- IndexMapping.fromDocument(first, indexName)
               merged  <- existing.dynamic(updated)
-              writer  <- registry.writer(merged)
-              _       <- IO.whenA(merged != existing)(writer.refreshMapping(merged))
+              _ <- IO.whenA(merged != existing)(
+                info(s"dynamic mapping updated: ${merged}") *> registry.updateMapping(merged)
+              )
             } yield {
               merged
             }
@@ -103,8 +104,7 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
           _ <- warn("Dynamic mapping is only recommended for testing. Prefer explicit mapping definition in config.")
           generated <- IndexMapping.fromDocument(first, indexName).map(_.withDynamicMapping(true))
           _         <- info(s"Generated mapping $generated")
-          writer    <- registry.writer(generated)
-          _         <- writer.refreshMapping(generated)
+          _         <- registry.updateMapping(generated)
         } yield {
           generated
         }

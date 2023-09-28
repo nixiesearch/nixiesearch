@@ -21,7 +21,7 @@ class TermFilterTest extends SearchTest with Matchers {
       TextFieldSchema("color2", filter = true)
     )
   )
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("color", "red"))),
     Document(List(TextField("_id", "2"), TextField("color", "white"), TextField("color2", "light white"))),
     Document(List(TextField("_id", "3"), TextField("color", "red")))

@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.StoreConfig.StoreUrl
-import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl, TmpUrl}
+import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, MemoryUrl, S3StoreUrl, TmpUrl}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
@@ -30,5 +30,10 @@ class StoreConfigTest extends AnyFlatSpec with Matchers {
   it should "decode tmp" in {
     val result = parse("tmp://foo").flatMap(_.as[StoreUrl])
     result shouldBe Right(TmpUrl("foo"))
+  }
+
+  it should "decode memory" in {
+    val result = parse("memory://").flatMap(_.as[StoreUrl])
+    result shouldBe Right(MemoryUrl())
   }
 }
