@@ -72,17 +72,17 @@ docker / dockerfile := {
     )
     runRaw(
       List(
-        "mkdir -p /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx",
-        "apt-get install -y --no-install-recommends openjdk-19-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
-        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
-        "rm -rf /var/lib/apt/lists/*"
+        "mkdir -p /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/",
+        "curl https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/model.onnx -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/model.onnx",
+        "curl https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/config.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/config.json",
+        "curl https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/tokenizer.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/tokenizer.json"
       ).mkString(" && ")
     )
     env(
       Map(
-        "LANG"     -> "en_US.UTF-8  ",
-        "LANGUAGE" -> "en_US:en ",
-        "LC_ALL"   -> "en_US.UTF-8  "
+        "LANG"     -> "en_US.UTF-8",
+        "LANGUAGE" -> "en_US:en",
+        "LC_ALL"   -> "en_US.UTF-8"
       )
     )
     add(new File("deploy/nixiesearch.sh"), "/nixiesearch.sh")
