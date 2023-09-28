@@ -9,7 +9,7 @@ Nixiesearch is only available as a Docker image from an official [nixiesearch/ni
 
 ## Running a docker image
 
-To run Nixiesearch container, execute the following command:
+To run Nixiesearch container in a [standalone](reference/cli/standalone.md) mode, execute the following command:
 
 ```shell
 docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
