@@ -63,6 +63,7 @@ Options breakdown:
 * `standalone`: a Nixiesearch running mode, with colocated indexer and searcher processes.
 
 > **Note**: Standalone mode in Nixiesearch is made for testing and does not need a config file. But this mode has its own trade-offs:
+> 
 > * When started from Docker, there is **no persistence**: all your indexed documents are stored in RAM and will be lost after restart. See the [Persistence](reference/config/persistence/overview.md) chapter on setting it up.
 > * **Dynamic mapping** is enabled: Nixiesearch will try to deduce index schema based on documents it indexes. As it cannot know upfront which fields are you going to use for search, filtering and faceting, it marks every field as searchable, filterable and facetable - which wastes a lot of disk space. See the [Index mapping](reference/config/mapping.md) section for details.
 
@@ -132,6 +133,7 @@ $ curl http://localhost:8080/msmarco/_mapping
 ```
 
 As you can see, Nixiesearch made a couple of indexing decisions, which may be not optimal for a production use, but quite nice for testing. So for the `text` field:
+
 * it is marked as `sort: true`. Building a sorted field requires constructing a separate Lucene `DocValues` field, which is usually kept in RAM while searching.
 * it can be used for full-text search with`search.type: hybrid`. But using hybrid/semantic search fields requires running a LLM inference on indexing, which may take a lot of CPU resources.
 
