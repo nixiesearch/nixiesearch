@@ -26,8 +26,8 @@ import scodec.bits.ByteVector
 
 class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers {
   it should "load docs and search" in {
-    val pwd = System.getProperty("user.dir")
-    val conf = Config.load(Some(new File(s"$pwd/src/test/resources/config/msmarco.yml"))).unsafeRunSync()
+    val pwd      = System.getProperty("user.dir")
+    val conf     = Config.load(Some(new File(s"$pwd/src/test/resources/config/msmarco.yml"))).unsafeRunSync()
     val registry = TestIndexRegistry(conf.search.values.toList)
 
     val indexApi  = IndexRoute(registry)
@@ -64,8 +64,8 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers {
     indexApi.flush("msmarco").unsafeRunSync()
 
     val searchRequest = SearchRequest(MatchQuery("text", "manhattan"))
-    val reader        = registry.reader("msmarco").unsafeRunSync().get
-    val response      = searchApi.searchDsl(searchRequest, reader).unsafeRunSync()
+    val index         = registry.index("msmarco").unsafeRunSync().get
+    val response      = searchApi.searchDsl(searchRequest, index).unsafeRunSync()
     response.hits.size shouldBe 10
   }
 }

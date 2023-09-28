@@ -1,86 +1,72 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.{FieldSchema, StoreConfig}
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import cats.effect.IO
+import ai.nixiesearch.index.local.LocalIndex
+import cats.effect.{IO, Ref}
 import cats.effect.kernel.Resource
 import cats.effect.std.{MapRef, Queue}
 import cats.implicits.*
+import org.apache.lucene.index.DirectoryReader
 
 case class IndexRegistry(
-    config: LocalStoreConfig,
-    indices: MapRef[IO, String, Option[IndexMapping]],
-    readers: MapRef[IO, String, Option[IndexReader]],
-    writers: MapRef[IO, String, Option[IndexWriter]],
-    shutdownHooks: Queue[IO, IO[Unit]],
+    config: StoreConfig,
+    indices: Ref[IO, Map[String, Index]],
     encoders: BiEncoderCache
 ) extends Logging {
-  def mapping(index: String): IO[Option[IndexMapping]] = indices(index).get
+  def updateMapping(mapping: IndexMapping): IO[Unit] = for {
+    indexOption <- indices.get.map(_.get(mapping.name))
+    _ <- indexOption match {
+      case Some(i: LocalIndex) => i.mappingRef.set(mapping)
+      case Some(other)         => IO.raiseError(new Exception("wtf"))
+      case None =>
+        for {
+          _     <- info("creating new index")
+          index <- Index.fromConfig(config, mapping, encoders)
+          _     <- indices.update(_.updated(index.name, index))
+        } yield {
 
-  def reader(index: String): IO[Option[IndexReader]] = readers(index).get.flatMap {
-    case Some(reader) => IO.some(reader)
-    case None =>
-      info(s"opening index $index for reading") *> indices(index).get.flatMap {
-        case Some(mapping) =>
-          for {
-            mappingRef <- IO.pure(indices(index))
-            tuple      <- LocalIndex(config, mappingRef, encoders).reader().allocated
-            (reader, readerClose) = tuple
-            _ <- readers(index).set(Some(reader))
-            _ <- shutdownHooks.offer(readerClose)
-          } yield {
-            Some(reader)
-          }
-        case None => ???
-      }
-  }
-
-  def writer(index: IndexMapping): IO[IndexWriter] = writers(index.name).get.flatMap {
-    case Some(writer) => IO.pure(writer)
-    case None =>
-      for {
-        _ <- info(s"opening index $index for writing")
-        mappingRef = indices(index.name)
-        writerResource <- mappingRef.get.flatMap {
-          case Some(value) => LocalIndex(config, mappingRef, encoders).writer().allocated
-          case None =>
-            for {
-              _ <- mappingRef.set(Some(index))
-              w <- LocalIndex(config, mappingRef, encoders).writer().allocated
-            } yield {
-              w
-            }
         }
-        (writer, close) = writerResource
-        _ <- writers(index.name).set(Some(writer))
-        _ <- shutdownHooks.offer(close)
-      } yield {
-        writer
-      }
+    }
+  } yield {}
+
+  def mapping(indexName: String): IO[Option[IndexMapping]] = for {
+    indexOption <- indices.get.map(_.get(indexName))
+    mappingOption <- indexOption match {
+      case Some(index) => index.mappingRef.get.map(Option.apply)
+      case None        => IO.none
+    }
+  } yield {
+    mappingOption
   }
 
-  def close(): IO[Unit] = shutdownHooks.tryTake.flatMap {
-    case Some(hook) => hook *> close()
-    case None       => IO.unit
-  }
+  def index(indexName: String): IO[Option[Index]] = indices.get.map(_.get(indexName))
+
+  def close(): IO[Unit] = for {
+    indexList <- indices.get.map(_.values.toList)
+    _ <- info(
+      s"closing index registry with ${indexList.size} active indices"
+    )
+    _ <- indexList.traverse(_.close())
+  } yield {}
 }
 
 object IndexRegistry extends Logging {
-  def create(config: LocalStoreConfig, indices: List[IndexMapping]): Resource[IO, IndexRegistry] = for {
-    indicesRefMap <- Resource.eval(MapRef.ofConcurrentHashMap[IO, String, IndexMapping]())
-    _ <- Resource.eval(
-      indices.traverse(mapping => indicesRefMap(mapping.name).update(_ => Some(mapping)))
+  def create(config: StoreConfig, indices: List[IndexMapping]): Resource[IO, IndexRegistry] = for {
+    encoders <- BiEncoderCache.create()
+    indicesRefMap <- Resource.eval(
+      Ref.ofEffect[IO, Map[String, Index]](
+        indices
+          .traverse(m => Index.fromConfig(config, m, encoders))
+          .map(x => x.map(index => index.name -> index).toMap)
+      )
     )
-    readersRef <- Resource.eval(MapRef.ofConcurrentHashMap[IO, String, IndexReader]())
-    writersRef <- Resource.eval(MapRef.ofConcurrentHashMap[IO, String, IndexWriter]())
-    shutdown   <- Resource.eval(Queue.bounded[IO, IO[Unit]](1024))
-    _          <- Resource.eval(info(s"Index registry initialized: ${indices.size} indices"))
-    encoders   <- BiEncoderCache.create()
+    _ <- Resource.eval(info(s"Index registry initialized: ${indices.size} indices, config: $config"))
     modelsToPreload <- Resource.eval(IO(indices.flatMap(_.fields.values.collect {
       case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _) => model
     })))
@@ -89,9 +75,6 @@ object IndexRegistry extends Logging {
     IndexRegistry(
       config = config,
       indices = indicesRefMap,
-      readers = readersRef,
-      writers = writersRef,
-      shutdownHooks = shutdown,
       encoders = encoders
     )
   }

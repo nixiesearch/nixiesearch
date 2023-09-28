@@ -19,7 +19,7 @@ class MultiMatchQueryTest extends SearchTest with Matchers {
       TextFieldSchema(name = "desc", search = LexicalSearch(), sort = true)
     )
   )
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "dress"), TextField("desc", "red"))),
     Document(List(TextField("_id", "2"), TextField("title", "dress"), TextField("desc", "white"))),
     Document(List(TextField("_id", "3"), TextField("title", "pajama"), TextField("desc", "red")))

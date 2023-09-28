@@ -5,7 +5,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
-import ai.nixiesearch.util.{IndexFixture, TestIndexMapping}
+import ai.nixiesearch.util.{LocalIndexFixture, TestIndexMapping}
 import org.http4s.{Entity, EntityDecoder, Method, Request, Response, Uri}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -17,7 +17,7 @@ import io.circe.{Decoder, Encoder}
 
 import java.nio.file.Files
 
-class IndexRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
+class IndexRouteTest extends AnyFlatSpec with Matchers with LocalIndexFixture {
   import IndexRoute.*
   import ai.nixiesearch.util.HttpTest.*
 

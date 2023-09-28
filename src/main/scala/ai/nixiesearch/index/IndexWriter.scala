@@ -12,20 +12,16 @@ import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.IndexWriter as LuceneIndexWriter
-import org.apache.lucene.store.MMapDirectory
+import org.apache.lucene.store.{Directory, MMapDirectory}
 import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
 import cats.implicits.*
 
 trait IndexWriter extends Logging {
-  def name: String
-  def config: StoreConfig
-  def mappingRef: Ref[IO, Option[IndexMapping]]
-  def refreshMapping(mapping: IndexMapping): IO[Unit]
+  def mappingRef: Ref[IO, IndexMapping]
+  def dirtyRef: Ref[IO, Boolean]
   def writer: LuceneIndexWriter
-  def directory: MMapDirectory
-  def analyzer: Analyzer
   def encoders: BiEncoderCache
 
   lazy val textFieldWriter     = TextFieldWriter()
@@ -33,19 +29,15 @@ trait IndexWriter extends Logging {
   lazy val intFieldWriter      = IntFieldWriter()
   lazy val floatFieldWriter    = FloatFieldWriter()
 
-  def mapping(): IO[IndexMapping] = mappingRef.get.flatMap {
-    case Some(value) => IO.pure(value)
-    case None        => IO.raiseError(new Exception("this should never happen"))
-  }
-
   def addDocuments(docs: List[Document]): IO[Unit] = for {
-    mapping <- mapping()
+    mapping <- mappingRef.get
     handles <- IO(mapping.textFields.values.toList.collect {
       case TextFieldSchema(_, SemanticSearchLikeType(handle, _), _, _, _, _) =>
         handle
     })
     fieldStrings    <- IO(strings(mapping, docs))
     embeddedStrings <- embed(fieldStrings, encoders)
+    _               <- dirtyRef.set(true)
   } yield {
     val all = new util.ArrayList[LuceneDocument]()
     docs.foreach(doc => {
@@ -120,12 +112,6 @@ trait IndexWriter extends Logging {
       .map(_.toMap)
   }
 
-  def flush(): IO[Unit] = IO(writer.commit())
-
-  def close(): IO[Unit] = for {
-    m <- mapping()
-    _ <- info(s"closing index writer for index '${m.name}'")
-    _ <- IO(writer.close())
-  } yield {}
+  def flush(): IO[Unit] = info("index commit") *> IO(writer.commit())
 
 }

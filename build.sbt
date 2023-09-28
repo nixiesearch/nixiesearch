@@ -70,6 +70,14 @@ docker / dockerfile := {
         "rm -rf /var/lib/apt/lists/*"
       ).mkString(" && ")
     )
+    runRaw(
+      List(
+        "mkdir -p /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx",
+        "apt-get install -y --no-install-recommends openjdk-19-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
+        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
+        "rm -rf /var/lib/apt/lists/*"
+      ).mkString(" && ")
+    )
     env(
       Map(
         "LANG"     -> "en_US.UTF-8  ",

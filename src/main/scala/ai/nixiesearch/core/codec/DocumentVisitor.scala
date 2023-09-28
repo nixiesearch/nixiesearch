@@ -22,7 +22,8 @@ import cats.effect.IO
 case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: DocumentFields = DocumentFields())
     extends StoredFieldVisitor
     with Logging {
-  override def needsField(fieldInfo: FieldInfo): Status = if (fields.contains(fieldInfo.name)) Status.YES else Status.NO
+  override def needsField(fieldInfo: FieldInfo): Status =
+    if ((fieldInfo.name == "_id") || fields.contains(fieldInfo.name)) Status.YES else Status.NO
 
   override def stringField(fieldInfo: FieldInfo, value: String): Unit = mapping.fields.get(fieldInfo.name) match {
     case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but collected: this should not happen")

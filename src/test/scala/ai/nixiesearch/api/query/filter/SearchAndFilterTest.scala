@@ -20,7 +20,7 @@ class SearchAndFilterTest extends SearchTest with Matchers {
       TextFieldSchema("title", search = LexicalSearch())
     )
   )
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("color", "red"), TextField("title", "big jacket"))),
     Document(List(TextField("_id", "2"), TextField("color", "white"), TextField("title", "evening dress"))),
     Document(List(TextField("_id", "3"), TextField("color", "red"), TextField("title", "branded dress")))

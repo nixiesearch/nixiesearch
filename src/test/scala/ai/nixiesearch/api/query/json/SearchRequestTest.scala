@@ -11,7 +11,7 @@ class SearchRequestTest extends AnyFlatSpec with Matchers {
   it should "decode json for match query" in {
     val json    = """{"query": {"match": {"text": "manhattan"}}, "fields": ["a","b"]}"""
     val decoded = decode[SearchRequest](json)
-    decoded shouldBe Right(SearchRequest(query = MatchQuery("text", "manhattan"), fields = NonEmptyList.of("a", "b")))
+    decoded shouldBe Right(SearchRequest(query = MatchQuery("text", "manhattan"), fields = List("a", "b")))
   }
 
 }

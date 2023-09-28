@@ -10,7 +10,7 @@ import cats.effect.unsafe.implicits.global
 import io.circe.parser.*
 class MatchQueryTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping()
-  val index = List(
+  val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))

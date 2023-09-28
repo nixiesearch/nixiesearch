@@ -8,13 +8,13 @@ import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
-import ai.nixiesearch.util.IndexFixture
+import ai.nixiesearch.util.LocalIndexFixture
 import org.http4s.{Method, Request, Uri}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 
-class SuggestRouteTest extends AnyFlatSpec with Matchers with IndexFixture {
+class SuggestRouteTest extends AnyFlatSpec with Matchers with LocalIndexFixture {
   import ai.nixiesearch.util.HttpTest.*
   import IndexRoute.*
 
