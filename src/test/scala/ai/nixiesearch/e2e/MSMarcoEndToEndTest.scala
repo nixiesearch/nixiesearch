@@ -34,11 +34,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers {
     val searchApi = SearchRoute(registry)
 
     val docs = readInputStream[IO](
-      IO(
-        new ZstdInputStream(
-          new FileInputStream(new File(s"$pwd/src/test/resources/datasets/msmarco/corpus-10k.jsonl.zst"))
-        )
-      ),
+      IO(new FileInputStream(new File(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json"))),
       1024000
     ).through(fs2.text.utf8.decode)
       .through(fs2.text.lines)
