@@ -125,6 +125,7 @@ nav:
         - Deployment: concepts/deploy.md
     - Reference:
         - API:
+            - Overview: reference/api/overview.md
             - Index: reference/api/index.md
             - Search:
                 - Queries: reference/api/search/query.md
