@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.nn.model
 
-import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.{Logging, PrintProgress}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.HuggingFaceClient.ModelResponse
 import ai.nixiesearch.core.nn.model.HuggingFaceClient.ModelResponse.Sibling
@@ -41,7 +41,9 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
       .evalMap(response =>
         response.status.code match {
           case 200 =>
-            info("HuggingFace API: HTTP 200") *> response.entity.body.compile
+            info("HuggingFace API: HTTP 200") *> response.entity.body
+              .through(PrintProgress.bytes)
+              .compile
               .foldChunks(new ByteArrayOutputStream())((acc, c) => {
                 acc.writeBytes(c.toArray)
                 acc
