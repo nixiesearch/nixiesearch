@@ -29,7 +29,7 @@ Data format is JSONL, where each line is a separate json object - and there are 
 * `_id` - an optional document identifier.
 * `text` - the textual payload we're going to search through.
 
-```json lines
+```json
 {"_id":"2637788","text":"2 things, one is ethyol alcohol, and the other is CO2."}
 {"_id":"2815157","text":"Things I wish I had known before I became an academic."}
 {"_id":"2947247","text":"Not to be confused with Auburn Township, Pennsylvania."}
