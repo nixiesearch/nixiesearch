@@ -1,4 +1,5 @@
 import Deps.*
+import sbt.Package.ManifestAttributes
 
 version := "0.0.1"
 
@@ -8,9 +9,9 @@ name := "nixiesearch"
 
 libraryDependencies ++= Seq(
   "org.typelevel"            %% "cats-effect"              % "3.5.1",
-  "org.scalatest"            %% "scalatest"                % scalatestVersion % "test,it",
-  "org.scalactic"            %% "scalactic"                % scalatestVersion % "test,it",
-  "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test,it",
+  "org.scalatest"            %% "scalatest"                % scalatestVersion % "test",
+  "org.scalactic"            %% "scalactic"                % scalatestVersion % "test",
+  "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test",
   "ch.qos.logback"            % "logback-classic"          % "1.4.11",
   "io.circe"                 %% "circe-yaml"               % circeYamlVersion,
   "io.circe"                 %% "circe-core"               % circeVersion,
@@ -44,7 +45,7 @@ scalacOptions ++= Seq(
   "-feature",
   "-deprecation",
   "-Xfatal-warnings",
-  "-release:11",
+  "-release:20",
   "-no-indent"
 )
 
@@ -61,11 +62,11 @@ docker / dockerfile := {
   val artifactTargetPath = s"/app/${artifact.name}"
 
   new Dockerfile {
-    from(s"--platform=$PLATFORM ubuntu:jammy-20230308")
+    from(s"--platform=$PLATFORM ubuntu:lunar-20230816")
     runRaw(
       List(
         "apt-get update",
-        "apt-get install -y --no-install-recommends openjdk-19-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
+        "apt-get install -y --no-install-recommends openjdk-20-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
         "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
         "rm -rf /var/lib/apt/lists/*"
       ).mkString(" && ")
@@ -93,6 +94,7 @@ docker / dockerfile := {
 }
 
 docker / imageNames := Seq(
+  ImageName(s"nixiesearch/nixiesearch:${version.value}"),
   ImageName(s"nixiesearch/nixiesearch:latest")
 )
 
@@ -105,6 +107,8 @@ ThisBuild / assemblyMergeStrategy := {
   case PathList("module-info.class")                                         => MergeStrategy.discard
   case "META-INF/io.netty.versions.properties"                               => MergeStrategy.first
   case "META-INF/MANIFEST.MF"                                                => MergeStrategy.discard
+  case x if x.startsWith("META-INF/versions/")                               => MergeStrategy.first
+  case x if x.startsWith("META-INF/services/")                               => MergeStrategy.concat
   case "META-INF/native-image/reflect-config.json"                           => MergeStrategy.concat
   case "META-INF/native-image/io.netty/netty-common/native-image.properties" => MergeStrategy.first
   case "META-INF/okio.kotlin_module"                                         => MergeStrategy.first
@@ -116,4 +120,6 @@ ThisBuild / assemblyMergeStrategy := {
     oldStrategy(x)
 }
 
-assembly / assemblyJarName := "nixiesearch.jar"
+assembly / assemblyJarName          := "nixiesearch.jar"
+ThisBuild / assemblyRepeatableBuild := false
+packageOptions                      := Seq(ManifestAttributes(("Multi-Release", "true")))

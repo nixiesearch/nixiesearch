@@ -11,6 +11,8 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import cats.implicits.*
 
+import scala.concurrent.duration.Duration
+
 object Standalone extends Logging {
   def run(args: StandaloneArgs): IO[Unit] = for {
     config  <- Config.load(args.config)
@@ -35,6 +37,7 @@ object Standalone extends Logging {
               .bindHttp(config.api.port.value, config.api.host.value)
               .withHttpApp(http)
               .withBanner(Logo.lines)
+              .withIdleTimeout(Duration.Inf)
           )
           _ <- api.serve.compile.drain
 
