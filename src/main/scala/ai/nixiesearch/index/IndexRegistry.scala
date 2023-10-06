@@ -29,9 +29,7 @@ case class IndexRegistry(
           _     <- info("creating new index")
           index <- Index.fromConfig(config, mapping, encoders)
           _     <- indices.update(_.updated(index.name, index))
-        } yield {
-
-        }
+        } yield {}
     }
   } yield {}
 
