@@ -38,7 +38,7 @@ libraryDependencies ++= Seq(
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
   "com.microsoft.onnxruntime" % "onnxruntime"              % "1.16.0",
-  "com.github.luben"          % "zstd-jni"                 % "1.5.5-4"
+  "com.github.luben"          % "zstd-jni"                 % "1.5.5-6"
 )
 
 scalacOptions ++= Seq(
