@@ -15,9 +15,11 @@ import java.nio.charset.StandardCharsets
 object LocalModelLoader extends Logging with ModelLoader[LocalModelHandle] {
   override def load(handle: LocalModelHandle): IO[OnnxSession] =
     for {
-      files      <- Files[IO].list(Path(handle.dir)).map(_.fileName.toString).compile.toList
-      modelFile  <- IO.fromOption(files.find(_.endsWith(".onnx")))(new Exception("cannot find *.onnx file in dir"))
-      tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(new Exception("cannot find tokenizer.json file in dir"))
+      files     <- Files[IO].list(Path(handle.dir)).map(_.fileName.toString).compile.toList
+      modelFile <- IO.fromOption(files.find(_.endsWith(".onnx")))(new Exception("cannot find *.onnx file in dir"))
+      tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
+        new Exception("cannot find tokenizer.json file in dir")
+      )
       _          <- info(s"loading $modelFile from $handle")
       modelBytes <- IO(IOUtils.toByteArray(new FileInputStream(new File(handle.dir + File.separator + modelFile))))
       vocabBytes <- IO(IOUtils.toByteArray(new FileInputStream(new File(handle.dir + File.separator + tokenizerFile))))

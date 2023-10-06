@@ -16,5 +16,5 @@ class RangeJsonTest extends AnyFlatSpec with Matchers {
     val result = decode[AggRange]("""{"ffrom":1,"tto":2}""")
     result shouldBe a[Left[_, _]]
   }
-  
+
 }
