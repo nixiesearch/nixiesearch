@@ -40,7 +40,7 @@ object OnnxSession extends Logging {
     val opts      = new SessionOptions()
     // opts.setIntraOpNumThreads(Runtime.getRuntime.availableProcessors())
     opts.setOptimizationLevel(OptLevel.ALL_OPT)
-    //opts.addCUDA()
+    // opts.addCUDA()
     val modelBytes = IOUtils.toByteArray(model)
     val session    = env.createSession(modelBytes, opts)
     val size       = FileUtils.byteCountToDisplaySize(modelBytes.length)

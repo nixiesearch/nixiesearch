@@ -8,7 +8,7 @@ scalaVersion := "3.3.1"
 name := "nixiesearch"
 
 libraryDependencies ++= Seq(
-  "org.typelevel"            %% "cats-effect"              % "3.5.1",
+  "org.typelevel"            %% "cats-effect"              % "3.5.2",
   "org.scalatest"            %% "scalatest"                % scalatestVersion % "test",
   "org.scalactic"            %% "scalactic"                % scalatestVersion % "test",
   "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test",
@@ -32,12 +32,12 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"         % "lucene-analysis-smartcn"  % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-kuromoji" % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-stempel"  % luceneVersion,
-  "commons-io"                % "commons-io"               % "2.13.0",
+  "commons-io"                % "commons-io"               % "2.14.0",
   "commons-codec"             % "commons-codec"            % "1.16.0",
   "org.apache.commons"        % "commons-lang3"            % "3.13.0",
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
-  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.16.0-rc1",
+  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.16.0",
   "com.github.luben"          % "zstd-jni"                 % "1.5.5-6"
 )
 
