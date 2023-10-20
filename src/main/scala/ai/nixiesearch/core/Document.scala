@@ -115,6 +115,14 @@ object Document {
         case None =>
           value.asNumber match {
             case None =>
+              value.as[List[String]] match {
+                case Left(_) =>
+                case Right(values) =>
+                  strings.updateWith(field) {
+                    case None       => Some(values)
+                    case Some(prev) => Some(values ++ prev)
+                  }
+              }
             case Some(number) =>
               val flt = number.toFloat
               floats.updateWith(field) {

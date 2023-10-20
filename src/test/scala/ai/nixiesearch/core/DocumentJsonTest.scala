@@ -35,6 +35,13 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "decode nested arrays of nested json documents" in {
+    val json = """{"_id": "a", "title": "foo", "tracks": [{"name": ["foo"]}]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), TextListField("tracks.name", List("foo"))))
+    )
+  }
+
   it should "decode arrays of strings" in {
     val json = """{"_id": "a", "title": "foo", "tracks": ["foo"]}"""
     decode[Document](json) shouldBe Right(
