@@ -1,15 +1,18 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
+import ai.nixiesearch.core.Field.{FloatField, IntField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
 import java.util.UUID
 import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 case class Document(fields: List[Field])
 
 object Document {
+
   def apply(head: Field, tail: Field*) = new Document(head +: tail.toList)
 
   given documentEncoder: Encoder[Document] =
@@ -45,9 +48,8 @@ object Document {
         }
       case (name, json) :: tail =>
         decodeField(c, name, json) match {
-          case Left(error)        => Left(error)
-          case Right(None)        => decodeObject(c, tail, acc)
-          case Right(Some(field)) => decodeObject(c, tail, field +: acc)
+          case Left(error)   => Left(error)
+          case Right(fields) => decodeObject(c, tail, fields ++ acc)
         }
     }
 
@@ -60,7 +62,7 @@ object Document {
         case None =>
           Left(
             DecodingFailure(
-              s"_id field cannot be a real number, but string|long|uuid, got $num",
+              s"_id field cannot be a real number, but string|int|long|uuid, got $num",
               c.history
             )
           )
@@ -70,17 +72,65 @@ object Document {
     jsonObject = obj => Left(DecodingFailure(s"_id field cannot be an object, got $obj", c.history))
   )
 
-  def decodeField(c: HCursor, name: String, json: Json): Decoder.Result[Option[Field]] = json.fold(
-    jsonNull = Right(None),
-    jsonBoolean = _ => Left(DecodingFailure("cannot parse null field", c.history)),
-    jsonNumber = n =>
-      n.toInt match {
-        case Some(int) => Right(Some(IntField(name, int)))
-        case None      => Right(Some(FloatField(name, n.toFloat)))
+  def decodeField(c: HCursor, name: String, json: Json): Decoder.Result[List[Field]] =
+    json.fold[Decoder.Result[List[Field]]](
+      jsonNull = Right(Nil),
+      jsonBoolean = _ => Left(DecodingFailure(s"cannot parse null field $name=$json", c.history)),
+      jsonNumber = n => Right(List(FloatField(name, n.toFloat))),
+      jsonString = s => Right(List(TextField(name, s))),
+      jsonArray = arr =>
+        arr.headOption match {
+          case None => Right(Nil)
+          case Some(head) =>
+            head.fold[Decoder.Result[List[Field]]](
+              jsonNull = Right(Nil),
+              jsonBoolean = _ => Left(DecodingFailure(s"arrays of booleans are not supported: $name=$head", c.history)),
+              jsonNumber = _ => Left(DecodingFailure(s"arrays of numbers are not supported: $name=$head", c.history)),
+              jsonString = _ => c.downField(name).as[List[String]].map(list => List(TextListField(name, list))),
+              jsonArray = _ => Left(DecodingFailure(s"arrays of arrays are not supported: $name=$head", c.history)),
+              jsonObject = obj => decodeArrayNestedObject(c, arr, name)
+            )
+        },
+      jsonObject = obj => decodeNestedObject(c, obj, name)
+    )
 
-      },
-    jsonString = s => Right(Some(TextField(name, s))),
-    jsonArray = _ => Left(DecodingFailure("cannot parse array field", c.history)),
-    jsonObject = _ => Left(DecodingFailure("cannot parse object field", c.history))
-  )
+  def decodeNestedObject(c: HCursor, obj: JsonObject, prefix: String): Decoder.Result[List[Field]] = obj.toList match {
+    case Nil => Right(Nil)
+    case nested =>
+      nested.foldLeft[Decoder.Result[List[Field]]](Right(Nil)) {
+        case (Left(error), _)              => Left(error)
+        case (Right(acc), (subname, json)) => decodeField(c, s"$prefix.$subname", json)
+      }
+  }
+
+  def decodeArrayNestedObject(c: HCursor, arr: Vector[Json], prefix: String): Decoder.Result[List[Field]] = {
+    val strings = mutable.Map[String, List[String]]()
+    val floats  = mutable.Map[String, List[Float]]()
+    for {
+      json           <- arr
+      obj            <- json.asObject
+      (field, value) <- obj.toList
+    } {
+      value.asString match {
+        case None =>
+          value.asNumber match {
+            case None =>
+            case Some(number) =>
+              val flt = number.toFloat
+              floats.updateWith(field) {
+                case None       => Some(List(flt))
+                case Some(prev) => Some(flt +: prev)
+              }
+          }
+        case Some(string) =>
+          strings.updateWith(field) {
+            case None       => Some(List(string))
+            case Some(prev) => Some(string +: prev)
+          }
+      }
+    }
+    val strFields = strings.map { case (name, values) => TextListField(s"$prefix.$name", values) }.toList
+    Right(strFields)
+  }
+
 }
