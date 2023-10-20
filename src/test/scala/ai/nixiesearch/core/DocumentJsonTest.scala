@@ -14,6 +14,13 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "accept null values" in {
+    val json = """{"_id": "a", "title": null, "count": 1}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), IntField("count", 1)))
+    )
+  }
+
   it should "fail on zero fields" in {
     decode[Document]("{}") shouldBe a[Left[_, _]]
   }
