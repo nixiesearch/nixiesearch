@@ -15,6 +15,8 @@ object Aggregation {
   sealed trait AggRange {}
 
   object AggRange {
+    
+    
     case class RangeFrom(from: Double)               extends AggRange
     case class RangeTo(to: Double)                   extends AggRange
     case class RangeFromTo(from: Double, to: Double) extends AggRange

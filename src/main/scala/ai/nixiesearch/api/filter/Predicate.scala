@@ -3,7 +3,8 @@ package ai.nixiesearch.api.filter
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.TextListField
-import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
+import ai.nixiesearch.core.{FiniteRange, Logging}
 import ai.nixiesearch.core.codec.TextFieldWriter
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
@@ -92,27 +93,56 @@ object Predicate {
     def field: String
   }
   object RangePredicate {
-    case class RangeGte(field: String, gte: Float) extends RangePredicate {
+    case class RangeGt(field: String, greaterThan: FiniteRange.Lower) extends RangePredicate {
       override def compile(mapping: IndexMapping): IO[LuceneQuery] =
-        build(field, mapping, gte, Int.MaxValue)
+        build(field, mapping, greaterThan, Higher.POSITIVE_INF)
     }
-    case class RangeLte(field: String, lte: Float) extends RangePredicate {
+    case class RangeLt(field: String, lessThan: FiniteRange.Higher) extends RangePredicate {
       override def compile(mapping: IndexMapping): IO[LuceneQuery] =
-        build(field, mapping, Int.MinValue, lte)
+        build(field, mapping, Lower.NEGATIVE_INF, lessThan)
     }
-    case class RangeGteLte(field: String, gte: Float, lte: Float) extends RangePredicate {
+    case class RangeGtLt(field: String, greaterThan: FiniteRange.Lower, lessThan: FiniteRange.Higher)
+        extends RangePredicate {
       override def compile(mapping: IndexMapping): IO[LuceneQuery] =
-        build(field, mapping, gte, lte)
+        build(field, mapping, greaterThan, lessThan)
     }
 
-    def build(field: String, mapping: IndexMapping, gte: Float, lte: Float): IO[LuceneQuery] = {
+    def build(
+        field: String,
+        mapping: IndexMapping,
+        greaterThan: FiniteRange.Lower,
+        smallerThan: FiniteRange.Higher
+    ): IO[LuceneQuery] = {
       mapping.fields.get(field) match {
         case Some(IntFieldSchema(_, _, _, _, true)) =>
-          IO(org.apache.lucene.document.IntField.newRangeQuery(field, math.round(gte), math.round(lte)))
+          IO {
+            val lower = greaterThan match {
+              case FiniteRange.Lower.Gt(value)  => math.round(value).toInt + 1
+              case FiniteRange.Lower.Gte(value) => math.round(value).toInt
+            }
+            val higher = smallerThan match {
+              case FiniteRange.Higher.Lt(value)  => math.round(value).toInt - 1
+              case FiniteRange.Higher.Lte(value) => math.round(value).toInt
+            }
+            org.apache.lucene.document.IntField.newRangeQuery(field, lower, higher)
+          }
+
         case Some(IntFieldSchema(_, _, _, _, false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(FloatFieldSchema(_, _, _, _, true)) =>
-          IO(org.apache.lucene.document.FloatField.newRangeQuery(field, gte, lte))
+          IO {
+            val lower = greaterThan match {
+              case FiniteRange.Lower.Gt(value)  => Math.nextUp(value.toFloat)
+              case FiniteRange.Lower.Gte(value) => value.toFloat
+            }
+
+            val higher = smallerThan match {
+              case FiniteRange.Higher.Lt(value)  => Math.nextDown(value.toFloat)
+              case FiniteRange.Higher.Lte(value) => value.toFloat
+            }
+            org.apache.lucene.document.FloatField.newRangeQuery(field, lower, higher)
+          }
+
         case Some(FloatFieldSchema(_, _, _, _, false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(other) => IO.raiseError(new Exception(s"range queries only work with numeric fields: $other"))
@@ -120,39 +150,60 @@ object Predicate {
       }
     }
 
-    case class GteLte(gte: Option[Float], lte: Option[Float])
-    implicit val gteLteDecoder: Decoder[GteLte] = deriveDecoder
-
-    implicit val rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c =>
-      c.value.asObject match {
-        case Some(obj) =>
-          obj.toList match {
-            case (field, json) :: Nil =>
-              gteLteDecoder.decodeJson(json).flatMap {
-                case GteLte(Some(gte), Some(lte)) => Right(RangeGteLte(field, gte, lte))
-                case GteLte(Some(gte), None)      => Right(RangeGte(field, gte))
-                case GteLte(None, Some(lte))      => Right(RangeLte(field, lte))
-                case GteLte(None, None) =>
-                  Left(DecodingFailure(s"range expects at least one gte or lte field, but got none", c.history))
-              }
-            case Nil => Left(DecodingFailure(s"range should contain a field, but it is empty: $obj", c.history))
-            case other =>
-              Left(DecodingFailure(s"range should contain a single field, but it has many: $obj", c.history))
+    implicit val rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
+      c.keys.map(_.toList) match {
+        case None => Left(DecodingFailure(s"cannot decode range without a field", c.history))
+        case Some(Nil) => Left(DecodingFailure(s"cannot decode range without a field", c.history))
+        case Some(field :: Nil) =>
+          for {
+            gt  <- c.downField(field).downField("gt").as[Option[Double]]
+            gte <- c.downField(field).downField("gte").as[Option[Double]]
+            lower <- (gt, gte) match {
+              case (Some(gt), None)  => Right(Some(Lower.Gt(gt)))
+              case (None, Some(gte)) => Right(Some(Lower.Gte(gte)))
+              case (None, None)      => Right(None)
+              case (Some(_), Some(_)) =>
+                Left(DecodingFailure(s"got both gt and gte fields for range, expected one", c.history))
+            }
+            lt  <- c.downField(field).downField("lt").as[Option[Double]]
+            lte <- c.downField(field).downField("lte").as[Option[Double]]
+            higher <- (lt, lte) match {
+              case (Some(lt), None)  => Right(Some(Higher.Lt(lt)))
+              case (None, Some(lte)) => Right(Some(Higher.Lte(lte)))
+              case (None, None)      => Right(None)
+              case (Some(_), Some(_)) =>
+                Left(DecodingFailure("got both lt and lte fields for a range, expected one", c.history))
+            }
+            range <- (lower, higher) match {
+              case (Some(low), Some(high)) => Right(RangeGtLt(field, low, high))
+              case (Some(low), None)       => Right(RangeGt(field, low))
+              case (None, Some(high))      => Right(RangeLt(field, high))
+              case (None, None) =>
+                Left(DecodingFailure(s"cannot decode range without gt/gte/lt/lte predicates", c.history))
+            }
+          } yield {
+            range
           }
-        case None => Left(DecodingFailure("range should be a json object", c.history))
+        case Some(head :: tail) =>
+          Left(
+            DecodingFailure(
+              s"range filter can only be defined for a single field, got head=$head tail=$tail",
+              c.history
+            )
+          )
       }
-    )
+    })
 
     implicit val rangePredicateEncoder: Encoder[RangePredicate] = Encoder.instance {
-      case RangeGte(field, gte) => json(field, JsonObject.singleton("gte", Json.fromDoubleOrNull(gte)))
-      case RangeLte(field, lte) => json(field, JsonObject.singleton("lte", Json.fromDoubleOrNull(lte)))
-      case RangeGteLte(field, gte, lte) =>
+      case RangeGt(field, gt) => json(field, JsonObject.singleton(gt.name, Json.fromDoubleOrNull(gt.value)))
+      case RangeLt(field, lt) => json(field, JsonObject.singleton(lt.name, Json.fromDoubleOrNull(lt.value)))
+      case RangeGtLt(field, gt, lt) =>
         json(
           field,
           JsonObject.fromIterable(
             List(
-              "gte" -> Json.fromDoubleOrNull(gte),
-              "lte" -> Json.fromDoubleOrNull(lte)
+              gt.name -> Json.fromDoubleOrNull(gt.value),
+              lt.name -> Json.fromDoubleOrNull(lt.value)
             )
           )
         )
