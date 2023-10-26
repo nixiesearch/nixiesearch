@@ -46,6 +46,7 @@ The JSON schema for the aggregation field is:
 > Single request can contain multiple aggregations as long as they have unique names.
 
 Nixiesearch currently supports the following types of facet aggregations:
+
 * [Term](#term-aggregations) facet counters with a number of documents matching each distinct filter value.
 * [Range](#range-aggregations) counters to number the amount of documents within each defined range.
 
@@ -112,6 +113,7 @@ Range aggregation scans over all values of a specific numerical field for matchi
 ```
 
 Range facet aggregation has the following parameters:
+
 * `field` - required, string. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../config/mapping.md) and had the type of `int`/`float`/`double`/`long`
 * `ranges`, required, non-empty list.
 * `ranges.to`, optional, number. An end of the range.
