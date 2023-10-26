@@ -1,11 +1,13 @@
 package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGteLte
+import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGtLt
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
+import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
+import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -27,31 +29,41 @@ class RangeFilterTest extends SearchTest with Matchers {
   )
 
   "int range" should "select all on wide range" in new Index {
-    val result = search(filters = Filters(include = Some(RangeGteLte("count", 0, 100))))
+    val result = search(filters = Filters(include = Some(RangeGtLt("count", Gte(0), Lte(100)))))
     result shouldBe List("1", "2", "3", "4")
   }
 
   it should "select none on out-of-range" in new Index {
-    val result = search(filters = Filters(include = Some(RangeGteLte("count", 100, 200))))
+    val result = search(filters = Filters(include = Some(RangeGtLt("count", Gte(100), Lte(200)))))
     result shouldBe Nil
   }
 
   it should "select subset" in new Index {
-    val result = search(filters = Filters(include = Some(RangeGteLte("count", 12, 22))))
+    val result = search(filters = Filters(include = Some(RangeGtLt("count", Gte(12), Lte(22)))))
     result shouldBe List("2", "3")
   }
 
   it should "include the borders" in new Index {
-    val result = search(filters = Filters(include = Some(RangeGteLte("count", 10, 20))))
+    val result = search(filters = Filters(include = Some(RangeGtLt("count", Gte(10), Lte(20)))))
     result shouldBe List("1", "2", "3")
+  }
+
+  it should "exclude the borders" in new Index {
+    val result = search(filters = Filters(include = Some(RangeGtLt("count", Gt(10), Lt(20)))))
+    result shouldBe List("2")
   }
 
   "float range" should "select subset" in new Index {
-    val result = search(filters = Filters(include = Some(RangeGteLte("price", 12, 22))))
+    val result = search(filters = Filters(include = Some(RangeGtLt("price", Gte(12), Lte(22)))))
     result shouldBe List("2", "3")
   }
   it should "include the borders" in new Index {
-    val result = search(filters = Filters(include = Some(RangeGteLte("price", 10, 20))))
+    val result = search(filters = Filters(include = Some(RangeGtLt("price", Gte(10), Lte(20)))))
     result shouldBe List("1", "2", "3")
+  }
+
+  it should "exclude the borders" in new Index {
+    val result = search(filters = Filters(include = Some(RangeGtLt("price", Gt(10), Lt(20)))))
+    result shouldBe List("2")
   }
 }

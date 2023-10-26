@@ -5,13 +5,14 @@ import ai.nixiesearch.api.aggregation.Aggregation.RangeAggregation
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
-import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeLte
+import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeLt
 import ai.nixiesearch.api.query.MultiMatchQuery
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
+import ai.nixiesearch.core.FiniteRange.Higher.Lte
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
@@ -111,7 +112,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate and filter" in new Index {
     val result = searchRaw(
       aggs = Aggs(Map("count" -> RangeAggregation("count", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4))))),
-      filters = Filters(include = Some(RangeLte("count", 2.5)))
+      filters = Filters(include = Some(RangeLt("count", Lte(2.5))))
     )
     result.aggs shouldBe Map(
       "count" -> RangeAggregationResult(
