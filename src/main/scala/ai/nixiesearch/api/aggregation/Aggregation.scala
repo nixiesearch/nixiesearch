@@ -1,5 +1,8 @@
 package ai.nixiesearch.api.aggregation
 
+import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
+import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
+import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
 import cats.data.NonEmptyList
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -15,27 +18,41 @@ object Aggregation {
   sealed trait AggRange {}
 
   object AggRange {
-    
-    
-    case class RangeFrom(from: Double)               extends AggRange
-    case class RangeTo(to: Double)                   extends AggRange
-    case class RangeFromTo(from: Double, to: Double) extends AggRange
+
+    case class RangeFrom(from: Lower)               extends AggRange
+    case class RangeTo(to: Higher)                  extends AggRange
+    case class RangeFromTo(from: Lower, to: Higher) extends AggRange
 
     given rangeEncoder: Encoder[AggRange] = Encoder.instance {
-      case RangeFrom(from)       => Json.obj("from" -> Json.fromDoubleOrNull(from))
-      case RangeTo(to)           => Json.obj("to" -> Json.fromDoubleOrNull(to))
-      case RangeFromTo(from, to) => Json.obj("to" -> Json.fromDoubleOrNull(to), "from" -> Json.fromDoubleOrNull(from))
+      case RangeFrom(from) => Json.obj(from.name -> Json.fromDoubleOrNull(from.value))
+      case RangeTo(to)     => Json.obj(to.name -> Json.fromDoubleOrNull(to.value))
+      case RangeFromTo(from, to) =>
+        Json.obj(to.name -> Json.fromDoubleOrNull(to.value), from.name -> Json.fromDoubleOrNull(from.value))
     }
 
     given rangeDecoder: Decoder[AggRange] = Decoder.instance { c =>
       for {
-        from <- c.downField("from").as[Option[Double]]
-        to   <- c.downField("to").as[Option[Double]]
-        result <- (from, to) match {
+        gt <- c.downField("gt").as[Option[Double]]
+        gte <- c.downField("gte").as[Option[Double]]
+        lower <- (gt,gte) match {
+          case (None, None) => Right(None)
+          case (Some(gt), None) => Right(Some(Gt(gt)))
+          case (None, Some(gte)) => Right(Some(Gte(gte)))
+          case (Some(_), Some(_)) => Left(DecodingFailure(s"both gt+gte defined for range aggregation", c.history))
+        }
+        lt <- c.downField("lt").as[Option[Double]]
+        lte <- c.downField("lte").as[Option[Double]]
+        higher <- (lt, lte) match {
+          case (None, None) => Right(None)
+          case (Some(lt), None) => Right(Some(Lt(lt)))
+          case (None, Some(lte)) => Right(Some(Lte(lte)))
+          case (Some(_), Some(_)) => Left(DecodingFailure(s"both lt+lte defined for range aggregation", c.history))
+        }
+        result <- (lower, higher) match {
           case (Some(f), Some(t)) => Right(RangeFromTo(f, t))
           case (None, Some(t))    => Right(RangeTo(t))
           case (Some(f), None)    => Right(RangeFrom(f))
-          case (None, None)       => Left(DecodingFailure("range should have at least from or to field", c.history))
+          case (None, None)       => Left(DecodingFailure("range should have at least gt/gte/lt/lte field", c.history))
         }
       } yield {
         result

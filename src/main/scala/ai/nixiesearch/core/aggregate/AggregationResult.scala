@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.aggregate
 
-import io.circe.{Decoder, Encoder}
+import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
+import io.circe.{Decoder, Encoder, Json}
 import io.circe.generic.semiauto.*
 
 sealed trait AggregationResult
@@ -27,9 +28,17 @@ object AggregationResult {
   })
 
   case class RangeAggregationResult(buckets: List[RangeCount]) extends AggregationResult
-  case class RangeCount(from: Option[Double], to: Option[Double], count: Int)
+  case class RangeCount(from: Option[Lower], to: Option[Higher], count: Int)
 
-  given rangeCountEncoder: Encoder[RangeCount]                         = deriveEncoder
+  given rangeCountEncoder: Encoder[RangeCount] = Encoder.instance { case RangeCount(from, to, count) =>
+    Json.obj(
+      List.concat(
+        from.map(x => x.name -> Json.fromDoubleOrNull(x.value)).toList,
+        to.map(x => x.name -> Json.fromDoubleOrNull(x.value)).toList,
+        List("count" -> Json.fromInt(count))
+      ): _*
+    )
+  }
   given rangeAggregationResultEncoder: Encoder[RangeAggregationResult] = deriveEncoder
 
   given rangeCountDecoder: Decoder[RangeCount]                         = deriveDecoder

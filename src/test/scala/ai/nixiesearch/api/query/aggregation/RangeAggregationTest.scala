@@ -12,7 +12,8 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
-import ai.nixiesearch.core.FiniteRange.Higher.Lte
+import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
+import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
@@ -87,36 +88,71 @@ class RangeAggregationTest extends SearchTest with Matchers {
     )
   )
 
-  it should "aggregate over int range" in new Index {
+  it should "aggregate over int range with gte-lt" in new Index {
     val result = searchRaw(aggs =
-      Aggs(Map("count" -> RangeAggregation("count", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4)))))
+      Aggs(
+        Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+      )
     )
     result.aggs shouldBe Map(
       "count" -> RangeAggregationResult(
-        List(RangeCount(None, Some(2.0), 1), RangeCount(Some(2.0), Some(4.0), 2), RangeCount(Some(4.0), None, 3))
+        List(
+          RangeCount(None, Some(Lt(2.0)), 1),
+          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+          RangeCount(Some(Gte(4.0)), None, 3)
+        )
+      )
+    )
+  }
+
+  it should "aggregate over int range with gt-lte" in new Index {
+    val result = searchRaw(aggs =
+      Aggs(
+        Map("count" -> RangeAggregation("count", List(RangeTo(Lte(2)), RangeFromTo(Gt(2), Lte(4)), RangeFrom(Gt(4)))))
+      )
+    )
+    result.aggs shouldBe Map(
+      "count" -> RangeAggregationResult(
+        List(
+          RangeCount(None, Some(Lte(2.0)), 2),
+          RangeCount(Some(Gt(2.0)), Some(Lte(4.0)), 2),
+          RangeCount(Some(Gt(4.0)), None, 2)
+        )
       )
     )
   }
 
   it should "aggregate over float range" in new Index {
     val result = searchRaw(aggs =
-      Aggs(Map("fcount" -> RangeAggregation("fcount", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4)))))
+      Aggs(
+        Map("fcount" -> RangeAggregation("fcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+      )
     )
     result.aggs shouldBe Map(
       "fcount" -> RangeAggregationResult(
-        List(RangeCount(None, Some(2.0), 1), RangeCount(Some(2.0), Some(4.0), 2), RangeCount(Some(4.0), None, 3))
+        List(
+          RangeCount(None, Some(Lt(2.0)), 1),
+          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+          RangeCount(Some(Gte(4.0)), None, 3)
+        )
       )
     )
   }
 
   it should "aggregate and filter" in new Index {
     val result = searchRaw(
-      aggs = Aggs(Map("count" -> RangeAggregation("count", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4))))),
+      aggs = Aggs(
+        Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+      ),
       filters = Filters(include = Some(RangeLt("count", Lte(2.5))))
     )
     result.aggs shouldBe Map(
       "count" -> RangeAggregationResult(
-        List(RangeCount(None, Some(2.0), 1), RangeCount(Some(2.0), Some(4.0), 2), RangeCount(Some(4.0), None, 0))
+        List(
+          RangeCount(None, Some(Lt(2.0)), 1),
+          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+          RangeCount(Some(Gte(4.0)), None, 0)
+        )
       )
     )
   }
@@ -124,7 +160,9 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "fail when aggregating over text field" in new Index {
     val result = Try(
       searchRaw(aggs =
-        Aggs(Map("count" -> RangeAggregation("title", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4)))))
+        Aggs(
+          Map("count" -> RangeAggregation("title", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+        )
       )
     )
     result.isFailure shouldBe true
@@ -132,22 +170,36 @@ class RangeAggregationTest extends SearchTest with Matchers {
 
   it should "return zeroes for out of range facets" in new Index {
     val result = searchRaw(aggs =
-      Aggs(Map("count" -> RangeAggregation("count", List(RangeTo(20), RangeFromTo(20, 40), RangeFrom(40)))))
+      Aggs(
+        Map(
+          "count" -> RangeAggregation("count", List(RangeTo(Lt(20)), RangeFromTo(Gte(20), Lt(40)), RangeFrom(Gte(40))))
+        )
+      )
     )
     result.aggs shouldBe Map(
       "count" -> RangeAggregationResult(
-        List(RangeCount(None, Some(20.0), 6), RangeCount(Some(20.0), Some(40.0), 0), RangeCount(Some(40.0), None, 0))
+        List(
+          RangeCount(None, Some(Lt(20.0)), 6),
+          RangeCount(Some(Gte(20.0)), Some(Lt(40.0)), 0),
+          RangeCount(Some(Gte(40.0)), None, 0)
+        )
       )
     )
   }
   it should "aggregate over int range and search" in new Index {
     val result = searchRaw(
-      aggs = Aggs(Map("count" -> RangeAggregation("count", List(RangeTo(2), RangeFromTo(2, 4), RangeFrom(4))))),
+      aggs = Aggs(
+        Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+      ),
       query = MultiMatchQuery("socks", List("title"))
     )
     result.aggs shouldBe Map(
       "count" -> RangeAggregationResult(
-        List(RangeCount(None, Some(2.0), 1), RangeCount(Some(2.0), Some(4.0), 1), RangeCount(Some(4.0), None, 2))
+        List(
+          RangeCount(None, Some(Lt(2.0)), 1),
+          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 1),
+          RangeCount(Some(Gte(4.0)), None, 2)
+        )
       )
     )
   }

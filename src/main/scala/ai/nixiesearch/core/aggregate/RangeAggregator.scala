@@ -28,9 +28,11 @@ object RangeAggregator {
       facets: FacetsCollector
   ): IO[RangeAggregationResult] = IO {
     val ranges = request.ranges.map {
-      case AggRange.RangeFrom(from)       => new LongRange(s"$from-*", math.round(from), true, Long.MaxValue, false)
-      case AggRange.RangeTo(to)           => new LongRange(s"*-$to", Long.MinValue, true, math.round(to), false)
-      case AggRange.RangeFromTo(from, to) => new LongRange(s"$from-$to", math.round(from), true, math.round(to), false)
+      case AggRange.RangeFrom(from) =>
+        new LongRange(s"$from-*", math.round(from.value), from.inclusive, Long.MaxValue, false)
+      case AggRange.RangeTo(to) => new LongRange(s"*-$to", Long.MinValue, true, math.round(to.value), to.inclusive)
+      case AggRange.RangeFromTo(from, to) =>
+        new LongRange(s"$from-$to", math.round(from.value), from.inclusive, math.round(to.value), to.inclusive)
     }
     val counts = new LongRangeFacetCounts(request.field, facets, ranges: _*)
     val buckets = for {
@@ -51,9 +53,10 @@ object RangeAggregator {
       facets: FacetsCollector
   ): IO[RangeAggregationResult] = IO {
     val ranges = request.ranges.map {
-      case AggRange.RangeFrom(from)       => new DoubleRange(s"$from-*", from, true, Double.MaxValue, false)
-      case AggRange.RangeTo(to)           => new DoubleRange(s"*-$to", Double.MinValue, true, to, false)
-      case AggRange.RangeFromTo(from, to) => new DoubleRange(s"$from-$to", from, true, to, false)
+      case AggRange.RangeFrom(from) => new DoubleRange(s"$from-*", from.value, from.inclusive, Double.MaxValue, false)
+      case AggRange.RangeTo(to)     => new DoubleRange(s"*-$to", Double.MinValue, true, to.value, to.inclusive)
+      case AggRange.RangeFromTo(from, to) =>
+        new DoubleRange(s"$from-$to", from.value, from.inclusive, to.value, to.inclusive)
     }
     val counts = new DoubleRangeFacetCounts(request.field, facets, ranges: _*)
     val buckets = for {

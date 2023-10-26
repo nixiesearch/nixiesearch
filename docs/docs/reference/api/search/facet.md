@@ -102,9 +102,9 @@ Range aggregation scans over all values of a specific numerical field for matchi
       "range": {
         "field": "color",
         "ranges": [
-          {"to": 10},
-          {"from": 10, "to": 100},
-          {"from": 100}
+          {"lt": 10},
+          {"gte": 10, "lt": 100},
+          {"gte": 100}
         ]
       }
     }
@@ -116,8 +116,12 @@ Range facet aggregation has the following parameters:
 
 * `field` - required, string. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../config/mapping.md) and had the type of `int`/`float`/`double`/`long`
 * `ranges`, required, non-empty list.
-* `ranges.to`, optional, number. An end of the range.
-* `ranges.from`, optional, number. A start of the range. A single range should have at least one `from` or `to` field.
+* `ranges.lt`, optional, number. **L**ess **T**han. An end of the range, not inclusive.
+* `ranges.lte`, optional, number. **L**ess **T**han or **E**quals. An end of the range, inclusive.
+* `ranges.gt`, optional, number. **G**reater **T**han. A start of the range, not inclusive.
+* `ranges.gte`, optional, number. **G**reater **T**han or **E**quals. A start of the range, inclusive.
+
+>A single range should have at least one `gt`/`gte`/`lt`/`lte` field.
 
 ## Aggregation performance and limitations
 
