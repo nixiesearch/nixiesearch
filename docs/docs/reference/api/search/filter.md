@@ -1,6 +1,6 @@
 # Filters
 
-Filters allow you to select a subset of documents for search based on a set of predicates. Compared to traditional Lucene-based search engines, Nixiesearch filters are defined separately from the text query and do not affect ranking:
+Filters allow you to search over a subset of documents based on a set of predicates. Compared to traditional Lucene-based search engines, Nixiesearch filters are defined separately from the text query and do not affect ranking:
 
 ```json
 {
@@ -17,6 +17,7 @@ Filters allow you to select a subset of documents for search based on a set of p
 ```
 
 `filters` can `include` and `exclude` documents based on multiple types of filters:
+
 * [`term`](#term-filters) for text predicates: match only documents where `color=red`
 * [`range`](#range-filters) for numerical ranges: match documents with `price>100`
 * `and`/`or`/`not` for combining multiple filters into a single boolean expression.
@@ -41,11 +42,11 @@ Term predicate can be defined as a simple JSON key-value pair, where key is a fi
 }
 ```
 
-> A simple term filter works only with a single field and a single value. If you want to filter over multiple fields and multiple values, use a [boolean filter](#boolean-filters) to combine them together in single expression.
+> A simple term filter works only with a single field and a single value. If you want to filter over multiple fields and multiple values, use a [boolean filter](#boolean-filters) to combine them together in a single expression.
 
 ## Range filters
 
-Range filters allow defining open and closed ranges for numeric fields of types [int, long, double, float] to select documents for search:
+Range filters allow defining open and closed ranges for numeric fields of types [int, long, double, float] to pre-select documents for search:
 
 ```json
 {
@@ -61,6 +62,7 @@ Range filters allow defining open and closed ranges for numeric fields of types 
 ```
 
 Range filter takes following arguments:
+
 * `<field_name>` a numeric field marked as `filter: true` in the index mapping
 * `gte`: Greater Than or Equals, optional field
 * `lte`: Less Than or Equals, optional field. There should be at least one `gte` or `lte` field present in the filter.
