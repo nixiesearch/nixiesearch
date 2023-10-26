@@ -4,7 +4,7 @@ import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, No
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.config.mapping.SearchType.yaml.searchTypeDecoder
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.{FloatField, IntField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{FloatField, IntField, LongField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
@@ -81,6 +81,31 @@ object FieldSchema {
       filter: Boolean = false
   ) extends FieldSchema[IntField]
 
+  object IntFieldSchema {
+    def dynamicDefault(name: String) = new IntFieldSchema(
+      name = name,
+      sort = true,
+      facet = true,
+      filter = true
+    )
+  }
+
+  case class LongFieldSchema(
+      name: String,
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false
+  ) extends FieldSchema[LongField]
+
+  object LongFieldSchema {
+    def dynamicDefault(name: String) = new LongFieldSchema(
+      name = name,
+      sort = true,
+      facet = true,
+      filter = true
+    )
+  }
   case class FloatFieldSchema(
       name: String,
       store: Boolean = true,
@@ -98,14 +123,6 @@ object FieldSchema {
     )
   }
 
-  object IntFieldSchema {
-    def dynamicDefault(name: String) = new IntFieldSchema(
-      name = name,
-      sort = true,
-      facet = true,
-      filter = true
-    )
-  }
 
   object yaml {
     import SearchType.yaml.given
@@ -146,6 +163,17 @@ object FieldSchema {
       }
     )
 
+    def longFieldSchemaDecoder(name: String): Decoder[LongFieldSchema] = Decoder.instance(c =>
+      for {
+        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        LongFieldSchema(name, store, sort, facet, filter)
+      }
+    )
+
     def floatFieldSchemaDecoder(name: String): Decoder[FloatFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
@@ -163,6 +191,7 @@ object FieldSchema {
         case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)
         case Right("text[]" | "string[]") => textListFieldSchemaDecoder(name).tryDecode(c)
         case Right("int")                 => intFieldSchemaDecoder(name).tryDecode(c)
+        case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
         case Right(other) =>
           Left(DecodingFailure(s"Field type '$other' is not supported. Maybe try 'text'?", c.history))
@@ -183,11 +212,15 @@ object FieldSchema {
     given intFieldSchemaDecoder: Decoder[IntFieldSchema] = deriveDecoder
     given intFieldSchemaEncoder: Encoder[IntFieldSchema] = deriveEncoder
 
+    given longFieldSchemaDecoder: Decoder[LongFieldSchema] = deriveDecoder
+    given longFieldSchemaEncoder: Encoder[LongFieldSchema] = deriveEncoder
+
     given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = deriveDecoder
     given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
 
     given fieldSchemaEncoder: Encoder[FieldSchema[_ <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
+      case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
       case f: FloatFieldSchema    => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
       case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
@@ -196,6 +229,7 @@ object FieldSchema {
     given fieldSchemaDecoder: Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Right("int")    => intFieldSchemaDecoder.tryDecode(c)
+        case Right("long")   => longFieldSchemaDecoder.tryDecode(c)
         case Right("float")  => floatFieldSchemaDecoder.tryDecode(c)
         case Right("text")   => textFieldSchemaDecoder.tryDecode(c)
         case Right("text[]") => textListFieldSchemaDecoder.tryDecode(c)

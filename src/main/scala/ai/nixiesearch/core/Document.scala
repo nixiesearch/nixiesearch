@@ -1,6 +1,6 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.core.Field.{FloatField, IntField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{FloatField, IntField, LongField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
@@ -20,6 +20,7 @@ object Document {
       val fields = doc.fields.map {
         case FloatField(name, value)          => (name, Json.fromFloatOrNull(value))
         case IntField(name, value)            => (name, Json.fromInt(value))
+        case LongField(name, value)           => (name, Json.fromLong(value))
         case TextField(name, value)           => (name, Json.fromString(value))
         case Field.TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
       }

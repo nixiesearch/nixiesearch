@@ -21,6 +21,7 @@ case class IndexMapping(
     fields: Map[String, FieldSchema[_ <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
+  val longFields     = fields.collect { case (name, s: LongFieldSchema) => name -> s }
   val floatFields    = fields.collect { case (name, s: FloatFieldSchema) => name -> s }
   val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
@@ -69,6 +70,7 @@ case class IndexMapping(
       case (Some(deleted), None)                                        => IO.pure(Delete(deleted))
       case (None, Some(added))                                          => IO.pure(Add(added))
       case (Some(a: IntFieldSchema), Some(b: IntFieldSchema))           => IO.pure(Keep(b))
+      case (Some(a: LongFieldSchema), Some(b: LongFieldSchema))         => IO.pure(Keep(b))
       case (Some(a: TextFieldSchema), Some(b: TextFieldSchema))         => IO.pure(Keep(b))
       case (Some(a: TextListFieldSchema), Some(b: TextListFieldSchema)) => IO.pure(Keep(b))
       case (Some(a), Some(b)) if a == b                                 => IO.pure(Keep(b))
@@ -108,6 +110,7 @@ object IndexMapping extends Logging {
           case f: TextField                       => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
           case f: TextListField                   => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
           case f: IntField                        => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
+          case f: LongField                       => IO.pure(List(LongFieldSchema.dynamicDefault(fieldName)))
           case f: FloatField                      => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
         }
       case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen

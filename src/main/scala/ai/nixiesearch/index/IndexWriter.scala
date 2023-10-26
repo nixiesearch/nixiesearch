@@ -6,7 +6,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
-import ai.nixiesearch.core.codec.{FieldWriter, FloatFieldWriter, IntFieldWriter, TextFieldWriter, TextListFieldWriter}
+import ai.nixiesearch.core.codec.{FieldWriter, FloatFieldWriter, IntFieldWriter, LongFieldWriter, TextFieldWriter, TextListFieldWriter}
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
@@ -27,6 +27,7 @@ trait IndexWriter extends Logging {
   lazy val textFieldWriter     = TextFieldWriter()
   lazy val textListFieldWriter = TextListFieldWriter()
   lazy val intFieldWriter      = IntFieldWriter()
+  lazy val longFieldWriter     = LongFieldWriter()
   lazy val floatFieldWriter    = FloatFieldWriter()
 
   def addDocuments(docs: List[Document]): IO[Unit] = for {
@@ -63,6 +64,11 @@ trait IndexWriter extends Logging {
           mapping.intFields.get(name) match {
             case None          => logger.warn(s"int field '$name' is not defined in mapping")
             case Some(mapping) => intFieldWriter.write(field, mapping, buffer)
+          }
+        case field @ LongField(name, value) =>
+          mapping.longFields.get(name) match {
+            case None          => logger.warn(s"int field '$name' is not defined in mapping")
+            case Some(mapping) => longFieldWriter.write(field, mapping, buffer)
           }
         case field @ FloatField(name, value) =>
           mapping.floatFields.get(name) match {

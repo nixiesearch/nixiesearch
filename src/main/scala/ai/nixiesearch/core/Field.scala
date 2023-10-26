@@ -11,5 +11,6 @@ object Field {
     def apply(name: String, value: String, values: String*) = new TextListField(name, value +: values.toList)
   }
   case class IntField(name: String, value: Int)     extends Field
+  case class LongField(name: String, value: Long) extends Field
   case class FloatField(name: String, value: Float) extends Field
 }
