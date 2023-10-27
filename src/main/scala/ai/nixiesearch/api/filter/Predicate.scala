@@ -1,6 +1,12 @@
 package ai.nixiesearch.api.filter
 
-import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  FloatFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.TextListField
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
@@ -126,7 +132,21 @@ object Predicate {
             }
             org.apache.lucene.document.IntField.newRangeQuery(field, lower, higher)
           }
+        case Some(LongFieldSchema(_, _, _, _, true)) =>
+          IO {
+            val lower = greaterThan match {
+              case FiniteRange.Lower.Gt(value)  => math.round(value) + 1
+              case FiniteRange.Lower.Gte(value) => math.round(value)
+            }
+            val higher = smallerThan match {
+              case FiniteRange.Higher.Lt(value)  => math.round(value) - 1
+              case FiniteRange.Higher.Lte(value) => math.round(value)
+            }
+            org.apache.lucene.document.LongField.newRangeQuery(field, lower, higher)
+          }
 
+        case Some(LongFieldSchema(_, _, _, _, false)) =>
+          IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(IntFieldSchema(_, _, _, _, false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(FloatFieldSchema(_, _, _, _, true)) =>
@@ -152,7 +172,7 @@ object Predicate {
 
     implicit val rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
       c.keys.map(_.toList) match {
-        case None => Left(DecodingFailure(s"cannot decode range without a field", c.history))
+        case None      => Left(DecodingFailure(s"cannot decode range without a field", c.history))
         case Some(Nil) => Left(DecodingFailure(s"cannot decode range without a field", c.history))
         case Some(field :: Nil) =>
           for {
