@@ -3,7 +3,7 @@
 Nixiesearch supports following field types:
 
 * `text` and `text[]`: text fields.
-* `int`, `float`, `long`: numeric fields.
+* `int`, `float`, `long`, `double`: numeric fields.
 
 `bool`, `int[]` and `float[]` field types are not yet supported.
 

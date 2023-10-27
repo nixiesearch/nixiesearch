@@ -4,10 +4,10 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGtLt
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Field}
-import ai.nixiesearch.core.Field.{FloatField, IntField, LongField, TextField}
+import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField}
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.util.SearchTest
@@ -27,6 +27,11 @@ class LongRangeFilterTest extends RangeFilterTestForType[LongField, LongFieldSch
 class FloatRangeFilterTest extends RangeFilterTestForType[FloatField, FloatFieldSchema] {
   override def schema()          = FloatFieldSchema("field", filter = true)
   override def field(value: Int) = FloatField("field", value.toFloat)
+}
+
+class DoubleRangeFilterTest extends RangeFilterTestForType[DoubleField, DoubleFieldSchema] {
+  override def schema()          = DoubleFieldSchema("field", filter = true)
+  override def field(value: Int) = DoubleField("field", value.toFloat)
 }
 
 object RangeFilterTest {

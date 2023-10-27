@@ -6,7 +6,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
-import ai.nixiesearch.core.codec.{FieldWriter, FloatFieldWriter, IntFieldWriter, LongFieldWriter, TextFieldWriter, TextListFieldWriter}
+import ai.nixiesearch.core.codec.{DoubleFieldWriter, FieldWriter, FloatFieldWriter, IntFieldWriter, LongFieldWriter, TextFieldWriter, TextListFieldWriter}
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
@@ -29,6 +29,7 @@ trait IndexWriter extends Logging {
   lazy val intFieldWriter      = IntFieldWriter()
   lazy val longFieldWriter     = LongFieldWriter()
   lazy val floatFieldWriter    = FloatFieldWriter()
+  lazy val doubleFieldWriter   = DoubleFieldWriter()
 
   def addDocuments(docs: List[Document]): IO[Unit] = for {
     mapping <- mappingRef.get
@@ -67,13 +68,18 @@ trait IndexWriter extends Logging {
           }
         case field @ LongField(name, value) =>
           mapping.longFields.get(name) match {
-            case None          => logger.warn(s"int field '$name' is not defined in mapping")
+            case None          => logger.warn(s"long field '$name' is not defined in mapping")
             case Some(mapping) => longFieldWriter.write(field, mapping, buffer)
           }
         case field @ FloatField(name, value) =>
           mapping.floatFields.get(name) match {
             case None          => logger.warn(s"float field '$name' is not defined in mapping")
             case Some(mapping) => floatFieldWriter.write(field, mapping, buffer)
+          }
+        case field @ DoubleField(name, value) =>
+          mapping.doubleFields.get(name) match {
+            case None          => logger.warn(s"double field '$name' is not defined in mapping")
+            case Some(mapping) => doubleFieldWriter.write(field, mapping, buffer)
           }
       }
       all.add(buffer)

@@ -8,6 +8,7 @@ import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeLt
 import ai.nixiesearch.api.query.MultiMatchQuery
 import ai.nixiesearch.config.FieldSchema.{
+  DoubleFieldSchema,
   FloatFieldSchema,
   IntFieldSchema,
   LongFieldSchema,
@@ -17,7 +18,7 @@ import ai.nixiesearch.config.FieldSchema.{
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{FloatField, IntField, LongField, TextField}
+import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField}
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
@@ -35,7 +36,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
       TextFieldSchema("color", filter = true, facet = true),
       IntFieldSchema("count", facet = true, filter = true),
       FloatFieldSchema("fcount", facet = true),
-      LongFieldSchema("lcount", facet = true)
+      LongFieldSchema("lcount", facet = true),
+      DoubleFieldSchema("dcount", facet = true)
     )
   )
   val docs = List(
@@ -46,7 +48,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
         TextField("color", "red"),
         IntField("count", 1),
         FloatField("fcount", 1.0f),
-        LongField("lcount", 1)
+        LongField("lcount", 1),
+        DoubleField("dcount", 1)
       )
     ),
     Document(
@@ -56,7 +59,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
         TextField("color", "red"),
         IntField("count", 2),
         FloatField("fcount", 2.0f),
-        LongField("lcount", 2)
+        LongField("lcount", 2),
+        DoubleField("dcount", 2)
       )
     ),
     Document(
@@ -66,7 +70,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
         TextField("color", "red"),
         IntField("count", 3),
         FloatField("fcount", 3.0f),
-        LongField("lcount", 3)
+        LongField("lcount", 3),
+        DoubleField("dcount", 3)
       )
     ),
     Document(
@@ -76,7 +81,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
         TextField("color", "white"),
         IntField("count", 4),
         FloatField("fcount", 4.0f),
-        LongField("lcount", 4)
+        LongField("lcount", 4),
+        DoubleField("dcount", 4)
       )
     ),
     Document(
@@ -86,7 +92,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
         TextField("color", "white"),
         IntField("count", 5),
         FloatField("fcount", 5.0f),
-        LongField("lcount", 5)
+        LongField("lcount", 5),
+        DoubleField("dcount", 5)
       )
     ),
     Document(
@@ -96,7 +103,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
         TextField("color", "black"),
         IntField("count", 6),
         FloatField("fcount", 6.0f),
-        LongField("lcount", 6)
+        LongField("lcount", 6),
+        DoubleField("dcount", 6)
       )
     )
   )
@@ -160,6 +168,23 @@ class RangeAggregationTest extends SearchTest with Matchers {
     )
     result.aggs shouldBe Map(
       "lcount" -> RangeAggregationResult(
+        List(
+          RangeCount(None, Some(Lt(2.0)), 1),
+          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+          RangeCount(Some(Gte(4.0)), None, 3)
+        )
+      )
+    )
+  }
+
+  it should "aggregate over double range" in new Index {
+    val result = searchRaw(aggs =
+      Aggs(
+        Map("dcount" -> RangeAggregation("dcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+      )
+    )
+    result.aggs shouldBe Map(
+      "dcount" -> RangeAggregationResult(
         List(
           RangeCount(None, Some(Lt(2.0)), 1),
           RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
@@ -233,5 +258,4 @@ class RangeAggregationTest extends SearchTest with Matchers {
       )
     )
   }
-
 }

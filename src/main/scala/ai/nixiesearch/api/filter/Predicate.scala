@@ -1,12 +1,6 @@
 package ai.nixiesearch.api.filter
 
-import ai.nixiesearch.config.FieldSchema.{
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.TextListField
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
@@ -162,12 +156,38 @@ object Predicate {
             }
             org.apache.lucene.document.FloatField.newRangeQuery(field, lower, higher)
           }
+        case Some(DoubleFieldSchema(_, _, _, _, true)) =>
+          IO {
+            val lower = greaterThan match {
+              case FiniteRange.Lower.Gt(value)  => Math.nextUp(value)
+              case FiniteRange.Lower.Gte(value) => value
+            }
+
+            val higher = smallerThan match {
+              case FiniteRange.Higher.Lt(value)  => Math.nextDown(value)
+              case FiniteRange.Higher.Lte(value) => value
+            }
+            org.apache.lucene.document.DoubleField.newRangeQuery(field, lower, higher)
+          }
 
         case Some(FloatFieldSchema(_, _, _, _, false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(other) => IO.raiseError(new Exception(s"range queries only work with numeric fields: $other"))
         case None        => IO.raiseError(new Exception(s"cannot execute range query over non-existent field $field"))
       }
+    }
+
+    def hilow(greaterThan: FiniteRange.Lower, smallerThan: FiniteRange.Higher) = {
+      val lower = greaterThan match {
+        case FiniteRange.Lower.Gt(value)  => Math.nextUp(value.toFloat)
+        case FiniteRange.Lower.Gte(value) => value.toFloat
+      }
+
+      val higher = smallerThan match {
+        case FiniteRange.Higher.Lt(value)  => Math.nextDown(value.toFloat)
+        case FiniteRange.Higher.Lte(value) => value.toFloat
+      }
+      (lower, higher)
     }
 
     implicit val rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
