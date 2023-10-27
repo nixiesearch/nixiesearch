@@ -4,7 +4,7 @@ import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, No
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.config.mapping.SearchType.yaml.searchTypeDecoder
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.{FloatField, IntField, LongField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
@@ -123,6 +123,22 @@ object FieldSchema {
     )
   }
 
+  case class DoubleFieldSchema(
+      name: String,
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false
+  ) extends FieldSchema[DoubleField]
+
+  object DoubleFieldSchema {
+    def dynamicDefault(name: String) = new DoubleFieldSchema(
+      name = name,
+      sort = true,
+      facet = true,
+      filter = true
+    )
+  }
 
   object yaml {
     import SearchType.yaml.given
@@ -185,6 +201,17 @@ object FieldSchema {
       }
     )
 
+    def doubleFieldSchemaDecoder(name: String): Decoder[DoubleFieldSchema] = Decoder.instance(c =>
+      for {
+        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        DoubleFieldSchema(name, store, sort, facet, filter)
+      }
+    )
+
     def fieldSchemaDecoder(name: String): Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Left(value)                  => Left(DecodingFailure(s"Cannot decode field type: $value", c.history))
@@ -193,6 +220,7 @@ object FieldSchema {
         case Right("int")                 => intFieldSchemaDecoder(name).tryDecode(c)
         case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
+        case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
         case Right(other) =>
           Left(DecodingFailure(s"Field type '$other' is not supported. Maybe try 'text'?", c.history))
       }
@@ -218,10 +246,14 @@ object FieldSchema {
     given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = deriveDecoder
     given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
 
+    given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] = deriveDecoder
+    given doubleFieldSchemaEncoder: Encoder[DoubleFieldSchema] = deriveEncoder
+
     given fieldSchemaEncoder: Encoder[FieldSchema[_ <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
       case f: FloatFieldSchema    => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
+      case f: DoubleFieldSchema   => doubleFieldSchemaEncoder.apply(f).deepMerge(withType("double"))
       case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
     }
@@ -231,6 +263,7 @@ object FieldSchema {
         case Right("int")    => intFieldSchemaDecoder.tryDecode(c)
         case Right("long")   => longFieldSchemaDecoder.tryDecode(c)
         case Right("float")  => floatFieldSchemaDecoder.tryDecode(c)
+        case Right("double") => doubleFieldSchemaDecoder.tryDecode(c)
         case Right("text")   => textFieldSchemaDecoder.tryDecode(c)
         case Right("text[]") => textListFieldSchemaDecoder.tryDecode(c)
         case Right(other)    => Left(DecodingFailure(s"field type '$other' is not supported", c.history))

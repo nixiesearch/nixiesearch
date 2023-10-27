@@ -23,6 +23,7 @@ case class IndexMapping(
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
   val longFields     = fields.collect { case (name, s: LongFieldSchema) => name -> s }
   val floatFields    = fields.collect { case (name, s: FloatFieldSchema) => name -> s }
+  val doubleFields   = fields.collect { case (name, s: DoubleFieldSchema) => name -> s }
   val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
 
@@ -112,6 +113,7 @@ object IndexMapping extends Logging {
           case f: IntField                        => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
           case f: LongField                       => IO.pure(List(LongFieldSchema.dynamicDefault(fieldName)))
           case f: FloatField                      => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
+          case f: DoubleField                     => IO.pure(List(DoubleFieldSchema.dynamicDefault(fieldName)))
         }
       case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen
     }
