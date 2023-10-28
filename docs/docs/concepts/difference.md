@@ -7,6 +7,12 @@ Nixiesearch was built from the ground up solving typical and practical problems 
 * Indexing and re-indexing large collections of documents is a challenging task when you only have a **push-based** REST API and need to ingest documents carefully not to overload your production cluster. Nixiesearch separates indexing backend into a separate service, which can [pull data from Kafka/S3](#pull-based-indexing) with the maximal throughput and zero impact on search workload.
 * Distributed cluster state makes **load-based auto-scaling of existing search engines challenging**. Nixiesearch uses [S3 block storage for index synchronization](#s3-index-storage-and-auto-scaling), allowing seamless k8s-native autoscaling. 
 
+Nixiesearch also has a couple of design trade-offs, which makes it not a perfect fit for all workloads:
+
+* **[No sharding](#lack-of-sharding)** (yet). Nixiesearch can be a bad fit for very large indices with 10M+ documents.
+* **[Indexing throughput is low on CPU](#low-indexing-throughput)**. As Nixiesearch computes text embeddings on a CPU, workloads with very frequent document updates can be a tough nut for Nixiesearch.
+* **[Fine-tuning requires a GPU](#gpu-needed-for-fine-tuning)**. LLM fine-tuning cannot be run on CPU in a reasonable time, and you may need to do some extra work to run Nixiesearch on GPU nodes for fine-tuning.
+
 ## Hybrid search
 
 Nixiesearch transparently uses two Lucene-powered search indices for both lexical and semantic search, combining search results into a single list with [Reciprocal Rank Fusion](../reference/api/search/query.md#rrf-reciprocal-rank-fusion):
@@ -71,3 +77,23 @@ Nixiesearch used an S3-compatible block storage (like [AWS S3](https://aws.amazo
 
 * Search replicas can now be spawned immediately, as there is no need to node-to-node data transfers. No need to have persistent volumes for your k8s Pods. Complete index can be loaded from the object storage, allowing you to have **seamless load-based auto-scaling**.
 * As indexer runs separately from Search replicas, it is possible to have a **scale-to-zero autoscaling**: search backend can be spawned as a lambda function only when there is an incoming search request. 
+
+## Limitations
+
+### Lack of sharding
+
+Nixiesearch does not support index sharding out-of-the-box (but nothing stops you from implementing sharding client-side over multiple Nixiesearch clusters).
+
+Main reason of such design decision is much simplified search replica coordination during auto-scaling: each replica always contains a complete copy of the index, there is no need to maintain a specific set of shard-replicas while up-down scaling.
+
+### Low indexing throughput
+
+As Nixiesearch computes text embeddings on a CPU by default, indexing a large sets of documents is a resource-intensive task - as you need to embed all of them. 
+
+Nixiesearch implements multiple technical optimization to make indexing throughput higher (like using ONNX runtime for running LLMs and caching embeddings for frequent text strings), but still expect a throughput of 100-500 documents per second.
+
+### GPU needed for fine-tuning
+
+Fine-tuning adapts an LLM to a specific training dataset, which requires running tens of thousands of forward-backward passes over a complete dataset. Fine-tuning can take 1-2 hours on a GPU, and can be unreasonably slow even on a fastest CPU.
+
+In practice, CPU fine-tuning is 30x-50x slower than GPU one and can take multiple days instead of 1-2 hours.
