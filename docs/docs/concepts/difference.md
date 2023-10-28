@@ -11,7 +11,7 @@ Nixiesearch was built from the ground up solving typical and practical problems 
 
 Nixiesearch transparently uses two Lucene-powered search indices for both lexical and semantic search, combining search results into a single list with [Reciprocal Rank Fusion](../reference/api/search/query.md#rrf-reciprocal-rank-fusion):
 
-![RRF](../../img/hybridsearch.png)
+![RRF](../img/hybridsearch.png)
 
 Compared to just a single lexical or semantic search approach:
 
@@ -26,7 +26,7 @@ Embedding-based semantic search is a great way to increase search recall: it wil
 
 Nixiesearch can incorporate an explicit customer feedback about search relevance directly into the embedding LLM by [fine-tuning it](../reference/cli/finetune.md):
 
-![fine-tuning](../../img/fine-tuned.png)
+![fine-tuning](../img/fine-tuned.png)
 
 Two main sources of relevance labels can be used as a customer feedback:
 
@@ -46,7 +46,7 @@ Existing search engines require you to build a satellite indexing app, which pus
 
 Architecturally, your app pushes documents to the search engine and maintains the best rate.
 
-![pull-push indexing](../../img/pullpush.png)
+![pull-push indexing](../img/pullpush.png)
 
 In comparison, Nixiesearch is a [pull-based system](../reference/cli/index.md):
 
@@ -65,7 +65,7 @@ Distributed cluster state is the most complicated part of existing search engine
 * Re-balance of a large index is an expensive and fragile operation due to large amount of data shuffled through the network.
 * A subtle bug in consensus algorithm may result in a [split-brain](https://www.slideshare.net/DilumBandara/cap-theorem-and-split-brain-syndrome) scenarios and incur data loss.
 
-![s3 index](../../img/s3-index.png)
+![s3 index](../img/s3-index.png)
 
 Nixiesearch used an S3-compatible block storage (like [AWS S3](https://aws.amazon.com/s3/), [Google GCS](https://cloud.google.com/storage) and [Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs)) for index synchronization, which greatly simplifies cloud operations:
 
