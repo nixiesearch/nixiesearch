@@ -119,7 +119,6 @@ nav:
         - Installation: install.md
     - Concepts:
         - How is Nixie different?: concepts/difference.md
-        - Limitations: concepts/limitations.md
         - Building index: concepts/index.md
         - Search: concepts/search.md
         - Autocomplete: concepts/autocomplete.md
