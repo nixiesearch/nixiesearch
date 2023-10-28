@@ -190,7 +190,7 @@ This query effectively performed a hybrid search:
 
 If you want to continue learning about Nixiesearch, these sections of documentation are great next steps:
 
-* [An overview of Nixiesearch design](concepts/design.md) to understand how it differs from existing search engines.
+* [An overview of Nixiesearch design](concepts/difference.md) to understand how it differs from existing search engines.
 * Using [Filters](concepts/search.md#filters) and [Facets](concepts/search.md#facets) while searching.
 * [How it should be deployed](concepts/deploy.md) in a production environment.
 * Building [semantic autocomplete](concepts/autocomplete.md) index for search-as-you-type support.

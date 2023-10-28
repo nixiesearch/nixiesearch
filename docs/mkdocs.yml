@@ -118,7 +118,8 @@ nav:
         - Quickstart: quickstart.md
         - Installation: install.md
     - Concepts:
-        - Design: concepts/design.md
+        - How is Nixie different?: concepts/difference.md
+        - Limitations: concepts/limitations.md
         - Building index: concepts/index.md
         - Search: concepts/search.md
         - Autocomplete: concepts/autocomplete.md

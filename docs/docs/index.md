@@ -8,15 +8,15 @@
 
 ## What is Nixiesearch?
 
-Nixiesearch is an experimental hybrid search engine, focused on simplicity and developer UX:
+Nixiesearch is an experimental hybrid (semantic + lexical) search engine, focused on simplicity and developer UX:
 
-* **zero configuration**: batteries included, but everything is tunable.
 * **state-of-the-art hybrid search**: combinging [Lucene](https://lucene.apache.org/)-powered lexical retrieval, bi-encoder retrieval and [LambdaMART Learn-to-Rank](https://xgboost.readthedocs.io/en/latest/tutorials/learning_to_rank.html) reranking for the best search quality.
+* **zero configuration**: batteries included, but everything is tunable.
 * *(coming soon)* **fine-tuned for your data**: fine-tune semantic search models like [E5](https://huggingface.co/intfloat/e5-base-v2)
   or [MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) for your data out-of-the-box.
 * *(coming soon)* **cloud-native**: stateless searchers allow smooth auto-scaling in Kubernetes.
 
-> Want to learn more? Go straight to the [documentation](https://www.nixiesearch.ai) website. 
+> Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
 
 ### Why Nixiesearch?
 
@@ -31,6 +31,7 @@ The project is on early stages of development and not intended for a production 
 ## Usage
 
 Get the sample [MS MARCO](https://microsoft.github.io/msmarco/) dataset:
+
 ```shell
 curl -L -O http://nixiesearch.ai/data/msmarco.json
 ```
@@ -75,6 +76,7 @@ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 ```
 
 Send the search query:
+
 ```shell
 curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
     http://localhost:8080/msmarco/_search
@@ -112,6 +114,7 @@ Nixiesearch is inspired by an Amazon search engine design described in a talk
 ![NS design diagram](https://www.nixiesearch.ai/img/arch.png)
 
 Compared to a traditional search engines like ElasticSearch/Solr:
+
 * **Independent stateful indexer and stateless search backends**: with index sync happening via S3-compatible block storage.
   No more red index status and cluster split-brains due to indexer overload.
 * **Pull-based indexing**: pull updated documents right from [Kafka](https://kafka.apache.org/) in real-time, no need for
@@ -122,6 +125,7 @@ Nixiesearch uses [RRF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf
 ## Limitations
 
 Nixiesearch is not a general-purpose search engine like Elasticsearch:
+
 * **No sharding support** (yet): so it's not made for logs and APM data. Indices up to 5M docs are OK.
 * **May require GPU**: computing embeddings for large search corpora during indexing is a compute-intensive task and may take
   a lot of resources if run on CPU. And GPU is a must for a model fine-tuning.
