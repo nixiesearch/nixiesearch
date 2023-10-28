@@ -89,7 +89,7 @@ Term aggregation response has a list of N buckets and counters, sorted from most
 }
 ```
 
-> 
+> Computing term facet aggregations requires creating an internal [Lucene DocValues](https://lucene.apache.org/core/9_0_0/core/org/apache/lucene/index/DocValues.html) field, which has to be kept in RAM for the best performance. Try to minimize the amount of faceted fields to keep RAM usage low.
 
 ## Range aggregations
 
@@ -100,7 +100,7 @@ Range aggregation scans over all values of a specific numerical field for matchi
   "aggs": {
     "count_prices": {
       "range": {
-        "field": "color",
+        "field": "price",
         "ranges": [
           {"lt": 10},
           {"gte": 10, "lt": 100},
@@ -123,7 +123,20 @@ Range facet aggregation has the following parameters:
 
 >A single range should have at least one `gt`/`gte`/`lt`/`lte` field.
 
-## Aggregation performance and limitations
+Range facet aggregation response keeps the same ranges as in request, but adds a `count` field to each of them:
 
-* Computing term facet aggregations requires creating an internal [Lucene DocValues](https://lucene.apache.org/core/9_0_0/core/org/apache/lucene/index/DocValues.html) field, which has to be kept in RAM for the best performance. Try to minimize the amount of faceted fields to keep RAM usage low.
-* Term facets are trimmed to first 1024 characters.
+```json
+{
+  "hits": ["<doc1>", "<doc2>", "..."],
+  "aggs": {
+    "count_prices": {
+      "buckets": [
+        {"lt": 10, "count": 10},
+        {"gte": 10, "lt": 100, "count": 4},
+        {"gte": 5, "count": 2}
+      ]
+    }
+  }
+}
+
+```
