@@ -34,7 +34,7 @@ Flat documents without any nesting are mapped 1-to-1 to underlying index fields.
 }
 ```
 
-will match (or [dynamically generate when missing](../../../concepts/index.md#dynamic-index-mapping)) the following index mapping:
+will match (or [dynamically generate when missing](../../../concepts/indexing.md#dynamic-index-mapping)) the following index mapping:
 
 ```yaml
 search:
@@ -61,7 +61,7 @@ For example, the following document:
 {"_id": 1, "tags": ["a", "b", "c"]}
 ```
 
-should match (or [dynamically generate when missing](../../../concepts/index.md#dynamic-index-mapping)) the following index mapping:
+should match (or [dynamically generate when missing](../../../concepts/indexing.md#dynamic-index-mapping)) the following index mapping:
 
 ```yaml
 search:

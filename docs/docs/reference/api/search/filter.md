@@ -65,11 +65,13 @@ Range filter takes following arguments:
 
 * `<field_name>` a numeric field marked as `filter: true` in the index mapping
 * `gt`/`gte`: Greater Than (or Equals), optional field
-* `lt`/`lte`: Less Than (or Equals), optional field. There should be at least one `gt`/`gte`/`lt`/`lte` field present in the filter.
+* `lt`/`lte`: Less Than (or Equals), optional field. 
+
+There must be at least one `gt`/`gte`/`lt`/`lte` field present in the filter.
 
 ## Boolean filters
 
-You can combine multiple basic range and term filters together into a more complicated boolean expression using `and`, `or` and `not` filter types from the boolean family. Each of these filter types take a list of other filters as an argument:
+You can combine multiple basic range and term filters together into a more complicated boolean expression using `and`, `or` and `not` filter types from the boolean family. Each of these filter types takes a list of other filters as an argument:
 
 ```json
 {
@@ -107,10 +109,12 @@ Nesting of boolean filters is also possible:
     "include": {
       "and": [
         {"range": { "price": {"gte": 100}}},
-        {"or": [
+        {
+          "or": [
             {"term": {"color": "red"}},
             {"term": {"color": "green"}}
-        ]}
+          ]
+        }
       ]
     }
   }
@@ -125,4 +129,4 @@ Nixiesearch relies on Lucene logic to handle filter execution:
 * for **lexical** search include/exclude filters are fused together into a single Lucene query, doing filtering and ranking in a single pass.
 * for **semantic** search filter behavior is selected at run-time based on filter coverage estimation. 
 
-Narrow filters (e.g. selecting only small amount of documents) are defined as pre-filters and executed before the query. Wide filters (e.g. selecting a lot of documents) are executed as post-filters after the main search query. This adaptive behavior was made for performance reasons.
+Narrow filters (e.g. selecting only small amount of documents) are defined as pre-filters and executed before the query. Wide filters (e.g. selecting a lot of documents) are executed as post-filters after the main search query. This adaptive behavior is made for performance reasons.

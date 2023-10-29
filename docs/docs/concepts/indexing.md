@@ -1,6 +1,8 @@
 # Building an index
 
-Nixiesearch index is a searchable group of documents sharing the same structure. There are two ways of creating an index:
+Nixiesearch index is a searchable group of documents sharing the same structure. 
+
+There are two ways to create an index:
 
 * defining a [static index mapping](index.md#static-index-mapping) in a config file, when you manually define which fields your documents have, their types and how they are going to be searched. This allows more control over the way documents are stored and searched, but unfortunately requires reading this documentation.
 * ingesting your [JSON documents](../reference/api/index/document-format.md) as-is without any mapping, and make Nixiesearch deduce the [dynamic index mapping](index.md#dynamic-index-mapping) on the fly from your documents format.
@@ -10,7 +12,7 @@ Nixiesearch index is a searchable group of documents sharing the same structure.
 Dynamic mapping deduces subjectively the best way of storing your documents in the index based on its [JSON structure](../reference/api/index/document-format.md):
 
 * **flat documents** are mapped as is to index fields.
-* **repeated fields** are different from singular ones, and use different underlying data structures.
+* **arrays** are different from singular fields, and use different underlying data structures.
 * **nested documents** are flattened.
 
 For example, the following document:
@@ -29,7 +31,7 @@ For example, the following document:
 }
 ```
 
-Will generate the following mapping:
+Will generate this mapping:
 ```yaml
 search:
   my-index:
@@ -48,7 +50,7 @@ search:
         type: text[]
 ```
 
-To see how Nixiesearch generates mappings for your own documents, you can hit the `GET /<index>/_mapping` endpoint after indexing a single document:
+To see how Nixiesearch generates mappings for your documents, you can hit the `GET /<index>/_mapping` endpoint after indexing a single document:
 
 ```bash
 curl -XPOST -d '{"title": "a", "color": ["red"], "meta": {"asin":"a"}}'\
@@ -100,7 +102,7 @@ To alleviate all such issues, for any non-playground deployment prefer the stati
 
 ## Static index mapping
 
-To define a static index mapping, you need to add an index-specific block to the `search` section of [configuration file](../reference/config/mapping.md):
+To define a static index mapping, you need to add an index-specific block to the `search` section of the [configuration file](../reference/config/mapping.md):
 
 ```yaml
 search:
@@ -115,6 +117,7 @@ search:
 In the example above we defined an index `my-first-index` with two fields title and price.
 
 Each field definition in a static mapping has two groups of settings:
+
 * Field type specific parameters - like how it's going to be searched for text fields.
 * Global parameters - is this field filterable, facetable and sortable.
 
