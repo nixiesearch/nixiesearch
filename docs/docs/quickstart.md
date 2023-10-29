@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide shows how to install Nixiesearch on a single machine using Docker. We will run the service in a [standalone](reference/cli/standalone.md) mode, [index](concepts/index.md) a corpus of documents and run a couple of [search](concepts/search.md) queries.
+This guide shows how to install Nixiesearch on a single machine using Docker. We will run the service in a [standalone](reference/cli/standalone.md) mode, [index](concepts/indexing.md) a corpus of documents and run a couple of [search](concepts/search.md) queries.
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ This guide assumes that you already have the following available:
 
 * Docker: [Docker Desktop](https://docs.docker.com/engine/install/) for Mac/Windows, or Docker for Linux.
 * Operating system: Linux, macOS, Windows with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install).
-* Architecture: x86_64. On Mac M1+, you should be able to run x86_64 docker images on arm64 Macs with [Rosetta](https://levelup.gitconnected.com/docker-on-apple-silicon-mac-how-to-run-x86-containers-with-rosetta-2-4a679913a0d5).
+* Architecture: x86_64. On Mac M1+, you need to turn on [Rosetta](https://docs.docker.com/desktop/settings/mac/#general) for x86_64 emulation.
 * Memory: 2Gb dedicated to Docker.
 
 ## Getting the dataset
@@ -91,9 +91,11 @@ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 
 As Nixiesearch is running an LLM embedding model inference inside, indexing large document corpus on CPU may take a while.
 
+> Check [Building index](concepts/indexing.md) for more information about indexing your data.
+
 ## Index mapping
 
-As we used dynamic mapping generation based on indexed documents, you may be curious how the resulting mapping may look like. You can see it with the following REST call:
+As we used dynamic mapping generation based on indexed documents, you may be curious how the resulting mapping looks. You can see it with the following API call:
 ```shell
 curl http://localhost:8080/msmarco/_mapping
 ```
@@ -140,10 +142,12 @@ curl http://localhost:8080/msmarco/_mapping
 }
 ```
 
-As you can see, Nixiesearch made a couple of indexing decisions, which may be not optimal for a production use, but quite nice for testing. So for the `text` field:
+As you can see, Nixiesearch made some indexing decisions, which may be not optimal for production use. 
 
-* it is marked as `sort: true`. Building a sorted field requires constructing a separate Lucene `DocValues` field, which is usually kept in RAM while searching.
-* it can be used for full-text search with`search.type: hybrid`. But using hybrid/semantic search fields requires running a LLM inference on indexing, which may take a lot of CPU resources.
+The `text` type field is by default:
+
+* marked as `sort: true`. Building a sorted field requires constructing a separate Lucene `DocValues` field, which is usually kept in RAM while searching.
+* used for full-text search with `search.type: hybrid`. Using hybrid/semantic search fields requires running a LLM inference on indexing, which may take a lot of CPU resources.
 
 In production deployments we highly advise using the explicit index mapping. For more details, see [Index mapping](reference/config/mapping.md) section of documentation.
 
@@ -180,11 +184,13 @@ curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
 }
 ```
 
-This query effectively performed a hybrid search:
+This query performed a hybrid search:
 
 * for lexical search, it built and executed a Lucene query of `text:new text:york`
-* for semantic search, it computed an LLM embedding of the query `new york` and performed an a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
+* for semantic search, it computed an LLM embedding of the query `new york` and performed a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
 * combined results of both searches into a single ranking with the [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
+
+> Learn more about searching in the [Search](concepts/search.md) section.
 
 ## Next steps
 

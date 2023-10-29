@@ -8,7 +8,7 @@
 
 ## What is Nixiesearch?
 
-Nixiesearch is an experimental hybrid (semantic + lexical) search engine, focused on simplicity and developer UX:
+Nixiesearch is a hybrid (semantic + lexical) search engine, focused on simplicity and developer UX:
 
 * **state-of-the-art hybrid search**: combinging [Lucene](https://lucene.apache.org/)-powered lexical retrieval, bi-encoder retrieval and [LambdaMART Learn-to-Rank](https://xgboost.readthedocs.io/en/latest/tutorials/learning_to_rank.html) reranking for the best search quality.
 * **zero configuration**: batteries included, but everything is tunable.
@@ -26,7 +26,7 @@ Unlike some of the other vector search engines:
 * **Text in, text out**: LLM embedding is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 
-The project is on early stages of development and not intended for a production use *just yet*. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
+The project is in active development and not intended for production use *just yet*. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
 
 ## Usage
 
@@ -113,7 +113,7 @@ Nixiesearch is inspired by an Amazon search engine design described in a talk
 
 ![NS design diagram](https://www.nixiesearch.ai/img/arch.png)
 
-Compared to a traditional search engines like ElasticSearch/Solr:
+Compared to traditional search engines like Elasticsearch/Solr:
 
 * **Independent stateful indexer and stateless search backends**: with index sync happening via S3-compatible block storage.
   No more red index status and cluster split-brains due to indexer overload.

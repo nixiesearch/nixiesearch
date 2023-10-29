@@ -69,8 +69,8 @@ A term facet aggregation scans over all values of a specific field of matching d
 
 Term aggregation has the following parameters:
 
-* `field` over which to aggregate over, required. The field should be marked as `facet: true` in the [index mapping](../../config/mapping.md).
-* `size` how many top values to collect, optional, default: 10.
+* `field`: ***required***, *string*, over which field to aggregate over. The field must be marked as `facet: true` in the [index mapping](../../config/mapping.md).
+* `size`: ***optional***, *integer*, how many top values to collect, default: *10*.
 
 Term aggregation response has a list of N buckets and counters, sorted from most to least popular:
 
@@ -114,14 +114,14 @@ Range aggregation scans over all values of a specific numerical field for matchi
 
 Range facet aggregation has the following parameters:
 
-* `field` - required, string. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../config/mapping.md) and had the type of `int`/`float`/`double`/`long`
-* `ranges`, required, non-empty list.
-* `ranges.lt`, optional, number. **L**ess **T**han. An end of the range, not inclusive.
-* `ranges.lte`, optional, number. **L**ess **T**han or **E**quals. An end of the range, inclusive.
-* `ranges.gt`, optional, number. **G**reater **T**han. A start of the range, not inclusive.
-* `ranges.gte`, optional, number. **G**reater **T**han or **E**quals. A start of the range, inclusive.
+* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../config/mapping.md) and had the type of `int`/`float`/`double`/`long`
+* `ranges`, ***required***, non-empty list.
+* `ranges.lt`, ***optional***, *number*. **L**ess **T**han. An end of the range, not inclusive.
+* `ranges.lte`, ***optional***, *number*. **L**ess **T**han or **E**quals. An end of the range, inclusive.
+* `ranges.gt`, ***optional***, *number*. **G**reater **T**han. A start of the range, not inclusive.
+* `ranges.gte`, ***optional***, *number*. **G**reater **T**han or **E**quals. A start of the range, inclusive.
 
->A single range should have at least one `gt`/`gte`/`lt`/`lte` field.
+>A single range must have at least one `gt`/`gte`/`lt`/`lte` field.
 
 Range facet aggregation response keeps the same ranges as in request, but adds a `count` field to each of them:
 

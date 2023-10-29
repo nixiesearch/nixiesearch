@@ -4,7 +4,7 @@ Nixiesearch is only available as a Docker image from an official [nixiesearch/ni
 
 * Docker: [Docker Desktop](https://docs.docker.com/engine/install/) for Mac/Windows, or Docker for Linux.
 * Operating system: Linux, macOS, Windows with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install).
-* Architecture: x86_64. On Mac M1+, you should be able to run x86_64 docker images on arm64 Macs with [Rosetta](https://levelup.gitconnected.com/docker-on-apple-silicon-mac-how-to-run-x86-containers-with-rosetta-2-4a679913a0d5).
+* Architecture: x86_64. On Mac M1+, you need to turn on [Rosetta](https://docs.docker.com/desktop/settings/mac/#general) for x86_64 emulation.
 * Memory: 2Gb dedicated to Docker.
 
 ## Running a docker image
