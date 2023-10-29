@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.aggregate
 
-import ai.nixiesearch.api.aggregation.Aggregation.TermAggregation
+import ai.nixiesearch.api.aggregation.Aggregation.{TermAggSize, TermAggregation}
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
@@ -22,10 +22,15 @@ object TermAggregator {
     }
   }
 
+  val MAX_TERM_FACETS = 128 * 1024
   def doAggregate(reader: IndexReader, request: TermAggregation, facets: FacetsCollector): TermAggregationResult = {
     val state  = new StringDocValuesReaderState(reader, request.field)
     val counts = StringValueFacetCounts(state, facets)
-    val top    = counts.getTopChildren(request.size, request.field)
+    val size = request.size match {
+      case TermAggSize.ExactTermAggSize(value) => value
+      case TermAggSize.AllTermAggSize          => MAX_TERM_FACETS
+    }
+    val top = counts.getTopChildren(size, request.field)
     TermAggregationResult(top.labelValues.toList.map(lv => TermCount(lv.label, lv.value.intValue())))
   }
 

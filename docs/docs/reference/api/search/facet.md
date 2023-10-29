@@ -70,7 +70,7 @@ A term facet aggregation scans over all values of a specific field of matching d
 Term aggregation has the following parameters:
 
 * `field`: ***required***, *string*, over which field to aggregate over. The field must be marked as `facet: true` in the [index mapping](../../config/mapping.md).
-* `size`: ***optional***, *integer*, how many top values to collect, default: *10*.
+* `size`: ***optional***, *integer* or `"all"`, how many top values to collect, default: *10*. A special `"all"` value is a substitute for `Integer.MAX_VALUE` - useful when you need to receive all values.
 
 Term aggregation response has a list of N buckets and counters, sorted from most to least popular:
 
