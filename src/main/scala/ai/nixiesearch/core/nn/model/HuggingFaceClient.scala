@@ -79,7 +79,7 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
   }
 }
 
-object HuggingFaceClient {
+object HuggingFaceClient extends Logging {
   val HUGGINGFACE_API_ENDPOINT = "https://huggingface.co"
 
   case class ModelResponse(id: String, siblings: List[Sibling])

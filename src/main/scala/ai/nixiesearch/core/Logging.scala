@@ -2,9 +2,12 @@ package ai.nixiesearch.core
 
 import cats.effect.IO
 import org.slf4j.LoggerFactory
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 trait Logging {
   protected val logger = LoggerFactory.getLogger(getClass)
+
+  given loggerFactory: org.typelevel.log4cats.LoggerFactory[IO] = Slf4jFactory.create[IO]
 
   def debug(msg: String): IO[Unit]                = IO(logger.debug(msg))
   def info(msg: String): IO[Unit]                 = IO(logger.info(msg))
