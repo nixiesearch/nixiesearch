@@ -9,9 +9,9 @@ import cats.effect.kernel.Resource
 import fs2.Stream
 import io.circe.Codec
 import io.circe.generic.semiauto.{deriveCodec, deriveDecoder}
-import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.circe.*
 import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.{EntityDecoder, Request, Uri}
 import org.typelevel.ci.CIString
 
@@ -93,11 +93,10 @@ object HuggingFaceClient {
   def create(cache: ModelFileCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] =
     for {
       uri <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
-      client <- BlazeClientBuilder[IO]
-        .withRequestTimeout(120.second)
-        .withConnectTimeout(120.second)
-        .withIdleTimeout(200.seconds)
-        .resource
+      client <- EmberClientBuilder
+        .default[IO]
+        .withTimeout(120.second)
+        .build
     } yield {
       HuggingFaceClient(client, uri, cache)
     }

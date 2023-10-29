@@ -11,3 +11,4 @@ target/
 docs/.venv
 .cache
 docs/site
+.run
