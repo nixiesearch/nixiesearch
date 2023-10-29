@@ -1,5 +1,6 @@
 package ai.nixiesearch.api.aggregation
 
+import ai.nixiesearch.api.aggregation.Aggregation.TermAggSize.ExactTermAggSize
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
@@ -12,7 +13,34 @@ sealed trait Aggregation {
 }
 
 object Aggregation {
-  case class TermAggregation(field: String, size: Int = 10)          extends Aggregation
+  sealed trait TermAggSize
+  object TermAggSize {
+    case class ExactTermAggSize(value: Int) extends TermAggSize
+    case object AllTermAggSize              extends TermAggSize
+
+    given termAggSizeEncoder: Encoder[TermAggSize] = Encoder.instance {
+      case ExactTermAggSize(value) => Json.fromInt(value)
+      case AllTermAggSize          => Json.fromString("all")
+    }
+
+    given termAggSizeDecoder: Decoder[TermAggSize] = Decoder.instance(c =>
+      c.as[Int] match {
+        case Left(err1) =>
+          c.as[String] match {
+            case Left(err2) =>
+              Left(DecodingFailure(s"cannot decode term agg size: should be int|all, got ${c.value}", c.history))
+            case Right("all") => Right(AllTermAggSize)
+            case Right(other) =>
+              Left(DecodingFailure(s"term agg size should be int|all, but got string '$other'", c.history))
+          }
+        case Right(int) => Right(ExactTermAggSize(int))
+      }
+    )
+  }
+  case class TermAggregation(field: String, size: TermAggSize = ExactTermAggSize(10)) extends Aggregation
+  object TermAggregation {
+    def apply(field: String, size: Int) = new TermAggregation(field, ExactTermAggSize(size))
+  }
   case class RangeAggregation(field: String, ranges: List[AggRange]) extends Aggregation
 
   sealed trait AggRange {}
@@ -32,20 +60,20 @@ object Aggregation {
 
     given rangeDecoder: Decoder[AggRange] = Decoder.instance { c =>
       for {
-        gt <- c.downField("gt").as[Option[Double]]
+        gt  <- c.downField("gt").as[Option[Double]]
         gte <- c.downField("gte").as[Option[Double]]
-        lower <- (gt,gte) match {
-          case (None, None) => Right(None)
-          case (Some(gt), None) => Right(Some(Gt(gt)))
-          case (None, Some(gte)) => Right(Some(Gte(gte)))
+        lower <- (gt, gte) match {
+          case (None, None)       => Right(None)
+          case (Some(gt), None)   => Right(Some(Gt(gt)))
+          case (None, Some(gte))  => Right(Some(Gte(gte)))
           case (Some(_), Some(_)) => Left(DecodingFailure(s"both gt+gte defined for range aggregation", c.history))
         }
-        lt <- c.downField("lt").as[Option[Double]]
+        lt  <- c.downField("lt").as[Option[Double]]
         lte <- c.downField("lte").as[Option[Double]]
         higher <- (lt, lte) match {
-          case (None, None) => Right(None)
-          case (Some(lt), None) => Right(Some(Lt(lt)))
-          case (None, Some(lte)) => Right(Some(Lte(lte)))
+          case (None, None)       => Right(None)
+          case (Some(lt), None)   => Right(Some(Lt(lt)))
+          case (None, Some(lte))  => Right(Some(Lte(lte)))
           case (Some(_), Some(_)) => Left(DecodingFailure(s"both lt+lte defined for range aggregation", c.history))
         }
         result <- (lower, higher) match {
@@ -64,7 +92,7 @@ object Aggregation {
   given termAggregationDecoder: Decoder[TermAggregation] = Decoder.instance(c =>
     for {
       field <- c.downField("field").as[String]
-      size  <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
+      size  <- c.downField("size").as[Option[TermAggSize]].map(_.getOrElse(ExactTermAggSize(10)))
     } yield {
       TermAggregation(field, size)
     }
