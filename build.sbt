@@ -53,7 +53,7 @@ Compile / mainClass := Some("ai.nixiesearch.main.Main")
 
 Compile / discoveredMainClasses := Seq()
 
-val PLATFORM = "amd64"
+lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 
 enablePlugins(DockerPlugin)
 
@@ -94,7 +94,7 @@ docker / dockerfile := {
 }
 
 docker / imageNames := Seq(
-  ImageName(s"nixiesearch/nixiesearch:${version.value}"),
+  ImageName(s"nixiesearch/nixiesearch:${version.value}-$PLATFORM"),
   ImageName(s"nixiesearch/nixiesearch:latest")
 )
 
