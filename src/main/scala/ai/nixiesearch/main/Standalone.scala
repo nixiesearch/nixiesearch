@@ -7,9 +7,10 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.IndexRegistry
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import cats.effect.IO
-import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import cats.implicits.*
+import com.comcast.ip4s.{Hostname, Port}
+import org.http4s.ember.server.EmberServerBuilder
 
 import scala.concurrent.duration.Duration
 
@@ -32,14 +33,22 @@ object Standalone extends Logging {
           health  <- IO(HealthRoute())
           routes  <- IO(search.routes <+> index.routes <+> suggest.routes <+> health.routes)
           http    <- IO(Router("/" -> routes).orNotFound)
+          host <- IO.fromOption(Hostname.fromString(config.api.host.value))(
+            new Exception(s"cannot parse hostname '${config.api.host.value}'")
+          )
+          port <- IO.fromOption(Port.fromInt(config.api.port.value))(
+            new Exception(s"cannot parse port '${config.api.port.value}'")
+          )
+          _ <- Logo.lines.map(line => info(line)).sequence
           api <- IO(
-            BlazeServerBuilder[IO]
-              .bindHttp(config.api.port.value, config.api.host.value)
+            EmberServerBuilder
+              .default[IO]
+              .withHost(host)
+              .withPort(port)
               .withHttpApp(http)
-              .withBanner(Logo.lines)
               .withIdleTimeout(Duration.Inf)
           )
-          _ <- api.serve.compile.drain
+          _ <- api.build.use(_ => IO.never)
 
         } yield {}
       )
