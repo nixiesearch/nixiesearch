@@ -1,5 +1,6 @@
 package ai.nixiesearch.core.nn.model.loader
 
+import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.loader.ModelLoader.TransformersConfig
@@ -20,10 +21,10 @@ object HuggingFaceModelLoader extends Logging with ModelLoader[HuggingFaceHandle
             card <- hf.model(handle)
 
             modelFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_.endsWith(".onnx")))(
-              new Exception("Cannot find ONNX model in repo")
+              BackendError("Cannot find ONNX model in repo")
             )
             tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
-              new Exception("Cannot find tokenizer.json in repo")
+              BackendError("Cannot find tokenizer.json in repo")
             )
             _          <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
             modelBytes <- hf.getCached(handle, modelFile)

@@ -31,7 +31,7 @@ object ModelHandle {
     case huggingFacePattern(ns, name) => Success(HuggingFaceHandle(ns, name))
     case localPattern2(path)          => Success(LocalModelHandle(path))
     case localPattern1(path)          => Success(LocalModelHandle(path))
-    case other                        => Failure(new Exception(s"cannot parse model handle '$other'"))
+    case other                        => Failure(InternalError(s"cannot parse model handle '$other'"))
   }
 
   given modelHandleEncoder: Encoder[ModelHandle] = Encoder.instance {

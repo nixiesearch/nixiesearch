@@ -2,6 +2,7 @@ package ai.nixiesearch.core.aggregate
 
 import ai.nixiesearch.api.aggregation.Aggregation.{TermAggSize, TermAggregation}
 import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import cats.effect.IO
@@ -18,7 +19,7 @@ object TermAggregator {
     field match {
       case _: FieldSchema.TextFieldSchema     => IO(doAggregate(reader, request, facets))
       case _: FieldSchema.TextListFieldSchema => IO(doAggregate(reader, request, facets))
-      case other => IO.raiseError(new Exception("term aggregation only works on text and text[] fields"))
+      case other => IO.raiseError(UserError("term aggregation only works on text and text[] fields"))
     }
   }
 

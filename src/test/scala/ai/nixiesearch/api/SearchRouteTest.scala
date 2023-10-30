@@ -60,4 +60,16 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     response.hits.size shouldBe 1
   }
 
+  it should "fail on non-existent field with 4xx code" in new Index {
+    val route   = SearchRoute(registry)
+    val request = SearchRequest(MatchQuery("title_404", "pajama"), size = 10)
+    val response = sendRaw[SearchRequest](
+      route.routes,
+      "http://localhost/test/_search",
+      Some(request),
+      Method.POST
+    )
+    response.map(_.status.code) shouldBe Some(400)
+  }
+
 }

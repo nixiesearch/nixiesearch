@@ -14,7 +14,7 @@ import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.{EntityDecoder, Request, Uri}
 import org.typelevel.ci.CIString
-
+import ai.nixiesearch.core.Error.*
 import java.io.{ByteArrayOutputStream, File}
 import scala.concurrent.duration.*
 
@@ -56,9 +56,9 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
                   case Left(value) => IO.raiseError(value)
                   case Right(uri)  => info("302 redirect") *> get(uri)
                 }
-              case None => IO.raiseError(new Exception(s"Got 302 redirect without location"))
+              case None => IO.raiseError(BackendError(s"Got 302 redirect without location"))
             }
-          case other => IO.raiseError(new Exception(s"HTTP code $other"))
+          case other => IO.raiseError(BackendError(s"HTTP code $other"))
         }
       )
       .compile

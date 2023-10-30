@@ -8,6 +8,7 @@ import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
@@ -102,7 +103,7 @@ object Searcher {
       encoders: BiEncoderCache
   ): IO[List[LuceneQuery]] =
     mapping.fields.get(field) match {
-      case None => IO.raiseError(new Exception(s"Cannot search over undefined field $field"))
+      case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
       case Some(TextLikeFieldSchema(_, LexicalSearch(language), _, _, _, _)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
       case Some(TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _)) =>
@@ -136,7 +137,7 @@ object Searcher {
           x1 ++ x2
         }
 
-      case Some(other) => IO.raiseError(new Exception(s"Cannot search over non-text field $field"))
+      case Some(other) => IO.raiseError(UserError(s"Cannot search over non-text field $field"))
     }
 
   def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int): IO[FieldTopDocs] = for {
@@ -152,7 +153,7 @@ object Searcher {
   val K = 60.0f
   def reciprocalRank(topDocs: List[TopDocs]): IO[TopDocs] = topDocs match {
     case head :: Nil => IO.pure(head)
-    case Nil         => IO.raiseError(new Exception(s"cannot merge zero query results"))
+    case Nil         => IO.raiseError(BackendError(s"cannot merge zero query results"))
     case list =>
       IO {
         val docScores = mutable.Map[ShardDoc, Float]()
@@ -185,8 +186,8 @@ object Searcher {
       .traverse { case (name, agg) =>
         mapping.fields.get(agg.field) match {
           case Some(field) if !field.facet =>
-            IO.raiseError(new Exception(s"cannot aggregate over a field marked as a non-facetable"))
-          case None => IO.raiseError(new Exception(s"cannot aggregate over a field not defined in schema"))
+            IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
+          case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
           case Some(schema) =>
             agg match {
               case a @ Aggregation.TermAggregation(field, size) =>

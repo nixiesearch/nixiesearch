@@ -3,6 +3,7 @@ package ai.nixiesearch.core.aggregate
 import ai.nixiesearch.api.aggregation.Aggregation.{AggRange, RangeAggregation, TermAggregation}
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema}
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import cats.effect.IO
@@ -17,11 +18,11 @@ object RangeAggregator {
       facets: FacetsCollector,
       field: FieldSchema[_ <: Field]
   ): IO[RangeAggregationResult] = field match {
-    case int: IntFieldSchema   => intLongAggregate(reader, request, facets)
-    case long: LongFieldSchema => intLongAggregate(reader, request, facets)
-    case fl: FloatFieldSchema  => doubleFloatAggregate(reader, request, facets)
-    case dbl: DoubleFieldSchema  => doubleFloatAggregate(reader, request, facets)
-    case other => IO.raiseError(new Exception(s"cannot do range aggregation for a non-numeric field ${field.name}"))
+    case int: IntFieldSchema    => intLongAggregate(reader, request, facets)
+    case long: LongFieldSchema  => intLongAggregate(reader, request, facets)
+    case fl: FloatFieldSchema   => doubleFloatAggregate(reader, request, facets)
+    case dbl: DoubleFieldSchema => doubleFloatAggregate(reader, request, facets)
+    case other => IO.raiseError(UserError(s"cannot do range aggregation for a non-numeric field ${field.name}"))
   }
 
   def intLongAggregate(
