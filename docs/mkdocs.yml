@@ -131,8 +131,8 @@ nav:
                 - Document format: reference/api/index/document-format.md
                 - REST Endpoint: reference/api/index/ingestion.md
             - Search:
-                - Request: reference/api/search/request.md
-                - Queries: reference/api/search/query.md
+                - Request JSON format: reference/api/search/request.md
+                - Query DSL: reference/api/search/query.md
                 - Filters: reference/api/search/filter.md
                 - Facets: reference/api/search/facet.md
             - Suggest: reference/api/suggest.md
