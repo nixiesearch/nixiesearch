@@ -5,8 +5,9 @@ To search for documents indexed in Nixiesearch, you can use the following [reque
 ```json
 {
   "query": {
-    "match": {
-      "<search-field-name>": "<query-string>"
+    "multi_match": {
+      "fields": ["<search-field-name>", "<search-field-name>"],
+      "query": "<query-string>"
     }
   }
 }
@@ -34,6 +35,23 @@ For such a search request, Nixiesearch will reply with a JSON response with top-
 `_id` and `_score` are built-in fields always present in the payload. 
 
 > Compared to Elasticsearch/Opensearch, Nixiesearch has no built-in `_source` field as it is frequently mis-used. You need to explicitly mark fields you want to be present in response payload as `store: true` in the [index mapping](../reference/config/mapping.md).
+
+## RRF: Reciprocal Rank Fusion
+
+When you search over multiple fields marked as [semantic](../../config/mapping.md) and [lexical](../../config/mapping.md), or over a [hybrid](../../config/mapping.md) field, Nixiesearch dows the following:
+
+1. Collects a separate per-field search result list.
+2. Merges N search results with RRF - [Reciprocal Rank Fusion](#TODO).
+
+![RRF](../img/hybridsearch.png)
+
+RRF merging approach:
+
+* Does not use a document score directly (so BM25 or cosine-distance), but a document position in a result list when sorted by the score.
+* Scores of documents from multiple lists are combined together.
+* Final ranking is made by sorting merged document list by the combined score.
+
+Compared to traditional methods of combining multiple BM25 and cosine scores together, RRF does not depend on the scale and statistical distribution of the underlying scores - and can generate more stable results.
 
 ## Filters
 
