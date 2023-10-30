@@ -56,13 +56,15 @@ object MatchQuery {
     }
   }
 
-  case class FieldQuery(query: String)
+  case class FieldQuery(query: String, operator: Option[Operator])
 
   implicit val fieldQueryDecoder: Decoder[FieldQuery] = deriveDecoder
   implicit val fieldQueryEncoder: Encoder[FieldQuery] = deriveEncoder
 
   implicit val matchQueryEncoder: Encoder[MatchQuery] = Encoder.instance(q =>
-    Json.fromJsonObject(JsonObject.fromIterable(List(q.field -> fieldQueryEncoder(FieldQuery(q.query)))))
+    Json.fromJsonObject(
+      JsonObject.fromIterable(List(q.field -> fieldQueryEncoder(FieldQuery(q.query, Some(q.operator)))))
+    )
   )
   implicit val matchQueryDecoder: Decoder[MatchQuery] = Decoder.instance(c =>
     c.as[Map[String, FieldQuery]].map(_.toList) match {
@@ -72,7 +74,7 @@ object MatchQuery {
           case Right((field, query) :: Nil) => Right(MatchQuery(field, query, OR))
           case Right(other)                 => Left(DecodingFailure(s"cannot decode query $other", c.history))
         }
-      case Right((field, query) :: Nil) => Right(MatchQuery(field, query.query, OR))
+      case Right((field, query) :: Nil) => Right(MatchQuery(field, query.query, query.operator.getOrElse(OR)))
       case Right(other)                 => Left(DecodingFailure(s"cannot decode query $other", c.history))
     }
   )
