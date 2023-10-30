@@ -97,9 +97,9 @@ markdown_extensions:
 extra:
   homepage: /
   generator: false
- analytics:
-   provider: google
-   property: G-TFXLVGMHME
+  analytics:
+    provider: google
+    property: G-TFXLVGMHME
   social:
     - icon: /fontawesome/brands/github
       link: https://github.com/nixiesearch/nixiesearch
