@@ -1,13 +1,20 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.IndexRoute.IndexResponse
-import ai.nixiesearch.api.SearchRoute.{QueryParamDecoder, SearchRequest, SearchResponse, SizeParamDecoder}
+import ai.nixiesearch.api.SearchRoute.{
+  ErrorResponse,
+  QueryParamDecoder,
+  SearchRequest,
+  SearchResponse,
+  SizeParamDecoder
+}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.core.{Document, Logging}
@@ -32,9 +39,11 @@ case class SearchRoute(registry: IndexRegistry) extends Route with Logging {
               case Entity.Empty => IO.pure(emptyRequest)
               case _            => request.as[SearchRequest]
             }
-            _        <- info(s"POST /$indexName/_search query=$query")
-            docs     <- searchDsl(query, index)
-            response <- Ok(docs)
+            _ <- info(s"POST /$indexName/_search query=$query")
+            response <- searchDsl(query, index).flatMap(docs => Ok(docs)).handleErrorWith {
+              case e: UserError    => BadRequest(ErrorResponse(e.m))
+              case b: BackendError => InternalServerError(ErrorResponse(b.m))
+            }
           } yield {
             response
           }
@@ -47,12 +56,14 @@ case class SearchRoute(registry: IndexRegistry) extends Route with Logging {
           for {
             _     <- info(s"POST /$indexName/_search query=$query size=$size")
             start <- IO(System.currentTimeMillis())
-            docs <- query match {
+            response <- (query match {
               case Some(q) => searchLucene(q, index, size.getOrElse(10))
               case None    => searchDsl(emptyRequest, index)
+            }).flatMap(docs => Ok(docs)).handleErrorWith {
+              case e: UserError    => BadRequest(ErrorResponse(e.m))
+              case b: BackendError => InternalServerError(ErrorResponse(b.m))
             }
 
-            response <- Ok(docs)
           } yield {
             response
           }
@@ -129,5 +140,11 @@ object SearchRoute {
   given searchRequestEncJson: EntityEncoder[IO, SearchRequest]   = jsonEncoderOf
   given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
   given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
+
+  case class ErrorResponse(error: String)
+  object ErrorResponse {
+    given errorResponseCodec: Codec[ErrorResponse]            = deriveCodec
+    given errorResponseJson: EntityEncoder[IO, ErrorResponse] = jsonEncoderOf
+  }
 
 }
