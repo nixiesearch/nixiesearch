@@ -1,5 +1,6 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.api.SuggestRoute.Deduplication.DedupThreshold
 import ai.nixiesearch.api.SuggestRoute.{SuggestRequest, SuggestResponse}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
@@ -55,6 +56,7 @@ class SuggestRouteTest extends AnyFlatSpec with Matchers with LocalIndexFixture 
       val docs = List(
         Document(List(TextField(SUGGEST_FIELD, "hello"))),
         Document(List(TextField(SUGGEST_FIELD, "help"))),
+        Document(List(TextField(SUGGEST_FIELD, "helps"))),
         Document(List(TextField(SUGGEST_FIELD, "hip hop")))
       )
       val indexResponse =
@@ -72,10 +74,10 @@ class SuggestRouteTest extends AnyFlatSpec with Matchers with LocalIndexFixture 
         send[SuggestRequest, SuggestResponse](
           SuggestRoute(store).routes,
           "http://localhost/test/_suggest",
-          Some(SuggestRequest("hel", 10)),
+          Some(SuggestRequest("hel", 10, DedupThreshold(0.80))),
           Method.POST
         )
-      searchResponse.suggestions.map(_.text) shouldBe List("help", "hello", "hip hop")
+      searchResponse.suggestions.map(_.text) shouldBe List("helps", "hello", "hip hop")
     }
   }
 

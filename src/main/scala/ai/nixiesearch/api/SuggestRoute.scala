@@ -1,6 +1,7 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.SuggestRoute.{SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SuggestRoute.Deduplication.DedupThreshold
+import ai.nixiesearch.api.SuggestRoute.{Deduplication, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.mapping.SuggestMapping
@@ -8,7 +9,7 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.search.Suggester
 import ai.nixiesearch.index.IndexRegistry
 import cats.effect.IO
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
@@ -30,6 +31,8 @@ case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
     }
   }
 
+  val OVERFETCH = 5
+
   def suggest(indexName: String, query: SuggestRequest): IO[Response[IO]] = for {
     index <- indices.index(indexName).flatMap {
       case Some(value) => IO.pure(value)
@@ -50,8 +53,12 @@ case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
         }
       case _ => IO.raiseError(new Exception(s"suggest field has wrong schema: $schema"))
     }
-    knnquery <- IO(new KnnFloatVectorQuery(SuggestMapping.SUGGEST_FIELD, embed, query.size))
-    response <- Suggester.suggest(index, knnquery, query.size)
+    knnquery <- IO(new KnnFloatVectorQuery(SuggestMapping.SUGGEST_FIELD, embed, query.size * OVERFETCH))
+    threshold = query.deduplication match {
+      case DedupThreshold(threshold) => threshold
+      case Deduplication.NoDedup     => 1.0
+    }
+    response <- Suggester.suggest(index, knnquery, query.size * OVERFETCH, query.size, threshold)
     ok       <- Ok(response)
   } yield {
     ok
@@ -59,12 +66,54 @@ case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
 }
 
 object SuggestRoute {
-  case class SuggestRequest(text: String, size: Int)
-  case class SuggestResponse(suggestions: List[Suggestion])
-  case class Suggestion(text: String, score: Float)
+  sealed trait Deduplication
+  object Deduplication {
+    case class DedupThreshold(threshold: Double) extends Deduplication
+    case object NoDedup                          extends Deduplication
 
-  given suggestionCodec: Codec[Suggestion]           = deriveCodec
-  given suggestRequestCodec: Codec[SuggestRequest]   = deriveCodec
+    given dedupEncoder: Encoder[Deduplication] = Encoder.instance {
+      case DedupThreshold(threshold) => Json.obj("threshold" -> Json.fromDoubleOrNull(threshold))
+      case NoDedup                   => Json.fromString("false")
+    }
+
+    given dedupDecoder: Decoder[Deduplication] = Decoder.instance(c =>
+      c.as[String] match {
+        case Right("false") => Right(NoDedup)
+        case Right(other) =>
+          Left(DecodingFailure(s"cannot decode deduplication field. expected 'false'|obj, got '$other'", c.history))
+        case Left(err1) =>
+          c.downField("threshold").as[Double] match {
+            case Left(err2) =>
+              Left(
+                DecodingFailure(s"cannot decode deduplication field. expected 'false'|obj - $err1 - $err2'", c.history)
+              )
+            case Right(value) => Right(DedupThreshold(value))
+          }
+      }
+    )
+  }
+
+  case class SuggestRequest(text: String, size: Int = 10, deduplication: Deduplication = DedupThreshold(0.95))
+  case class SuggestResponse(suggestions: List[Suggestion])
+  case class Suggestion(text: String, score: Float, forms: List[SuggestionForm])
+  case class SuggestionForm(text: String, score: Float)
+
+  given suggestionFormCodec: Codec[SuggestionForm]     = deriveCodec
+  given suggestionCodec: Codec[Suggestion]             = deriveCodec
+  given suggestRequestEncoder: Encoder[SuggestRequest] = deriveEncoder
+  given suggestRequestDecoder: Decoder[SuggestRequest] = Decoder.instance(c =>
+    for {
+      text  <- c.downField("text").as[String]
+      size  <- c.downField("size").as[Option[Int]]
+      dedup <- c.downField("deduplication").as[Option[Deduplication]]
+    } yield {
+      SuggestRequest(
+        text = text,
+        size = size.getOrElse(10),
+        deduplication = dedup.getOrElse(DedupThreshold(0.95))
+      )
+    }
+  )
   given suggestResponseCodec: Codec[SuggestResponse] = deriveCodec
 
   given suggestRequestDecJson: EntityDecoder[IO, SuggestRequest] = jsonOf
