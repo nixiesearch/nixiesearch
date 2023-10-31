@@ -30,7 +30,7 @@ The `model` can point to any Huggingface-hosted ONNX model, but we do not advise
 
 Nixiesearch expects documents with a single `"suggest"` field as a source of suggestions:
 
-```json lines
+```json
 {"suggest": "hello"}
 {"suggest": "help"}
 {"suggest": "helps"}
