@@ -21,7 +21,7 @@ object SemanticLuceneQuery {
       mapping: IndexMapping
   ): IO[List[LuceneQuery]] = for {
     encoder      <- encoders.get(model)
-    queryEmbed   <- IO(encoder.embed(prefix.query + query))
+    queryEmbed   <- encoder.embed(prefix.query + query)
     filterOption <- filter.toLuceneQuery(mapping)
     query <- filterOption match {
       case Some(filter) => IO(new KnnFloatVectorQuery(field, queryEmbed, size, filter))

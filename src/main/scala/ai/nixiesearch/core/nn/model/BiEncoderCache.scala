@@ -1,5 +1,6 @@
 package ai.nixiesearch.core.nn.model
 
+import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.{Config, FieldSchema}
@@ -12,7 +13,8 @@ import cats.implicits.*
 
 case class BiEncoderCache(
     encoders: MapRef[IO, ModelHandle, Option[OnnxBiEncoder]],
-    shutdownQueue: Queue[IO, IO[Unit]]
+    shutdownQueue: Queue[IO, IO[Unit]],
+    cacheConfig: EmbeddingCacheConfig
 ) extends Logging {
   def get(handle: ModelHandle): IO[OnnxBiEncoder] = {
     val ref = encoders(handle)
@@ -22,7 +24,7 @@ case class BiEncoderCache(
         for {
           _       <- info(s"Loading ONNX models: $handle")
           session <- OnnxSession.load(handle)
-          enc = OnnxBiEncoder(session)
+          enc = OnnxBiEncoder(session, cacheConfig)
           _ <- ref.set(Some(enc))
           _ <- shutdownQueue.offer(IO(enc.close()))
         } yield {
@@ -38,12 +40,12 @@ case class BiEncoderCache(
 }
 
 object BiEncoderCache extends Logging {
-  def create(): Resource[IO, BiEncoderCache] = {
+  def create(cacheConfig: EmbeddingCacheConfig): Resource[IO, BiEncoderCache] = {
     Resource.make(for {
       queue <- Queue.bounded[IO, IO[Unit]](1024)
       cache <- MapRef.ofConcurrentHashMap[IO, ModelHandle, OnnxBiEncoder]()
     } yield {
-      BiEncoderCache(cache, queue)
+      BiEncoderCache(cache, queue, cacheConfig)
     })(_.close())
 
   }

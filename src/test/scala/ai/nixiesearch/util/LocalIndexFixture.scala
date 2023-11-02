@@ -1,5 +1,6 @@
 package ai.nixiesearch.util
 
+import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
@@ -8,6 +9,7 @@ import org.apache.commons.io.FileUtils
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
+
 import java.nio.file.{Files, Path}
 import scala.collection.mutable.ArrayBuffer
 
@@ -24,7 +26,7 @@ trait LocalIndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
     println(dir)
     dir.toFile.deleteOnExit()
     val (registry, shutdown) =
-      IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), List(index)).allocated.unsafeRunSync()
+      IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(),List(index)).allocated.unsafeRunSync()
 
     pendingDeleteDirs.addOne(dir)
 
@@ -36,7 +38,7 @@ trait LocalIndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
     val dir = Files.createTempDirectory("nixie")
     dir.toFile.deleteOnExit()
     val (registry, shutdown) =
-      IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), Nil).allocated.unsafeRunSync()
+      IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(),Nil).allocated.unsafeRunSync()
     pendingDeleteDirs.addOne(dir)
     try { code(registry) }
     finally registry.close().unsafeRunSync()

@@ -38,7 +38,7 @@ object OnnxSession extends Logging {
     val tokenizer = HuggingFaceTokenizer.newInstance(dic, Map("padding" -> "true", "truncation" -> "true").asJava)
     val env       = OrtEnvironment.getEnvironment("sbert")
     val opts      = new SessionOptions()
-    // opts.setIntraOpNumThreads(Runtime.getRuntime.availableProcessors())
+    opts.setIntraOpNumThreads(Runtime.getRuntime.availableProcessors())
     opts.setOptimizationLevel(OptLevel.ALL_OPT)
     // opts.addCUDA()
     val modelBytes = IOUtils.toByteArray(model)

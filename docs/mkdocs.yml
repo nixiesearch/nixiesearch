@@ -147,6 +147,7 @@ nav:
                 - S3: reference/config/persistence/s3.md
             - Autocomplete index: reference/config/autocomplete.md
             - Index mapping: reference/config/mapping.md
+            - Caching: reference/config/cache.md
         - Command-line interface:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md

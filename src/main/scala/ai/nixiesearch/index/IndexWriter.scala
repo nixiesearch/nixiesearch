@@ -6,7 +6,15 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
-import ai.nixiesearch.core.codec.{DoubleFieldWriter, FieldWriter, FloatFieldWriter, IntFieldWriter, LongFieldWriter, TextFieldWriter, TextListFieldWriter}
+import ai.nixiesearch.core.codec.{
+  DoubleFieldWriter,
+  FieldWriter,
+  FloatFieldWriter,
+  IntFieldWriter,
+  LongFieldWriter,
+  TextFieldWriter,
+  TextListFieldWriter
+}
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
@@ -31,60 +39,62 @@ trait IndexWriter extends Logging {
   lazy val floatFieldWriter    = FloatFieldWriter()
   lazy val doubleFieldWriter   = DoubleFieldWriter()
 
-  def addDocuments(docs: List[Document]): IO[Unit] = for {
-    mapping <- mappingRef.get
-    handles <- IO(mapping.textFields.values.toList.collect {
-      case TextFieldSchema(_, SemanticSearchLikeType(handle, _), _, _, _, _) =>
-        handle
-    })
-    fieldStrings    <- IO(strings(mapping, docs))
-    embeddedStrings <- embed(fieldStrings, encoders)
-    _               <- dirtyRef.set(true)
-  } yield {
-    val all = new util.ArrayList[LuceneDocument]()
-    docs.foreach(doc => {
-      val buffer = new LuceneDocument()
-      doc.fields.foreach {
-        case field @ TextField(name, _) =>
-          mapping.textFields.get(name) match {
-            case None => logger.warn(s"text field '$name' is not defined in mapping")
-            case Some(mapping) =>
-              mapping match {
-                case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _) =>
-                  textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
-                case _ => textFieldWriter.write(field, mapping, buffer, Map.empty)
-              }
+  def addDocuments(docs: List[Document]): IO[Unit] = {
+    for {
+      mapping <- mappingRef.get
+      handles <- IO(mapping.textFields.values.toList.collect {
+        case TextFieldSchema(_, SemanticSearchLikeType(handle, _), _, _, _, _) =>
+          handle
+      })
+      fieldStrings    <- IO(strings(mapping, docs))
+      embeddedStrings <- embed(fieldStrings, encoders)
+      _               <- dirtyRef.set(true)
+    } yield {
+      val all = new util.ArrayList[LuceneDocument]()
+      docs.foreach(doc => {
+        val buffer = new LuceneDocument()
+        doc.fields.foreach {
+          case field @ TextField(name, _) =>
+            mapping.textFields.get(name) match {
+              case None => logger.warn(s"text field '$name' is not defined in mapping")
+              case Some(mapping) =>
+                mapping match {
+                  case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _) =>
+                    textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
+                  case _ => textFieldWriter.write(field, mapping, buffer, Map.empty)
+                }
 
-          }
-        case field @ TextListField(name, value) =>
-          mapping.textListFields.get(name) match {
-            case None          => logger.warn(s"text[] field '$name' is not defined in mapping")
-            case Some(mapping) => textListFieldWriter.write(field, mapping, buffer, Map.empty)
-          }
-        case field @ IntField(name, value) =>
-          mapping.intFields.get(name) match {
-            case None          => logger.warn(s"int field '$name' is not defined in mapping")
-            case Some(mapping) => intFieldWriter.write(field, mapping, buffer)
-          }
-        case field @ LongField(name, value) =>
-          mapping.longFields.get(name) match {
-            case None          => logger.warn(s"long field '$name' is not defined in mapping")
-            case Some(mapping) => longFieldWriter.write(field, mapping, buffer)
-          }
-        case field @ FloatField(name, value) =>
-          mapping.floatFields.get(name) match {
-            case None          => logger.warn(s"float field '$name' is not defined in mapping")
-            case Some(mapping) => floatFieldWriter.write(field, mapping, buffer)
-          }
-        case field @ DoubleField(name, value) =>
-          mapping.doubleFields.get(name) match {
-            case None          => logger.warn(s"double field '$name' is not defined in mapping")
-            case Some(mapping) => doubleFieldWriter.write(field, mapping, buffer)
-          }
-      }
-      all.add(buffer)
-    })
-    writer.addDocuments(all)
+            }
+          case field @ TextListField(name, value) =>
+            mapping.textListFields.get(name) match {
+              case None          => logger.warn(s"text[] field '$name' is not defined in mapping")
+              case Some(mapping) => textListFieldWriter.write(field, mapping, buffer, Map.empty)
+            }
+          case field @ IntField(name, value) =>
+            mapping.intFields.get(name) match {
+              case None          => logger.warn(s"int field '$name' is not defined in mapping")
+              case Some(mapping) => intFieldWriter.write(field, mapping, buffer)
+            }
+          case field @ LongField(name, value) =>
+            mapping.longFields.get(name) match {
+              case None          => logger.warn(s"long field '$name' is not defined in mapping")
+              case Some(mapping) => longFieldWriter.write(field, mapping, buffer)
+            }
+          case field @ FloatField(name, value) =>
+            mapping.floatFields.get(name) match {
+              case None          => logger.warn(s"float field '$name' is not defined in mapping")
+              case Some(mapping) => floatFieldWriter.write(field, mapping, buffer)
+            }
+          case field @ DoubleField(name, value) =>
+            mapping.doubleFields.get(name) match {
+              case None          => logger.warn(s"double field '$name' is not defined in mapping")
+              case Some(mapping) => doubleFieldWriter.write(field, mapping, buffer)
+            }
+        }
+        all.add(buffer)
+      })
+      writer.addDocuments(all)
+    }
   }
 
   def strings(mapping: IndexMapping, docs: List[Document]): Map[SemanticSearchLikeType, List[String]] = {
@@ -113,10 +123,15 @@ trait IndexWriter extends Logging {
       .traverse { case (tpe, strings) =>
         for {
           encoder <- encoders.get(tpe.model)
-          encoded <- strings
-            .grouped(64)
+          encoded <- strings.distinct
+            .sortBy(-_.length)
+            .grouped(8)
             .toList
-            .flatTraverse(batch => IO(batch.zip(encoder.embed(batch.map(s => tpe.prefix.document + s).toArray))))
+            .flatTraverse(batch =>
+              encoder
+                .embed(batch.map(s => tpe.prefix.document + s).toArray)
+                .flatMap(embeddings => IO(batch.zip(embeddings)))
+            )
         } yield {
           tpe -> encoded.toMap
         }

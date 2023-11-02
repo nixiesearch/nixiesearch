@@ -5,6 +5,7 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
@@ -28,7 +29,8 @@ trait SearchTest extends AnyFlatSpec {
   def docs: List[Document]
 
   trait Index {
-    val registry = IndexRegistry.create(MemoryStoreConfig(), List(mapping)).allocated.unsafeRunSync()._1
+    val registry =
+      IndexRegistry.create(MemoryStoreConfig(), EmbeddingCacheConfig(), List(mapping)).allocated.unsafeRunSync()._1
 
     val index = {
       val w = registry.index(mapping.name).unsafeRunSync().get
