@@ -1,10 +1,12 @@
 package ai.nixiesearch.util
 
+import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.index.IndexRegistry
 import cats.effect.unsafe.implicits.global
+
 import java.nio.file.Files
 
 object TestIndexRegistry {
@@ -13,7 +15,7 @@ object TestIndexRegistry {
     dir.toFile.deleteOnExit()
     val registry =
       IndexRegistry
-        .create(LocalStoreConfig(LocalStoreUrl(dir.toString)), indices)
+        .create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(), indices)
         .allocated
         .unsafeRunSync()
         ._1

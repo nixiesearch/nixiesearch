@@ -1,5 +1,6 @@
 package ai.nixiesearch.index
 
+import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.{FieldSchema, StoreConfig}
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
@@ -55,8 +56,12 @@ case class IndexRegistry(
 }
 
 object IndexRegistry extends Logging {
-  def create(config: StoreConfig, indices: List[IndexMapping]): Resource[IO, IndexRegistry] = for {
-    encoders <- BiEncoderCache.create()
+  def create(
+      config: StoreConfig,
+      cacheConfig: EmbeddingCacheConfig,
+      indices: List[IndexMapping]
+  ): Resource[IO, IndexRegistry] = for {
+    encoders <- BiEncoderCache.create(cacheConfig)
     indicesRefMap <- Resource.eval(
       Ref.ofEffect[IO, Map[String, Index]](
         indices

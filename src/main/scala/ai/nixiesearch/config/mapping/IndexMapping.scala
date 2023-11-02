@@ -135,8 +135,11 @@ object IndexMapping extends Logging {
   object yaml {
     def indexMappingDecoder(name: String): Decoder[IndexMapping] = Decoder.instance(c =>
       for {
-        alias      <- decodeAlias(c.downField("alias"))
-        fieldJsons <- c.downField("fields").as[Map[String, Json]].map(_.toList)
+        alias <- decodeAlias(c.downField("alias"))
+        fieldJsons <- c.downField("fields").as[Map[String, Json]].map(_.toList) match {
+          case Left(value)  => Left(DecodingFailure(s"'fields' expected to be a map", c.history))
+          case Right(value) => Right(value)
+        }
         fields <- fieldJsons.traverse { case (name, json) =>
           FieldSchema.yaml.fieldSchemaDecoder(name).decodeJson(json)
         }

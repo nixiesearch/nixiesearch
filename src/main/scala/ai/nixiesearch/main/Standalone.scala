@@ -24,7 +24,7 @@ object Standalone extends Logging {
       case other                => IO.raiseError(new Exception(s"store $other not supported"))
     }
     _ <- IndexRegistry
-      .create(store, indices)
+      .create(store, config.core.cache.embedding, indices)
       .use(registry =>
         for {
           search  <- IO(SearchRoute(registry))

@@ -214,7 +214,7 @@ object FieldSchema {
 
     def fieldSchemaDecoder(name: String): Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
-        case Left(value)                  => Left(DecodingFailure(s"Cannot decode field type: $value", c.history))
+        case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
         case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)
         case Right("text[]" | "string[]") => textListFieldSchemaDecoder(name).tryDecode(c)
         case Right("int")                 => intFieldSchemaDecoder(name).tryDecode(c)
@@ -222,7 +222,7 @@ object FieldSchema {
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
         case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
         case Right(other) =>
-          Left(DecodingFailure(s"Field type '$other' is not supported. Maybe try 'text'?", c.history))
+          Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
     )
 

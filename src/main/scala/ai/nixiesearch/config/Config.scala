@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets
 import io.circe.yaml.parser.*
 
 case class Config(
+    core: CoreConfig = CoreConfig(),
     api: ApiConfig = ApiConfig(),
     store: StoreConfig = LocalStoreConfig(),
     search: Map[String, IndexMapping] = Map.empty,
@@ -24,6 +25,7 @@ object Config extends Logging {
 
   implicit val configDecoder: Decoder[Config] = Decoder.instance(c =>
     for {
+      core      <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
       api       <- c.downField("api").as[Option[ApiConfig]].map(_.getOrElse(ApiConfig()))
       store     <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(LocalStoreConfig()))
       indexJson <- c.downField("search").as[Option[Map[String, Json]]].map(_.getOrElse(Map.empty))
@@ -35,7 +37,13 @@ object Config extends Logging {
         SuggestMapping.yaml.suggesterMappingDecoder(name).decodeJson(json)
       }
     } yield {
-      Config(api, store, search = index.map(i => i.name -> i).toMap, suggest = suggest.map(s => s.name -> s).toMap)
+      Config(
+        core,
+        api,
+        store,
+        search = index.map(i => i.name -> i).toMap,
+        suggest = suggest.map(s => s.name -> s).toMap
+      )
     }
   )
 
