@@ -38,7 +38,7 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
       .chunkN(64)
       .evalScan(mappingOption)((mo, chunk) =>
         for {
-          mapping <- getMappingOrCreate(mo, chunk.toList, indexName)
+          mapping <- getMappingOrCreate(registry, mo, chunk.toList, indexName)
           index <- registry.index(mapping.name).flatMap {
             case Some(value) => IO.pure(value)
             case None        => IO.raiseError(new Exception("index not found, weird"))
@@ -79,7 +79,26 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
     }
   }
 
-  private def getMappingOrCreate(
+}
+
+object IndexRoute extends Logging {
+  case class IndexResponse(result: String, took: Int = 0)
+  object IndexResponse {
+    def withStartTime(result: String, start: Long) = IndexResponse(result, (System.currentTimeMillis() - start).toInt)
+  }
+  given indexResponseCodec: Codec[IndexResponse] = deriveCodec
+
+  import ai.nixiesearch.config.mapping.IndexMapping.json.given
+
+  given schemaEncoderJson: EntityEncoder[IO, IndexMapping]         = jsonEncoderOf
+  given schemaDecoderJson: EntityDecoder[IO, IndexMapping]         = jsonOf
+  given singleDocJson: EntityDecoder[IO, Document]                 = jsonOf
+  given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
+  given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
+  given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
+
+  def getMappingOrCreate(
+      registry: IndexRegistry,
       mappingOption: Option[IndexMapping],
       first: List[Document],
       indexName: String
@@ -110,21 +129,5 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
           generated
         }
     }
-}
 
-object IndexRoute {
-  case class IndexResponse(result: String, took: Int = 0)
-  object IndexResponse {
-    def withStartTime(result: String, start: Long) = IndexResponse(result, (System.currentTimeMillis() - start).toInt)
-  }
-  given indexResponseCodec: Codec[IndexResponse] = deriveCodec
-
-  import ai.nixiesearch.config.mapping.IndexMapping.json.given
-
-  given schemaEncoderJson: EntityEncoder[IO, IndexMapping]         = jsonEncoderOf
-  given schemaDecoderJson: EntityDecoder[IO, IndexMapping]         = jsonOf
-  given singleDocJson: EntityDecoder[IO, Document]                 = jsonOf
-  given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
-  given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
-  given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
 }

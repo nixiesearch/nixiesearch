@@ -19,12 +19,16 @@ import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.index.IndexWriter as LuceneIndexWriter
+import org.apache.lucene.index.{Term, IndexWriter as LuceneIndexWriter}
 import org.apache.lucene.store.{Directory, MMapDirectory}
 import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
 import cats.implicits.*
+import org.apache.lucene.search.BooleanClause.Occur
+import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
+
+import scala.collection.mutable.ArrayBuffer
 
 trait IndexWriter extends Logging {
   def mappingRef: Ref[IO, IndexMapping]
@@ -51,13 +55,15 @@ trait IndexWriter extends Logging {
       _               <- dirtyRef.set(true)
     } yield {
       val all = new util.ArrayList[LuceneDocument]()
+      val ids = new ArrayBuffer[String]()
       docs.foreach(doc => {
         val buffer = new LuceneDocument()
         doc.fields.foreach {
-          case field @ TextField(name, _) =>
+          case field @ TextField(name, value) =>
             mapping.textFields.get(name) match {
               case None => logger.warn(s"text field '$name' is not defined in mapping")
               case Some(mapping) =>
+                if (name == "_id") ids.addOne(value)
                 mapping match {
                   case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _) =>
                     textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
@@ -93,6 +99,8 @@ trait IndexWriter extends Logging {
         }
         all.add(buffer)
       })
+      val deleteIds = ids.map(id => new Term("_id_raw", id))
+      writer.deleteDocuments(deleteIds.toSeq: _*)
       writer.addDocuments(all)
     }
   }

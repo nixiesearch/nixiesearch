@@ -17,7 +17,7 @@ case class Config(
     api: ApiConfig = ApiConfig(),
     store: StoreConfig = LocalStoreConfig(),
     search: Map[String, IndexMapping] = Map.empty,
-    suggest: Map[String, IndexMapping] = Map.empty
+    suggest: Map[String, SuggestMapping] = Map.empty
 )
 
 object Config extends Logging {

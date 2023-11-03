@@ -22,13 +22,57 @@ You need to explicitly define a suggest index in the configuration file, as Nixi
 suggest:
   <suggester-index-name>:
     model: nixiesearch/nixie-suggest-small-v1
+    transform:
+      fields: ["title", "description"]
+      language: "english"
+      lowercase: true
+      removeStopwords: true
+      group: [1, 2, 3]
 ```
 
-The `model` can point to any Huggingface-hosted ONNX model, but we do not advise using any non-Nixiesearch models not explicitly trained on partial noisy inputs. See model description for [nixiesearch/nixie-suggest-small-v1](https://huggingface.co/nixiesearch/nixie-suggest-small-v1) for training details.
+Where fields are defined as follows:
+
+* `model`: optional, model handle, default `nixiesearch/nixie-suggest-small-v1`
+* `transform`: optional, object. A list of document transformations before indexing.
+* `transform.fields`: required, string[]. Which fields from ingested documents to use as a source for suggestions.
+* `transform.language`: optional, string, default `english`. Which language to use for text transformations.
+* `transform.lowercase`: optional, boolean, default `true`. Should we lowercase all text strings before indexing?
+* `transform.removeStopwords`: optional, boolean, default `true`. Should we drop all language-specific stopwords?
+* `transform.group`: optional, int[], default `[1, 2, 3]`. How words should be grouped for suggestions? By default, we index all single words, word tuples and triplets.
+
+> The `model` can point to any Huggingface-hosted ONNX model, but we do not advise using any non-Nixiesearch models not explicitly trained on partial noisy inputs. See model description for [nixiesearch/nixie-suggest-small-v1](https://huggingface.co/nixiesearch/nixie-suggest-small-v1) for training details.
 
 ## Adding suggestions to the index
 
-Nixiesearch expects documents with a single `"suggest"` field as a source of suggestions:
+### Transforming existing documents for suggestions
+
+When you want to index suggestions based on existing documents (like the ones you're also indexing for regular search), you can define your suggestion transformation in the suggestion index mapping in the following way:
+
+* `transform.fields` should include all fields you plan to generate suggestions from. In other Lucene-based search engines this is similar to marking a field as a `suggestable`.
+* a default set of transformation parameters performs a couple of common-sense typical transformations like lowercasing, removing stopwords and grouping words in tuples of size 1, 2 and 3 words.
+
+For example, for a suggestion index mapping as following:
+
+```yaml
+suggest:
+  foobar:
+    transform:
+      fields: ["title"]
+```
+
+We can index documents with text field `title` with a default set of suggestion transformations:
+
+```shell
+curl -XPUT -d '{"title":"foo bar baz"}' http://localhost:8080/foobar/_index
+```
+
+> Suggestion JSON format is the same as for [regular search documents](../api/index/document-format.md).
+
+A default set of transformations will index the following suggestions: `["foo", "bar", "baz", "foo bar", "bar baz", "foo bar baz"]` 
+
+### Raw suggestion without transformations
+
+When you already have a set of pre-made suggestions for indexing (for example, based on a set of previously searched queries or product titles), Nixiesearch expects documents with a single `"suggest"` field as a source of suggestions:
 
 ```json
 {"suggest": "hello"}

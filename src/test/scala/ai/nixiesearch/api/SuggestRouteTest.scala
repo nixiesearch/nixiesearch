@@ -19,15 +19,8 @@ class SuggestRouteTest extends AnyFlatSpec with Matchers with LocalIndexFixture 
   import ai.nixiesearch.util.HttpTest.*
   import IndexRoute.*
 
-  val mapping = IndexMapping(
-    name = "test",
-    fields = Map(
-      SuggestMapping.SUGGEST_FIELD -> TextFieldSchema(
-        name = SuggestMapping.SUGGEST_FIELD,
-        search = SemanticSearch(model = HuggingFaceHandle("nixiesearch", "nixie-suggest-small-v1"))
-      )
-    )
-  )
+  val suggest = SuggestMapping(name = "test")
+  val mapping = suggest.index
 
   it should "return index mapping on GET" in withStore(mapping) { store =>
     {
@@ -72,7 +65,7 @@ class SuggestRouteTest extends AnyFlatSpec with Matchers with LocalIndexFixture 
 
       val searchResponse =
         send[SuggestRequest, SuggestResponse](
-          SuggestRoute(store).routes,
+          SuggestRoute(store, Map("test" -> suggest)).routes,
           "http://localhost/test/_suggest",
           Some(SuggestRequest("hel", 10, DedupThreshold(0.80))),
           Method.POST
