@@ -1,4 +1,4 @@
-package ai.nixiesearch.core.search
+package ai.nixiesearch.core.suggest
 
 import ai.nixiesearch.api.SuggestRoute.{SuggestResponse, Suggestion, SuggestionForm}
 import ai.nixiesearch.config.mapping.SuggestMapping
@@ -73,7 +73,7 @@ object Suggester {
             if (forms(j) != null) {
               val cosineDistance = VectorUtil.cosine(forms(i).vector, forms(j).vector)
               if (cosineDistance >= threshold) {
-                nextForms.addOne(SuggestionForm(forms(j).form, forms(j).score))
+                if (forms(j).form != forms(i).form) nextForms.addOne(SuggestionForm(forms(j).form, forms(j).score))
                 forms(j) = null
               }
             }

@@ -4,8 +4,12 @@ api:
 store:
   url: s3://bucket/prefix
 suggest:
-  newshiny:
+  as-is:
     model: nixiesearch/nixie-suggest-small-v1
+  with-transform:
+    transform:
+      fields: [title]
+      model: nixiesearch/nixie-suggest-small-v1
 
 search:
   helloworld:

@@ -1,40 +1,90 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.api.SuggestRoute.Deduplication.DedupThreshold
 import ai.nixiesearch.api.SuggestRoute.{Deduplication, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.mapping.SuggestMapping
-import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.search.Suggester
+import ai.nixiesearch.core.Error.UserError
+import ai.nixiesearch.core.nn.ModelHandle
+import ai.nixiesearch.core.suggest.{SuggestTransform, Suggester}
+import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
+import fs2.Stream
 import ai.nixiesearch.index.IndexRegistry
 import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Response}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.lucene.search.KnnFloatVectorQuery
 
-case class SuggestRoute(indices: IndexRegistry) extends Route with Logging {
-  val routes = HttpRoutes.of[IO] { case request @ POST -> Root / indexName / "_suggest" =>
-    indices.index(indexName).flatMap {
-      case Some(index) =>
-        for {
-          query    <- request.as[SuggestRequest]
-          _        <- info(s"POST /$indexName/_suggest query=$query")
-          response <- suggest(indexName, query)
-        } yield {
-          response
-        }
-      case None => NotFound(s"index $indexName is missing")
-    }
+case class SuggestRoute(registry: IndexRegistry, suggests: Map[String, SuggestMapping]) extends Route with Logging {
+  val routes = HttpRoutes.of[IO] {
+    case request @ PUT -> Root / indexName / "_index" if (suggests.contains(indexName)) =>
+      handleIndex(request, indexName)
+    case request @ POST -> Root / indexName / "_suggest" =>
+      suggests.get(indexName) match {
+        case None => NotFound(s"index $indexName is not a suggestion index")
+        case Some(suggestMapping) =>
+          registry.index(indexName).flatMap {
+            case Some(index) =>
+              for {
+                query    <- request.as[SuggestRequest]
+                _        <- info(s"POST /$indexName/_suggest query=$query")
+                response <- suggest(indexName, query)
+              } yield {
+                response
+              }
+            case None => NotFound(s"index $indexName is missing")
+          }
+      }
   }
 
   val OVERFETCH = 5
 
+  def handleIndex(request: Request[IO], indexName: String): IO[Response[IO]] = for {
+    _        <- info(s"PUT /$indexName/_index")
+    ok       <- index(request.entity.body.through(JsonDocumentStream.parse), indexName)
+    response <- Ok(ok)
+  } yield {
+    response
+  }
+
+  def index(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
+    start <- IO(System.currentTimeMillis())
+    indexMapping <- registry.mapping(indexName).flatMap {
+      case Some(value) => IO.pure(value)
+      case None =>
+        IO.raiseError(
+          UserError(
+            s"suggest index $indexName not found in config file. Dynamic mapping for suggestions is not supported."
+          )
+        )
+    }
+    suggestMapping <- IO.fromOption(suggests.get(indexName))(UserError(s"index $indexName is not a suggestion index"))
+    index <- registry.index(indexName).flatMap {
+      case Some(value) => IO.pure(value)
+      case None        => IO.raiseError(UserError(s"index $indexName not found"))
+    }
+    searcher <- index.searcherRef.get
+    _ <- request
+      .chunkN(64)
+      .unchunks
+      .through(PrintProgress.tap("indexed docs"))
+      .through(SuggestTransform.doc2suggest(suggestMapping.transform, searcher))
+      .chunkN(64)
+      .evalMap(chunk => index.addDocuments(chunk.toList))
+      .compile
+      .drain
+      .flatTap(_ => info(s"completed indexing, took ${System.currentTimeMillis() - start}ms"))
+  } yield {
+    IndexResponse.withStartTime("created", start)
+  }
+
   def suggest(indexName: String, query: SuggestRequest): IO[Response[IO]] = for {
-    index <- indices.index(indexName).flatMap {
+    index <- registry.index(indexName).flatMap {
       case Some(value) => IO.pure(value)
       case None        => IO.raiseError(new Exception(s"index $indexName not found"))
     }

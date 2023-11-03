@@ -17,7 +17,7 @@ import scala.concurrent.duration.Duration
 object Standalone extends Logging {
   def run(args: StandaloneArgs): IO[Unit] = for {
     config  <- Config.load(args.config)
-    indices <- IO(config.search.values.toList ++ config.suggest.values.toList)
+    indices <- IO(config.search.values.toList ++ config.suggest.values.map(_.index).toList)
     store <- config.store match {
       case s: LocalStoreConfig  => IO.pure(s)
       case s: MemoryStoreConfig => IO.pure(s)
@@ -29,9 +29,9 @@ object Standalone extends Logging {
         for {
           search  <- IO(SearchRoute(registry))
           index   <- IO(IndexRoute(registry))
-          suggest <- IO(SuggestRoute(registry))
+          suggest <- IO(SuggestRoute(registry, config.suggest))
           health  <- IO(HealthRoute())
-          routes  <- IO(search.routes <+> index.routes <+> suggest.routes <+> health.routes)
+          routes  <- IO(search.routes <+> suggest.routes <+> index.routes <+> health.routes)
           http    <- IO(Router("/" -> routes).orNotFound)
           host <- IO.fromOption(Hostname.fromString(config.api.host.value))(
             new Exception(s"cannot parse hostname '${config.api.host.value}'")

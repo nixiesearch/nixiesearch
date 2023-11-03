@@ -18,6 +18,7 @@ import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
 import org.apache.commons.io.FileUtils
+import org.apache.lucene.search.MatchAllDocsQuery
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
@@ -36,6 +37,7 @@ trait SearchTest extends AnyFlatSpec {
       val w = registry.index(mapping.name).unsafeRunSync().get
       w.addDocuments(docs).unsafeRunSync()
       w.flush().unsafeRunSync()
+      w.syncReader().unsafeRunSync()
       w
     }
 
