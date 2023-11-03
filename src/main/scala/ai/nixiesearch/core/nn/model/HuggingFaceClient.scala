@@ -17,15 +17,28 @@ import org.typelevel.ci.CIString
 import ai.nixiesearch.core.Error.*
 import java.io.{ByteArrayOutputStream, File}
 import scala.concurrent.duration.*
+import io.circe.syntax.*
+import io.circe.parser.*
 
 case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFileCache) extends Logging {
 
   implicit val modelResponseDecoder: EntityDecoder[IO, ModelResponse] = jsonOf[IO, ModelResponse]
 
   def model(handle: HuggingFaceHandle) = for {
-    request  <- IO(Request[IO](uri = endpoint / "api" / "models" / handle.ns / handle.name))
-    _        <- info(s"sending HuggingFace API request $request")
-    response <- client.expect[ModelResponse](request)
+    modelDirName <- IO(handle.asList.mkString(File.separator))
+    response <- cache.getIfExists(modelDirName, "model.json").flatMap {
+      case Some(value) =>
+        info("found cached model.json card") *> IO.fromEither(decode[ModelResponse](new String(value)))
+      case None =>
+        for {
+          request  <- IO(Request[IO](uri = endpoint / "api" / "models" / handle.ns / handle.name))
+          _        <- info(s"sending HuggingFace API request $request")
+          response <- client.expect[ModelResponse](request)
+          _        <- cache.put(modelDirName, "model.json", response.asJson.spaces2.getBytes())
+        } yield {
+          response
+        }
+    }
   } yield {
     response
   }
