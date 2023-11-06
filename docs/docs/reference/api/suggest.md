@@ -1,22 +1,8 @@
-# Search suggestions autocomplete 
+# Autocomplete suggestions API 
 
-To build search suggestions, Nixiesearch uses a novel semantic autocomplete algorithm:
+## Suggestion index configuration
 
-* All possible suggestions are embedded using an in-house [nixie-suggest-small-v1](https://huggingface.co/nixiesearch/nixie-suggest-small-v1) LLM embedding model.
-* The model is trained to tolerate typos (e.g. "milk" - "milk") and partial inputs (e.g. "termi" - "terminator").
-* When you send a suggest request to a `_suggest` endpoint, a regular k-NN vector search is performed over a suggestion index for most similar suggestions.
-
-> Unlike existing Lucene search engines, Nixiesearch suggest index is not tied to a specific *suggestable* field. Suggest index is just a special flavor of a regular semantic index, so you need to explicitly add suggestion documents there.
-
-To create a suggestion index, you need:
-
-* Create a static [suggestion index mapping](#suggestion-index-mapping). As for now, We do not support dynamic mapping for suggestion indices.
-* [Add suggestion documents](#adding-suggestions-to-the-index) to the index. Only documents you've indexed will be returned in the response.
-* Send a [search suggestion request](#sending-suggestion-requests). Generated suggestions can also be [deduplicated](#suggestion-deduplication) to group similar ones.
-
-## Suggestion index mapping
-
-You need to explicitly define a suggest index in the configuration file, as Nixiesearch does not support dynamic mapping for suggestions.
+You need to explicitly define a *suggest* index in the configuration file, as Nixiesearch does not support dynamic mapping for suggestions.
 
 ```yaml
 suggest:
@@ -30,17 +16,17 @@ suggest:
       group: [1, 2, 3]
 ```
 
-Where fields are defined as follows:
+Suggest parameters are defined as follows:
 
-* `model`: optional, model handle, default `nixiesearch/nixie-suggest-small-v1`
-* `transform`: optional, object. A list of document transformations before indexing.
-* `transform.fields`: required, string[]. Which fields from ingested documents to use as a source for suggestions.
-* `transform.language`: optional, string, default `english`. Which language to use for text transformations.
-* `transform.lowercase`: optional, boolean, default `true`. Should we lowercase all text strings before indexing?
-* `transform.removeStopwords`: optional, boolean, default `true`. Should we drop all language-specific stopwords?
-* `transform.group`: optional, int[], default `[1, 2, 3]`. How words should be grouped for suggestions? By default, we index all single words, word tuples and triplets.
+* `model`: ***optional***, *model handle*, default `nixiesearch/nixie-suggest-small-v1`
+* `transform`: ***optional***, *object*. A list of document transformations before indexing.
+* `transform.fields`: ***required***, *string[]*. Fields from ingested documents to use as a source for suggestions.
+* `transform.language`: ***optional***, *string*, *default `english`*. Which language to use for text transformations.
+* `transform.lowercase`: ***optional***, *boolean*, *default `true*`. Should all text strings before indexing be lowercased.
+* `transform.removeStopwords`: ***optional***, *boolean*, *default `true`*. Should all language-specific stopwords be dropped,
+* `transform.group`: ***optional***, *int[]*, *default `[1, 2, 3]`*. How words are groupped for suggestions. By default, all single words, word tuples and triplets are indexed.
 
-> The `model` can point to any Huggingface-hosted ONNX model, but we do not advise using any non-Nixiesearch models not explicitly trained on partial noisy inputs. See model description for [nixiesearch/nixie-suggest-small-v1](https://huggingface.co/nixiesearch/nixie-suggest-small-v1) for training details.
+> The `model` can point to any Huggingface-hosted ONNX model, but we do not advise using any non-Nixiesearch models that are not explicitly trained on partial noisy inputs. See model description for [nixiesearch/nixie-suggest-small-v1](https://huggingface.co/nixiesearch/nixie-suggest-small-v1) for training details.
 
 ## Adding suggestions to the index
 
@@ -48,10 +34,10 @@ Where fields are defined as follows:
 
 When you want to index suggestions based on existing documents (like the ones you're also indexing for regular search), you can define your suggestion transformation in the suggestion index mapping in the following way:
 
-* `transform.fields` should include all fields you plan to generate suggestions from. In other Lucene-based search engines this is similar to marking a field as a `suggestable`.
-* a default set of transformation parameters performs a couple of common-sense typical transformations like lowercasing, removing stopwords and grouping words in tuples of size 1, 2 and 3 words.
+* `transform.fields` should include all fields you plan to generate suggestions from. In other Lucene-based search engines this is similar to marking a field as `suggestable`.
+* default set of transformation parameters performs some typical transformations: lowercasing, removing stopwords and grouping words in tuples of size 1, 2 and 3 words.
 
-For example, for a suggestion index mapping as following:
+For example, for the following suggestion index configuration:
 
 ```yaml
 suggest:
@@ -60,10 +46,10 @@ suggest:
       fields: ["title"]
 ```
 
-We can index documents with text field `title` with a default set of suggestion transformations:
+Only text field `title` from the documents is indexed with a default set of suggestion transformations:
 
 ```shell
-curl -XPUT -d '{"title":"foo bar baz"}' http://localhost:8080/foobar/_index
+curl -XPUT -d '{"title":"foo bar baz", "description": "other desc"}' http://localhost:8080/foobar/_index
 ```
 
 > Suggestion JSON format is the same as for [regular search documents](../api/index/document-format.md).
@@ -111,11 +97,12 @@ A full suggest request JSON format:
 
 Where request fields are defined in the following way:
 
-* `text`: required, string. A suggestion search query.
-* `size`: optional, int, default=10. How many top-level suggestions to generate.
-* `deduplication`: optional, `"false"|{"threshold":<int>}`, default=0.80. Suggestion deduplication threshold, see the [next chapter about deduplication](#suggestion-deduplication) for more details.
+* `text`: ***required***, *string*. A suggestion search query.
+* `size`: ***optional***, *int*, *default=10*. The number of top-level suggestions to generate.
+* `deduplication`: ***optional***, *`"false"|{"threshold":<int>}`*, *default=0.80*. Suggestion deduplication threshold, see the [chapter about deduplication](#suggestion-deduplication) for more details.
 
-It will emit the following response:
+
+The request above emits the following response:
 
 ```json
 {
@@ -141,9 +128,9 @@ It will emit the following response:
 
 ### Suggestion deduplication
 
-A frequent problem with generated autocomplete suggestions are duplicate results: different word forms and ways of writing (with/without dash, etc.) are a common source of such problem.
+A frequent problem with generated autocomplete suggestions are duplicate results: different word forms and ways of writing are a common source of such problem (e.g. with/without dash word forms, etc.).
 
-Nixiesearch supports suggestion deduplication by clustering suggestion over their cosine distance to each other. You can configure deduplication threshold on a request-level with a `deduplication` field:
+Nixiesearch supports suggestion deduplication by clustering suggestions over their cosine distance to each other. You can configure deduplication threshold on a request-level with a `deduplication` field:
 
 ```json
 {
@@ -154,7 +141,7 @@ Nixiesearch supports suggestion deduplication by clustering suggestion over thei
 }
 ```
 
-Deduplication can be disabled completely with an `false` field value:
+Deduplication can be disabled completely with a `false` value for `deduplication` field:
 
 ```json
 {
@@ -166,10 +153,10 @@ Deduplication can be disabled completely with an `false` field value:
 Configuring deduplication threshold requires some testing, but from practical experience, you should consider these values as a baseline:
 
 * **0.95** - only very close word forms are grouped
-* **0.80** - a default value
+* **0.80** - default value
 * **0.70** - very agressive deduplication
 
-After the deduplication process, all the word forms are still returned in the response payload under the `forms` sub-field:
+After the deduplication process, all the word forms are still returned in the response payload in the `forms` sub-field:
 
 ```json
 {
