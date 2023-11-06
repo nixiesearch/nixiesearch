@@ -4,7 +4,7 @@ import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, LexicalSearchLike}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.{Index, IndexReader, IndexWriter}
@@ -17,12 +17,7 @@ import io.circe.syntax.*
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
-import org.apache.lucene.index.{
-  DirectoryReader,
-  IndexWriterConfig,
-  IndexWriter as LuceneIndexWriter,
-  IndexReader as LuceneIndexReader
-}
+import org.apache.lucene.index.{DirectoryReader, IndexWriterConfig, IndexReader as LuceneIndexReader, IndexWriter as LuceneIndexWriter}
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, IOContext, MMapDirectory}
 
@@ -118,8 +113,8 @@ object LocalIndex extends Logging {
 
   def createAnalyzer(mapping: IndexMapping): IO[Analyzer] = IO {
     val fieldAnalyzers = mapping.fields.values.collect {
-      case TextFieldSchema(name, LexicalSearch(language), _, _, _, _)     => name -> language.analyzer
-      case TextListFieldSchema(name, LexicalSearch(language), _, _, _, _) => name -> language.analyzer
+      case TextFieldSchema(name, LexicalSearchLike(language), _, _, _, _)     => name -> language.analyzer
+      case TextListFieldSchema(name, LexicalSearchLike(language), _, _, _, _) => name -> language.analyzer
     }
     new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
   }
