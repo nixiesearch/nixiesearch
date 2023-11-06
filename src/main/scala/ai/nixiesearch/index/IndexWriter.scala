@@ -88,7 +88,7 @@ trait IndexWriter extends Logging {
             }
           case field @ FloatField(name, value) =>
             mapping.floatFields.get(name) match {
-              case None          => logger.warn(s"float field '$name' is not defined in mapping")
+              case None          => // logger.warn(s"float field '$name' is not defined in mapping")
               case Some(mapping) => floatFieldWriter.write(field, mapping, buffer)
             }
           case field @ DoubleField(name, value) =>
@@ -109,8 +109,11 @@ trait IndexWriter extends Logging {
     val candidates = for {
       doc   <- docs
       field <- doc.fields
-      model <- mapping.fields.get(field.name).toList.collect {
-        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _) => tpe
+      model <- mapping.fields.get(field.name).toList.flatMap {
+        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _) =>
+          Some(tpe)
+        case other =>
+          None
       }
       string <- field match {
         case TextField(name, value)      => List(value)

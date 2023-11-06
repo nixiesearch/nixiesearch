@@ -158,7 +158,7 @@ object SearchType {
         case Right("false" | "off" | "disabled") => Right(NoSearch)
         case Right("semantic")                   => Right(SemanticSearch())
         case Right("lexical")                    => Right(LexicalSearch())
-        case Right("hybrid")                     => Right(LexicalSearch())
+        case Right("hybrid")                     => Right(HybridSearch())
         case Right(other) =>
           Left(DecodingFailure(s"Search type $other is not supported. Try disabled|semantic|lexical", c.history))
       }
