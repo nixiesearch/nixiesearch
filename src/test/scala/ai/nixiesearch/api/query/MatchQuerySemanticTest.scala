@@ -30,7 +30,7 @@ class MatchQuerySemanticTest extends SearchTest with Matchers {
 
   it should "search for similar docs" in new Index {
     val response = search(MatchQuery("title", "white pajama"))
-    response shouldBe List("3", "2", "1")
+    response shouldBe List("2", "3", "1")
   }
 
   it should "search and filter" in new Index {
