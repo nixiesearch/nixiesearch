@@ -12,15 +12,21 @@ trait ModelLoader[T <: ModelHandle] extends Logging {
   val CONFIG_FILE = "config.json"
   def load(handle: T): IO[OnnxSession]
 
-  def chooseModelFile(files: List[String]): IO[String] = files.find(_ == "model_quantized.onnx") match {
-    case Some(value) => info("loading quantized model_quantized.onnx") *> IO.pure(value)
+  val defaultModelFiles = Set(
+    "model_quantized.onnx",
+    "model_opt0_QInt8.onnx",
+    "model_opt2_QInt8.onnx"
+  )
+
+  def chooseModelFile(files: List[String]): IO[String] = files.find(x => defaultModelFiles.contains(x)) match {
+    case Some(value) => info(s"loading $value") *> IO.pure(value)
     case None =>
       files.find(_ == "model.onnx") match {
-        case Some(value) => info("loading regular FP32 model.onnx") *> IO.pure(value)
+        case Some(value) => info(s"loading regular FP32 $value") *> IO.pure(value)
         case None =>
           files.find(_.endsWith("onnx")) match {
             case Some(value) => IO.pure(value)
-            case None => IO.raiseError(BackendError(s"cannot find onnx model: files=$files"))
+            case None        => IO.raiseError(BackendError(s"cannot find onnx model: files=$files"))
           }
       }
   }
