@@ -38,7 +38,7 @@ libraryDependencies ++= Seq(
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
   "com.microsoft.onnxruntime" % "onnxruntime"              % "1.16.1",
-  "com.github.luben"          % "zstd-jni"                 % "1.5.5-7",
+  "com.github.luben"          % "zstd-jni"                 % "1.5.5-10",
   "com.github.blemale"       %% "scaffeine"                % "5.2.1"
 )
 
