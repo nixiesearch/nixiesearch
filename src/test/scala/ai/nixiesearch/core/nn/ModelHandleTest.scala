@@ -9,12 +9,28 @@ import io.circe.parser.*
 import io.circe.generic.semiauto.*
 
 class ModelHandleTest extends AnyFlatSpec with Matchers {
-  it should "decode HF handle" in {
+  it should "decode HF handle with no schema" in {
     parse("nixiesearch/foo") shouldBe Right(HuggingFaceHandle("nixiesearch", "foo"))
+  }
+
+  it should "decode HF handle with schema" in {
+    parse("hf://nixiesearch/foo") shouldBe Right(HuggingFaceHandle("nixiesearch", "foo"))
+  }
+
+  it should "decode HF handle with schema and modelFile" in {
+    parse("hf://nixiesearch/foo?modelFile=foo.onnx") shouldBe Right(
+      HuggingFaceHandle("nixiesearch", "foo", Some("foo.onnx"))
+    )
   }
 
   it should "decode local handle with single slash" in {
     parse("file://tmp/file") shouldBe Right(LocalModelHandle("/tmp/file"))
+  }
+
+  it should "decode local handle with single slash and modelFile" in {
+    val lhs = parse("file://tmp/file?modelFile=mf.onnx")
+    val rhs = Right(LocalModelHandle("/tmp/file", Some("mf.onnx")))
+    lhs shouldBe rhs
   }
 
   it should "decode local handle with double slash" in {
