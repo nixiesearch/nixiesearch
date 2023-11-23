@@ -105,7 +105,7 @@ object SearchRoute {
 
   case class SearchRequest(
       query: Query,
-      filter: Filters = Filters(),
+      filters: Filters = Filters(),
       size: Int = 10,
       fields: List[String] = Nil,
       aggs: Aggs = Aggs()
@@ -114,17 +114,17 @@ object SearchRoute {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
-        query  <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
-        size   <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
-        filter <- c.downField("filter").as[Option[Filters]].map(_.getOrElse(Filters()))
-        fields <- c.downField("fields").as[Option[List[String]]].map {
+        query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
+        size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
+        filters <- c.downField("filters").as[Option[Filters]].map(_.getOrElse(Filters()))
+        fields  <- c.downField("fields").as[Option[List[String]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil
         }
         aggs <- c.downField("aggs").as[Option[Aggs]].map(_.getOrElse(Aggs()))
       } yield {
-        SearchRequest(query, filter, size, fields, aggs)
+        SearchRequest(query, filters, size, fields, aggs)
       }
     )
   }

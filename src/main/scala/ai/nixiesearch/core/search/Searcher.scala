@@ -43,13 +43,13 @@ object Searcher {
     start   <- IO(System.currentTimeMillis())
     mapping <- index.mappingRef.get
     queries <- request.query match {
-      case MatchAllQuery() => MatchAllLuceneQuery.create(request.filter, mapping)
+      case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, mapping)
       case MatchQuery(field, query, operator) =>
-        fieldQuery(mapping, request.filter, field, query, operator.occur, request.size, index.encoders)
+        fieldQuery(mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
       case MultiMatchQuery(query, fields, operator) =>
         fields
           .traverse(field =>
-            fieldQuery(mapping, request.filter, field, query, operator.occur, request.size, index.encoders)
+            fieldQuery(mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
           )
           .map(_.flatten)
     }
