@@ -50,6 +50,8 @@ scalacOptions ++= Seq(
   "-no-indent"
 )
 
+concurrentRestrictions in Global := Seq(Tags.limitAll(1))
+
 Compile / mainClass := Some("ai.nixiesearch.main.Main")
 
 Compile / discoveredMainClasses := Seq()
