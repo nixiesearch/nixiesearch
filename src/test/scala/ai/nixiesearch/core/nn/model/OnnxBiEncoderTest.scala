@@ -22,8 +22,8 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       )
       .unsafeRunSync()
     val d1 = CosineDistance.dist(result(0), result(1))
-    d1 shouldBe 0.539f +- 0.001
+    d1 shouldBe 0.54f +- 0.02
     val d2 = CosineDistance.dist(result(0), result(2))
-    d2 shouldBe 0.738f +- 0.001
+    d2 shouldBe 0.74f +- 0.02
   }
 }

@@ -17,7 +17,7 @@ object LocalModelLoader extends Logging with ModelLoader[LocalModelHandle] {
   override def load(handle: LocalModelHandle): IO[OnnxSession] =
     for {
       files     <- Files[IO].list(Path(handle.dir)).map(_.fileName.toString).compile.toList
-      modelFile <- IO.fromOption(files.find(_.endsWith(".onnx")))(BackendError("cannot find *.onnx file in dir"))
+      modelFile <- chooseModelFile(files)
       tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
         BackendError("cannot find tokenizer.json file in dir")
       )

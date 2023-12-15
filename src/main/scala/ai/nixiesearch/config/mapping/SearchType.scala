@@ -17,7 +17,7 @@ object SearchType {
   case object NoSearch extends SearchType
 
   case class SemanticSearch(
-      model: ModelHandle = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+      model: ModelHandle = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx", None),
       prefix: ModelPrefix = ModelPrefix.e5
   ) extends SearchType
       with SemanticSearchLikeType
@@ -25,7 +25,7 @@ object SearchType {
   case class LexicalSearch(language: Language = English) extends SearchType
 
   case class HybridSearch(
-      model: ModelHandle = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+      model: ModelHandle = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx", None),
       prefix: ModelPrefix = ModelPrefix.e5,
       language: Language = English
   ) extends SearchType
@@ -33,9 +33,9 @@ object SearchType {
 
   object SemanticSearchLikeType {
     def unapply(tpe: SearchType): Option[(ModelHandle, ModelPrefix)] = tpe match {
-      case NoSearch                              => None
+      case NoSearch                                 => None
       case SemanticSearch(model, prefix)         => Some((model, prefix))
-      case LexicalSearch(language)               => None
+      case LexicalSearch(language)                  => None
       case HybridSearch(model, prefix, language) => Some((model, prefix))
     }
   }

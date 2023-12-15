@@ -18,11 +18,8 @@ object HuggingFaceModelLoader extends Logging with ModelLoader[HuggingFaceHandle
         .create(cache)
         .use(hf =>
           for {
-            card <- hf.model(handle)
-
-            modelFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_.endsWith(".onnx")))(
-              BackendError("Cannot find ONNX model in repo")
-            )
+            card      <- hf.model(handle)
+            modelFile <- chooseModelFile(card.siblings.map(_.rfilename))
             tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
               BackendError("Cannot find tokenizer.json in repo")
             )
