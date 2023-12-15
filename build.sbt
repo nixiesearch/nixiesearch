@@ -67,7 +67,7 @@ docker / dockerfile := {
     runRaw(
       List(
         "apt-get update",
-        "apt-get install -y --no-install-recommends openjdk-20-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
+        "apt-get install -y --no-install-recommends openjdk-21-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
         "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
         "rm -rf /var/lib/apt/lists/*"
       ).mkString(" && ")
