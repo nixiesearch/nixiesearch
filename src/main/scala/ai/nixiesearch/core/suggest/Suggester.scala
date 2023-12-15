@@ -5,10 +5,6 @@ import ai.nixiesearch.config.mapping.SuggestMapping
 import ai.nixiesearch.core.codec.SuggestVisitor
 import ai.nixiesearch.index.Index
 import cats.effect.IO
-import org.apache.lucene.codecs.KnnVectorsReader
-import org.apache.lucene.codecs.lucene95.Lucene95Codec
-import org.apache.lucene.codecs.perfield.PerFieldKnnVectorsFormat
-import org.apache.lucene.codecs.perfield.PerFieldKnnVectorsFormat.FieldsReader
 import org.apache.lucene.index.FloatVectorValues
 import org.apache.lucene.search.{TopDocs, TopScoreDocCollector, Query as LuceneQuery}
 import org.apache.lucene.util.VectorUtil
