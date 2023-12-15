@@ -24,7 +24,7 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: ~/.sbt ~/.m2 ~/.ivy2 ~/.cache
-        key: ${{ runner.os }}-build-${{ hashFiles('build.sbt') }}
+        key: ${{ runner.os }}-build-x1-${{ hashFiles('build.sbt') }}
 
     - name: Set up JDK
       uses: actions/setup-java@v1
