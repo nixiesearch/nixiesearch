@@ -8,7 +8,7 @@ scalaVersion := "3.3.1"
 name := "nixiesearch"
 
 libraryDependencies ++= Seq(
-  "org.typelevel"            %% "cats-effect"              % "3.5.2",
+  "org.typelevel"            %% "cats-effect"              % "3.5.3",
   "org.scalatest"            %% "scalatest"                % scalatestVersion % "test",
   "org.scalactic"            %% "scalactic"                % scalatestVersion % "test",
   "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test",
