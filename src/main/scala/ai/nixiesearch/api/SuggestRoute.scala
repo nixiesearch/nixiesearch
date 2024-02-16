@@ -34,8 +34,9 @@ case class SuggestRoute(registry: IndexRegistry, suggests: Map[String, SuggestMa
                 query    <- request.as[SuggestRequest]
                 _        <- info(s"POST /$indexName/_suggest query=$query")
                 response <- suggest(indexName, query)
+                ok       <- Ok(response)
               } yield {
-                response
+                ok
               }
             case None => NotFound(s"index $indexName is missing")
           }
@@ -72,8 +73,8 @@ case class SuggestRoute(registry: IndexRegistry, suggests: Map[String, SuggestMa
     _ <- request
       .chunkN(64)
       .unchunks
-      .through(PrintProgress.tap("indexed docs"))
       .through(SuggestTransform.doc2suggest(suggestMapping.transform, searcher))
+      .through(PrintProgress.tap("indexed suggestions"))
       .chunkN(64)
       .evalMap(chunk => index.addDocuments(chunk.toList))
       .compile
@@ -83,7 +84,7 @@ case class SuggestRoute(registry: IndexRegistry, suggests: Map[String, SuggestMa
     IndexResponse.withStartTime("created", start)
   }
 
-  def suggest(indexName: String, query: SuggestRequest): IO[Response[IO]] = for {
+  def suggest(indexName: String, query: SuggestRequest): IO[SuggestResponse] = for {
     index <- registry.index(indexName).flatMap {
       case Some(value) => IO.pure(value)
       case None        => IO.raiseError(new Exception(s"index $indexName not found"))
@@ -108,9 +109,9 @@ case class SuggestRoute(registry: IndexRegistry, suggests: Map[String, SuggestMa
       case Deduplication.NoDedup     => 1.0
     }
     response <- Suggester.suggest(index, knnquery, query.size * OVERFETCH, query.size, threshold)
-    ok       <- Ok(response)
+
   } yield {
-    ok
+    response
   }
 }
 

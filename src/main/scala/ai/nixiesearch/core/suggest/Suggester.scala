@@ -47,11 +47,11 @@ object Suggester {
     docs <- IO {
       val forms = for {
         doc                <- top.scoreDocs
-        segmentFloatValues <- leafReaders.find(_.docBase <= doc.doc)
+        segmentFloatValues <- leafReaders.filter(r => (r.docBase <= doc.doc)).maxByOption(_.docBase)
         visitor = SuggestVisitor(SuggestMapping.SUGGEST_FIELD)
         vector <- {
           reader.storedFields().document(doc.doc, visitor)
-          segmentFloatValues.values.advance(doc.doc)
+          segmentFloatValues.values.advance(doc.doc - segmentFloatValues.docBase)
           val arr    = segmentFloatValues.values.vectorValue()
           val vector = util.Arrays.copyOf(arr, arr.length)
           visitor.getResult().map(text => SuggestVector(form = text, score = doc.score, vector = vector))

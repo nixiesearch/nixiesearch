@@ -37,9 +37,10 @@ libraryDependencies ++= Seq(
   "org.apache.commons"        % "commons-lang3"            % "3.14.0",
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
-  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.16.3",
+  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.17.0",
   "com.github.luben"          % "zstd-jni"                 % "1.5.5-11",
-  "com.github.blemale"       %% "scaffeine"                % "5.2.1"
+  "com.github.blemale"       %% "scaffeine"                % "5.2.1",
+  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.1"
 )
 
 scalacOptions ++= Seq(
@@ -118,6 +119,8 @@ ThisBuild / assemblyMergeStrategy := {
   case "findbugsExclude.xml"                                                 => MergeStrategy.discard
   case "log4j2-test.properties"                                              => MergeStrategy.discard
   case x if x.endsWith("/module-info.class")                                 => MergeStrategy.discard
+  case x if x.startsWith("/META-INF/versions/9/org/yaml/snakeyaml/internal/") =>
+    MergeStrategy.discard // pulsar client bundling snakeyaml
   case x =>
     val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
     oldStrategy(x)

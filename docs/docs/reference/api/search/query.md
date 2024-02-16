@@ -24,7 +24,8 @@ Match query can be written in two JSON formats. A full version:
     "match": {
       "<field-name>": {
         "query": "<search-query>",
-        "operator": "and"
+        "operator": "or",
+        "threshold": 0.666
       }
     }
   }
@@ -46,7 +47,8 @@ Where:
 
 * `<field-name>`: is an existing field [marked as searchable](../../config/mapping.md).
 * `<search-query>`: a search query string.
-* `operator`: optional, possible values: `"and"`, `"or"`. For lexical search, should documents contain all or some of terms from the search query. For semantic search this parameter is ignored.
+* `operator`: optional, possible values: `"and"`, `"or"`. Default is "or". For lexical search, should documents contain all or some of the terms from the search query. For semantic search this parameter is ignored.
+* `threshold`: optional, a cosine similarity threshold
 
 ### multi_match
 
