@@ -51,6 +51,7 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
       .compile
       .drain
       .flatTap(_ => info(s"completed indexing, took ${System.currentTimeMillis() - start}ms"))
+    _ <- flush(indexName)
   } yield {
     IndexResponse.withStartTime("created", start)
   }

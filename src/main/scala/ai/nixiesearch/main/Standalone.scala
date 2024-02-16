@@ -1,6 +1,6 @@
 package ai.nixiesearch.main
 
-import ai.nixiesearch.api.{HealthRoute, IndexRoute, SearchRoute, SuggestRoute}
+import ai.nixiesearch.api.{HealthRoute, IndexRoute, SearchRoute, SuggestRoute, WebuiRoute}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
 import ai.nixiesearch.core.Logging
@@ -11,7 +11,8 @@ import org.http4s.server.Router
 import cats.implicits.*
 import com.comcast.ip4s.{Hostname, Port}
 import org.http4s.ember.server.EmberServerBuilder
-
+import org.http4s.server.middleware.ErrorAction
+import org.http4s.server.middleware.Logger
 import scala.concurrent.duration.Duration
 
 object Standalone extends Logging {
@@ -27,12 +28,17 @@ object Standalone extends Logging {
       .create(store, config.core.cache.embedding, indices)
       .use(registry =>
         for {
-          search  <- IO(SearchRoute(registry))
-          index   <- IO(IndexRoute(registry))
-          suggest <- IO(SuggestRoute(registry, config.suggest))
-          health  <- IO(HealthRoute())
-          routes  <- IO(search.routes <+> suggest.routes <+> index.routes <+> health.routes)
-          http    <- IO(Router("/" -> routes).orNotFound)
+          search          <- IO(SearchRoute(registry))
+          index           <- IO(IndexRoute(registry))
+          suggest         <- IO(SuggestRoute(registry, config.suggest))
+          health          <- IO(HealthRoute())
+          ui              <- WebuiRoute.create(registry, search, suggest, config)
+          routes          <- IO(search.routes <+> suggest.routes <+> index.routes <+> health.routes <+> ui.routes)
+          routesWithError <- IO(ErrorAction.httpRoutes(routes, (req, err) => error(err.toString, err)))
+          routesWithLog <- IO(
+            Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(routesWithError)
+          )
+          http <- IO(Router("/" -> routesWithLog).orNotFound)
           host <- IO.fromOption(Hostname.fromString(config.api.host.value))(
             new Exception(s"cannot parse hostname '${config.api.host.value}'")
           )
