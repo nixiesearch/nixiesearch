@@ -104,6 +104,10 @@ curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
 }
 ```
 
+You can also open `http://localhost:8080/_ui` in your web browser for a basic web UI:
+
+![web ui](https://www.nixiesearch.ai/img/webui.png)
+
 For more details, see a complete [Quickstart guide](https://www.nixiesearch.ai/quickstart).
 
 ## Design
