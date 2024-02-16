@@ -192,6 +192,12 @@ This query performed a hybrid search:
 
 > Learn more about searching in the [Search](concepts/search.md) section.
 
+## Web UI
+
+Nixiesearch has a basic search web UI available as `http://localhost:8080/_ui` URL.
+
+![web ui](https://www.nixiesearch.ai/img/webui.png)
+
 ## Next steps
 
 If you want to continue learning about Nixiesearch, these sections of documentation are great next steps:
