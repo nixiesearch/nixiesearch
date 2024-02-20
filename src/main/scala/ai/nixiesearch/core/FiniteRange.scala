@@ -18,7 +18,7 @@ object FiniteRange {
       val name      = "gte"
       val inclusive = true
     }
-    
+
     val NEGATIVE_INF = Gte(Int.MinValue.toDouble)
   }
 

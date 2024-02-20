@@ -26,7 +26,10 @@ trait LocalIndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
     println(dir)
     dir.toFile.deleteOnExit()
     val (registry, shutdown) =
-      IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(),List(index)).allocated.unsafeRunSync()
+      IndexRegistry
+        .create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(), List(index))
+        .allocated
+        .unsafeRunSync()
 
     pendingDeleteDirs.addOne(dir)
 
@@ -38,7 +41,10 @@ trait LocalIndexFixture extends AnyFlatSpec with BeforeAndAfterAll {
     val dir = Files.createTempDirectory("nixie")
     dir.toFile.deleteOnExit()
     val (registry, shutdown) =
-      IndexRegistry.create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(),Nil).allocated.unsafeRunSync()
+      IndexRegistry
+        .create(LocalStoreConfig(LocalStoreUrl(dir.toString)), EmbeddingCacheConfig(), Nil)
+        .allocated
+        .unsafeRunSync()
     pendingDeleteDirs.addOne(dir)
     try { code(registry) }
     finally registry.close().unsafeRunSync()

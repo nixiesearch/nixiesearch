@@ -115,7 +115,7 @@ object SearchRoute {
         query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]].map(_.getOrElse(Filters()))
-        fields  <- c.downField("fields").as[Option[List[String]]].map {
+        fields <- c.downField("fields").as[Option[List[String]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil
