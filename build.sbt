@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   "org.scalatest"            %% "scalatest"                % scalatestVersion % "test",
   "org.scalactic"            %% "scalactic"                % scalatestVersion % "test",
   "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test",
-  "ch.qos.logback"            % "logback-classic"          % "1.4.14",
+  "ch.qos.logback"            % "logback-classic"          % "1.5.2",
   "io.circe"                 %% "circe-yaml"               % circeYamlVersion,
   "io.circe"                 %% "circe-core"               % circeVersion,
   "io.circe"                 %% "circe-generic"            % circeVersion,
