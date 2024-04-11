@@ -37,7 +37,7 @@ libraryDependencies ++= Seq(
   "org.apache.commons"        % "commons-lang3"            % "3.14.0",
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
-  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.17.0",
+  "com.microsoft.onnxruntime" % "onnxruntime"              % "1.17.3",
   "com.github.luben"          % "zstd-jni"                 % "1.5.5-11",
   "com.github.blemale"       %% "scaffeine"                % "5.2.1",
   "com.hubspot.jinjava"       % "jinjava"                  % "2.7.1"
