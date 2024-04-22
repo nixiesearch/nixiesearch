@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "com.microsoft.onnxruntime" % "onnxruntime"              % "1.17.0",
   "com.github.luben"          % "zstd-jni"                 % "1.5.5-11",
   "com.github.blemale"       %% "scaffeine"                % "5.2.1",
-  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.1"
+  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.2"
 )
 
 scalacOptions ++= Seq(
