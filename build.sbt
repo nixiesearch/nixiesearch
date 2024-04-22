@@ -3,16 +3,16 @@ import sbt.Package.ManifestAttributes
 
 version := "0.0.3"
 
-scalaVersion := "3.3.1"
+scalaVersion := "3.3.3"
 
 name := "nixiesearch"
 
 libraryDependencies ++= Seq(
-  "org.typelevel"            %% "cats-effect"              % "3.5.3",
+  "org.typelevel"            %% "cats-effect"              % "3.5.4",
   "org.scalatest"            %% "scalatest"                % scalatestVersion % "test",
   "org.scalactic"            %% "scalactic"                % scalatestVersion % "test",
   "org.scalatestplus"        %% "scalacheck-1-16"          % "3.2.14.0"       % "test",
-  "ch.qos.logback"            % "logback-classic"          % "1.4.14",
+  "ch.qos.logback"            % "logback-classic"          % "1.5.6",
   "io.circe"                 %% "circe-yaml"               % circeYamlVersion,
   "io.circe"                 %% "circe-core"               % circeVersion,
   "io.circe"                 %% "circe-generic"            % circeVersion,
@@ -32,15 +32,15 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"         % "lucene-analysis-smartcn"  % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-kuromoji" % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-stempel"  % luceneVersion,
-  "commons-io"                % "commons-io"               % "2.15.1",
-  "commons-codec"             % "commons-codec"            % "1.16.0",
+  "commons-io"                % "commons-io"               % "2.16.1",
+  "commons-codec"             % "commons-codec"            % "1.16.1",
   "org.apache.commons"        % "commons-lang3"            % "3.14.0",
   "ai.djl"                    % "api"                      % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"               % djlVersion,
   "com.microsoft.onnxruntime" % "onnxruntime"              % "1.17.3",
-  "com.github.luben"          % "zstd-jni"                 % "1.5.5-11",
+  "com.github.luben"          % "zstd-jni"                 % "1.5.6-2",
   "com.github.blemale"       %% "scaffeine"                % "5.2.1",
-  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.1"
+  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.2"
 )
 
 scalacOptions ++= Seq(
