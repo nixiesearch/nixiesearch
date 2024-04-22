@@ -20,5 +20,5 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install -r docs/requirements.txt
+      - run: pip install -r docs/requirements.freeze.txt
       - run: mkdocs build --clean -f docs/mkdocs.yml
