@@ -17,7 +17,12 @@ import io.circe.syntax.*
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
-import org.apache.lucene.index.{DirectoryReader, IndexWriterConfig, IndexReader as LuceneIndexReader, IndexWriter as LuceneIndexWriter}
+import org.apache.lucene.index.{
+  DirectoryReader,
+  IndexWriterConfig,
+  IndexReader as LuceneIndexReader,
+  IndexWriter as LuceneIndexWriter
+}
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, IOContext, MMapDirectory}
 

@@ -33,9 +33,9 @@ object SearchType {
 
   object SemanticSearchLikeType {
     def unapply(tpe: SearchType): Option[(ModelHandle, ModelPrefix)] = tpe match {
-      case NoSearch                                 => None
+      case NoSearch                              => None
       case SemanticSearch(model, prefix)         => Some((model, prefix))
-      case LexicalSearch(language)                  => None
+      case LexicalSearch(language)               => None
       case HybridSearch(model, prefix, language) => Some((model, prefix))
     }
   }
