@@ -1,6 +1,13 @@
 package ai.nixiesearch.api.filter
 
-import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.TextListField
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
