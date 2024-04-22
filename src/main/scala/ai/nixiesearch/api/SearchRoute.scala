@@ -1,13 +1,7 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.IndexRoute.IndexResponse
-import ai.nixiesearch.api.SearchRoute.{
-  ErrorResponse,
-  QueryParamDecoder,
-  SearchRequest,
-  SearchResponse,
-  SizeParamDecoder
-}
+import ai.nixiesearch.api.SearchRoute.{ErrorResponse, SearchRequest, SearchResponse}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
@@ -15,9 +9,9 @@ import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.AggregationResult
-import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.index.{Index, IndexReader, IndexRegistry}
+import ai.nixiesearch.index.cluster.Searcher
+import ai.nixiesearch.index.cluster.Searcher.IndexNotFoundException
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -26,80 +20,24 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.lucene.queryparser.classic.QueryParser
 
-case class SearchRoute(registry: IndexRegistry) extends Route with Logging {
+case class SearchRoute(cluster: Searcher) extends Route with Logging {
   val emptyRequest = SearchRequest(query = MatchAllQuery())
-  val routes = HttpRoutes.of[IO] {
-    case request @ POST -> Root / indexName / "_search" =>
-      registry.index(indexName).flatMap {
-        case Some(index) =>
-          for {
-            query <- request.entity match {
-              case Entity.Empty => IO.pure(emptyRequest)
-              case _            => request.as[SearchRequest]
-            }
-            _ <- info(s"POST /$indexName/_search query=$query")
-            response <- searchDsl(query, index).flatMap(docs => Ok(docs)).handleErrorWith {
-              case e: UserError    => BadRequest(ErrorResponse(e.m))
-              case b: BackendError => InternalServerError(ErrorResponse(b.m))
-            }
-          } yield {
-            response
-          }
-        case None => NotFound(s"index $indexName is missing")
-      }
-
-    case GET -> Root / indexName / "_search" :? QueryParamDecoder(query) :? SizeParamDecoder(size) =>
-      registry.index(indexName).flatMap {
-        case Some(index) =>
-          for {
-            _     <- info(s"POST /$indexName/_search query=$query size=$size")
-            start <- IO(System.currentTimeMillis())
-            response <- (query match {
-              case Some(q) => searchLucene(q, index, size.getOrElse(10))
-              case None    => searchDsl(emptyRequest, index)
-            }).flatMap(docs => Ok(docs)).handleErrorWith {
-              case e: UserError    => BadRequest(ErrorResponse(e.m))
-              case b: BackendError => InternalServerError(ErrorResponse(b.m))
-            }
-
-          } yield {
-            response
-          }
-        case None => NotFound(s"index $indexName is missing")
-      }
-  }
-
-  def searchDsl(request: SearchRequest, index: Index): IO[SearchResponse] =
+  val routes = HttpRoutes.of[IO] { case request @ POST -> Root / indexName / "_search" =>
     for {
-      response <- Searcher.search(request, index)
+      query <- request.as[SearchRequest]
+      index <- cluster.indices.get(indexName).flatMap {
+        case None        => IO.raiseError(IndexNotFoundException(indexName))
+        case Some(index) => IO.pure(index)
+      }
+      response <- index.search(query).flatMap(docs => Ok(docs))
     } yield {
       response
     }
-
-  def searchLucene(query: String, index: Index, n: Int): IO[SearchResponse] = for {
-    start   <- IO(System.currentTimeMillis())
-    mapping <- index.mappingRef.get
-    defaultField <- IO.fromOption(mapping.fields.values.collectFirst {
-      case TextFieldSchema(name, LexicalSearch(_), _, _, _, _)     => name
-      case TextListFieldSchema(name, LexicalSearch(_), _, _, _, _) => name
-    })(
-      new Exception(
-        s"no text fields found in schema (existing fields: ${mapping.fields.keys.mkString("[", ",", "]")}"
-      )
-    )
-    responseFields <- IO(mapping.fields.values.filter(_.store).map(_.name).toList)
-    parser         <- IO.pure(new QueryParser(defaultField, index.analyzer))
-    query          <- IO(parser.parse(query))
-    response       <- Searcher.searchLucene(query, responseFields, n, Aggs(), index)
-  } yield {
-    response
   }
 
 }
 
 object SearchRoute {
-  object QueryParamDecoder extends OptionalQueryParamDecoderMatcher[String]("q")
-  object SizeParamDecoder  extends OptionalQueryParamDecoderMatcher[Int]("size")
 
   case class SearchRequest(
       query: Query,
@@ -115,7 +53,7 @@ object SearchRoute {
         query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]].map(_.getOrElse(Filters()))
-        fields  <- c.downField("fields").as[Option[List[String]]].map {
+        fields <- c.downField("fields").as[Option[List[String]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil

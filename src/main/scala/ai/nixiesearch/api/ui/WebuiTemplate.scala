@@ -33,9 +33,7 @@ case class WebuiTemplate(jinja: Jinjava, template: String) {
   }
   def render(
       indexes: List[String],
-      suggests: List[String],
       index: Option[String],
-      suggest: Option[String],
       request: SearchRequest,
       response: SearchResponse
   ): IO[String] = IO {
@@ -54,9 +52,9 @@ case class WebuiTemplate(jinja: Jinjava, template: String) {
       "indexes",
       indexes.asJava,
       "suggest",
-      suggest.getOrElse(""),
+      "",
       "suggests",
-      suggests.asJava,
+      List[String]().asJava,
       "query",
       query,
       "docs",

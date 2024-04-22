@@ -5,7 +5,7 @@ import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, LocalIndexFixture, TestIndexMapping}
+import ai.nixiesearch.util.{SearchTest, LocalNixieFixture, TestIndexMapping}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -22,21 +22,21 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   )
 
   it should "search over lucene query syntax" in new Index {
-    val route = SearchRoute(registry)
+    val route = SearchRoute(cluster.searcher)
     val response =
       send[String, SearchResponse](route.routes, "http://localhost/test/_search?q=pajama", None, Method.GET)
     response.hits.size shouldBe 1
   }
 
   it should "search over lucene query syntax with empty query" in new Index {
-    val route = SearchRoute(registry)
+    val route = SearchRoute(cluster.searcher)
     val response =
       send[String, SearchResponse](route.routes, "http://localhost/test/_search", None, Method.GET)
     response.hits.size shouldBe 3
   }
 
   it should "search over dsl with empty query" in new Index {
-    val route = SearchRoute(registry)
+    val route = SearchRoute(cluster.searcher)
     val response =
       send[SearchRequest, SearchResponse](
         route.routes,
@@ -48,7 +48,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   }
 
   it should "search over dsl" in new Index {
-    val route   = SearchRoute(registry)
+    val route   = SearchRoute(cluster.searcher)
     val request = SearchRequest(MatchQuery("title", "pajama"), size = 10)
     val response =
       send[SearchRequest, SearchResponse](
@@ -61,7 +61,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   }
 
   it should "fail on non-existent field with 4xx code" in new Index {
-    val route   = SearchRoute(registry)
+    val route   = SearchRoute(cluster.searcher)
     val request = SearchRequest(MatchQuery("title_404", "pajama"), size = 10)
     val response = sendRaw[SearchRequest](
       route.routes,

@@ -7,7 +7,7 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.FloatField
 import ai.nixiesearch.core.search.Searcher
-import ai.nixiesearch.util.{LocalIndexFixture, TestDocument, TestIndexMapping}
+import ai.nixiesearch.util.{LocalNixieFixture, TestDocument, TestIndexMapping}
 import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -15,7 +15,7 @@ import cats.effect.unsafe.implicits.global
 import org.apache.lucene.search.MatchAllDocsQuery
 import fs2.Stream
 
-class LocalStoreTest extends AnyFlatSpec with Matchers with LocalIndexFixture {
+class LocalStoreTest extends AnyFlatSpec with Matchers with LocalNixieFixture {
   val mapping = TestIndexMapping()
 
   it should "open/close store" in withStore { store => {} }

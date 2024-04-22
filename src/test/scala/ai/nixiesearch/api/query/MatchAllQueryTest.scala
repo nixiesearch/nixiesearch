@@ -3,7 +3,6 @@ package ai.nixiesearch.api.query
 import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -18,14 +17,14 @@ class MatchAllQueryTest extends SearchTest with Matchers {
 
   it should "select all docs" in new Index {
     val request = SearchRequest(query = MatchAllQuery())
-    val docs    = Searcher.search(request, index).unsafeRunSync()
+    val docs    = cluster.searcher.search(mapping.name, request).unsafeRunSync()
     val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("1", "2", "3")
   }
 
   it should "limit the number of docs" in new Index {
     val request = SearchRequest(query = MatchAllQuery(), size = 1)
-    val docs    = Searcher.search(request, index).unsafeRunSync()
+    val docs    = cluster.searcher.search(mapping.name, request).unsafeRunSync()
     val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
     ids shouldBe List("1")
   }

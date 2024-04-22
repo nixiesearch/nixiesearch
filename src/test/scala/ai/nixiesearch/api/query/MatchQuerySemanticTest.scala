@@ -8,7 +8,6 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{TextField, TextListField}
-import ai.nixiesearch.core.search.Searcher
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global

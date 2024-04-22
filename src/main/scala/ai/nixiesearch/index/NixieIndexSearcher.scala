@@ -1,66 +1,65 @@
-package ai.nixiesearch.core.search
+package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.api.query.{MatchAllQuery, MatchQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.api.query.*
+import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.core.{Document, Logging}
+import ai.nixiesearch.core.search.MergedFacetCollector
+import ai.nixiesearch.core.search.lucene.*
+import cats.effect.{IO, Ref}
+import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter}
+import org.apache.lucene.search.{
+  MultiCollector,
+  ScoreDoc,
+  TopDocs,
+  TopScoreDocCollector,
+  TotalHits,
+  IndexSearcher,
+  Query as LuceneQuery
+}
+import cats.implicits.*
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
-import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.core.search.lucene.{LexicalLuceneQuery, MatchAllLuceneQuery, SemanticLuceneQuery}
-import ai.nixiesearch.index.{Index, IndexReader}
-import cats.data.NonEmptyList
-import cats.effect.IO
+import ai.nixiesearch.index.NixieIndexSearcher.FieldTopDocs
 import org.apache.lucene.facet.FacetsCollector
-import org.apache.lucene.search.{
-  BooleanClause,
-  BooleanQuery,
-  IndexSearcher,
-  KnnFloatVectorQuery,
-  MultiCollector,
-  ScoreDoc,
-  TermQuery,
-  TopDocs,
-  TopScoreDocCollector,
-  TotalHits,
-  Query as LuceneQuery
-}
-import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
 
 import scala.collection.mutable
 
-object Searcher {
-  case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
-
-  def search(request: SearchRequest, index: Index): IO[SearchResponse] = for {
-    start   <- IO(System.currentTimeMillis())
-    mapping <- index.mappingRef.get
+case class NixieIndexSearcher(
+    index: Index,
+    readerRef: Ref[IO, DirectoryReader],
+    searcherRef: Ref[IO, IndexSearcher],
+    versionRef: Ref[IO, Long]
+) extends Logging {
+  def name = index.name
+  def search(request: SearchRequest): IO[SearchResponse] = for {
+    start <- IO(System.currentTimeMillis())
     queries <- request.query match {
-      case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, mapping)
+      case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
       case MatchQuery(field, query, operator) =>
-        fieldQuery(mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
+        fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
       case MultiMatchQuery(query, fields, operator) =>
         fields
           .traverse(field =>
-            fieldQuery(mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
+            fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
           )
           .map(_.flatten)
     }
-    _             <- index.syncReader()
-    searcher      <- index.searcherRef.get
-    mapping       <- index.mappingRef.get
+    searcher      <- searcherRef.get
     fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size))
     mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets)))
     mergedTopDocs <- reciprocalRank(fieldTopDocs.map(_.docs))
-    aggs          <- aggregate(mapping, index, mergedFacets, request.aggs)
-    collected     <- collect(mapping, index, mergedTopDocs, request.fields)
+    aggs          <- aggregate(index.mapping, mergedFacets, request.aggs)
+    collected     <- collect(index.mapping, mergedTopDocs, request.fields)
     end           <- IO(System.currentTimeMillis())
   } yield {
     SearchResponse(
@@ -69,29 +68,6 @@ object Searcher {
       aggs = aggs
     )
   }
-
-  def searchLucene(
-      query: LuceneQuery,
-      fields: List[String],
-      n: Int,
-      aggs: Aggs,
-      index: Index
-  ): IO[SearchResponse] =
-    for {
-      start          <- IO(System.currentTimeMillis())
-      topCollector   <- IO.pure(TopScoreDocCollector.create(n, n))
-      facetCollector <- IO.pure(new FacetsCollector(false))
-      collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
-      _              <- index.syncReader()
-      searcher       <- index.searcherRef.get
-      mapping        <- index.mappingRef.get
-      _              <- IO(searcher.search(query, collector))
-      docs           <- collect(mapping, index, topCollector.topDocs(), fields)
-      aggs           <- aggregate(mapping, index, facetCollector, aggs)
-      end            <- IO(System.currentTimeMillis())
-    } yield {
-      SearchResponse(end - start, docs, aggs)
-    }
 
   def fieldQuery(
       mapping: IndexMapping,
@@ -150,7 +126,9 @@ object Searcher {
   }
 
   case class ShardDoc(docid: Int, shardIndex: Int)
+
   val K = 60.0f
+
   def reciprocalRank(topDocs: List[TopDocs]): IO[TopDocs] = topDocs match {
     case head :: Nil => IO.pure(head)
     case Nil         => IO.raiseError(BackendError(s"cannot merge zero query results"))
@@ -177,11 +155,10 @@ object Searcher {
 
   def aggregate(
       mapping: IndexMapping,
-      index: Index,
       collector: FacetsCollector,
       aggs: Aggs
   ): IO[Map[String, AggregationResult]] = for {
-    reader <- index.readerRef.get
+    reader <- readerRef.get
     result <- aggs.aggs.toList
       .traverse { case (name, agg) =>
         mapping.fields.get(agg.field) match {
@@ -198,15 +175,16 @@ object Searcher {
         }
       }
       .map(_.toMap)
-  } yield { result }
+  } yield {
+    result
+  }
 
   protected def collect(
       mapping: IndexMapping,
-      index: Index,
       top: TopDocs,
       fields: List[String]
   ): IO[List[Document]] = for {
-    reader <- index.readerRef.get
+    reader <- readerRef.get
     docs <- IO {
       val fieldSet = fields.toSet
       val docs = top.scoreDocs.map(doc => {
@@ -218,6 +196,31 @@ object Searcher {
     }
   } yield {
     docs
+  }
+
+  def close(): IO[Unit] = for {
+    _ <- info(s"closing index ${index.name}")
+    _ <- readerRef.get.flatMap(reader => IO(reader.close()))
+  } yield {}
+}
+
+object NixieIndexSearcher extends Logging {
+  case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
+  def create(index: Index): IO[NixieIndexSearcher] = for {
+    reader         <- IO(DirectoryReader.open(index.dir))
+    readerRef      <- Ref.of[IO, DirectoryReader](reader)
+    searcher       <- IO(new IndexSearcher(reader))
+    searcherRef    <- Ref.of[IO, IndexSearcher](searcher)
+    manifestOption <- index.dir.readManifest()
+    mapping <- manifestOption match {
+      case Some(manifest) => manifest.mapping.migrate(index.mapping)
+      case None           => IO.pure(index.mapping)
+    }
+    version    <- IO(manifestOption.map(_.version).getOrElse(1L))
+    versionRef <- Ref.of[IO, Long](version)
+    _          <- info(s"opened index ${index.name} version=$version")
+  } yield {
+    NixieIndexSearcher(index.copy(mapping = mapping), readerRef, searcherRef, versionRef)
   }
 
 }

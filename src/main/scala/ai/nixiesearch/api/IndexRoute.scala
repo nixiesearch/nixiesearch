@@ -2,7 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
-import ai.nixiesearch.index.IndexRegistry
+import ai.nixiesearch.index.cluster.Indexer
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -11,7 +11,7 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import fs2.Stream
 
-case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
+case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   val routes = HttpRoutes.of[IO] {
@@ -29,55 +29,26 @@ case class IndexRoute(registry: IndexRegistry) extends Route with Logging {
   }
 
   def index(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
-    start         <- IO(System.currentTimeMillis())
-    mappingOption <- registry.mapping(indexName)
+    start <- IO(System.currentTimeMillis())
     _ <- request
       .chunkN(64)
       .unchunks
       .through(PrintProgress.tap("indexed docs"))
       .chunkN(64)
-      .evalScan(mappingOption)((mo, chunk) =>
-        for {
-          mapping <- getMappingOrCreate(registry, mo, chunk.toList, indexName)
-          index <- registry.index(mapping.name).flatMap {
-            case Some(value) => IO.pure(value)
-            case None        => IO.raiseError(new Exception("index not found, weird"))
-          }
-          _ <- index.addDocuments(chunk.toList)
-        } yield {
-          Some(mapping)
-        }
-      )
+      .evalMap(chunk => indexer.index(indexName, chunk.toList))
       .compile
       .drain
       .flatTap(_ => info(s"completed indexing, took ${System.currentTimeMillis() - start}ms"))
-    _ <- flush(indexName)
   } yield {
     IndexResponse.withStartTime("created", start)
   }
 
-  def handleMapping(indexName: String): IO[Response[IO]] =
-    mapping(indexName).flatMap {
-      case Some(index) => info(s"GET /$indexName/_mapping") *> Ok(index)
-      case None        => NotFound(s"index $indexName is missing in config file")
-    }
-
-  def mapping(indexName: String): IO[Option[IndexMapping]] = registry.mapping(indexName)
+  def handleMapping(indexName: String): IO[Response[IO]] = {
+    indexer.mapping(indexName).flatMap(mapping => Ok(mapping))
+  }
 
   def flush(indexName: String): IO[Response[IO]] = {
-    registry.index(indexName).flatMap {
-      case None => NotFound(s"index $indexName is missing in config file")
-      case Some(index) =>
-        for {
-          start    <- IO(System.currentTimeMillis())
-          _        <- info(s"POST /$indexName/_flush")
-          _        <- index.flush()
-          response <- Ok(IndexResponse.withStartTime("flushed", start))
-        } yield {
-          response
-        }
-
-    }
+    indexer.flush(indexName).flatMap(_ => Ok())
   }
 
 }
@@ -97,38 +68,5 @@ object IndexRoute extends Logging {
   given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
   given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
   given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
-
-  def getMappingOrCreate(
-      registry: IndexRegistry,
-      mappingOption: Option[IndexMapping],
-      first: List[Document],
-      indexName: String
-  ): IO[IndexMapping] =
-    mappingOption match {
-      case Some(existing) =>
-        existing.config.mapping.dynamic match {
-          case false => IO.pure(existing)
-          case true =>
-            for {
-              updated <- IndexMapping.fromDocument(first, indexName)
-              merged  <- existing.dynamic(updated)
-              _ <- IO.whenA(merged != existing)(
-                info(s"dynamic mapping updated: ${merged}") *> registry.updateMapping(merged)
-              )
-            } yield {
-              merged
-            }
-        }
-      case None =>
-        for {
-          _ <- warn(s"Index '$indexName' mapping not found, using dynamic mapping")
-          _ <- warn("Dynamic mapping is only recommended for testing. Prefer explicit mapping definition in config.")
-          generated <- IndexMapping.fromDocument(first, indexName).map(_.withDynamicMapping(true))
-          _         <- info(s"Generated mapping $generated")
-          _         <- registry.updateMapping(generated)
-        } yield {
-          generated
-        }
-    }
 
 }

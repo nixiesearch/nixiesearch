@@ -19,7 +19,7 @@ import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.{IO, Ref}
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.index.{Term, IndexWriter as LuceneIndexWriter}
+import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, Term}
 import org.apache.lucene.store.{Directory, MMapDirectory}
 import org.apache.lucene.document.Document as LuceneDocument
 
@@ -30,11 +30,7 @@ import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
 
 import scala.collection.mutable.ArrayBuffer
 
-trait IndexWriter extends Logging {
-  def mappingRef: Ref[IO, IndexMapping]
-  def dirtyRef: Ref[IO, Boolean]
-  def writer: LuceneIndexWriter
-  def encoders: BiEncoderCache
+case class NixieIndexWriter(index: Index, writer: IndexWriter) extends Logging {
 
   lazy val textFieldWriter     = TextFieldWriter()
   lazy val textListFieldWriter = TextListFieldWriter()
@@ -45,14 +41,12 @@ trait IndexWriter extends Logging {
 
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
-      mapping <- mappingRef.get
-      handles <- IO(mapping.textFields.values.toList.collect {
+      handles <- IO(index.mapping.textFields.values.toList.collect {
         case TextFieldSchema(_, SemanticSearchLikeType(handle, _), _, _, _, _) =>
           handle
       })
-      fieldStrings    <- IO(strings(mapping, docs))
-      embeddedStrings <- embed(fieldStrings, encoders)
-      _               <- dirtyRef.set(true)
+      fieldStrings    <- IO(strings(index.mapping, docs))
+      embeddedStrings <- embed(fieldStrings, index.encoders)
     } yield {
       val all = new util.ArrayList[LuceneDocument]()
       val ids = new ArrayBuffer[String]()
@@ -60,7 +54,7 @@ trait IndexWriter extends Logging {
         val buffer = new LuceneDocument()
         doc.fields.foreach {
           case field @ TextField(name, value) =>
-            mapping.textFields.get(name) match {
+            index.mapping.textFields.get(name) match {
               case None => logger.warn(s"text field '$name' is not defined in mapping")
               case Some(mapping) =>
                 if (name == "_id") ids.addOne(value)
@@ -72,27 +66,27 @@ trait IndexWriter extends Logging {
 
             }
           case field @ TextListField(name, value) =>
-            mapping.textListFields.get(name) match {
+            index.mapping.textListFields.get(name) match {
               case None          => logger.warn(s"text[] field '$name' is not defined in mapping")
               case Some(mapping) => textListFieldWriter.write(field, mapping, buffer, Map.empty)
             }
           case field @ IntField(name, value) =>
-            mapping.intFields.get(name) match {
+            index.mapping.intFields.get(name) match {
               case None          => logger.warn(s"int field '$name' is not defined in mapping")
               case Some(mapping) => intFieldWriter.write(field, mapping, buffer)
             }
           case field @ LongField(name, value) =>
-            mapping.longFields.get(name) match {
+            index.mapping.longFields.get(name) match {
               case None          => logger.warn(s"long field '$name' is not defined in mapping")
               case Some(mapping) => longFieldWriter.write(field, mapping, buffer)
             }
           case field @ FloatField(name, value) =>
-            mapping.floatFields.get(name) match {
+            index.mapping.floatFields.get(name) match {
               case None          => // logger.warn(s"float field '$name' is not defined in mapping")
               case Some(mapping) => floatFieldWriter.write(field, mapping, buffer)
             }
           case field @ DoubleField(name, value) =>
-            mapping.doubleFields.get(name) match {
+            index.mapping.doubleFields.get(name) match {
               case None          => logger.warn(s"double field '$name' is not defined in mapping")
               case Some(mapping) => doubleFieldWriter.write(field, mapping, buffer)
             }
@@ -133,14 +127,13 @@ trait IndexWriter extends Logging {
     targets.toList
       .traverse { case (tpe, strings) =>
         for {
-          encoder <- encoders.get(tpe.model)
           encoded <- strings.distinct
             .sortBy(-_.length)
             .grouped(8)
             .toList
             .flatTraverse(batch =>
-              encoder
-                .embed(batch.map(s => tpe.prefix.document + s).toArray)
+              encoders
+                .encode(tpe.model, batch.map(s => tpe.prefix.document + s))
                 .flatMap(embeddings => IO(batch.zip(embeddings)))
             )
         } yield {
@@ -152,4 +145,15 @@ trait IndexWriter extends Logging {
 
   def flush(): IO[Unit] = info("index commit") *> IO(writer.commit())
 
+  def close(): IO[Unit] = flush() *> IO(writer.close())
+}
+
+object NixieIndexWriter {
+  def create(index: Index): IO[NixieIndexWriter] = for {
+    analyzer <- IO(IndexMapping.createAnalyzer(index.mapping))
+    config   <- IO(new IndexWriterConfig(analyzer))
+    writer   <- IO(new IndexWriter(index.dir, config))
+  } yield {
+    NixieIndexWriter(index, writer)
+  }
 }

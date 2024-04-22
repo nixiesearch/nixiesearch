@@ -8,11 +8,18 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, LexicalSearchLike}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.Field.*
+import cats.effect.kernel.Resource
 import cats.effect.{IO, Ref}
+import org.apache.lucene.store.{Directory, IOContext}
+import io.circe.parser.*
+import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.core.KeywordAnalyzer
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
+import scala.jdk.CollectionConverters.*
 
 case class IndexMapping(
     name: String,
@@ -27,6 +34,8 @@ case class IndexMapping(
   val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
 
+  val analyzer = IndexMapping.createAnalyzer(this)
+
   def migrate(updated: IndexMapping): IO[IndexMapping] = for {
     fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
     migrations <- fieldNames.toList.traverse(field => migrateField(fields.get(field), updated.fields.get(field)))
@@ -38,32 +47,6 @@ case class IndexMapping(
     _ <- IO.whenA(this != updated)(info(s"migration of changed index mapping '$name' is successful"))
   } yield {
     updated
-  }
-
-  def withDynamicMapping(enabled: Boolean): IndexMapping = {
-    copy(config = config.copy(mapping = config.mapping.copy(dynamic = enabled)))
-  }
-
-  def dynamic(updated: IndexMapping): IO[IndexMapping] = for {
-    fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
-    migrations <- fieldNames.toList.traverse(field => migrateField(fields.get(field), updated.fields.get(field)))
-    _ <- migrations.traverse {
-      case Add(field) => info(s"field ${field.name} added to the index $name mapping")
-      case _          => IO.unit
-    }
-    _ <- IO.whenA(this != updated)(info(s"migration of changed index mapping '$name' is successful"))
-    mergedFields <- IO(
-      fieldNames.toList
-        .flatMap(field => updated.fields.get(field).orElse(fields.get(field)).map(f => f.name -> f))
-        .toMap
-    )
-  } yield {
-    IndexMapping(
-      name = updated.name,
-      alias = updated.alias,
-      config = updated.config,
-      fields = mergedFields
-    )
   }
 
   def migrateField(before: Option[FieldSchema[_ <: Field]], after: Option[FieldSchema[_ <: Field]]): IO[Migration] =
@@ -100,6 +83,14 @@ object IndexMapping extends Logging {
 
   def apply(name: String, fields: List[FieldSchema[_ <: Field]]): IndexMapping = {
     new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig())
+  }
+
+  def createAnalyzer(mapping: IndexMapping): Analyzer = {
+    val fieldAnalyzers = mapping.fields.values.collect {
+      case TextFieldSchema(name, LexicalSearchLike(language), _, _, _, _)     => name -> language.analyzer
+      case TextListFieldSchema(name, LexicalSearchLike(language), _, _, _, _) => name -> language.analyzer
+    }
+    new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
   }
 
   def fromDocument(docs: List[Document], indexName: String): IO[IndexMapping] = for {

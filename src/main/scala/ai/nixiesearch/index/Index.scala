@@ -1,35 +1,34 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.StoreConfig
-import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
+import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.{CacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
+import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.local.LocalIndex
-import cats.effect.{IO, Ref}
-import cats.effect.kernel.Resource
-import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.store.Directory
-import org.apache.lucene.index.{DirectoryReader, IndexReader as LuceneIndexReader}
+import ai.nixiesearch.index.manifest.IndexManifest
+import ai.nixiesearch.index.store.NixieDirectory
+import cats.effect.IO
+import org.apache.lucene.store.ByteBuffersDirectory
 
-trait Index extends IndexReader with IndexWriter {
-  def name: String
-  def mappingRef: Ref[IO, IndexMapping]
-  def directory: Directory
-  def analyzer: Analyzer
-  def encoders: BiEncoderCache
-  def searcherRef: Ref[IO, IndexSearcher]
-  def readerRef: Ref[IO, DirectoryReader]
-  def close(): IO[Unit]
+case class Index(mapping: IndexMapping, dir: NixieDirectory, encoders: BiEncoderCache) {
+  def name = mapping.name
 }
 
-object Index {
-  val MAPPING_FILE_NAME = "mapping.json"
-
-  def fromConfig(conf: StoreConfig, mappingConfig: IndexMapping, encoders: BiEncoderCache): IO[Index] =
-    conf match {
-      case s: LocalStoreConfig  => LocalIndex.create(s, mappingConfig, encoders)
-      case m: MemoryStoreConfig => LocalIndex.create(m, mappingConfig, encoders)
-      case other                => IO.raiseError(new Exception(s"store $other is not yet implemented"))
+object Index extends Logging {
+  def create(mapping: IndexMapping, store: StoreConfig, cache: CacheConfig): IO[Index] = for {
+    luceneDir <- store match {
+      case StoreConfig.S3StoreConfig(url, workdir) => IO.raiseError(new UnsupportedOperationException())
+      case StoreConfig.LocalStoreConfig(url)       => IO.raiseError(new UnsupportedOperationException())
+      case StoreConfig.MemoryStoreConfig()         => IO(new ByteBuffersDirectory())
     }
+    dir <- IO(NixieDirectory(luceneDir))
+    models <- IO(mapping.fields.values.collect {
+      case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _) => model
+    })
+    encoders <- BiEncoderCache.create(models.toList, cache.embedding)
+    _        <- info(s"Detected index ${mapping.name}")
+  } yield {
+    Index(mapping, dir, encoders)
+  }
 }

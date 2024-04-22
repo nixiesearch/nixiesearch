@@ -11,9 +11,7 @@ import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.core.search.Searcher
-import ai.nixiesearch.index.IndexRegistry
-import ai.nixiesearch.index.local.LocalIndex
+import ai.nixiesearch.index.cluster.Searcher
 import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
@@ -30,15 +28,11 @@ trait SearchTest extends AnyFlatSpec {
   def docs: List[Document]
 
   trait Index {
-    val registry =
-      IndexRegistry.create(MemoryStoreConfig(), EmbeddingCacheConfig(), List(mapping)).allocated.unsafeRunSync()._1
-
-    val index = {
-      val w = registry.index(mapping.name).unsafeRunSync().get
-      w.addDocuments(docs).unsafeRunSync()
-      w.flush().unsafeRunSync()
-      w.syncReader().unsafeRunSync()
-      w
+    lazy val cluster = {
+      val c = LocalNixie.create(mapping).unsafeRunSync()
+      c.indexer.index(mapping.name, docs).unsafeRunSync()
+      c.indexer.flush(mapping.name).unsafeRunSync()
+      c
     }
 
     def search(
@@ -48,8 +42,8 @@ trait SearchTest extends AnyFlatSpec {
         fields: List[String] = List("_id"),
         n: Int = 10
     ): List[String] = {
-      Searcher
-        .search(SearchRequest(query, filters, n, fields, aggs), index)
+      cluster.searcher
+        .search(mapping.name, SearchRequest(query, filters, n, fields, aggs))
         .unsafeRunSync()
         .hits
         .flatMap(_.fields.collect { case TextField(_, value) => value })
@@ -62,10 +56,9 @@ trait SearchTest extends AnyFlatSpec {
         fields: List[String] = List("_id"),
         n: Int = 10
     ): SearchRoute.SearchResponse = {
-      Searcher
-        .search(SearchRequest(query, filters, n, fields, aggs), index)
+      cluster.searcher
+        .search(mapping.name, SearchRequest(query, filters, n, fields, aggs))
         .unsafeRunSync()
-
     }
   }
 
