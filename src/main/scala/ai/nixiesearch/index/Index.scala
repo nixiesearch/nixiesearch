@@ -30,12 +30,14 @@ object Index extends Logging {
       case true => info(s"Index '${mapping.name}' exists in directory ${luceneDir}")
       case false =>
         for {
-          _      <- info(s"Index '${mapping.name}' does not exist in directory ${luceneDir}")
-          config <- IO(new IndexWriterConfig(IndexMapping.createAnalyzer(mapping)))
-          writer <- IO(new IndexWriter(dir, config))
-          _      <- IO(writer.commit())
-          _      <- info("created empty segment")
-          _      <- IO(writer.close())
+          _        <- info(s"Index '${mapping.name}' does not exist in directory ${luceneDir}")
+          config   <- IO(new IndexWriterConfig(IndexMapping.createAnalyzer(mapping)))
+          writer   <- IO(new IndexWriter(dir, config))
+          _        <- IO(writer.commit())
+          _        <- info("created empty segment")
+          manifest <- IndexManifest.create(dir, mapping, 0L)
+          _        <- IndexManifest.write(dir, manifest)
+          _        <- IO(writer.close())
         } yield {}
     }
     models <- IO(mapping.fields.values.collect {

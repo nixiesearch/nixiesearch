@@ -31,7 +31,8 @@ trait SearchTest extends AnyFlatSpec {
     lazy val cluster = {
       val c = LocalNixie.create(mapping).unsafeRunSync()
       c.indexer.index(mapping.name, docs).unsafeRunSync()
-      c.indexer.flush(mapping.name).unsafeRunSync()
+      c.indexer.commit(mapping.name).unsafeRunSync()
+      c.searcher.sync().unsafeRunSync()
       c
     }
 

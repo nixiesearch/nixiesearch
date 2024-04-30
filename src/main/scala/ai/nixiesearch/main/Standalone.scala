@@ -21,7 +21,7 @@ object Standalone extends Logging {
   def run(args: StandaloneArgs): IO[Unit] = for {
     config      <- Config.load(args.config)
     indices     <- IndexList.fromConfig(config)
-    searcher    <- Searcher.create(indices)
+    searcher    <- Searcher.open(indices)
     indexer     <- Indexer.create(indices)
     searchRoute <- IO(SearchRoute(searcher))
     indexRoute  <- IO(IndexRoute(indexer))

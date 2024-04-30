@@ -3,6 +3,7 @@ package ai.nixiesearch.index.cluster
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.cluster.Searcher.IndexNotFoundException
+import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.{Index, NixieIndexSearcher, NixieIndexWriter}
 import ai.nixiesearch.util.RefMap
 import cats.effect.IO
@@ -23,10 +24,13 @@ case class Indexer(indices: RefMap[String, NixieIndexWriter]) extends Logging {
     index.index.mapping
   }
 
-  def flush(indexName: String): IO[Unit] = for {
+  def commit(indexName: String): IO[Unit] = for {
     indexOption <- indices.get(indexName)
     index       <- IO.fromOption(indexOption)(IndexNotFoundException(indexName))
-    _           <- index.flush()
+    seqnum      <- IO(index.writer.commit())
+    manifest    <- IndexManifest.create(index.index.dir, index.index.mapping, seqnum)
+    _           <- IndexManifest.write(index.index.dir, manifest)
+    _           <- debug(s"index '${indexName}' commit: seqnum=$seqnum")
   } yield {}
 
   def close(): IO[Unit] = for {

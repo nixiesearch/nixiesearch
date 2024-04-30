@@ -48,7 +48,7 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   }
 
   def flush(indexName: String): IO[Response[IO]] = {
-    indexer.flush(indexName).flatMap(_ => Ok())
+    indexer.commit(indexName).flatMap(_ => Ok())
   }
 
 }

@@ -14,7 +14,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 object LocalNixie {
   def create(mapping: IndexMapping): IO[LocalNixie] = for {
     index    <- Index.openOrCreate(mapping, MemoryStoreConfig(), CacheConfig())
-    searcher <- Searcher.create(List(index))
+    searcher <- Searcher.open(List(index))
     indexer  <- Indexer.create(List(index))
   } yield {
     LocalNixie(searcher, indexer)

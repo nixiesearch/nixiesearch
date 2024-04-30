@@ -12,12 +12,12 @@ import ai.nixiesearch.core.search.lucene.*
 import cats.effect.{IO, Ref}
 import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter}
 import org.apache.lucene.search.{
+  IndexSearcher,
   MultiCollector,
   ScoreDoc,
   TopDocs,
   TopScoreDocCollector,
   TotalHits,
-  IndexSearcher,
   Query as LuceneQuery
 }
 import cats.implicits.*
@@ -28,6 +28,7 @@ import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAg
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.NixieIndexSearcher.FieldTopDocs
+import ai.nixiesearch.index.manifest.IndexManifest
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
@@ -38,7 +39,7 @@ case class NixieIndexSearcher(
     index: Index,
     readerRef: Ref[IO, DirectoryReader],
     searcherRef: Ref[IO, IndexSearcher],
-    versionRef: Ref[IO, Long]
+    seqnumRef: Ref[IO, Long]
 ) extends Logging {
   def name = index.name
   def search(request: SearchRequest): IO[SearchResponse] = for {
@@ -206,17 +207,17 @@ case class NixieIndexSearcher(
 
 object NixieIndexSearcher extends Logging {
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
-  def create(index: Index): IO[NixieIndexSearcher] = for {
+  def open(index: Index): IO[NixieIndexSearcher] = for {
     reader         <- IO(DirectoryReader.open(index.dir))
     readerRef      <- Ref.of[IO, DirectoryReader](reader)
     searcher       <- IO(new IndexSearcher(reader))
     searcherRef    <- Ref.of[IO, IndexSearcher](searcher)
-    manifestOption <- index.dir.readManifest()
+    manifestOption <- IndexManifest.read(index.dir)
     mapping <- manifestOption match {
       case Some(manifest) => manifest.mapping.migrate(index.mapping)
       case None           => IO.pure(index.mapping)
     }
-    version    <- IO(manifestOption.map(_.version).getOrElse(1L))
+    version    <- IO(manifestOption.map(_.seqnum).getOrElse(0L))
     versionRef <- Ref.of[IO, Long](version)
     _          <- info(s"opened index ${index.name} version=$version")
   } yield {

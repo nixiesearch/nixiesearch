@@ -15,6 +15,7 @@ import org.apache.lucene.search.IndexSearcher
 import cats.implicits.*
 import fs2.Stream
 import ai.nixiesearch.index.cluster.Searcher.IndexNotFoundException
+import ai.nixiesearch.index.manifest.IndexManifest
 
 import scala.concurrent.duration.*
 
@@ -31,15 +32,15 @@ case class Searcher(indices: RefMap[String, NixieIndexSearcher]) extends Logging
       .evalSeq(indices.values())
       .evalMap(searchIndex =>
         for {
-          currentVersion <- searchIndex.versionRef.get
-          manifestOption <- searchIndex.index.dir.readManifest()
+          currentSeqnum  <- searchIndex.seqnumRef.get
+          manifestOption <- IndexManifest.read(searchIndex.index.dir)
           _ <- manifestOption match {
             case Some(manifest) =>
-              IO.whenA(manifest.version != currentVersion)(for {
-                _      <- info(s"index sync: current=$currentVersion directory=${manifest.version}")
+              IO.whenA(manifest.seqnum != currentSeqnum)(for {
+                _      <- info(s"index sync: current=$currentSeqnum directory=${manifest.seqnum}")
                 reader <- searchIndex.readerRef.updateAndGet(r => DirectoryReader.openIfChanged(r))
                 _      <- searchIndex.searcherRef.update(s => new IndexSearcher(reader))
-                _      <- searchIndex.versionRef.set(manifest.version)
+                _      <- searchIndex.seqnumRef.set(manifest.seqnum)
               } yield {})
             case None => IO.unit
           }
@@ -55,9 +56,9 @@ case class Searcher(indices: RefMap[String, NixieIndexSearcher]) extends Logging
 object Searcher {
   case class IndexNotFoundException(name: String) extends Throwable(s"index $name not found")
 
-  def create(indices: List[Index]): IO[Searcher] = for {
+  def open(indices: List[Index]): IO[Searcher] = for {
     searchIndices <- indices
-      .map(index => NixieIndexSearcher.create(index).flatMap(si => IO.pure(index.name -> si)))
+      .map(index => NixieIndexSearcher.open(index).flatMap(si => IO.pure(index.name -> si)))
       .sequence
     indicesMap <- RefMap.of(searchIndices.toMap)
   } yield {
