@@ -16,7 +16,7 @@ case class Index(mapping: IndexMapping, dir: NixieDirectory, encoders: BiEncoder
 }
 
 object Index extends Logging {
-  def create(mapping: IndexMapping, store: StoreConfig, cache: CacheConfig): IO[Index] = for {
+  def openOrCreate(mapping: IndexMapping, store: StoreConfig, cache: CacheConfig): IO[Index] = for {
     luceneDir <- store match {
       case StoreConfig.S3StoreConfig(url, workdir) => IO.raiseError(new UnsupportedOperationException())
       case StoreConfig.LocalStoreConfig(url)       => IO.raiseError(new UnsupportedOperationException())

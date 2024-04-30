@@ -7,7 +7,7 @@ object IndexList {
   def fromConfig(config: Config): IO[List[Index]] =
     fs2.Stream
       .emits(config.search.values.toList)
-      .evalMap(mapping => Index.create(mapping, config.store, config.core.cache))
+      .evalMap(mapping => Index.openOrCreate(mapping, config.store, config.core.cache))
       .compile
       .toList
 }

@@ -13,7 +13,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 
 object LocalNixie {
   def create(mapping: IndexMapping): IO[LocalNixie] = for {
-    index    <- Index.create(mapping, MemoryStoreConfig(), CacheConfig())
+    index    <- Index.openOrCreate(mapping, MemoryStoreConfig(), CacheConfig())
     searcher <- Searcher.create(List(index))
     indexer  <- Indexer.create(List(index))
   } yield {
