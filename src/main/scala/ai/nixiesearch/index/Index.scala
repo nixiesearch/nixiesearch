@@ -8,7 +8,7 @@ import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.manifest.IndexManifest
-import ai.nixiesearch.index.store.{AsyncDirectory, S3AsyncDirectory}
+import ai.nixiesearch.index.store.RemoteSyncDirectory
 import cats.effect.IO
 import org.apache.lucene.index.{DirectoryReader, IndexWriter, IndexWriterConfig}
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory, NIOFSDirectory}
@@ -16,49 +16,22 @@ import fs2.Stream
 
 import java.nio.file.{Files, Paths}
 
-case class Index(mapping: IndexMapping, dir: AsyncDirectory, encoders: BiEncoderCache) extends Logging {
+case class Index(mapping: IndexMapping, dir: Directory, encoders: BiEncoderCache) extends Logging {
   def name = mapping.name
 
   def close(): IO[Unit] = for {
     _ <- info(s"closing index directory '$dir'")
-    _ <- dir.closeAsync()
+    _ <- IO(dir.close())
     _ <- Stream.emits(encoders.encoders.values.toList).evalMap(enc => IO(enc.close())).compile.drain
   } yield {}
 }
 
 object Index extends Logging {
+  val INDEXES_DIR_NAME = "indexes"
   case class InconsistentIndexException(index: String) extends Exception
 
   def openOrCreate(mapping: IndexMapping, store: StoreConfig, cache: CacheConfig): IO[Index] = for {
-    dir <- store match {
-      case MemoryStoreConfig() => IO(AsyncDirectory.wrap(new ByteBuffersDirectory()))
-      case f: LocalFileConfig =>
-        for {
-          unsafePath <- IO {
-            f match {
-              case S3StoreConfig(url, workdir) => workdir
-              case LocalStoreConfig(url)       => url.path
-            }
-          }
-          safePath <- IO(Files.exists(unsafePath)).flatMap {
-            case true =>
-              IO(Files.isDirectory(unsafePath)).flatMap {
-                case true  => IO.pure(unsafePath)
-                case false => IO.raiseError(InconsistentIndexException(mapping.name))
-              }
-            case false =>
-              IO(Files.createDirectories(unsafePath)) *> info(s"created on-disk dir '$unsafePath'") *> IO.pure(
-                unsafePath
-              )
-          }
-          fileDirectory <- f match {
-            case S3StoreConfig(url, _) => S3AsyncDirectory.init(url, safePath)
-            case LocalStoreConfig(_)   => IO(AsyncDirectory.wrap(new MMapDirectory(safePath)))
-          }
-        } yield {
-          fileDirectory
-        }
-    }
+    dir <- openDirectory(store, mapping.name)
     _ <- IO(DirectoryReader.indexExists(dir)).flatMap {
       case true => info(s"Index '${mapping.name}' exists in directory ${dir}")
       case false =>
@@ -80,5 +53,35 @@ object Index extends Logging {
     _        <- info(s"Opened index '${mapping.name}'")
   } yield {
     Index(mapping, dir, encoders)
+  }
+
+  private def openDirectory(store: StoreConfig, indexName: String): IO[Directory] = store match {
+    case MemoryStoreConfig() => IO(new ByteBuffersDirectory())
+    case f: LocalFileConfig =>
+      for {
+        unsafePath <- IO {
+          f match {
+            case S3StoreConfig(url, workdir) => workdir.resolve(INDEXES_DIR_NAME).resolve(indexName)
+            case LocalStoreConfig(url)       => url.path.resolve(INDEXES_DIR_NAME).resolve(indexName)
+          }
+        }
+        safePath <- IO(Files.exists(unsafePath)).flatMap {
+          case true =>
+            IO(Files.isDirectory(unsafePath)).flatMap {
+              case true  => IO.pure(unsafePath)
+              case false => IO.raiseError(InconsistentIndexException(indexName))
+            }
+          case false =>
+            IO(Files.createDirectories(unsafePath)) *> info(s"created on-disk dir '$unsafePath'") *> IO.pure(
+              unsafePath
+            )
+        }
+        fileDirectory <- f match {
+          case S3StoreConfig(url, _) => RemoteSyncDirectory.init(url, safePath)
+          case LocalStoreConfig(_)   => IO(new MMapDirectory(safePath))
+        }
+      } yield {
+        fileDirectory
+      }
   }
 }
