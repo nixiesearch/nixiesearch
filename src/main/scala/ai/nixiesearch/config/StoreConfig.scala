@@ -14,10 +14,14 @@ sealed trait StoreConfig {
   def url: StoreUrl
 }
 object StoreConfig {
-  val DEFAULT_WORKDIR = System.getProperty("user.dir")
+  lazy val DEFAULT_WORKDIR = Paths.get(System.getProperty("user.dir"), "indexes")
 
-  case class S3StoreConfig(url: S3StoreUrl, workdir: Path)                         extends StoreConfig
-  case class LocalStoreConfig(url: LocalStoreUrl = LocalStoreUrl(DEFAULT_WORKDIR)) extends StoreConfig
+  sealed trait LocalFileConfig extends StoreConfig {
+    def url: StoreUrl
+  }
+
+  case class S3StoreConfig(url: S3StoreUrl, workdir: Path)                         extends LocalFileConfig
+  case class LocalStoreConfig(url: LocalStoreUrl = LocalStoreUrl(DEFAULT_WORKDIR)) extends LocalFileConfig
   case class MemoryStoreConfig() extends StoreConfig {
     val url: MemoryUrl = MemoryUrl()
   }
@@ -30,9 +34,9 @@ object StoreConfig {
         for {
           workdir <- c.downField("workdir").as[Option[Path]]
         } yield {
-          S3StoreConfig(s3, workdir.getOrElse(Paths.get(DEFAULT_WORKDIR)))
+          S3StoreConfig(s3, workdir.getOrElse(DEFAULT_WORKDIR))
         }
-      case Right(url: TmpUrl) => Right(LocalStoreConfig(LocalStoreUrl(Files.createTempDirectory(url.prefix).toString)))
+      case Right(url: TmpUrl)        => Right(LocalStoreConfig(LocalStoreUrl(Files.createTempDirectory(url.prefix))))
       case Right(url: LocalStoreUrl) => Right(LocalStoreConfig(url))
       case Right(url: MemoryUrl)     => Right(MemoryStoreConfig())
     }
@@ -40,10 +44,10 @@ object StoreConfig {
   sealed trait StoreUrl
 
   object StoreUrl {
-    case class S3StoreUrl(bucket: String, prefix: String)    extends StoreUrl
-    case class LocalStoreUrl(path: String = DEFAULT_WORKDIR) extends StoreUrl
-    case class TmpUrl(prefix: String)                        extends StoreUrl
-    case class MemoryUrl()                                   extends StoreUrl
+    case class S3StoreUrl(bucket: String, prefix: String)  extends StoreUrl
+    case class LocalStoreUrl(path: Path = DEFAULT_WORKDIR) extends StoreUrl
+    case class TmpUrl(prefix: String)                      extends StoreUrl
+    case class MemoryUrl()                                 extends StoreUrl
 
     val tmpFormat        = "tmp://([a-z0-9\\.\\-]+)/?".r
     val s3formatNoPrefix = "s3://([a-z0-9\\.\\-]+)/?".r
@@ -54,8 +58,8 @@ object StoreConfig {
 
     implicit val storeUrlDecoder: Decoder[StoreUrl] = Decoder.decodeString.emapTry {
       case tmpFormat(prefix)              => Success(TmpUrl(prefix))
-      case fileFormat(path)               => Success(LocalStoreUrl(path))
-      case slashFormat(path)              => Success(LocalStoreUrl(path))
+      case fileFormat(path)               => Success(LocalStoreUrl(Paths.get(path)))
+      case slashFormat(path)              => Success(LocalStoreUrl(Paths.get(path)))
       case s3formatNoPrefix(bucket)       => Success(S3StoreUrl(bucket, "nixiesearch"))
       case s3formatPrefix(bucket, prefix) => Success(S3StoreUrl(bucket, prefix))
       case memFormat()                    => Success(MemoryUrl())

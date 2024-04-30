@@ -16,18 +16,23 @@ import org.http4s.server.middleware.{ErrorAction, Logger}
 
 object SearchMode extends Logging {
   def run(args: SearchArgs): IO[Unit] = for {
-    _           <- info("Starting in 'search' mode with only searcher")
-    config      <- Config.load(args.config)
-    indices     <- IndexList.fromConfig(config)
-    searcher    <- Searcher.open(indices)
-    searchRoute <- IO(SearchRoute(searcher))
-    healthRoute <- IO(HealthRoute())
-    uiRoute     <- WebuiRoute.create(searcher, searchRoute, config)
-    routes <- IO(
-      searchRoute.routes <+> healthRoute.routes <+> uiRoute.routes
-    )
-    server <- API.start(routes, config)
-    _      <- server.use(_ => IO.never)
+    _      <- info("Starting in 'search' mode with only searcher")
+    config <- Config.load(args.config)
+    indices <- IndexList
+      .fromConfig(config)
+      .use(indices =>
+        for {
+          searcher    <- Searcher.open(indices)
+          searchRoute <- IO(SearchRoute(searcher))
+          healthRoute <- IO(HealthRoute())
+          uiRoute     <- WebuiRoute.create(searcher, searchRoute, config)
+          routes <- IO(
+            searchRoute.routes <+> healthRoute.routes <+> uiRoute.routes
+          )
+          server <- API.start(routes, config)
+          _      <- server.use(_ => IO.never)
+        } yield {}
+      )
   } yield {}
 
 }

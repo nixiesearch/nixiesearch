@@ -25,7 +25,7 @@ class IndexTest extends AnyFlatSpec with Matchers {
       Index
         .openOrCreate(
           mapping = TestIndexMapping(),
-          store = LocalStoreConfig(LocalStoreUrl(tmpdir.toString)),
+          store = LocalStoreConfig(LocalStoreUrl(tmpdir)),
           cache = CacheConfig()
         )
         .unsafeRunSync()
@@ -38,7 +38,7 @@ class IndexTest extends AnyFlatSpec with Matchers {
       val index1 = Index
         .openOrCreate(
           mapping = TestIndexMapping(),
-          store = LocalStoreConfig(LocalStoreUrl(tmpdir.toString)),
+          store = LocalStoreConfig(LocalStoreUrl(tmpdir)),
           cache = CacheConfig()
         )
         .unsafeRunSync()
@@ -46,7 +46,7 @@ class IndexTest extends AnyFlatSpec with Matchers {
       val index2 = Index
         .openOrCreate(
           mapping = TestIndexMapping(),
-          store = LocalStoreConfig(LocalStoreUrl(tmpdir.toString)),
+          store = LocalStoreConfig(LocalStoreUrl(tmpdir)),
           cache = CacheConfig()
         )
         .unsafeRunSync()

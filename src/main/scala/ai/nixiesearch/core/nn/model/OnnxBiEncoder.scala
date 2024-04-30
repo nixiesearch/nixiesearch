@@ -4,6 +4,7 @@ import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.djl.modality.nlp.bert.BertFullTokenizer
 import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.Logging
 import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}
 import cats.effect.IO
 import com.github.blemale.scaffeine.Scaffeine
@@ -19,7 +20,7 @@ case class OnnxBiEncoder(
     tokenizer: HuggingFaceTokenizer,
     dim: Int,
     cacheConfig: EmbeddingCacheConfig
-) {
+) extends Logging {
 
   val cache = Scaffeine().maximumSize(cacheConfig.maxSize).build[String, Array[Float]]()
 
@@ -116,6 +117,7 @@ case class OnnxBiEncoder(
   }
 
   def close() = {
+    logger.debug(s"closing ONNX session $session")
     session.close()
   }
 
