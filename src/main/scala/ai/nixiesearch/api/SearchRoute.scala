@@ -23,21 +23,23 @@ import org.apache.lucene.queryparser.classic.QueryParser
 case class SearchRoute(cluster: Searcher) extends Route with Logging {
   val emptyRequest = SearchRequest(query = MatchAllQuery())
   val routes = HttpRoutes.of[IO] { case request @ POST -> Root / indexName / "_search" =>
-    for {
-      query <- IO(request.entity.length).flatMap {
-        case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
-        case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
-        case Some(_) => request.as[SearchRequest]
-      }
-      index <- cluster.indices.get(indexName).flatMap {
-        case None        => IO.raiseError(IndexNotFoundException(indexName))
-        case Some(index) => IO.pure(index)
-      }
-      _        <- info(s"search index='$indexName' query=$query")
-      response <- index.search(query).flatMap(docs => Ok(docs))
-    } yield {
-      response
+    search(request, indexName)
+  }
+
+  def search(request: Request[IO], indexName: String): IO[Response[IO]] = for {
+    query <- IO(request.entity.length).flatMap {
+      case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
+      case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
+      case Some(_) => request.as[SearchRequest]
     }
+    index <- cluster.indices.get(indexName).flatMap {
+      case None        => IO.raiseError(IndexNotFoundException(indexName))
+      case Some(index) => IO.pure(index)
+    }
+    _        <- info(s"search index='$indexName' query=$query")
+    response <- index.search(query).flatMap(docs => Ok(docs))
+  } yield {
+    response
   }
 
 }

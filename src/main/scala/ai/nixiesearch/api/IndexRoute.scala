@@ -16,19 +16,19 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
 
   val routes = HttpRoutes.of[IO] {
     case POST -> Root / indexName / "_flush"          => flush(indexName)
-    case request @ PUT -> Root / indexName / "_index" => handleIndex(request, indexName)
-    case GET -> Root / indexName / "_mapping"         => handleMapping(indexName)
+    case request @ PUT -> Root / indexName / "_index" => index(request, indexName)
+    case GET -> Root / indexName / "_mapping"         => mapping(indexName)
   }
 
-  def handleIndex(request: Request[IO], indexName: String): IO[Response[IO]] = for {
+  def index(request: Request[IO], indexName: String): IO[Response[IO]] = for {
     _        <- info(s"PUT /$indexName/_index")
-    ok       <- index(request.entity.body.through(JsonDocumentStream.parse), indexName)
+    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse), indexName)
     response <- Ok(ok)
   } yield {
     response
   }
 
-  def index(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
+  private def indexDocStream(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
     start <- IO(System.currentTimeMillis())
     _ <- request
       .chunkN(64)
@@ -43,7 +43,7 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
     IndexResponse.withStartTime("created", start)
   }
 
-  def handleMapping(indexName: String): IO[Response[IO]] = {
+  def mapping(indexName: String): IO[Response[IO]] = {
     indexer.mapping(indexName).flatMap(mapping => Ok(mapping))
   }
 

@@ -1,12 +1,13 @@
 package ai.nixiesearch.e2e
 
-import ai.nixiesearch.api.SearchRoute.SearchRequest
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.util.LocalNixieFixture
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -22,44 +23,50 @@ import io.circe.syntax.*
 import org.http4s.{Entity, Method, Request, Uri}
 import scodec.bits.ByteVector
 
-class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers {
-  it should "load docs and search" in {
-//    val pwd      = System.getProperty("user.dir")
-//    val conf     = Config.load(Some(new File(s"$pwd/src/test/resources/config/msmarco.yml"))).unsafeRunSync()
-//    val registry = TestIndexRegistry(conf.search.values.toList)
-//
-//    val indexApi  = IndexRoute(registry)
-//    val searchApi = SearchRoute(registry)
-//
-//    val docs = readInputStream[IO](
-//      IO(new FileInputStream(new File(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json"))),
-//      1024000
-//    ).through(fs2.text.utf8.decode)
-//      .through(fs2.text.lines)
-//      .filter(_.nonEmpty)
-//      .parEvalMapUnordered(8)(line =>
-//        IO(decode[Document](line)).flatMap {
-//          case Left(value)  => IO.raiseError(value)
-//          case Right(value) => IO.pure(value)
-//        }
-//      )
-//      .take(1000)
-//      .compile
-//      .toList
-//      .unsafeRunSync()
-//
-//    val jsonPayload = docs.map(doc => doc.asJson.noSpaces).mkString("\n")
-//    val indexRequest = Request[IO](
-//      method = Method.PUT,
-//      uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_index"),
-//      entity = Entity.strict(ByteVector.view(jsonPayload.getBytes()))
-//    )
-//    indexApi.handleIndex(indexRequest, "msmarco").unsafeRunSync()
-//    indexApi.flush("msmarco").unsafeRunSync()
-//
-//    val searchRequest = SearchRequest(MatchQuery("text", "manhattan"))
-//    val index         = registry.index("msmarco").unsafeRunSync().get
-//    val response      = searchApi.searchDsl(searchRequest, index).unsafeRunSync()
-//    response.hits.size shouldBe 10
+class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with LocalNixieFixture {
+  lazy val pwd  = System.getProperty("user.dir")
+  lazy val conf = Config.load(Some(new File(s"$pwd/src/test/resources/config/msmarco.yml"))).unsafeRunSync()
+
+  it should "load docs and search" in withCluster(conf.search("msmarco")) { nixie =>
+    {
+      val indexApi  = IndexRoute(nixie.indexer)
+      val searchApi = SearchRoute(nixie.searcher)
+
+      val docs = readInputStream[IO](
+        IO(new FileInputStream(new File(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json"))),
+        1024000
+      ).through(fs2.text.utf8.decode)
+        .through(fs2.text.lines)
+        .filter(_.nonEmpty)
+        .parEvalMapUnordered(8)(line =>
+          IO(decode[Document](line)).flatMap {
+            case Left(value)  => IO.raiseError(value)
+            case Right(value) => IO.pure(value)
+          }
+        )
+        .take(1000)
+        .compile
+        .toList
+        .unsafeRunSync()
+
+      val jsonPayload = docs.map(doc => doc.asJson.noSpaces).mkString("\n")
+      val indexRequest = Request[IO](
+        method = Method.PUT,
+        uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_index"),
+        entity = Entity.strict(ByteVector.view(jsonPayload.getBytes()))
+      )
+      indexApi.index(indexRequest, "msmarco").unsafeRunSync()
+      indexApi.flush("msmarco").unsafeRunSync()
+      nixie.searcher.sync().unsafeRunSync()
+
+      val searchRequest = Request[IO](
+        method = Method.POST,
+        uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_search"),
+        entity =
+          Entity.strict(ByteVector.view(SearchRequest(MatchQuery("text", "manhattan")).asJson.noSpaces.getBytes()))
+      )
+      val response = searchApi.search(searchRequest, "msmarco").unsafeRunSync()
+      response.as[SearchResponse].map(_.hits.size).unsafeRunSync() shouldBe 10
+    }
   }
 }
