@@ -13,11 +13,17 @@ import scala.util.{Failure, Success, Try}
 case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) with Logging {
   import CliConfig.*
 
-  object standalone extends Subcommand("standalone") {
+  trait ConfigOption { this: Subcommand =>
     val config =
       opt[File](name = "config", short = 'c', descr = "Path to a config file", required = false)(fileConverter)
   }
+
+  object standalone extends Subcommand("standalone") with ConfigOption
+  object index      extends Subcommand("index") with ConfigOption
+  object search     extends Subcommand("search") with ConfigOption
   addSubcommand(standalone)
+  addSubcommand(index)
+  addSubcommand(search)
 
   override protected def onError(e: Throwable): Unit = e match {
     case r: ScallopResult if !throwError.value =>
@@ -40,6 +46,8 @@ object CliConfig extends Logging {
   sealed trait CliArgs
   object CliArgs {
     case class StandaloneArgs(config: Option[File]) extends CliArgs
+    case class IndexArgs(config: Option[File])      extends CliArgs
+    case class SearchArgs(config: Option[File])         extends CliArgs
   }
 
   def load(args: List[String]): IO[CliArgs] = for {

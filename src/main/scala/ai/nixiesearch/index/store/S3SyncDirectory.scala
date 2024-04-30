@@ -8,5 +8,5 @@ import org.apache.lucene.store.{Directory, FilterDirectory, IOContext}
 import io.circe.parser.*
 import io.circe.syntax.*
 
-case class NixieDirectory(inner: Directory) extends FilterDirectory(inner) with Logging {
+case class S3SyncDirectory(inner: Directory) extends FilterDirectory(inner) with Logging {
 }
