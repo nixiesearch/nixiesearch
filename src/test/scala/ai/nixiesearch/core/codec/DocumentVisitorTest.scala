@@ -31,6 +31,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with LocalNixieFixtu
       val source = Document(List(TextField("_id", "1"), TextField("title", "foo"), IntField("count", 1)))
       store.indexer.index(mapping.name, List(source)).unsafeRunSync()
       store.indexer.commit(mapping.name).unsafeRunSync()
+      store.searcher.sync().unsafeRunSync()
 
       val request = SearchRequest(MatchAllQuery(), fields = List("_id", "title", "count"))
       val docs    = store.searcher.search(mapping.name, request).unsafeRunSync()

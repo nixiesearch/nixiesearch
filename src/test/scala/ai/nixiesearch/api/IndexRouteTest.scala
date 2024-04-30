@@ -5,6 +5,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
+import ai.nixiesearch.index.cluster.Searcher.IndexNotFoundException
 import ai.nixiesearch.util.{LocalNixie, LocalNixieFixture, TestIndexMapping}
 import org.http4s.{Entity, EntityDecoder, Method, Request, Response, Uri}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -35,9 +36,9 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with LocalNixieFixture {
   it should "fail on 404" in withCluster(index) { (store: LocalNixie) =>
     {
       val route = IndexRoute(store.indexer)
-      val response =
+      an[IndexNotFoundException] should be thrownBy {
         route.routes(Request(uri = Uri.unsafeFromString("http://localhost/nope/_mapping"))).value.unsafeRunSync()
-      response.map(_.status.code) shouldBe Some(404)
+      }
     }
   }
 
@@ -55,17 +56,17 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with LocalNixieFixture {
     }
   }
 
-  it should "accept docs for new indices" in withCluster(index) { store =>
+  it should "not accept docs for new indices" in withCluster(index) { store =>
     {
       val doc = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
-      val response =
+      an[IndexNotFoundException] should be thrownBy {
         send[Document, IndexResponse](
           IndexRoute(store.indexer).routes,
           "http://localhost/test2/_index",
           Some(doc),
           Method.PUT
         )
-      response.result shouldBe "created"
+      }
     }
   }
 

@@ -50,7 +50,12 @@ case class Searcher(indices: RefMap[String, NixieIndexSearcher]) extends Logging
       .drain
   }
 
-  def close(): IO[Unit] = ???
+  def close(): IO[Unit] =
+    Stream
+      .evalSeq(indices.values())
+      .evalMap(index => index.close())
+      .compile
+      .drain
 }
 
 object Searcher {
