@@ -8,7 +8,6 @@ import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.manifest.IndexManifest
-import ai.nixiesearch.index.store.RemoteSyncDirectory
 import cats.effect.IO
 import org.apache.lucene.index.{DirectoryReader, IndexWriter, IndexWriterConfig}
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory, NIOFSDirectory}
@@ -41,7 +40,7 @@ object Index extends Logging {
           writer   <- IO(new IndexWriter(dir, config))
           _        <- IO(writer.commit())
           _        <- info("created empty segment")
-          manifest <- IndexManifest.create(dir, mapping, 0L)
+          manifest <- IO(IndexManifest(mapping, Nil, 0L))
           _        <- IndexManifest.write(dir, manifest)
           _        <- IO(writer.close())
         } yield {}
@@ -77,7 +76,7 @@ object Index extends Logging {
             )
         }
         fileDirectory <- f match {
-          case S3StoreConfig(url, _) => RemoteSyncDirectory.init(url, safePath)
+          case S3StoreConfig(url, _) => ???
           case LocalStoreConfig(_)   => IO(new MMapDirectory(safePath))
         }
       } yield {

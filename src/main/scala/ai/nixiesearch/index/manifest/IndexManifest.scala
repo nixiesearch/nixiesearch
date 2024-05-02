@@ -24,19 +24,19 @@ object IndexManifest extends Logging {
   given indexFileEncoder: Encoder[IndexFile] = deriveEncoder
   given indexFileDecoder: Decoder[IndexFile] = deriveDecoder
 
-  case class IndexFile(name: String, size: Long)
+  case class IndexFile(name: String, size: Long, updated: Long)
 
   def create(dir: Directory, mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
     files <- Stream
       .emits(dir.listAll().toList)
-      .evalMap(name => IO(dir.fileLength(name)).map(size => IndexFile(name, size)))
+      .evalMap(name => IO(dir.fileLength(name)).map(size => IndexFile(name, size, System.currentTimeMillis())))
       .compile
       .toList
     _ <- debug(s"creating manifest for index '${mapping.name}'")
   } yield {
     IndexManifest(mapping, files, seqnum)
-  }
 
+  }
   def read(dir: Directory): IO[Option[IndexManifest]] = for {
     bytesOption <- readFileComplete(dir, IndexManifest.MANIFEST_FILE_NAME)
     decoded <- bytesOption match {
