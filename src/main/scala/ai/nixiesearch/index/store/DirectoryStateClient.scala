@@ -86,7 +86,7 @@ case class DirectoryStateClient(dir: Directory) extends StateClient with Logging
   }
 
   override def delete(fileName: String): IO[Unit] =
-    debug(s"deleting $fileName") *> IO(dir.deleteFile(fileName))
+    debug(s"deleting $fileName") *> IO(dir.deleteFile(fileName)).handleErrorWith(wrapExceptions)
 
   override def close(): IO[Unit] = IO.unit
 

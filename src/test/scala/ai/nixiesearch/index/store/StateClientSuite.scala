@@ -47,7 +47,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      val decoded = client.read("test.bin").compile.toList.map(_.toArray).unsafeRunSync()
+      val decoded = client.read("test.bin").compile.to(Array).unsafeRunSync()
       source sameElements decoded
     }
   }
@@ -58,6 +58,17 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
       client.delete("test.bin").unsafeRunSync()
       a[FileMissingError] shouldBe thrownBy { client.read("test.bin").compile.drain.unsafeRunSync() }
+    }
+  }
+
+  it should "fail on double delete" in withClient { client =>
+    {
+      val source = Random.nextBytes(1024 * 1024)
+      client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
+      client.delete("test.bin").unsafeRunSync()
+      a[FileMissingError] shouldBe thrownBy {
+        client.delete("test.bin").unsafeRunSync()
+      }
     }
   }
 

@@ -1,0 +1,14 @@
+services:
+  s3:
+    image: 'localstack/localstack:3.4.0'
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=eu-west-1
+      - AWS_DEFAULT_REGION=eu-west-1
+      - HOSTNAME_EXTERNAL=localhost
+      - USE_SSL=false
+      - DEBUG=1
+    volumes:
+      - ./s3:/etc/localstack/init/ready.d

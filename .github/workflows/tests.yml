@@ -5,6 +5,9 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+env:
+  AWS_ACCESS_KEY_ID: foo
+  AWS_SECRET_ACCESS_KEY: bar
 
 jobs:
   build:
@@ -29,7 +32,17 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
+        distribution: 'adopt-hotspot'
         java-version: ${{ matrix.jvm }}
+
+    - name:  Run docker-compose
+      run: docker-compose -f .github/compose.yaml up -d
 
     - name: Run tests
       run: sbt -mem 3000 test
+
+    - name:  Stop docker-compose
+      run: docker-compose -f .github/compose.yaml down
+
+    - name: Make assembly
+      run: sbt -mem 5000 assembly
