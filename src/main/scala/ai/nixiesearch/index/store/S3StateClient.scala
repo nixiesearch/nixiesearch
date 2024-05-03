@@ -3,14 +3,14 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
+import ai.nixiesearch.index.store.S3StateClient.S3GetObjectResponseStream
 import ai.nixiesearch.index.store.StateClient.StateError
 import ai.nixiesearch.index.store.StateClient.StateError.FileExistsError
-import ai.nixiesearch.index.store.s3.S3GetObjectResponseStream
 import cats.effect.{IO, Resource}
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
-import fs2.Stream
+import fs2.{Chunk, Stream}
 import software.amazon.awssdk.services.s3.model.{
   CompleteMultipartUploadRequest,
   CompletedMultipartUpload,
@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.s3.model.{
   CreateMultipartUploadRequest,
   DeleteObjectRequest,
   GetObjectRequest,
+  GetObjectResponse,
   HeadObjectRequest,
   ListObjectsV2Request,
   NoSuchKeyException,
@@ -25,10 +26,12 @@ import software.amazon.awssdk.services.s3.model.{
   UploadPartRequest
 }
 import fs2.interop.reactivestreams.*
-import software.amazon.awssdk.core.async.AsyncRequestBody
+import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
 import io.circe.parser.*
 
 import java.net.URI
+import java.nio.ByteBuffer
+import java.util.concurrent.CompletableFuture
 
 case class S3StateClient(client: S3AsyncClient, conf: S3Location, mapping: IndexMapping)
     extends StateClient
@@ -128,6 +131,32 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, mapping: Index
 }
 
 object S3StateClient {
+  class S3GetObjectResponseStream[T]()
+      extends AsyncResponseTransformer[GetObjectResponse, Stream[IO, Byte]]
+      with Logging {
+    var cf: CompletableFuture[Stream[IO, Byte]] = _
+
+    override def prepare(): CompletableFuture[Stream[IO, Byte]] = {
+      cf = new CompletableFuture[Stream[IO, Byte]]()
+      cf
+    }
+
+    override def onResponse(response: GetObjectResponse): Unit = {
+      logger.debug(s"S3 response: $response")
+    }
+
+    override def onStream(publisher: SdkPublisher[ByteBuffer]): Unit = {
+      logger.debug("subscribed to S3 GetObject data stream")
+      val stream = fromPublisher[IO, ByteBuffer](publisher, 1).flatMap(bb => Stream.chunk(Chunk.byteBuffer(bb)))
+      cf.complete(stream)
+    }
+
+    override def exceptionOccurred(error: Throwable): Unit = {
+      logger.error("AWS SDK errorq", error)
+      cf.completeExceptionally(error)
+    }
+  }
+
   def create(conf: S3Location, mapping: IndexMapping): IO[S3StateClient] = for {
     creds <- IO(DefaultCredentialsProvider.create())
     clientBuilder <- IO(
