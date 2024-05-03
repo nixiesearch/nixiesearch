@@ -2,7 +2,6 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
-import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
 import ai.nixiesearch.index.cluster.Searcher.IndexNotFoundException

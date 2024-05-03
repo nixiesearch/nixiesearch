@@ -5,7 +5,6 @@ import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
-import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.util.LocalNixieFixture
 import cats.effect.IO

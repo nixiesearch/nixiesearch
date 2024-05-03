@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.{FieldSchema, StoreConfig}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -19,12 +19,14 @@ import io.circe.parser.*
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
+
 import scala.jdk.CollectionConverters.*
 
 case class IndexMapping(
     name: String,
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
+    store: StoreConfig = StoreConfig(),
     fields: Map[String, FieldSchema[_ <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
@@ -124,6 +126,8 @@ object IndexMapping extends Logging {
   }
 
   object yaml {
+    import StoreConfig.yaml.given
+
     def indexMappingDecoder(name: String): Decoder[IndexMapping] = Decoder.instance(c =>
       for {
         alias <- decodeAlias(c.downField("alias"))
@@ -134,7 +138,7 @@ object IndexMapping extends Logging {
         fields <- fieldJsons.traverse { case (name, json) =>
           FieldSchema.yaml.fieldSchemaDecoder(name).decodeJson(json)
         }
-
+        store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
@@ -146,7 +150,7 @@ object IndexMapping extends Logging {
           case None =>
             fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
-        IndexMapping(name, alias = alias, fields = extendedFields, config = config)
+        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store)
 
       }
     )
@@ -163,6 +167,7 @@ object IndexMapping extends Logging {
   object json {
     import FieldSchema.json.given
     import SearchType.json.given
+    import ai.nixiesearch.util.PathJson.given
     given indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
     given indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder
   }

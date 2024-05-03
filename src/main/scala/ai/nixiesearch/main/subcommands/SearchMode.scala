@@ -2,7 +2,6 @@ package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.*
 import ai.nixiesearch.config.Config
-import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.IndexList
 import ai.nixiesearch.index.cluster.{Indexer, Searcher}

@@ -1,7 +1,6 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
-import ai.nixiesearch.config.StoreConfig.{LocalFileConfig, LocalStoreConfig, MemoryStoreConfig, S3StoreConfig}
 import ai.nixiesearch.config.{CacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
@@ -29,8 +28,8 @@ object Index extends Logging {
   val INDEXES_DIR_NAME = "indexes"
   case class InconsistentIndexException(index: String) extends Exception
 
-  def openOrCreate(mapping: IndexMapping, store: StoreConfig, cache: CacheConfig): IO[Index] = for {
-    dir <- openDirectory(store, mapping.name)
+  def openOrCreate(mapping: IndexMapping, cache: CacheConfig): IO[Index] = for {
+    dir <- openDirectory(mapping.store, mapping.name)
     _ <- IO(DirectoryReader.indexExists(dir)).flatMap {
       case true => info(s"Index '${mapping.name}' exists in directory ${dir}")
       case false =>
@@ -54,33 +53,34 @@ object Index extends Logging {
     Index(mapping, dir, encoders)
   }
 
-  private def openDirectory(store: StoreConfig, indexName: String): IO[Directory] = store match {
-    case MemoryStoreConfig() => IO(new ByteBuffersDirectory())
-    case f: LocalFileConfig =>
-      for {
-        unsafePath <- IO {
-          f match {
-            case S3StoreConfig(url, workdir) => workdir.resolve(INDEXES_DIR_NAME).resolve(indexName)
-            case LocalStoreConfig(url)       => url.path.resolve(INDEXES_DIR_NAME).resolve(indexName)
-          }
-        }
-        safePath <- IO(Files.exists(unsafePath)).flatMap {
-          case true =>
-            IO(Files.isDirectory(unsafePath)).flatMap {
-              case true  => IO.pure(unsafePath)
-              case false => IO.raiseError(InconsistentIndexException(indexName))
-            }
-          case false =>
-            IO(Files.createDirectories(unsafePath)) *> info(s"created on-disk dir '$unsafePath'") *> IO.pure(
-              unsafePath
-            )
-        }
-        fileDirectory <- f match {
-          case S3StoreConfig(url, _) => ???
-          case LocalStoreConfig(_)   => IO(new MMapDirectory(safePath))
-        }
-      } yield {
-        fileDirectory
-      }
-  }
+  private def openDirectory(store: StoreConfig, indexName: String): IO[Directory] = ???
+//  private def openDirectory(store: StoreConfig, indexName: String): IO[Directory] = store match {
+//    case MemoryStoreConfig() => IO(new ByteBuffersDirectory())
+//    case f: LocalFileConfig =>
+//      for {
+//        unsafePath <- IO {
+//          f match {
+//            case S3StoreConfig(url, workdir) => workdir.resolve(INDEXES_DIR_NAME).resolve(indexName)
+//            case LocalStoreConfig(url)       => url.path.resolve(INDEXES_DIR_NAME).resolve(indexName)
+//          }
+//        }
+//        safePath <- IO(Files.exists(unsafePath)).flatMap {
+//          case true =>
+//            IO(Files.isDirectory(unsafePath)).flatMap {
+//              case true  => IO.pure(unsafePath)
+//              case false => IO.raiseError(InconsistentIndexException(indexName))
+//            }
+//          case false =>
+//            IO(Files.createDirectories(unsafePath)) *> info(s"created on-disk dir '$unsafePath'") *> IO.pure(
+//              unsafePath
+//            )
+//        }
+//        fileDirectory <- f match {
+//          case S3StoreConfig(url, _) => ???
+//          case LocalStoreConfig(_)   => IO(new MMapDirectory(safePath))
+//        }
+//      } yield {
+//        fileDirectory
+//      }
+//  }
 }

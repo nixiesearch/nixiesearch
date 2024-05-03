@@ -15,7 +15,6 @@ import io.circe.yaml.parser.*
 case class Config(
     core: CoreConfig = CoreConfig(),
     api: ApiConfig = ApiConfig(),
-    store: StoreConfig = LocalStoreConfig(),
     search: Map[String, IndexMapping] = Map.empty
 )
 
@@ -26,7 +25,6 @@ object Config extends Logging {
     for {
       core      <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
       api       <- c.downField("api").as[Option[ApiConfig]].map(_.getOrElse(ApiConfig()))
-      store     <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(LocalStoreConfig()))
       indexJson <- c.downField("search").as[Option[Map[String, Json]]].map(_.getOrElse(Map.empty))
       index <- indexJson.toList.traverse { case (name, json) =>
         IndexMapping.yaml.indexMappingDecoder(name).decodeJson(json)
@@ -35,7 +33,6 @@ object Config extends Logging {
       Config(
         core,
         api,
-        store,
         search = index.map(i => i.name -> i).toMap
       )
     }
@@ -55,7 +52,6 @@ object Config extends Logging {
       for {
         _    <- info("No config file given, using defaults")
         dflt <- IO.pure(Config())
-        _    <- info(s"Store: ${dflt.store}")
       } yield {
         dflt
       }
