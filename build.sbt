@@ -43,7 +43,10 @@ libraryDependencies ++= Seq(
   "com.github.luben"          % "zstd-jni"                 % "1.5.5-11",
   "com.github.blemale"       %% "scaffeine"                % "5.2.1",
   "com.hubspot.jinjava"       % "jinjava"                  % "2.7.1",
-  "software.amazon.awssdk"    % "s3"                       % awsVersion
+  "software.amazon.awssdk"    % "s3"                       % awsVersion,
+  "co.fs2"                   %% "fs2-core"                 % fs2Version,
+  "co.fs2"                   %% "fs2-io"                   % fs2Version,
+  "co.fs2"                   %% "fs2-reactive-streams"     % fs2Version
 )
 
 scalacOptions ++= Seq(

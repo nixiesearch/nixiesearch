@@ -46,8 +46,8 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
   it should "stream write+reads" in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
-      client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      val decoded = client.read("test.bin").compile.to(Array).unsafeRunSync()
+      client.write("test1.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
+      val decoded = client.read("test1.bin").compile.to(Array).unsafeRunSync()
       source sameElements decoded
     }
   }
@@ -55,19 +55,19 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
   it should "delete files" in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
-      client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      client.delete("test.bin").unsafeRunSync()
-      a[FileMissingError] shouldBe thrownBy { client.read("test.bin").compile.drain.unsafeRunSync() }
+      client.write("test2.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
+      client.delete("test2.bin").unsafeRunSync()
+      a[FileMissingError] shouldBe thrownBy { client.read("test2.bin").compile.drain.unsafeRunSync() }
     }
   }
 
   it should "fail on double delete" in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
-      client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      client.delete("test.bin").unsafeRunSync()
+      client.write("test3.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
+      client.delete("test3.bin").unsafeRunSync()
       a[FileMissingError] shouldBe thrownBy {
-        client.delete("test.bin").unsafeRunSync()
+        client.delete("test3.bin").unsafeRunSync()
       }
     }
   }
@@ -75,9 +75,9 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
   it should "fail on file overwrite" in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
-      client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
+      client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
       a[FileExistsError] shouldBe thrownBy {
-        client.write("test.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
+        client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
       }
     }
   }

@@ -25,7 +25,7 @@ object JsonDocumentStream extends Logging {
           case Left(value) =>
             logger.error(s"Cannot parse json input: '${new String(next.toArray)}'", value)
             throw value
-          case Right(value) => (parser, Chunk.seq(value))
+          case Right(value) => (parser, Chunk.from(value))
         }
       })
       .evalMapChunk(json =>
