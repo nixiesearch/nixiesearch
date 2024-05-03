@@ -1,7 +1,9 @@
 package ai.nixiesearch.index.store
 
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
+import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError.*
 import cats.effect.IO
 import fs2.io.file.Files
@@ -13,10 +15,20 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Path as JPath
 import fs2.Stream
 
-case class RemotePathStateClient(path: JPath) extends StateClient with Logging {
+case class RemotePathStateClient(path: JPath, mapping: IndexMapping) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024
 
-  override def manifest(): IO[IndexManifest] = for {
+  override def createManifest(): IO[IndexManifest] = for {
+    files <- Files[IO]
+      .list(Path.fromNioPath(path))
+      .evalMap(file => Files[IO].getLastModifiedTime(file).map(ms => IndexFile(file.toString, ms.toMillis)))
+      .compile
+      .toList
+  } yield {
+    IndexManifest(mapping, files, 0L)
+  }
+
+  override def readManifest(): IO[IndexManifest] = for {
     _            <- debug(s"reading index manifest '${IndexManifest.MANIFEST_FILE_NAME}'")
     manifestPath <- IO(path.resolve(IndexManifest.MANIFEST_FILE_NAME))
     exists       <- Files[IO].exists(Path.fromNioPath(manifestPath))

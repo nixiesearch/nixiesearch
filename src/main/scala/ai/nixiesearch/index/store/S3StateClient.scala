@@ -37,7 +37,9 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, mapping: Index
     extends StateClient
     with Logging {
   val IO_BUFFER_SIZE = 1024 * 1024
-  override def manifest(): IO[IndexManifest] = for {
+
+  override def createManifest(): IO[IndexManifest] = ???
+  override def readManifest(): IO[IndexManifest] = for {
     bytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
     decoded <- IO(decode[IndexManifest](new String(bytes))).flatMap {
       case Left(err)    => IO.raiseError(err)

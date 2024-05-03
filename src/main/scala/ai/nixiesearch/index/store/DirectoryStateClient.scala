@@ -1,7 +1,9 @@
 package ai.nixiesearch.index.store
 
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
+import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError
 import ai.nixiesearch.index.store.StateClient.StateError.*
 import cats.effect.{IO, Resource}
@@ -12,11 +14,24 @@ import cats.implicits.*
 
 import java.nio.ByteBuffer
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
+import java.time.Instant
 
-case class DirectoryStateClient(dir: Directory) extends StateClient with Logging {
+case class DirectoryStateClient(dir: Directory, mapping: IndexMapping) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024L
 
-  override def manifest(): IO[IndexManifest] = {
+  override def createManifest(): IO[IndexManifest] = for {
+    files <- IO(dir.listAll())
+    now   <- IO(Instant.now().toEpochMilli)
+    entries <- Stream
+      .emits(files)
+      .evalMap(file => IO(IndexFile(file, now)))
+      .compile
+      .toList
+  } yield {
+    IndexManifest(mapping, entries, 0L)
+  }
+
+  override def readManifest(): IO[IndexManifest] = {
     val manifestFile =
       Resource.make(
         IO(dir.openInput(IndexManifest.MANIFEST_FILE_NAME, IOContext.READ)).handleErrorWith(wrapExceptions)

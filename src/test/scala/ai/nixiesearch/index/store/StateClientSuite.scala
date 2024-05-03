@@ -15,6 +15,7 @@ import java.nio.file.NoSuchFileException
 import fs2.{Chunk, Collector, Stream}
 
 import java.nio.ByteBuffer
+import java.time.Instant
 import scala.util.Random
 
 trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
@@ -30,7 +31,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
   }
 
   it should "fail on empty manifest" in withClient { client =>
-    a[FileMissingError] should be thrownBy client.manifest().unsafeRunSync()
+    a[FileMissingError] should be thrownBy client.readManifest().unsafeRunSync()
   }
 
   it should "read existing manifest" in withClient { client =>
@@ -38,7 +39,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       val manifest = IndexManifest(TestIndexMapping(), List(IndexFile("foo", 1L, 1L)), 0L)
       val mfjson   = manifest.asJson.spaces2.getBytes()
       client.write(IndexManifest.MANIFEST_FILE_NAME, Stream.emits(mfjson)).unsafeRunSync()
-      val decoded = client.manifest().unsafeRunSync()
+      val decoded = client.readManifest().unsafeRunSync()
       decoded shouldBe manifest
     }
   }
@@ -79,6 +80,22 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       a[FileExistsError] shouldBe thrownBy {
         client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
       }
+    }
+  }
+
+  it should "create manifest from dir" in withClient { client =>
+    {
+      client.write("seg1.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
+      client.write("seg2.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
+      client.write("seg3.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
+      val mf  = client.createManifest().unsafeRunSync()
+      val now = Instant.now().toEpochMilli
+      mf.copy(files = mf.files.map(_.copy(updated = now))) shouldBe IndexManifest(
+        mapping = TestIndexMapping(),
+        files =
+          List(IndexFile("seg1.bin", 1024L, now), IndexFile("seg2.bin", 1024L, now), IndexFile("seg3.bin", 1024L, now)),
+        seqnum = 0L
+      )
     }
   }
 

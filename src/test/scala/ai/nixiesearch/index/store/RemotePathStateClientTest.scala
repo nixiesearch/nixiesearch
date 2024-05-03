@@ -1,7 +1,10 @@
 package ai.nixiesearch.index.store
 
+import ai.nixiesearch.util.TestIndexMapping
+
 import java.nio.file.Files
 
 class RemotePathStateClientTest extends StateClientSuite[RemotePathStateClient] {
-  override def client(): RemotePathStateClient = RemotePathStateClient(Files.createTempDirectory("nixiesearch_tmp_"))
+  override def client(): RemotePathStateClient =
+    RemotePathStateClient(Files.createTempDirectory("nixiesearch_tmp_"), TestIndexMapping())
 }

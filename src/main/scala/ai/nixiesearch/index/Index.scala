@@ -39,7 +39,7 @@ object Index extends Logging {
           writer   <- IO(new IndexWriter(dir, config))
           _        <- IO(writer.commit())
           _        <- info("created empty segment")
-          manifest <- IO(IndexManifest(mapping, Nil, 0L))
+          manifest <- IO(IndexManifest(mapping, Nil))
           _        <- IndexManifest.write(dir, manifest)
           _        <- IO(writer.close())
         } yield {}

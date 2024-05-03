@@ -5,7 +5,8 @@ import cats.effect.IO
 import fs2.Stream
 
 trait StateClient {
-  def manifest(): IO[IndexManifest]
+  def createManifest(): IO[IndexManifest]
+  def readManifest(): IO[IndexManifest]
   def read(fileName: String): Stream[IO, Byte]
   def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit]
   def delete(fileName: String): IO[Unit]
