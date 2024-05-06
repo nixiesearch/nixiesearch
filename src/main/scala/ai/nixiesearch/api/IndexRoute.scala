@@ -2,7 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
-import ai.nixiesearch.index.NixieIndexWriter
+import ai.nixiesearch.index.Indexer
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -11,7 +11,7 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import fs2.Stream
 
-case class IndexRoute(indexer: NixieIndexWriter) extends Route with Logging {
+case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   val routes = HttpRoutes.of[IO] {

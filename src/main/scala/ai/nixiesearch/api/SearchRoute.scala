@@ -10,7 +10,7 @@ import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.index.NixieIndexSearcher
+import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -19,7 +19,7 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.lucene.queryparser.classic.QueryParser
 
-case class SearchRoute(searcher: NixieIndexSearcher) extends Route with Logging {
+case class SearchRoute(searcher: Searcher) extends Route with Logging {
   val emptyRequest = SearchRequest(query = MatchAllQuery())
   val routes = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name =>

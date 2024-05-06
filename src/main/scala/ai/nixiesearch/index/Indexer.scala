@@ -31,7 +31,7 @@ import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
 
 import scala.collection.mutable.ArrayBuffer
 
-case class NixieIndexWriter(index: ReplicatedIndex, writer: IndexWriter) extends Logging {
+case class Indexer(index: ReplicatedIndex, writer: IndexWriter) extends Logging {
 
   lazy val textFieldWriter     = TextFieldWriter()
   lazy val textListFieldWriter = TextListFieldWriter()
@@ -153,13 +153,13 @@ case class NixieIndexWriter(index: ReplicatedIndex, writer: IndexWriter) extends
   def close(): IO[Unit] = flush() *> IO(writer.close())
 }
 
-object NixieIndexWriter {
-  def open(index: ReplicatedIndex): Resource[IO, NixieIndexWriter] = {
+object Indexer {
+  def open(index: ReplicatedIndex): Resource[IO, Indexer] = {
     val make = for {
       analyzer <- IO(IndexMapping.createAnalyzer(index.mapping))
       config   <- IO(new IndexWriterConfig(analyzer))
       writer   <- IO(new IndexWriter(index.directory, config))
-      niw      <- IO.pure(NixieIndexWriter(index, writer))
+      niw      <- IO.pure(Indexer(index, writer))
       _        <- niw.flush()
     } yield {
       niw

@@ -27,7 +27,7 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.NixieIndexSearcher.FieldTopDocs
+import ai.nixiesearch.index.Searcher.FieldTopDocs
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.sync.ReplicatedIndex
 import org.apache.lucene.facet.FacetsCollector
@@ -36,7 +36,7 @@ import org.apache.lucene.search.TotalHits.Relation
 
 import scala.collection.mutable
 
-case class NixieIndexSearcher(
+case class Searcher(
     index: ReplicatedIndex,
     readerRef: Ref[IO, DirectoryReader],
     searcherRef: Ref[IO, IndexSearcher],
@@ -220,9 +220,9 @@ case class NixieIndexSearcher(
   } yield {}
 }
 
-object NixieIndexSearcher extends Logging {
+object Searcher extends Logging {
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
-  def open(index: ReplicatedIndex): Resource[IO, NixieIndexSearcher] = {
+  def open(index: ReplicatedIndex): Resource[IO, Searcher] = {
     val make = for {
       reader      <- IO(DirectoryReader.open(index.directory))
       readerRef   <- Ref.of[IO, DirectoryReader](reader)
@@ -232,7 +232,7 @@ object NixieIndexSearcher extends Logging {
       versionRef  <- Ref.of[IO, Long](diskSeqnum)
       _           <- info(s"opened index ${index.name} version=$diskSeqnum")
     } yield {
-      NixieIndexSearcher(index, readerRef, searcherRef, versionRef)
+      Searcher(index, readerRef, searcherRef, versionRef)
     }
     Resource.make(make)(nis => nis.close())
   }

@@ -7,7 +7,7 @@ import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.index.NixieIndexSearcher
+import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{Entity, EntityDecoder, EntityEncoder, Headers, HttpRoutes, MediaType, Request, Response, Status}
@@ -62,7 +62,7 @@ case class WebuiRoute(
     }
   }
 
-  def makeRequest(index: NixieIndexSearcher, query: Query): IO[SearchRequest] = for {
+  def makeRequest(index: Searcher, query: Query): IO[SearchRequest] = for {
     storedFields <- IO(index.index.mapping.fields.toList.collect {
       case (name, schema) if schema.store => name
     })
@@ -73,7 +73,7 @@ case class WebuiRoute(
     )
   }
 
-  def makeQuery(index: NixieIndexSearcher, query: Option[String]): IO[Query] = query match {
+  def makeQuery(index: Searcher, query: Option[String]): IO[Query] = query match {
     case None => IO(MatchAllQuery())
     case Some(qtext) =>
       for {

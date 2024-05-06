@@ -3,7 +3,7 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.{API, HealthRoute, IndexRoute, SearchRoute, WebuiRoute}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.index.{IndexList, NixieIndexWriter}
+import ai.nixiesearch.index.{IndexList, Indexer}
 import ai.nixiesearch.index.sync.ReplicatedIndex
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, StandaloneArgs}
 import cats.effect.{IO, Resource}
@@ -30,7 +30,7 @@ object IndexMode extends Logging {
   } yield {}
 
   def indexRoutes(indices: List[ReplicatedIndex]): Resource[IO, HttpRoutes[IO]] = for {
-    indexers <- indices.map(index => NixieIndexWriter.open(index)).sequence
+    indexers <- indices.map(index => Indexer.open(index)).sequence
     routes   <- Resource.pure(indexers.map(indexer => IndexRoute(indexer).routes))
   } yield {
     routes.reduce(_ <+> _)
