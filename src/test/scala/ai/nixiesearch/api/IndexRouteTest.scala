@@ -34,9 +34,9 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   it should "fail on 404" in withIndex { store =>
     {
       val route = IndexRoute(store.indexer)
-      an[NullPointerException] should be thrownBy {
+      val response =
         route.routes(Request(uri = Uri.unsafeFromString("http://localhost/nope/_mapping"))).value.unsafeRunSync()
-      }
+      response shouldBe None
     }
   }
 
@@ -57,7 +57,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   it should "not accept docs for new indices" in withIndex { store =>
     {
       val doc = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
-      an[NullPointerException] should be thrownBy {
+      an[Exception] should be thrownBy {
         send[Document, IndexResponse](
           IndexRoute(store.indexer).routes,
           "http://localhost/test2/_index",

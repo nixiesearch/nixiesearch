@@ -50,11 +50,11 @@ case class NixieIndexSearcher(
     searcherSeqnum <- searcherSeqnumRef.get
     _ <- IO.whenA(ondiskSeqnum != searcherSeqnum)(for {
       _      <- searcherSeqnumRef.set(ondiskSeqnum)
-      reader <- readerRef.getAndUpdate(reader => DirectoryReader.openIfChanged(reader))
+      reader <- readerRef.updateAndGet(reader => DirectoryReader.openIfChanged(reader))
       _      <- searcherRef.set(new IndexSearcher(reader))
     } yield {})
   } yield {
-    logger.debug(s"index searcher reloaded, seqnum $ondiskSeqnum -> $searcherSeqnum")
+    logger.debug(s"index searcher reloaded, seqnum $searcherSeqnum -> $ondiskSeqnum")
   }
 
   def search(request: SearchRequest): IO[SearchResponse] = for {

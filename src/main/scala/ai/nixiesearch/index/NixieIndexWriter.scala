@@ -42,10 +42,8 @@ case class NixieIndexWriter(index: ReplicatedIndex, writer: IndexWriter) extends
 
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
-      handles <- IO(index.mapping.textFields.values.toList.collect {
-        case TextFieldSchema(_, SemanticSearchLikeType(handle, _), _, _, _, _) =>
-          handle
-      })
+      _               <- debug(s"adding ${docs.size} docs to index '${index.name}'")
+      handles         <- IO(index.mapping.modelHandles())
       fieldStrings    <- IO(strings(index.mapping, docs))
       embeddedStrings <- embed(fieldStrings, index.encoders)
     } yield {
@@ -161,8 +159,10 @@ object NixieIndexWriter {
       analyzer <- IO(IndexMapping.createAnalyzer(index.mapping))
       config   <- IO(new IndexWriterConfig(analyzer))
       writer   <- IO(new IndexWriter(index.directory, config))
+      niw      <- IO.pure(NixieIndexWriter(index, writer))
+      _        <- niw.flush()
     } yield {
-      NixieIndexWriter(index, writer)
+      niw
     }
     Resource.make(make)(niw => niw.close())
   }

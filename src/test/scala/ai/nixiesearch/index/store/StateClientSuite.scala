@@ -30,8 +30,8 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "fail on empty manifest" in withClient { client =>
-    a[FileMissingError] should be thrownBy client.readManifest().unsafeRunSync()
+  it should "return none on empty manifest" in withClient { client =>
+    client.readManifest().unsafeRunSync() shouldBe None
   }
 
   it should "read existing manifest" in withClient { client =>
@@ -40,7 +40,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       val mfjson   = manifest.asJson.spaces2.getBytes()
       client.write(IndexManifest.MANIFEST_FILE_NAME, Stream.emits(mfjson)).unsafeRunSync()
       val decoded = client.readManifest().unsafeRunSync()
-      decoded shouldBe manifest
+      decoded shouldBe Some(manifest)
     }
   }
 
@@ -73,13 +73,11 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "fail on file overwrite" in withClient { client =>
+  it should "do file overwrite" in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      a[FileExistsError] shouldBe thrownBy {
-        client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      }
+      client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
     }
   }
 
@@ -92,8 +90,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       val now = Instant.now().toEpochMilli
       mf.copy(files = mf.files.map(_.copy(updated = now))) shouldBe IndexManifest(
         mapping = TestIndexMapping(),
-        files =
-          List(IndexFile("seg1.bin", now), IndexFile("seg2.bin", now), IndexFile("seg3.bin", now)),
+        files = List(IndexFile("seg1.bin", now), IndexFile("seg2.bin", now), IndexFile("seg3.bin", now)),
         seqnum = 0L
       )
     }

@@ -22,7 +22,7 @@ case class RemotePathStateClient(path: JPath, indexName: String) extends StateCl
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
     files <- Files[IO]
       .list(Path.fromNioPath(path))
-      .evalMap(file => Files[IO].getLastModifiedTime(file).map(ms => IndexFile(file.toString, ms.toMillis)))
+      .evalMap(file => Files[IO].getLastModifiedTime(file).map(ms => IndexFile(file.fileName.toString, ms.toMillis)))
       .compile
       .toList
   } yield {
@@ -64,7 +64,7 @@ case class RemotePathStateClient(path: JPath, indexName: String) extends StateCl
     filePath <- IO(path.resolve(fileName))
     _        <- debug(s"writing file '$filePath'")
     exists   <- Files[IO].exists(Path.fromNioPath(filePath))
-    _        <- IO.whenA(exists)(IO.raiseError(FileExistsError(filePath.toString)))
+    _        <- IO.whenA(exists)(Files[IO].delete(Path.fromNioPath(filePath)) *> debug(s"overwritten file '$fileName'"))
     _ <- stream
       .chunkN(IO_BUFFER_SIZE)
       .unchunks
@@ -83,4 +83,3 @@ case class RemotePathStateClient(path: JPath, indexName: String) extends StateCl
 
   override def close(): IO[Unit] = IO.unit
 }
-

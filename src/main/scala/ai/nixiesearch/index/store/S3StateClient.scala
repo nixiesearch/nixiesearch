@@ -3,7 +3,8 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
-import ai.nixiesearch.index.store.S3StateClient.S3GetObjectResponseStream
+import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
+import ai.nixiesearch.index.store.S3StateClient.{S3File, S3GetObjectResponseStream}
 import ai.nixiesearch.index.store.StateClient.StateError
 import ai.nixiesearch.index.store.StateClient.StateError.FileExistsError
 import cats.effect.{IO, Resource}
@@ -30,6 +31,7 @@ import fs2.interop.reactivestreams.*
 import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
 import io.circe.parser.*
 
+import scala.jdk.CollectionConverters.*
 import java.net.URI
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
@@ -37,50 +39,47 @@ import java.util.concurrent.CompletableFuture
 case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 1024 * 1024
 
-  override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = ???
-  override def readManifest(): IO[Option[IndexManifest]] = {
+  override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
+    path  <- IO(s"${conf.prefix}/$indexName/")
+    _     <- debug(s"Creating manifest for index s3://${conf.bucket}/$path")
+    files <- listObjectsRequest(path)
+  } yield {
+    IndexManifest(mapping, files = files.map(f => IndexFile(f.name, f.lastModified)), seqnum)
+  }
+  override def readManifest(): IO[Option[IndexManifest]] =
     for {
       path <- IO(s"${conf.prefix}/$indexName/${IndexManifest.MANIFEST_FILE_NAME}")
       _    <- debug(s"Reading s3://${conf.bucket}/$path")
-      manifest <- getObjectRequest(path).compile
-        .to(Array)
-        .map(b => Some(b))
-        .handleErrorWith {
-          case e: NoSuchKeyException => IO.none
-          case other                 => IO.raiseError(other)
-        }
-        .flatMap {
-          case None => IO.none
-          case Some(bytes) =>
-            IO(decode[IndexManifest](new String(bytes))).flatMap {
+      manifest <- getObjectRequest(path).attempt.flatMap {
+        case Left(e: NoSuchKeyException) => IO.none
+        case Left(error)                 => wrapException(IndexManifest.MANIFEST_FILE_NAME)(error)
+        case Right(stream) =>
+          for {
+            bytes <- stream.compile.to(Array)
+            decoded <- IO(decode[IndexManifest](new String(bytes))).flatMap {
               case Left(err)    => IO.raiseError(err)
-              case Right(value) => IO.some(value)
+              case Right(value) => IO.pure(value)
             }
-        }
+          } yield {
+            Some(decoded)
+          }
+      }
     } yield {
       manifest
     }
-  }
 
   override def read(fileName: String): Stream[IO, Byte] = for {
-    path <- Stream.emit(s"${conf.prefix}/$indexName/$fileName")
-    _    <- Stream.eval(debug(s"Reading s3://${conf.bucket}/$path"))
-    byte <- getObjectRequest(path)
+    path         <- Stream.emit(s"${conf.prefix}/$indexName/$fileName")
+    _            <- Stream.eval(debug(s"Reading s3://${conf.bucket}/$path"))
+    objectStream <- Stream.eval(getObjectRequest(path).handleErrorWith(wrapException(fileName)))
+    byte         <- objectStream
   } yield {
     byte
   }
 
   override def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit] = for {
-    path <- IO(s"${conf.prefix}/$indexName/$fileName")
-    _    <- debug(s"writing s3://${conf.bucket}/$path")
-    head <- headRequest(path)
-      .flatMap(headResponse => info(s"$headResponse") *> IO.raiseError(FileExistsError(fileName)))
-      .handleErrorWith {
-        case ex: FileExistsError    => IO.raiseError(ex)
-        case ex: NoSuchKeyException => debug("file is not present on S3, creating multipart upload") *> IO.unit
-        case ex                     => wrapException(fileName)(ex)
-      }
-
+    path    <- IO(s"${conf.prefix}/$indexName/$fileName")
+    _       <- debug(s"writing s3://${conf.bucket}/$path")
     request <- IO(CreateMultipartUploadRequest.builder().bucket(conf.bucket).key(path).build())
     mpart   <- IO.fromCompletableFuture(IO(client.createMultipartUpload(request)))
     completedParts <- stream
@@ -143,15 +142,44 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: Str
     response
   }
 
-  private def getObjectRequest(path: String): Stream[IO, Byte] = for {
-    request <- Stream.eval(IO(GetObjectRequest.builder().bucket(conf.bucket).key(path).build()))
-    byte    <- Stream.eval(IO.fromCompletableFuture(IO(client.getObject(request, S3GetObjectResponseStream())))).flatten
+  private def getObjectRequest(path: String): IO[Stream[IO, Byte]] = for {
+    request <- IO(GetObjectRequest.builder().bucket(conf.bucket).key(path).build())
+    stream  <- IO.fromCompletableFuture(IO(client.getObject(request, S3GetObjectResponseStream())))
   } yield {
-    byte
+    stream
+  }
+
+  private def listObjectsRequest(path: String): IO[List[S3File]] = for {
+    requestBuilder <- IO(ListObjectsV2Request.builder().bucket(conf.bucket).prefix(path))
+    files <- Stream
+      .unfoldLoopEval(requestBuilder.build())(request =>
+        for {
+          response <- IO.fromCompletableFuture(IO(client.listObjectsV2(request)))
+        } yield {
+          val files = response
+            .contents()
+            .asScala
+            .toList
+            .map(obj => S3File(obj.key().replace(path, ""), obj.lastModified().toEpochMilli))
+          if (response.isTruncated) {
+            (files, Some(requestBuilder.continuationToken(response.nextContinuationToken()).build()))
+          } else {
+            (files, None)
+          }
+        }
+      )
+      .map(batch => Chunk.from(batch))
+      .unchunks
+      .compile
+      .toList
+
+  } yield {
+    files
   }
 }
 
 object S3StateClient {
+  case class S3File(name: String, lastModified: Long)
   class S3GetObjectResponseStream[T]()
       extends AsyncResponseTransformer[GetObjectResponse, Stream[IO, Byte]]
       with Logging {

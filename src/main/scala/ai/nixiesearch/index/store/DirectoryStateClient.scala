@@ -77,16 +77,22 @@ case class DirectoryStateClient(dir: Directory, indexName: String) extends State
   }
 
   override def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit] = {
-    Stream
-      .bracket(IO(dir.createOutput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(out =>
-        IO(out.close())
-      )
-      .evalTap(_ => debug(s"writing file $fileName"))
-      .flatMap(out =>
-        stream.chunkN(IO_BUFFER_SIZE.toInt).evalMap(chunk => IO(out.writeBytes(chunk.toByteBuffer.array(), chunk.size)))
-      )
-      .compile
-      .drain
+    for {
+      exists <- IO(dir.listAll().contains(fileName))
+      _      <- IO.whenA(exists)(IO(dir.deleteFile(fileName)) *> debug(s"overwritten file '$fileName'"))
+      _ <- Stream
+        .bracket(IO(dir.createOutput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(out =>
+          IO(out.close())
+        )
+        .evalTap(_ => debug(s"writing file $fileName"))
+        .flatMap(out =>
+          stream
+            .chunkN(IO_BUFFER_SIZE.toInt)
+            .evalMap(chunk => IO(out.writeBytes(chunk.toByteBuffer.array(), chunk.size)))
+        )
+        .compile
+        .drain
+    } yield {}
   }
 
   override def delete(fileName: String): IO[Unit] =
