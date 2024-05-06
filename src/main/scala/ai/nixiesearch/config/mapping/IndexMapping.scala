@@ -8,10 +8,11 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, LexicalSearchLike}
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, LexicalSearchLike, SemanticSearchLikeType}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.nn.ModelHandle
 import cats.effect.kernel.Resource
 import cats.effect.{IO, Ref}
 import org.apache.lucene.store.{Directory, IOContext}
@@ -68,7 +69,10 @@ case class IndexMapping(
           )
         )
     }
-
+  def modelHandles(): List[ModelHandle] =
+    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _) =>
+      model
+    }
 }
 
 object IndexMapping extends Logging {
