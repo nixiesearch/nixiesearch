@@ -3,24 +3,29 @@ package ai.nixiesearch.index.sync
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Logging
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory}
 
 import java.nio.file.{Files, Path}
 
 object LocalDirectory extends Logging {
   case class DirectoryError(m: String) extends Exception(m)
-  def create(config: LocalStoreConfig, indexName: String): IO[Directory] = config.local match {
+  def create(config: LocalStoreConfig, indexName: String): Resource[IO, Directory] = config.local match {
     case StoreConfig.LocalStoreLocation.DiskLocation(path) =>
       for {
-        _             <- info("initialized MMapDirectory")
-        safeIndexPath <- indexPath(path, indexName)
-        directory     <- IO(new MMapDirectory(safeIndexPath))
+        _             <- Resource.eval(info("initialized MMapDirectory"))
+        safeIndexPath <- Resource.eval(indexPath(path, indexName))
+        directory     <- Resource.make(IO(new MMapDirectory(safeIndexPath)))(dir => IO(dir.close()))
       } yield {
         directory
       }
     case StoreConfig.LocalStoreLocation.MemoryLocation() =>
-      info("initialized ByteBuffersDirectory") *> IO(new ByteBuffersDirectory())
+      for {
+        _         <- Resource.eval(info("initialized in-mem ByteBuffersDirectory"))
+        directory <- Resource.make(IO(new ByteBuffersDirectory()))(dir => IO(dir.close()))
+      } yield {
+        directory
+      }
   }
 
   def indexPath(path: Path, indexName: String): IO[Path] = for {

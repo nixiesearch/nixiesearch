@@ -28,19 +28,21 @@ class BoolFilterTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "4"), TextField("color", "white"), FloatField("price", 40)))
   )
 
-  it should "select by both filters" in new Index {
-    val result =
-      search(filters =
+  it should "select by both filters" in withIndex { index =>
+    {
+      val result = index.search(filters =
         Filters(include = Some(AndPredicate(List(TermPredicate("color", "red"), RangeGt("price", Gt(20))))))
       )
-    result shouldBe List("3")
+      result shouldBe List("3")
+    }
   }
 
-  it should "do or" in new Index {
-    val result =
-      search(filters =
+  it should "do or" in withIndex { index =>
+    {
+      val result = index.search(filters =
         Filters(include = Some(OrPredicate(List(TermPredicate("color", "red"), RangeGt("price", Gt(30))))))
       )
-    result shouldBe List("1", "3", "4")
+      result shouldBe List("1", "3", "4")
+    }
   }
 }

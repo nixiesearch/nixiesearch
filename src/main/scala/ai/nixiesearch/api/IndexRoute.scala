@@ -2,7 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
-import ai.nixiesearch.index.cluster.Indexer
+import ai.nixiesearch.index.NixieIndexWriter
 import cats.effect.IO
 import io.circe.{Codec, Encoder, Json}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -11,13 +11,13 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import fs2.Stream
 
-case class IndexRoute(indexer: Indexer) extends Route with Logging {
+case class IndexRoute(indexer: NixieIndexWriter) extends Route with Logging {
   import IndexRoute.{given, *}
 
   val routes = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush"          => flush(indexName)
-    case request @ PUT -> Root / indexName / "_index" => index(request, indexName)
-    case GET -> Root / indexName / "_mapping"         => mapping(indexName)
+    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name          => flush(indexName)
+    case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name => index(request, indexName)
+    case GET -> Root / indexName / "_mapping" if indexName == indexer.index.name         => mapping(indexName)
   }
 
   def index(request: Request[IO], indexName: String): IO[Response[IO]] = for {
@@ -35,7 +35,7 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
       .unchunks
       .through(PrintProgress.tap("indexed docs"))
       .chunkN(64)
-      .evalMap(chunk => indexer.index(indexName, chunk.toList))
+      .evalMap(chunk => indexer.addDocuments(chunk.toList))
       .compile
       .drain
       .flatTap(_ => info(s"completed indexing, took ${System.currentTimeMillis() - start}ms"))
@@ -44,11 +44,11 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   }
 
   def mapping(indexName: String): IO[Response[IO]] = {
-    indexer.mapping(indexName).flatMap(mapping => Ok(mapping))
+    Ok(indexer.index.mapping)
   }
 
   def flush(indexName: String): IO[Response[IO]] = {
-    indexer.commit(indexName).flatMap(_ => Ok())
+    indexer.flush().flatMap(_ => Ok())
   }
 
 }

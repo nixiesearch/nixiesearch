@@ -3,12 +3,13 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.*
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.index.IndexList
-import ai.nixiesearch.index.cluster.{Indexer, Searcher}
+import ai.nixiesearch.index.{IndexList, NixieIndexSearcher}
+import ai.nixiesearch.index.sync.ReplicatedIndex
 import ai.nixiesearch.main.CliConfig.CliArgs.{SearchArgs, StandaloneArgs}
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.{Hostname, Port}
+import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.{ErrorAction, Logger}
@@ -20,18 +21,33 @@ object SearchMode extends Logging {
     indices <- IndexList
       .fromConfig(config)
       .use(indices =>
-        for {
-          searcher    <- Searcher.open(indices)
-          searchRoute <- IO(SearchRoute(searcher))
-          healthRoute <- IO(HealthRoute())
-          uiRoute     <- WebuiRoute.create(searcher, searchRoute, config)
-          routes <- IO(
-            searchRoute.routes <+> healthRoute.routes <+> uiRoute.routes
-          )
-          server <- API.start(routes, config)
-          _      <- server.use(_ => IO.never)
-        } yield {}
+        searchRoutes(indices).use(routes =>
+          for {
+            health <- IO(HealthRoute())
+            routes <- IO(routes <+> health.routes)
+            server <- API.start(routes, config)
+            _      <- server.use(_ => IO.never)
+          } yield {}
+        )
       )
   } yield {}
+
+  def searchRoutes(indices: List[ReplicatedIndex]): Resource[IO, HttpRoutes[IO]] = for {
+    searchers <- indices.map(index => NixieIndexSearcher.open(index)).sequence
+    routes <- Resource.eval(
+      searchers
+        .map(searcher =>
+          for {
+            searchRoute <- IO(SearchRoute(searcher))
+            uiRoute     <- WebuiRoute.create(searchRoute)
+          } yield {
+            searchRoute.routes <+> uiRoute.routes
+          }
+        )
+        .sequence
+    )
+  } yield {
+    routes.reduce(_ <+> _)
+  }
 
 }

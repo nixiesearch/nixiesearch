@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.s3.model.{
   GetObjectRequest,
   GetObjectResponse,
   HeadObjectRequest,
+  HeadObjectResponse,
   ListObjectsV2Request,
   NoSuchKeyException,
   PutObjectRequest,
@@ -33,41 +34,46 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 
-case class S3StateClient(client: S3AsyncClient, conf: S3Location, mapping: IndexMapping)
-    extends StateClient
-    with Logging {
+case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 1024 * 1024
 
-  override def createManifest(): IO[IndexManifest] = ???
-  override def readManifest(): IO[IndexManifest] = for {
-    bytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
-    decoded <- IO(decode[IndexManifest](new String(bytes))).flatMap {
-      case Left(err)    => IO.raiseError(err)
-      case Right(value) => IO.pure(value)
+  override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = ???
+  override def readManifest(): IO[Option[IndexManifest]] = {
+    for {
+      path <- IO(s"${conf.prefix}/$indexName/${IndexManifest.MANIFEST_FILE_NAME}")
+      _    <- debug(s"Reading s3://${conf.bucket}/$path")
+      manifest <- getObjectRequest(path).compile
+        .to(Array)
+        .map(b => Some(b))
+        .handleErrorWith {
+          case e: NoSuchKeyException => IO.none
+          case other                 => IO.raiseError(other)
+        }
+        .flatMap {
+          case None => IO.none
+          case Some(bytes) =>
+            IO(decode[IndexManifest](new String(bytes))).flatMap {
+              case Left(err)    => IO.raiseError(err)
+              case Right(value) => IO.some(value)
+            }
+        }
+    } yield {
+      manifest
     }
-  } yield {
-    decoded
   }
 
   override def read(fileName: String): Stream[IO, Byte] = for {
-    path    <- Stream.emit(s"${conf.prefix}/${mapping.name}/$fileName")
-    _       <- Stream.eval(debug(s"Reading s3://${conf.bucket}/$path"))
-    request <- Stream.eval(IO(GetObjectRequest.builder().bucket(conf.bucket).key(path).build()))
-    responseStream <- Stream.eval(
-      IO.fromCompletableFuture(IO(client.getObject(request, S3GetObjectResponseStream())))
-        .handleErrorWith(wrapException(fileName))
-    )
-    byte <- responseStream
+    path <- Stream.emit(s"${conf.prefix}/$indexName/$fileName")
+    _    <- Stream.eval(debug(s"Reading s3://${conf.bucket}/$path"))
+    byte <- getObjectRequest(path)
   } yield {
     byte
   }
 
   override def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit] = for {
-    path        <- IO(s"${conf.prefix}/${mapping.name}/$fileName")
-    _           <- debug(s"writing s3://${conf.bucket}/$path")
-    headRequest <- IO(HeadObjectRequest.builder().bucket(conf.bucket).key(path).build())
-    _ <- IO
-      .fromCompletableFuture(IO(client.headObject(headRequest)))
+    path <- IO(s"${conf.prefix}/$indexName/$fileName")
+    _    <- debug(s"writing s3://${conf.bucket}/$path")
+    head <- headRequest(path)
       .flatMap(headResponse => info(s"$headResponse") *> IO.raiseError(FileExistsError(fileName)))
       .handleErrorWith {
         case ex: FileExistsError    => IO.raiseError(ex)
@@ -113,12 +119,11 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, mapping: Index
   } yield {}
 
   override def delete(fileName: String): IO[Unit] = for {
-    path        <- IO(s"${conf.prefix}/${mapping.name}/$fileName")
-    _           <- debug(s"deleting s3://${conf.bucket}/$path")
-    headRequest <- IO(HeadObjectRequest.builder().bucket(conf.bucket).key(path).build())
-    head        <- IO.fromCompletableFuture(IO(client.headObject(headRequest))).handleErrorWith(wrapException(fileName))
-    request     <- IO(DeleteObjectRequest.builder().bucket(conf.bucket).key(path).build())
-    _           <- IO.fromCompletableFuture(IO(client.deleteObject(request))).handleErrorWith(wrapException(fileName))
+    path    <- IO(s"${conf.prefix}/$indexName/$fileName")
+    _       <- debug(s"deleting s3://${conf.bucket}/$path")
+    head    <- headRequest(path).handleErrorWith(wrapException(fileName))
+    request <- IO(DeleteObjectRequest.builder().bucket(conf.bucket).key(path).build())
+    _       <- IO.fromCompletableFuture(IO(client.deleteObject(request))).handleErrorWith(wrapException(fileName))
   } yield {}
 
   override def close(): IO[Unit] = for {
@@ -129,6 +134,20 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, mapping: Index
   private def wrapException[T](fileName: String)(ex: Throwable): IO[T] = ex match {
     case e: NoSuchKeyException => IO.raiseError(StateError.FileMissingError(fileName))
     case other                 => IO.raiseError(other)
+  }
+
+  private def headRequest(path: String): IO[HeadObjectResponse] = for {
+    request  <- IO(HeadObjectRequest.builder().bucket(conf.bucket).key(path).build())
+    response <- IO.fromCompletableFuture(IO(client.headObject(request)))
+  } yield {
+    response
+  }
+
+  private def getObjectRequest(path: String): Stream[IO, Byte] = for {
+    request <- Stream.eval(IO(GetObjectRequest.builder().bucket(conf.bucket).key(path).build()))
+    byte    <- Stream.eval(IO.fromCompletableFuture(IO(client.getObject(request, S3GetObjectResponseStream())))).flatten
+  } yield {
+    byte
   }
 }
 
@@ -159,7 +178,7 @@ object S3StateClient {
     }
   }
 
-  def create(conf: S3Location, mapping: IndexMapping): IO[S3StateClient] = for {
+  def create(conf: S3Location, indexName: String): IO[S3StateClient] = for {
     creds <- IO(DefaultCredentialsProvider.create())
     clientBuilder <- IO(
       S3AsyncClient
@@ -173,6 +192,6 @@ object S3StateClient {
       case None           => clientBuilder.build()
     }
   } yield {
-    S3StateClient(client, conf, mapping)
+    S3StateClient(client, conf, indexName)
   }
 }

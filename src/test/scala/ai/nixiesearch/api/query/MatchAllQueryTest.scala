@@ -15,17 +15,21 @@ class MatchAllQueryTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
   )
 
-  it should "select all docs" in new Index {
-    val request = SearchRequest(query = MatchAllQuery())
-    val docs    = cluster.searcher.search(mapping.name, request).unsafeRunSync()
-    val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
-    ids shouldBe List("1", "2", "3")
+  it should "select all docs" in withIndex { index =>
+    {
+      val request = SearchRequest(query = MatchAllQuery())
+      val docs    = index.searcher.search(request).unsafeRunSync()
+      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+      ids shouldBe List("1", "2", "3")
+    }
   }
 
-  it should "limit the number of docs" in new Index {
-    val request = SearchRequest(query = MatchAllQuery(), size = 1)
-    val docs    = cluster.searcher.search(mapping.name, request).unsafeRunSync()
-    val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
-    ids shouldBe List("1")
+  it should "limit the number of docs" in withIndex { index =>
+    {
+      val request = SearchRequest(query = MatchAllQuery(), size = 1)
+      val docs    = index.searcher.search(request).unsafeRunSync()
+      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+      ids shouldBe List("1")
+    }
   }
 }

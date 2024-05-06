@@ -36,7 +36,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
 
   it should "read existing manifest" in withClient { client =>
     {
-      val manifest = IndexManifest(TestIndexMapping(), List(IndexFile("foo", 1L, 1L)), 0L)
+      val manifest = IndexManifest(TestIndexMapping(), List(IndexFile("foo", 1L)), 0L)
       val mfjson   = manifest.asJson.spaces2.getBytes()
       client.write(IndexManifest.MANIFEST_FILE_NAME, Stream.emits(mfjson)).unsafeRunSync()
       val decoded = client.readManifest().unsafeRunSync()
@@ -88,12 +88,12 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       client.write("seg1.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
       client.write("seg2.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
       client.write("seg3.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
-      val mf  = client.createManifest().unsafeRunSync()
+      val mf  = client.createManifest(TestIndexMapping(), 0L).unsafeRunSync()
       val now = Instant.now().toEpochMilli
       mf.copy(files = mf.files.map(_.copy(updated = now))) shouldBe IndexManifest(
         mapping = TestIndexMapping(),
         files =
-          List(IndexFile("seg1.bin", 1024L, now), IndexFile("seg2.bin", 1024L, now), IndexFile("seg3.bin", 1024L, now)),
+          List(IndexFile("seg1.bin", now), IndexFile("seg2.bin", now), IndexFile("seg3.bin", now)),
         seqnum = 0L
       )
     }

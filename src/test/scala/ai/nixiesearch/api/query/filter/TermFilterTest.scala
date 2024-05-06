@@ -27,14 +27,18 @@ class TermFilterTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "3"), TextField("color", "red")))
   )
 
-  it should "select terms" in new Index {
-    val results = search(filters = Filters(include = Some(TermPredicate("color", "white"))))
-    results shouldBe List("2")
+  it should "select terms" in withIndex { index =>
+    {
+      val results = index.search(filters = Filters(include = Some(TermPredicate("color", "white"))))
+      results shouldBe List("2")
+    }
   }
 
-  it should "select terms with space" in new Index {
-    val results = search(filters = Filters(include = Some(TermPredicate("color2", "light white"))))
-    results shouldBe List("2")
+  it should "select terms with space" in withIndex { index =>
+    {
+      val results = index.search(filters = Filters(include = Some(TermPredicate("color2", "light white"))))
+      results shouldBe List("2")
+    }
   }
 
 }

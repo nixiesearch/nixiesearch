@@ -7,6 +7,7 @@ import ai.nixiesearch.config.{Config, FieldSchema}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache.CacheKey
+import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.std.{MapRef, Queue, Semaphore}
@@ -33,8 +34,8 @@ case class BiEncoderCache(encoders: Map[ModelHandle, OnnxBiEncoder]) extends Log
 
 object BiEncoderCache extends Logging {
   case class CacheKey(handle: ModelHandle, string: String)
-  def create(handles: List[ModelHandle], cacheConfig: EmbeddingCacheConfig): IO[BiEncoderCache] = {
-    for {
+  def create(handles: List[ModelHandle], cacheConfig: EmbeddingCacheConfig): Resource[IO, BiEncoderCache] = {
+    val make = for {
       encoders <- handles
         .map(handle =>
           info(s"loading ONNX model $handle") *> OnnxSession
@@ -46,5 +47,6 @@ object BiEncoderCache extends Logging {
     } yield {
       BiEncoderCache(encoders)
     }
+    Resource.make(make)(handles => handles.close())
   }
 }

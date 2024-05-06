@@ -17,24 +17,25 @@ import java.nio.file.Files
 import cats.effect.unsafe.implicits.global
 import org.apache.lucene.search.MatchAllDocsQuery
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
-import ai.nixiesearch.util.LocalNixieFixture
+import ai.nixiesearch.util.SearchTest
 import cats.data.NonEmptyList
 
-class DocumentVisitorTest extends AnyFlatSpec with Matchers with LocalNixieFixture {
+class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
+  val docs = Nil
   val mapping = IndexMapping(
     name = "test",
     fields = List(TextFieldSchema("_id"), TextFieldSchema("title"), IntFieldSchema("count"))
   )
 
-  it should "collect doc from fields" in withCluster(mapping) { store =>
+  it should "collect doc from fields" in withIndex { store =>
     {
       val source = Document(List(TextField("_id", "1"), TextField("title", "foo"), IntField("count", 1)))
-      store.indexer.index(mapping.name, List(source)).unsafeRunSync()
-      store.indexer.commit(mapping.name).unsafeRunSync()
+      store.indexer.addDocuments(List(source)).unsafeRunSync()
+      store.indexer.flush().unsafeRunSync()
       store.searcher.sync().unsafeRunSync()
 
       val request = SearchRequest(MatchAllQuery(), fields = List("_id", "title", "count"))
-      val docs    = store.searcher.search(mapping.name, request).unsafeRunSync()
+      val docs    = store.searcher.search(request).unsafeRunSync()
       docs.hits shouldBe List(Document(source.fields :+ FloatField("_score", 1.0)))
     }
   }

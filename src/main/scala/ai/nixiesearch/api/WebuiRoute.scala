@@ -7,7 +7,6 @@ import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.index.cluster.Searcher
 import ai.nixiesearch.index.NixieIndexSearcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
@@ -20,10 +19,8 @@ import org.http4s.headers.`Content-Type`
 import scodec.bits.ByteVector
 
 case class WebuiRoute(
-    cluster: Searcher,
     searchRoute: SearchRoute,
-    tmpl: WebuiTemplate,
-    config: Config
+    tmpl: WebuiTemplate
 ) extends Route
     with Logging {
 
@@ -40,47 +37,28 @@ case class WebuiRoute(
           entity = Entity.strict(ByteVector(bytes))
         )
       }
-    case GET -> Root / "_ui" :? QueryParam(query) :? IndexParam(indexName) =>
-      search(Some(indexName), Some(query))
+    case GET -> Root / "_ui" :? QueryParam(query) =>
+      search(Some(query))
     case GET -> Root / "_ui" =>
-      search(None, None)
+      search(None)
   }
 
-  def search(indexName: Option[String], queryString: Option[String]) = {
-    indexName match {
-      case None =>
-        for {
-          html <- tmpl.empty(indexes = config.search.keys.toList, suggests = Nil)
-          _    <- info(s"rendering empty search UI")
-        } yield {
-          Response[IO](
-            headers = Headers(`Content-Type`(MediaType.text.html)),
-            entity = Entity.strict(ByteVector(html.getBytes()))
-          )
-        }
-      case Some(indexName) =>
-        cluster.indices.get(indexName).flatMap {
-          case None => BadRequest(ErrorResponse(s"index $indexName does not exist"))
-          case Some(index) =>
-            for {
-
-              query    <- makeQuery(index, queryString)
-              request  <- makeRequest(index, query)
-              response <- index.search(request)
-              html <- tmpl.render(
-                indexes = config.search.keys.toList,
-                index = Some(index.name),
-                request,
-                response
-              )
-              _ <- info(s"rendering search UI for index '$indexName' and request $request")
-            } yield {
-              Response[IO](
-                headers = Headers(`Content-Type`(MediaType.text.html)),
-                entity = Entity.strict(ByteVector(html.getBytes()))
-              )
-            }
-        }
+  def search(queryString: Option[String]) = {
+    for {
+      query    <- makeQuery(searchRoute.searcher, queryString)
+      request  <- makeRequest(searchRoute.searcher, query)
+      response <- searchRoute.searcher.search(request)
+      html <- tmpl.render(
+        index = searchRoute.searcher.index.name,
+        request,
+        response
+      )
+      _ <- info(s"rendering search UI for index '${searchRoute.searcher.index.name}' and request $request")
+    } yield {
+      Response[IO](
+        headers = Headers(`Content-Type`(MediaType.text.html)),
+        entity = Entity.strict(ByteVector(html.getBytes()))
+      )
     }
   }
 
@@ -113,16 +91,11 @@ case class WebuiRoute(
   }
 
   object QueryParam extends QueryParamDecoderMatcher[String]("query")
-  object IndexParam extends QueryParamDecoderMatcher[String]("index")
 }
 
 object WebuiRoute {
 
-  def create(
-      cluster: Searcher,
-      searchRoute: SearchRoute,
-      config: Config
-  ): IO[WebuiRoute] =
-    WebuiTemplate.create().map(tmpl => WebuiRoute(cluster, searchRoute, tmpl, config))
+  def create(searchRoute: SearchRoute): IO[WebuiRoute] =
+    WebuiTemplate.create().map(tmpl => WebuiRoute(searchRoute, tmpl))
 
 }

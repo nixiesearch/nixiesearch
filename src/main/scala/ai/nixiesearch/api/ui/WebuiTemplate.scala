@@ -20,10 +20,6 @@ import java.lang.Double as JDouble
 case class WebuiTemplate(jinja: Jinjava, template: String) {
   def empty(indexes: List[String], suggests: List[String]): IO[String] = IO {
     val ctx = JMap.of(
-      "indexes",
-      indexes.asJava,
-      "suggests",
-      suggests.asJava,
       "query",
       "",
       "docs",
@@ -32,8 +28,7 @@ case class WebuiTemplate(jinja: Jinjava, template: String) {
     jinja.render(template, ctx)
   }
   def render(
-      indexes: List[String],
-      index: Option[String],
+      index: String,
       request: SearchRequest,
       response: SearchResponse
   ): IO[String] = IO {
@@ -48,11 +43,7 @@ case class WebuiTemplate(jinja: Jinjava, template: String) {
     }
     val ctx = JMap.of(
       "index",
-      index.getOrElse(""),
-      "indexes",
-      indexes.asJava,
-      "suggest",
-      "",
+      index,
       "suggests",
       List[String]().asJava,
       "query",

@@ -16,10 +16,10 @@ import java.nio.ByteBuffer
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import java.time.Instant
 
-case class DirectoryStateClient(dir: Directory, mapping: IndexMapping) extends StateClient with Logging {
+case class DirectoryStateClient(dir: Directory, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024L
 
-  override def createManifest(): IO[IndexManifest] = for {
+  override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
     files <- IO(dir.listAll())
     now   <- IO(Instant.now().toEpochMilli)
     entries <- Stream
@@ -28,34 +28,23 @@ case class DirectoryStateClient(dir: Directory, mapping: IndexMapping) extends S
       .compile
       .toList
   } yield {
-    IndexManifest(mapping, entries, 0L)
+    IndexManifest(mapping, entries, seqnum)
   }
 
-  override def readManifest(): IO[IndexManifest] = {
-    val manifestFile =
-      Resource.make(
-        IO(dir.openInput(IndexManifest.MANIFEST_FILE_NAME, IOContext.READ)).handleErrorWith(wrapExceptions)
-      )(in => IO(in.close()))
-
-    for {
-      manifestBytes <- manifestFile
-        .use(in =>
-          for {
-            inputSize <- IO(in.length().toInt)
-            buffer = new Array[Byte](inputSize)
-            _ <- IO(in.readBytes(buffer, 0, inputSize))
-          } yield {
-            buffer
+  override def readManifest(): IO[Option[IndexManifest]] = {
+    IO(dir.listAll().contains(IndexManifest.MANIFEST_FILE_NAME)).flatMap {
+      case false => IO.none
+      case true =>
+        for {
+          manifestBytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
+          manifest <- IO(decode[IndexManifest](new String(manifestBytes))).flatMap {
+            case Left(err)    => IO.raiseError(err)
+            case Right(value) => IO.pure(value)
           }
-        )
-
-      manifest <- IO(decode[IndexManifest](new String(manifestBytes))).flatMap {
-        case Left(err)    => IO.raiseError(err)
-        case Right(value) => IO.pure(value)
-      }
-      _ <- debug(s"read ${IndexManifest.MANIFEST_FILE_NAME} for index '${manifest.mapping.name}'")
-    } yield {
-      manifest
+          _ <- debug(s"read ${IndexManifest.MANIFEST_FILE_NAME} for index '${manifest.mapping.name}'")
+        } yield {
+          Some(manifest)
+        }
     }
   }
 

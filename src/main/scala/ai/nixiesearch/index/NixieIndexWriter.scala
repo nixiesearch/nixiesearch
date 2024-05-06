@@ -17,7 +17,8 @@ import ai.nixiesearch.core.codec.{
 }
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import cats.effect.{IO, Ref}
+import ai.nixiesearch.index.sync.ReplicatedIndex
+import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, Term}
 import org.apache.lucene.store.{Directory, MMapDirectory}
@@ -30,7 +31,7 @@ import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
 
 import scala.collection.mutable.ArrayBuffer
 
-case class NixieIndexWriter(index: Index, writer: IndexWriter) extends Logging {
+case class NixieIndexWriter(index: ReplicatedIndex, writer: IndexWriter) extends Logging {
 
   lazy val textFieldWriter     = TextFieldWriter()
   lazy val textListFieldWriter = TextListFieldWriter()
@@ -143,17 +144,26 @@ case class NixieIndexWriter(index: Index, writer: IndexWriter) extends Logging {
       .map(_.toMap)
   }
 
-  def flush(): IO[Unit] = info("index commit") *> IO(writer.commit())
+  def flush(): IO[Unit] = for {
+    _        <- debug("index commit")
+    seqnum   <- IO(writer.commit())
+    manifest <- index.master.createManifest(index.mapping, seqnum)
+    _        <- index.master.writeManifest(manifest)
+    _        <- index.sync()
+  } yield {}
 
   def close(): IO[Unit] = flush() *> IO(writer.close())
 }
 
 object NixieIndexWriter {
-  def create(index: Index): IO[NixieIndexWriter] = for {
-    analyzer <- IO(IndexMapping.createAnalyzer(index.mapping))
-    config   <- IO(new IndexWriterConfig(analyzer))
-    writer   <- IO(new IndexWriter(index.dir, config))
-  } yield {
-    NixieIndexWriter(index, writer)
+  def open(index: ReplicatedIndex): Resource[IO, NixieIndexWriter] = {
+    val make = for {
+      analyzer <- IO(IndexMapping.createAnalyzer(index.mapping))
+      config   <- IO(new IndexWriterConfig(analyzer))
+      writer   <- IO(new IndexWriter(index.directory, config))
+    } yield {
+      NixieIndexWriter(index, writer)
+    }
+    Resource.make(make)(niw => niw.close())
   }
 }

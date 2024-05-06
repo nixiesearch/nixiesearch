@@ -6,6 +6,7 @@ import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError.*
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import fs2.io.file.Files
 import fs2.io.{readInputStream, writeOutputStream}
 import fs2.io.file.Path
@@ -15,32 +16,38 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Path as JPath
 import fs2.Stream
 
-case class RemotePathStateClient(path: JPath, mapping: IndexMapping) extends StateClient with Logging {
+case class RemotePathStateClient(path: JPath, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024
 
-  override def createManifest(): IO[IndexManifest] = for {
+  override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
     files <- Files[IO]
       .list(Path.fromNioPath(path))
       .evalMap(file => Files[IO].getLastModifiedTime(file).map(ms => IndexFile(file.toString, ms.toMillis)))
       .compile
       .toList
   } yield {
-    IndexManifest(mapping, files, 0L)
+    IndexManifest(mapping, files, seqnum)
   }
 
-  override def readManifest(): IO[IndexManifest] = for {
+  override def readManifest(): IO[Option[IndexManifest]] = for {
     _            <- debug(s"reading index manifest '${IndexManifest.MANIFEST_FILE_NAME}'")
     manifestPath <- IO(path.resolve(IndexManifest.MANIFEST_FILE_NAME))
-    exists       <- Files[IO].exists(Path.fromNioPath(manifestPath))
-    _            <- IO.whenA(!exists)(IO.raiseError(FileMissingError(IndexManifest.MANIFEST_FILE_NAME)))
-    bytes <- readInputStream(IO(new FileInputStream(new File(manifestPath.toUri))), IO_BUFFER_SIZE, true).compile
-      .to(Array)
-    decoded <- IO(decode[IndexManifest](new String(bytes))).flatMap {
-      case Left(error)  => IO.raiseError(error)
-      case Right(value) => IO.pure(value)
+    manifest <- Files[IO].exists(Path.fromNioPath(manifestPath)).flatMap {
+      case false => IO.none
+      case true =>
+        for {
+          bytes <- readInputStream(IO(new FileInputStream(new File(manifestPath.toUri))), IO_BUFFER_SIZE, true).compile
+            .to(Array)
+          decoded <- IO(decode[IndexManifest](new String(bytes))).flatMap {
+            case Left(error)  => IO.raiseError(error)
+            case Right(value) => IO.pure(value)
+          }
+        } yield {
+          Some(decoded)
+        }
     }
   } yield {
-    decoded
+    manifest
   }
 
   override def read(fileName: String): fs2.Stream[IO, Byte] = for {
@@ -76,3 +83,4 @@ case class RemotePathStateClient(path: JPath, mapping: IndexMapping) extends Sta
 
   override def close(): IO[Unit] = IO.unit
 }
+

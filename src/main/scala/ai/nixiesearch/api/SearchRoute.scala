@@ -10,8 +10,7 @@ import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.index.cluster.Searcher
-import ai.nixiesearch.index.cluster.Searcher.IndexNotFoundException
+import ai.nixiesearch.index.NixieIndexSearcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -20,24 +19,21 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.lucene.queryparser.classic.QueryParser
 
-case class SearchRoute(cluster: Searcher) extends Route with Logging {
+case class SearchRoute(searcher: NixieIndexSearcher) extends Route with Logging {
   val emptyRequest = SearchRequest(query = MatchAllQuery())
-  val routes = HttpRoutes.of[IO] { case request @ POST -> Root / indexName / "_search" =>
-    search(request, indexName)
+  val routes = HttpRoutes.of[IO] {
+    case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name =>
+      search(request)
   }
 
-  def search(request: Request[IO], indexName: String): IO[Response[IO]] = for {
+  def search(request: Request[IO]): IO[Response[IO]] = for {
     query <- IO(request.entity.length).flatMap {
       case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(_) => request.as[SearchRequest]
     }
-    index <- cluster.indices.get(indexName).flatMap {
-      case None        => IO.raiseError(IndexNotFoundException(indexName))
-      case Some(index) => IO.pure(index)
-    }
-    _        <- info(s"search index='$indexName' query=$query")
-    response <- index.search(query).flatMap(docs => Ok(docs))
+    _        <- info(s"search index='${searcher.index.name}' query=$query")
+    response <- searcher.search(query).flatMap(docs => Ok(docs))
   } yield {
     response
   }

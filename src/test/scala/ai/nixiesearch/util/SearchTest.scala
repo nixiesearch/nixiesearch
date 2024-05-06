@@ -9,7 +9,6 @@ import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.index.cluster.Searcher
 import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
@@ -25,39 +24,17 @@ trait SearchTest extends AnyFlatSpec {
   def mapping: IndexMapping
   def docs: List[Document]
 
-  trait Index {
-    lazy val cluster = {
-      val c = LocalNixie.create(mapping).unsafeRunSync()
-      c.indexer.index(mapping.name, docs).unsafeRunSync()
-      c.indexer.commit(mapping.name).unsafeRunSync()
-      c.searcher.sync().unsafeRunSync()
-      c
-    }
-
-    def search(
-        query: Query = MatchAllQuery(),
-        filters: Filters = Filters(),
-        aggs: Aggs = Aggs(),
-        fields: List[String] = List("_id"),
-        n: Int = 10
-    ): List[String] = {
-      cluster.searcher
-        .search(mapping.name, SearchRequest(query, filters, n, fields, aggs))
-        .unsafeRunSync()
-        .hits
-        .flatMap(_.fields.collect { case TextField(_, value) => value })
-    }
-
-    def searchRaw(
-        query: Query = MatchAllQuery(),
-        filters: Filters = Filters(),
-        aggs: Aggs = Aggs(),
-        fields: List[String] = List("_id"),
-        n: Int = 10
-    ): SearchRoute.SearchResponse = {
-      cluster.searcher
-        .search(mapping.name, SearchRequest(query, filters, n, fields, aggs))
-        .unsafeRunSync()
+  def withIndex(code: LocalNixie => Any): Unit = {
+    val (cluster, shutdown) = LocalNixie.create(mapping).allocated.unsafeRunSync()
+    try {
+      if (docs.nonEmpty) {
+        cluster.indexer.addDocuments(docs).unsafeRunSync()
+        cluster.indexer.flush().unsafeRunSync()
+        cluster.searcher.sync().unsafeRunSync()
+      }
+      code(cluster)
+    } finally {
+      shutdown.unsafeRunSync()
     }
   }
 

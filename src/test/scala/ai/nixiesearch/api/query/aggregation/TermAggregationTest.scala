@@ -85,47 +85,59 @@ class TermAggregationTest extends SearchTest with Matchers {
     )
   )
 
-  it should "aggregate by color" in new Index {
-    val result = searchRaw(aggs = Aggs(Map("color" -> TermAggregation("color", 10))))
-    result.aggs shouldBe Map(
-      "color" -> TermAggregationResult(List(TermCount("red", 3), TermCount("white", 2), TermCount("black", 1)))
-    )
+  it should "aggregate by color" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs = Aggs(Map("color" -> TermAggregation("color", 10))))
+      result.aggs shouldBe Map(
+        "color" -> TermAggregationResult(List(TermCount("red", 3), TermCount("white", 2), TermCount("black", 1)))
+      )
+    }
   }
 
-  it should "aggregate by multi-valued size" in new Index {
-    val result = searchRaw(aggs = Aggs(Map("size" -> TermAggregation("size", 10))))
-    result.aggs shouldBe Map(
-      "size" -> TermAggregationResult(List(TermCount("2", 6), TermCount("1", 4)))
-    )
+  it should "aggregate by multi-valued size" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs = Aggs(Map("size" -> TermAggregation("size", 10))))
+      result.aggs shouldBe Map(
+        "size" -> TermAggregationResult(List(TermCount("2", 6), TermCount("1", 4)))
+      )
+    }
   }
 
-  it should "aggregate by color when searching" in new Index {
-    val query  = MultiMatchQuery("socks", List("title"))
-    val result = searchRaw(query = query, aggs = Aggs(Map("color" -> TermAggregation("color", 10))))
-    result.aggs shouldBe Map(
-      "color" -> TermAggregationResult(List(TermCount("red", 2), TermCount("black", 1), TermCount("white", 1)))
-    )
+  it should "aggregate by color when searching" in withIndex { index =>
+    {
+      val query  = MultiMatchQuery("socks", List("title"))
+      val result = index.searchRaw(query = query, aggs = Aggs(Map("color" -> TermAggregation("color", 10))))
+      result.aggs shouldBe Map(
+        "color" -> TermAggregationResult(List(TermCount("red", 2), TermCount("black", 1), TermCount("white", 1)))
+      )
+    }
   }
 
-  it should "aggregate by color when filtering" in new Index {
-    val result = searchRaw(
-      aggs = Aggs(Map("color" -> TermAggregation("color", 10))),
-      filters = Filters(include = Some(TermPredicate("size", "1")))
-    )
-    result.aggs shouldBe Map(
-      "color" -> TermAggregationResult(List(TermCount("white", 2), TermCount("black", 1), TermCount("red", 1)))
-    )
+  it should "aggregate by color when filtering" in withIndex { index =>
+    {
+      val result = index.searchRaw(
+        aggs = Aggs(Map("color" -> TermAggregation("color", 10))),
+        filters = Filters(include = Some(TermPredicate("size", "1")))
+      )
+      result.aggs shouldBe Map(
+        "color" -> TermAggregationResult(List(TermCount("white", 2), TermCount("black", 1), TermCount("red", 1)))
+      )
+    }
   }
 
-  it should "select nothing on too narrow query" in new Index {
-    val query  = MultiMatchQuery("nope", List("title"))
-    val result = searchRaw(query = query, aggs = Aggs(Map("color" -> TermAggregation("color", 10))))
-    result.aggs shouldBe Map("color" -> TermAggregationResult(List()))
+  it should "select nothing on too narrow query" in withIndex { index =>
+    {
+      val query  = MultiMatchQuery("nope", List("title"))
+      val result = index.searchRaw(query = query, aggs = Aggs(Map("color" -> TermAggregation("color", 10))))
+      result.aggs shouldBe Map("color" -> TermAggregationResult(List()))
+    }
   }
 
-  it should "fail on aggregating by a non-string field" in new Index {
-    val result = Try(searchRaw(aggs = Aggs(Map("count" -> TermAggregation("count", 10)))))
-    result.isFailure shouldBe true
+  it should "fail on aggregating by a non-string field" in withIndex { index =>
+    {
+      val result = Try(index.searchRaw(aggs = Aggs(Map("count" -> TermAggregation("count", 10)))))
+      result.isFailure shouldBe true
+    }
   }
 
 }

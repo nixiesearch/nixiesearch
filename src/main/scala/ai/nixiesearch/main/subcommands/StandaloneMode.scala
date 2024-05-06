@@ -4,7 +4,6 @@ import ai.nixiesearch.api.*
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.IndexList
-import ai.nixiesearch.index.cluster.{Indexer, Searcher}
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import cats.effect.IO
 import cats.implicits.*
@@ -22,20 +21,21 @@ object StandaloneMode extends Logging {
     _ <- IndexList
       .fromConfig(config)
       .use(indices =>
-        for {
-          searcher    <- Searcher.open(indices)
-          indexer     <- Indexer.create(indices)
-          searchRoute <- IO(SearchRoute(searcher))
-          indexRoute  <- IO(IndexRoute(indexer))
-          healthRoute <- IO(HealthRoute())
-          uiRoute     <- WebuiRoute.create(searcher, searchRoute, config)
-          routes <- IO(
-            searchRoute.routes <+> indexRoute.routes <+> healthRoute.routes <+> uiRoute.routes
-          )
-          server <- API.start(routes, config)
-          _      <- server.use(_ => IO.never)
+        IndexMode
+          .indexRoutes(indices)
+          .use(indexRoutes =>
+            SearchMode
+              .searchRoutes(indices)
+              .use(searchRoutes =>
+                for {
+                  health <- IO(HealthRoute())
+                  routes <- IO(indexRoutes <+> searchRoutes <+> health.routes)
+                  server <- API.start(routes, config)
+                  _      <- server.use(_ => IO.never)
 
-        } yield {}
+                } yield {}
+              )
+          )
       )
   } yield {}
 }
