@@ -26,4 +26,19 @@ object IndexManifest extends Logging {
 
   case class IndexFile(name: String, updated: Long)
 
+  enum ChangedFileOp {
+    case Add(fileName: String) extends ChangedFileOp
+    case Del(fileName: String) extends ChangedFileOp
+  }
+  def diff(source: IndexManifest, dest: IndexManifest): List[ChangedFileOp] = {
+    val sourceFiles               = source.files.map(_.name)
+    val destFiles                 = dest.files.map(_.name)
+    val adds: List[ChangedFileOp] = sourceFiles.filter(f => !destFiles.contains(f)).map(f => ChangedFileOp.Add(f))
+    val dels: List[ChangedFileOp] = destFiles.filter(f => !sourceFiles.contains(f)).map(f => ChangedFileOp.Del(f))
+    adds ++ dels
+  }
+
+  def diff(source: IndexManifest): List[ChangedFileOp] =
+    source.files.map(f => ChangedFileOp.Add(f.name))
+
 }

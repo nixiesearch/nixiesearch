@@ -29,13 +29,10 @@ case class LocalIndex(
       case Some(m) => IO.pure(m)
     }
     _ <- seqnum.set(manifest.seqnum)
-    _ <- debug("local index sync done")
+    _ <- debug(s"local index '${mapping.name}' sync done, seqnum=${manifest.seqnum}")
   } yield {}
 
-  override def close(): IO[Unit] = for {
-    _ <- info(s"closing index directory $directory")
-    _ <- IO(directory.close())
-  } yield {}
+  override def close(): IO[Unit] = IO.unit
 
   override def local: StateClient   = master
   override def replica: StateClient = master
@@ -48,25 +45,29 @@ object LocalIndex extends Logging {
       cache: CacheConfig
   ): Resource[IO, LocalIndex] = {
     for {
-      directory <- LocalDirectory.create(config, configMapping.name)
+      directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       handles   <- Resource.pure(manifest.mapping.modelHandles())
       encoders  <- BiEncoderCache.create(handles, cache.embedding)
       _         <- Resource.eval(info(s"index ${manifest.mapping.name} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
-    } yield {
-      LocalIndex(
-        mapping = manifest.mapping,
-        encoders = encoders,
-        master = state,
-        directory = directory,
-        seqnum = seqnum
+      index <- Resource.pure(
+        LocalIndex(
+          mapping = manifest.mapping,
+          encoders = encoders,
+          master = state,
+          directory = directory,
+          seqnum = seqnum
+        )
       )
+      _ <- Stream.repeatEval(index.sync()).metered(1.second).compile.drain.background
+    } yield {
+      index
     }
   }
 
-  private def readOrCreateManifest(state: StateClient, configMapping: IndexMapping): IO[IndexManifest] = {
+  def readOrCreateManifest(state: StateClient, configMapping: IndexMapping): IO[IndexManifest] = {
     state.readManifest().flatMap {
       case None =>
         for {

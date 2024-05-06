@@ -206,18 +206,21 @@ object S3StateClient {
     }
   }
 
-  def create(conf: S3Location, indexName: String): IO[S3StateClient] = for {
-    creds <- IO(DefaultCredentialsProvider.create())
-    clientBuilder <- IO(
-      S3AsyncClient
-        .builder()
-        .region(Region.of(conf.region.getOrElse("us-east-1")))
-        .credentialsProvider(creds)
-        .forcePathStyle(conf.endpoint.isDefined)
+  def create(conf: S3Location, indexName: String): Resource[IO, S3StateClient] = for {
+    creds <- Resource.eval(IO(DefaultCredentialsProvider.create()))
+    clientBuilder <- Resource.eval(
+      IO(
+        S3AsyncClient
+          .builder()
+          .region(Region.of(conf.region.getOrElse("us-east-1")))
+          .credentialsProvider(creds)
+          .forcePathStyle(conf.endpoint.isDefined)
+      )
     )
-    client = conf.endpoint match {
-      case Some(endpoint) => clientBuilder.endpointOverride(URI.create(endpoint)).build()
-      case None           => clientBuilder.build()
+    client <- conf.endpoint match {
+      case Some(endpoint) =>
+        Resource.make(IO(clientBuilder.endpointOverride(URI.create(endpoint)).build()))(c => IO(c.close()))
+      case None => Resource.make(IO(clientBuilder.build()))(c => IO(c.close()))
     }
   } yield {
     S3StateClient(client, conf, indexName)

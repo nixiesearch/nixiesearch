@@ -1,10 +1,12 @@
 package ai.nixiesearch.index.store
 
+import ai.nixiesearch.config.StoreConfig.BlockStoreLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.index.manifest.IndexManifest
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import fs2.{Chunk, Stream}
 import io.circe.syntax.*
+
 import java.nio.ByteBuffer
 
 trait StateClient {
@@ -28,4 +30,11 @@ object StateClient {
     case FileExistsError(file: String)          extends StateError
     case InconsistentStateError(reason: String) extends StateError
   }
+
+  def createRemote(config: BlockStoreLocation, indexName: String): Resource[IO, StateClient] = config match {
+    case s: BlockStoreLocation.S3Location         => S3StateClient.create(s, indexName)
+    case s: BlockStoreLocation.RemoteDiskLocation => Resource.pure(RemotePathStateClient(s.path, indexName))
+  }
+  
+  
 }

@@ -33,7 +33,7 @@ import ai.nixiesearch.index.sync.ReplicatedIndex
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
-
+import scala.concurrent.duration.*
 import scala.collection.mutable
 
 case class Searcher(
@@ -48,14 +48,13 @@ case class Searcher(
   def sync(): IO[Unit] = for {
     ondiskSeqnum   <- index.seqnum.get
     searcherSeqnum <- searcherSeqnumRef.get
-    _ <- IO.whenA(ondiskSeqnum != searcherSeqnum)(for {
+    _ <- IO.whenA(ondiskSeqnum > searcherSeqnum)(for {
       _      <- searcherSeqnumRef.set(ondiskSeqnum)
-      reader <- readerRef.updateAndGet(reader => DirectoryReader.openIfChanged(reader))
+      reader <- readerRef.updateAndGet(reader => Option(DirectoryReader.openIfChanged(reader)).getOrElse(reader))
       _      <- searcherRef.set(new IndexSearcher(reader))
+      _      <- debug(s"index searcher reloaded, seqnum $searcherSeqnum -> $ondiskSeqnum")
     } yield {})
-  } yield {
-    logger.debug(s"index searcher reloaded, seqnum $searcherSeqnum -> $ondiskSeqnum")
-  }
+  } yield {}
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
     start <- IO(System.currentTimeMillis())
@@ -223,18 +222,20 @@ case class Searcher(
 object Searcher extends Logging {
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
   def open(index: ReplicatedIndex): Resource[IO, Searcher] = {
-    val make = for {
-      reader      <- IO(DirectoryReader.open(index.directory))
-      readerRef   <- Ref.of[IO, DirectoryReader](reader)
-      searcher    <- IO(new IndexSearcher(reader))
-      searcherRef <- Ref.of[IO, IndexSearcher](searcher)
-      diskSeqnum  <- index.seqnum.get
-      versionRef  <- Ref.of[IO, Long](diskSeqnum)
-      _           <- info(s"opened index ${index.name} version=$diskSeqnum")
+    for {
+      reader      <- Resource.eval(IO(DirectoryReader.open(index.directory)))
+      readerRef   <- Resource.eval(Ref.of[IO, DirectoryReader](reader))
+      searcher    <- Resource.eval(IO(new IndexSearcher(reader)))
+      searcherRef <- Resource.eval(Ref.of[IO, IndexSearcher](searcher))
+      diskSeqnum  <- Resource.eval(index.seqnum.get)
+      versionRef  <- Resource.eval(Ref.of[IO, Long](diskSeqnum))
+      _           <- Resource.eval(info(s"opened index ${index.name} version=$diskSeqnum"))
+      searcher    <- Resource.make(IO.pure(Searcher(index, readerRef, searcherRef, versionRef)))(s => s.close())
+      _           <- fs2.Stream.repeatEval(searcher.sync()).metered(1.second).compile.drain.background
     } yield {
-      Searcher(index, readerRef, searcherRef, versionRef)
+      searcher
     }
-    Resource.make(make)(nis => nis.close())
+
   }
 
 }

@@ -15,9 +15,10 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   val routes = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name          => flush(indexName)
-    case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name => index(request, indexName)
-    case GET -> Root / indexName / "_mapping" if indexName == indexer.index.name         => mapping(indexName)
+    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name           => flush(indexName)
+    case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name  => index(request, indexName)
+    case request @ POST -> Root / indexName / "_index" if indexName == indexer.index.name => index(request, indexName)
+    case GET -> Root / indexName / "_mapping" if indexName == indexer.index.name          => mapping(indexName)
   }
 
   def index(request: Request[IO], indexName: String): IO[Response[IO]] = for {

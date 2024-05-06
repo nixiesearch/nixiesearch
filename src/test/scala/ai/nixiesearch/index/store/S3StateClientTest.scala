@@ -15,6 +15,6 @@ class S3StateClientTest extends StateClientSuite[S3StateClient] {
       prefix = s"test_${Random.nextInt(1000000)}",
       endpoint = Some("http://localhost:4566")
     )
-    S3StateClient.create(conf, "test").unsafeRunSync()
+    S3StateClient.create(conf, "test").allocated.unsafeRunSync()._1
   }
 }

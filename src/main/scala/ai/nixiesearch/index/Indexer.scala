@@ -23,12 +23,12 @@ import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, Term}
 import org.apache.lucene.store.{Directory, MMapDirectory}
 import org.apache.lucene.document.Document as LuceneDocument
-
+import scala.concurrent.duration.*
 import java.util
 import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
-
+import fs2.Stream
 import scala.collection.mutable.ArrayBuffer
 
 case class Indexer(index: ReplicatedIndex, writer: IndexWriter) extends Logging {
@@ -142,28 +142,30 @@ case class Indexer(index: ReplicatedIndex, writer: IndexWriter) extends Logging 
       .map(_.toMap)
   }
 
-  def flush(): IO[Unit] = for {
-    _        <- debug("index commit")
-    seqnum   <- IO(writer.commit())
-    manifest <- index.master.createManifest(index.mapping, seqnum)
-    _        <- index.master.writeManifest(manifest)
-    _        <- index.sync()
-  } yield {}
+  def flush(): IO[Unit] = IO(writer.commit()).flatMap {
+    case -1 => debug(s"nothing to commit for index '${index.name}'")
+    case seqnum =>
+      for {
+        _        <- debug(s"index commit, seqnum=$seqnum")
+        manifest <- index.master.createManifest(index.mapping, seqnum)
+        _        <- index.master.writeManifest(manifest)
+      } yield {}
+  }
 
   def close(): IO[Unit] = flush() *> IO(writer.close())
 }
 
 object Indexer {
   def open(index: ReplicatedIndex): Resource[IO, Indexer] = {
-    val make = for {
-      analyzer <- IO(IndexMapping.createAnalyzer(index.mapping))
-      config   <- IO(new IndexWriterConfig(analyzer))
-      writer   <- IO(new IndexWriter(index.directory, config))
-      niw      <- IO.pure(Indexer(index, writer))
-      _        <- niw.flush()
+    for {
+      analyzer <- Resource.eval(IO(IndexMapping.createAnalyzer(index.mapping)))
+      config   <- Resource.eval(IO(new IndexWriterConfig(analyzer)))
+      writer   <- Resource.eval(IO(new IndexWriter(index.directory, config)))
+      niw      <- Resource.make(IO(Indexer(index, writer)))(i => i.close())
+      _        <- Resource.eval(niw.flush())
+      _        <- Stream.repeatEval(niw.flush()).metered(1.second).compile.drain.background
     } yield {
       niw
     }
-    Resource.make(make)(niw => niw.close())
   }
 }
