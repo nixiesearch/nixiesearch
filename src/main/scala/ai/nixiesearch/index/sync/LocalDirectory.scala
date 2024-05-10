@@ -2,13 +2,17 @@ package ai.nixiesearch.index.sync
 
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, LocalStoreLocation}
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
 import cats.effect.{IO, Resource}
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory}
 import fs2.Stream
+import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.index.{DirectoryReader, IndexWriter}
 
 import java.nio.file.{Files, Path}
 
@@ -20,6 +24,7 @@ object LocalDirectory extends Logging {
         _             <- Resource.eval(info("initialized MMapDirectory"))
         safeIndexPath <- Resource.eval(indexPath(path, indexName))
         directory     <- Resource.make(IO(new MMapDirectory(safeIndexPath)))(dir => IO(dir.close()))
+        _             <- Resource.eval(LocalDirectory.maybeCreateEmptySegment(directory))
       } yield {
         directory
       }
@@ -27,6 +32,7 @@ object LocalDirectory extends Logging {
       for {
         _         <- Resource.eval(info("initialized in-mem ByteBuffersDirectory"))
         directory <- Resource.make(IO(new ByteBuffersDirectory()))(dir => IO(dir.close()))
+        _         <- Resource.eval(LocalDirectory.maybeCreateEmptySegment(directory))
       } yield {
         directory
       }
@@ -100,5 +106,13 @@ object LocalDirectory extends Logging {
     })
   } yield {
     indexPath
+  }
+
+  def maybeCreateEmptySegment(directory: Directory): IO[Unit] = {
+    IO.whenA(!DirectoryReader.indexExists(directory))(
+      Indexer
+        .indexWriter(directory, new StandardAnalyzer())
+        .use(w => IO(w.commit()) *> debug("index is empty, created empty segment"))
+    )
   }
 }

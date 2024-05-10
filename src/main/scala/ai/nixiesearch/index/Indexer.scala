@@ -152,20 +152,32 @@ case class Indexer(index: ReplicatedIndex, writer: IndexWriter) extends Logging 
       } yield {}
   }
 
-  def close(): IO[Unit] = flush() *> IO(writer.close())
+  def close(): IO[Unit] = flush() // writer close is managed by the parent resource
 }
 
 object Indexer {
   def open(index: ReplicatedIndex): Resource[IO, Indexer] = {
     for {
-      analyzer <- Resource.eval(IO(IndexMapping.createAnalyzer(index.mapping)))
-      config   <- Resource.eval(IO(new IndexWriterConfig(analyzer)))
-      writer   <- Resource.eval(IO(new IndexWriter(index.directory, config)))
-      niw      <- Resource.make(IO(Indexer(index, writer)))(i => i.close())
-      _        <- Resource.eval(niw.flush())
-      _        <- Stream.repeatEval(niw.flush()).metered(1.second).compile.drain.background
+      writer <- indexWriter(index.directory, index.mapping)
+      niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.close())
+      _      <- Resource.eval(niw.flush())
+      _      <- Stream.repeatEval(niw.flush()).metered(1.second).compile.drain.background
     } yield {
       niw
     }
+  }
+
+  def indexWriter(directory: Directory, mapping: IndexMapping): Resource[IO, IndexWriter] = for {
+    analyzer <- Resource.eval(IO(IndexMapping.createAnalyzer(mapping)))
+    writer   <- Indexer.indexWriter(directory, analyzer)
+  } yield {
+    writer
+  }
+
+  def indexWriter(directory: Directory, analyzer: Analyzer): Resource[IO, IndexWriter] = for {
+    config <- Resource.eval(IO(new IndexWriterConfig(analyzer)))
+    writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()))
+  } yield {
+    writer
   }
 }
