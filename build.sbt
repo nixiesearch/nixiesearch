@@ -46,7 +46,8 @@ libraryDependencies ++= Seq(
   "software.amazon.awssdk"    % "s3"                       % awsVersion,
   "co.fs2"                   %% "fs2-core"                 % fs2Version,
   "co.fs2"                   %% "fs2-io"                   % fs2Version,
-  "co.fs2"                   %% "fs2-reactive-streams"     % fs2Version
+  "co.fs2"                   %% "fs2-reactive-streams"     % fs2Version,
+  "org.typelevel"            %% "log4cats-slf4j"           % "2.7.0"
 )
 
 scalacOptions ++= Seq(
