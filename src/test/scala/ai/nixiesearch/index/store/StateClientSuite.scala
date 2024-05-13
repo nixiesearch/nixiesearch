@@ -88,7 +88,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       client.write("seg3.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
       val mf  = client.createManifest(TestIndexMapping(), 0L).unsafeRunSync()
       val now = Instant.now().toEpochMilli
-      mf.copy(files = mf.files.map(_.copy(updated = now))) shouldBe IndexManifest(
+      mf.copy(files = mf.files.map(_.copy(updated = now)).sortBy(_.name)) shouldBe IndexManifest(
         mapping = TestIndexMapping(),
         files = List(IndexFile("seg1.bin", now), IndexFile("seg2.bin", now), IndexFile("seg3.bin", now)),
         seqnum = 0L
