@@ -12,7 +12,21 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import fs2.{Chunk, Stream}
-import software.amazon.awssdk.services.s3.model.{CompleteMultipartUploadRequest, CompletedMultipartUpload, CompletedPart, CreateMultipartUploadRequest, DeleteObjectRequest, GetObjectRequest, GetObjectResponse, HeadObjectRequest, HeadObjectResponse, ListObjectsV2Request, NoSuchKeyException, PutObjectRequest, UploadPartRequest}
+import software.amazon.awssdk.services.s3.model.{
+  CompleteMultipartUploadRequest,
+  CompletedMultipartUpload,
+  CompletedPart,
+  CreateMultipartUploadRequest,
+  DeleteObjectRequest,
+  GetObjectRequest,
+  GetObjectResponse,
+  HeadObjectRequest,
+  HeadObjectResponse,
+  ListObjectsV2Request,
+  NoSuchKeyException,
+  PutObjectRequest,
+  UploadPartRequest
+}
 import fs2.interop.reactivestreams.*
 import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
 import io.circe.parser.*

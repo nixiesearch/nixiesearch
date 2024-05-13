@@ -46,5 +46,4 @@ object IndexMode extends Logging {
 
   } yield {}
 
-  
 }
