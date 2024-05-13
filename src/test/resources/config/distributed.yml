@@ -1,0 +1,31 @@
+api:
+  host: localhost
+  port: 8080
+
+suggest:
+  as-is:
+    model: nixiesearch/nixie-suggest-small-v1
+  with-transform:
+    transform:
+      fields: [title]
+      model: nixiesearch/nixie-suggest-small-v1
+
+search:
+  helloworld:
+    store:
+      distributed:
+        searcher:
+          memory:
+        indexer:
+          disk:
+            path: /path/to/index
+        remote:
+          s3:
+            bucket: index-bucket
+            prefix: foo/bar
+            region: us-east-1
+            endpoint: http://localhost:8443/
+    fields:
+      title:
+        type: text
+        search: semantic

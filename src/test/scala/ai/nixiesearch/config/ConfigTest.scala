@@ -2,12 +2,12 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.Hostname
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
+import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
-import ai.nixiesearch.config.StoreConfig.S3StoreConfig
-import ai.nixiesearch.config.StoreConfig.StoreUrl.{LocalStoreUrl, S3StoreUrl}
-import ai.nixiesearch.config.mapping.SuggestMapping.Transform
-import ai.nixiesearch.config.mapping.{IndexMapping, SuggestMapping}
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -23,10 +23,6 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        store = S3StoreConfig(
-          url = S3StoreUrl("bucket", "prefix"),
-          workdir = Paths.get(System.getProperty("user.dir"))
-        ),
         api = ApiConfig(host = Hostname("localhost")),
         search = Map(
           "helloworld" -> IndexMapping(
@@ -47,27 +43,44 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
             )
           )
-        ),
-        suggest = Map(
-          "as-is" -> SuggestMapping(
-            name = "as-is",
-            model = HuggingFaceHandle("nixiesearch", "nixie-suggest-small-v1"),
+        )
+      )
+    )
+  }
+
+  it should "parse distributed config" in {
+    val yaml   = IOUtils.resourceToString("/config/distributed.yml", StandardCharsets.UTF_8)
+    val parsed = parse(yaml).flatMap(_.as[Config])
+    parsed shouldBe Right(
+      Config(
+        api = ApiConfig(host = Hostname("localhost")),
+        search = Map(
+          "helloworld" -> IndexMapping(
+            name = "helloworld",
             alias = Nil,
-            transform = None
-          ),
-          "with-transform" -> SuggestMapping(
-            name = "with-transform",
-            model = HuggingFaceHandle("nixiesearch", "nixie-suggest-small-v1"),
-            alias = Nil,
-            transform = Some(
-              Transform(
-                fields = List("title")
+            fields = Map(
+              "_id" -> TextFieldSchema(name = "_id", filter = true),
+              "title" -> TextFieldSchema(
+                name = "title",
+                search =
+                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5)
+              )
+            ),
+            store = DistributedStoreConfig(
+              searcher = MemoryLocation(),
+              indexer = DiskLocation(Paths.get("/path/to/index")),
+              remote = S3Location(
+                bucket = "index-bucket",
+                prefix = "foo/bar",
+                region = Some("us-east-1"),
+                endpoint = Some("http://localhost:8443/")
               )
             )
           )
         )
       )
     )
+
   }
 
   it should "parse empty config" in {

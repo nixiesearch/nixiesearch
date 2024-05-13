@@ -4,8 +4,9 @@ import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, LocalIndexFixture, TestIndexMapping}
+import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -21,55 +22,48 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
   )
 
-  it should "search over lucene query syntax" in new Index {
-    val route = SearchRoute(registry)
-    val response =
-      send[String, SearchResponse](route.routes, "http://localhost/test/_search?q=pajama", None, Method.GET)
-    response.hits.size shouldBe 1
+  it should "search over dsl with empty query" in withIndex { index =>
+    {
+      val route = SearchRoute(index.searcher)
+      val response =
+        send[SearchRequest, SearchResponse](
+          route.routes,
+          "http://localhost/test/_search",
+          None,
+          Method.POST
+        )
+      response.hits.size shouldBe 3
+    }
   }
 
-  it should "search over lucene query syntax with empty query" in new Index {
-    val route = SearchRoute(registry)
-    val response =
-      send[String, SearchResponse](route.routes, "http://localhost/test/_search", None, Method.GET)
-    response.hits.size shouldBe 3
+  it should "search over dsl" in withIndex { index =>
+    {
+      val route   = SearchRoute(index.searcher)
+      val request = SearchRequest(MatchQuery("title", "pajama"), size = 10)
+      val response =
+        send[SearchRequest, SearchResponse](
+          route.routes,
+          "http://localhost/test/_search",
+          Some(request),
+          Method.POST
+        )
+      response.hits.size shouldBe 1
+    }
   }
 
-  it should "search over dsl with empty query" in new Index {
-    val route = SearchRoute(registry)
-    val response =
-      send[SearchRequest, SearchResponse](
-        route.routes,
-        "http://localhost/test/_search",
-        None,
-        Method.POST
-      )
-    response.hits.size shouldBe 3
-  }
-
-  it should "search over dsl" in new Index {
-    val route   = SearchRoute(registry)
-    val request = SearchRequest(MatchQuery("title", "pajama"), size = 10)
-    val response =
-      send[SearchRequest, SearchResponse](
-        route.routes,
-        "http://localhost/test/_search",
-        Some(request),
-        Method.POST
-      )
-    response.hits.size shouldBe 1
-  }
-
-  it should "fail on non-existent field with 4xx code" in new Index {
-    val route   = SearchRoute(registry)
-    val request = SearchRequest(MatchQuery("title_404", "pajama"), size = 10)
-    val response = sendRaw[SearchRequest](
-      route.routes,
-      "http://localhost/test/_search",
-      Some(request),
-      Method.POST
-    )
-    response.map(_.status.code) shouldBe Some(400)
+  it should "fail on non-existent field with 4xx code" in withIndex { index =>
+    {
+      val route   = SearchRoute(index.searcher)
+      val request = SearchRequest(MatchQuery("title_404", "pajama"))
+      a[UserError] should be thrownBy {
+        sendRaw[SearchRequest](
+          route.routes,
+          "http://localhost/test/_search",
+          Some(request),
+          Method.POST
+        )
+      }
+    }
   }
 
 }

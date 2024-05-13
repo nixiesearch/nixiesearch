@@ -6,14 +6,9 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
-import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, MemoryStoreConfig}
-import ai.nixiesearch.config.StoreConfig.StoreUrl.LocalStoreUrl
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.core.search.Searcher
-import ai.nixiesearch.index.IndexRegistry
-import ai.nixiesearch.index.local.LocalIndex
 import cats.data.NonEmptyList
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
@@ -29,43 +24,18 @@ trait SearchTest extends AnyFlatSpec {
   def mapping: IndexMapping
   def docs: List[Document]
 
-  trait Index {
-    val registry =
-      IndexRegistry.create(MemoryStoreConfig(), EmbeddingCacheConfig(), List(mapping)).allocated.unsafeRunSync()._1
-
-    val index = {
-      val w = registry.index(mapping.name).unsafeRunSync().get
-      w.addDocuments(docs).unsafeRunSync()
-      w.flush().unsafeRunSync()
-      w.syncReader().unsafeRunSync()
-      w
-    }
-
-    def search(
-        query: Query = MatchAllQuery(),
-        filters: Filters = Filters(),
-        aggs: Aggs = Aggs(),
-        fields: List[String] = List("_id"),
-        n: Int = 10
-    ): List[String] = {
-      Searcher
-        .search(SearchRequest(query, filters, n, fields, aggs), index)
-        .unsafeRunSync()
-        .hits
-        .flatMap(_.fields.collect { case TextField(_, value) => value })
-    }
-
-    def searchRaw(
-        query: Query = MatchAllQuery(),
-        filters: Filters = Filters(),
-        aggs: Aggs = Aggs(),
-        fields: List[String] = List("_id"),
-        n: Int = 10
-    ): SearchRoute.SearchResponse = {
-      Searcher
-        .search(SearchRequest(query, filters, n, fields, aggs), index)
-        .unsafeRunSync()
-
+  def withIndex(code: LocalNixie => Any): Unit = {
+    val (cluster, shutdown) = LocalNixie.create(mapping).allocated.unsafeRunSync()
+    try {
+      if (docs.nonEmpty) {
+        cluster.indexer.addDocuments(docs).unsafeRunSync()
+        cluster.indexer.flush().unsafeRunSync()
+        cluster.indexer.index.sync().unsafeRunSync()
+        cluster.searcher.sync().unsafeRunSync()
+      }
+      code(cluster)
+    } finally {
+      shutdown.unsafeRunSync()
     }
   }
 

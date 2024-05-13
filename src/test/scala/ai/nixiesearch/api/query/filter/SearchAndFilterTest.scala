@@ -26,9 +26,14 @@ class SearchAndFilterTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "3"), TextField("color", "red"), TextField("title", "branded dress")))
   )
 
-  it should "search and filter" in new Index {
-    val results =
-      search(query = MatchQuery("title", "dress"), filters = Filters(include = Some(TermPredicate("color", "red"))))
-    results shouldBe List("3")
+  it should "search and filter" in withIndex { index =>
+    {
+      val results =
+        index.search(
+          query = MatchQuery("title", "dress"),
+          filters = Filters(include = Some(TermPredicate("color", "red")))
+        )
+      results shouldBe List("3")
+    }
   }
 }

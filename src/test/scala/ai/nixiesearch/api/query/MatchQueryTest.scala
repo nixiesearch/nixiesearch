@@ -16,19 +16,25 @@ class MatchQueryTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
   )
 
-  it should "select matching documents for a single-term query" in new Index {
-    val docs = search(MatchQuery("title", "pajama"))
-    docs shouldBe List("3")
+  it should "select matching documents for a single-term query" in withIndex { index =>
+    {
+      val docs = index.search(MatchQuery("title", "pajama"))
+      docs shouldBe List("3")
+    }
   }
 
-  it should "select docs for a multi-term query and AND" in new Index {
-    val docs = search(MultiMatchQuery("white pajama", List("title"), Operator.AND))
-    docs shouldBe Nil
+  it should "select docs for a multi-term query and AND" in withIndex { index =>
+    {
+      val docs = index.search(MultiMatchQuery("white pajama", List("title"), Operator.AND))
+      docs shouldBe Nil
+    }
   }
 
-  it should "select docs for a multi-term query and OR" in new Index {
-    val docs = search(MultiMatchQuery("white pajama", List("title"), Operator.OR))
-    docs shouldBe List("2", "3")
+  it should "select docs for a multi-term query and OR" in withIndex { index =>
+    {
+      val docs = index.search(MultiMatchQuery("white pajama", List("title"), Operator.OR))
+      docs shouldBe List("2", "3")
+    }
   }
 
 }

@@ -20,10 +20,6 @@ import java.lang.Double as JDouble
 case class WebuiTemplate(jinja: Jinjava, template: String) {
   def empty(indexes: List[String], suggests: List[String]): IO[String] = IO {
     val ctx = JMap.of(
-      "indexes",
-      indexes.asJava,
-      "suggests",
-      suggests.asJava,
       "query",
       "",
       "docs",
@@ -32,10 +28,7 @@ case class WebuiTemplate(jinja: Jinjava, template: String) {
     jinja.render(template, ctx)
   }
   def render(
-      indexes: List[String],
-      suggests: List[String],
-      index: Option[String],
-      suggest: Option[String],
+      index: String,
       request: SearchRequest,
       response: SearchResponse
   ): IO[String] = IO {
@@ -50,13 +43,9 @@ case class WebuiTemplate(jinja: Jinjava, template: String) {
     }
     val ctx = JMap.of(
       "index",
-      index.getOrElse(""),
-      "indexes",
-      indexes.asJava,
-      "suggest",
-      suggest.getOrElse(""),
+      index,
       "suggests",
-      suggests.asJava,
+      List[String]().asJava,
       "query",
       query,
       "docs",
@@ -115,10 +104,10 @@ object WebuiTemplate {
     }
   }
 
-  def create(): IO[WebuiTemplate] = for {
-    template <- IO(IOUtils.resourceToString("/ui/search.jinja2.html", StandardCharsets.UTF_8))
-    jinja    <- IO(new Jinjava())
-  } yield {
-    WebuiTemplate(jinja, template)
+  def apply() = {
+    val template = IOUtils.resourceToString("/ui/search.jinja2.html", StandardCharsets.UTF_8)
+    val jinja    = new Jinjava()
+    new WebuiTemplate(jinja, template)
   }
+
 }

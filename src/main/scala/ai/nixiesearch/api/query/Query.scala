@@ -7,7 +7,6 @@ import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.IndexReader
 import cats.data.NonEmptyList
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}

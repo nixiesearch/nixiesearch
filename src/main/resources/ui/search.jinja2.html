@@ -132,22 +132,6 @@
         <div class="px-2 py-2 my-2">
             <form action="_ui" method="get">
                 <div class="row">
-                    <div class="col-md-2">
-                        <label for="index" class="form-label">Index</label>
-                        <select id="index" name="index" class="form-select" aria-label="Default select example">
-                            {% for ind in indexes %}
-                            <option value="{{ ind }}" {% if ind == index %} selected {% endif %} >{{ ind }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="suggest" class="form-label">Suggestion</label>
-                        <select id="suggest" name="suggest" class="form-select" aria-label="Default select example">
-                            {% for ind in suggests %}
-                            <option value="{{ ind }}" {% if ind == suggest %} selected {% endif %} >{{ ind }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     <div class="col-md-4">
                         <label for="query" class="form-label">Query</label>
                         <input type="text" id="query" name="query" class="form-control typeahead" autocomplete="off" dir="auto" spellcheck="false" value="{{ query }}">

@@ -4,6 +4,8 @@ import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 
+import scala.concurrent.duration.FiniteDuration
+
 case class IndexConfig(mapping: MappingConfig = MappingConfig())
 
 object IndexConfig {

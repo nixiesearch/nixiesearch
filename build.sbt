@@ -1,4 +1,4 @@
-import Deps.*
+import Deps._
 import sbt.Package.ManifestAttributes
 
 version := "0.0.3"
@@ -25,6 +25,8 @@ libraryDependencies ++= Seq(
   "org.http4s"               %% "http4s-ember-client"      % http4sVersion,
   "org.http4s"               %% "http4s-circe"             % http4sVersion,
   "org.apache.lucene"         % "lucene-core"              % luceneVersion,
+  "org.apache.lucene"         % "lucene-join"              % luceneVersion,
+  "org.apache.lucene"         % "lucene-suggest"           % luceneVersion,
   "org.apache.lucene"         % "lucene-facet"             % luceneVersion,
   "org.apache.lucene"         % "lucene-queryparser"       % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-common"   % luceneVersion,
@@ -40,7 +42,11 @@ libraryDependencies ++= Seq(
   "com.microsoft.onnxruntime" % "onnxruntime"              % "1.17.3",
   "com.github.luben"          % "zstd-jni"                 % "1.5.6-2",
   "com.github.blemale"       %% "scaffeine"                % "5.2.1",
-  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.2"
+  "com.hubspot.jinjava"       % "jinjava"                  % "2.7.2",
+  "software.amazon.awssdk"    % "s3"                       % awsVersion,
+  "co.fs2"                   %% "fs2-core"                 % fs2Version,
+  "co.fs2"                   %% "fs2-io"                   % fs2Version,
+  "co.fs2"                   %% "fs2-reactive-streams"     % fs2Version
 )
 
 scalacOptions ++= Seq(

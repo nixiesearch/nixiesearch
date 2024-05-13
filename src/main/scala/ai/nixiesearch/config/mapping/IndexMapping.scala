@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.{FieldSchema, StoreConfig}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -8,16 +8,26 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, LexicalSearchLike, SemanticSearchLikeType}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.nn.ModelHandle
+import cats.effect.kernel.Resource
 import cats.effect.{IO, Ref}
+import org.apache.lucene.store.{Directory, IOContext}
+import io.circe.parser.*
+import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.core.KeywordAnalyzer
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
+
+import scala.jdk.CollectionConverters.*
 
 case class IndexMapping(
     name: String,
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
+    store: StoreConfig = StoreConfig(),
     fields: Map[String, FieldSchema[_ <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
@@ -26,6 +36,8 @@ case class IndexMapping(
   val doubleFields   = fields.collect { case (name, s: DoubleFieldSchema) => name -> s }
   val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
+
+  val analyzer = IndexMapping.createAnalyzer(this)
 
   def migrate(updated: IndexMapping): IO[IndexMapping] = for {
     fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
@@ -38,32 +50,6 @@ case class IndexMapping(
     _ <- IO.whenA(this != updated)(info(s"migration of changed index mapping '$name' is successful"))
   } yield {
     updated
-  }
-
-  def withDynamicMapping(enabled: Boolean): IndexMapping = {
-    copy(config = config.copy(mapping = config.mapping.copy(dynamic = enabled)))
-  }
-
-  def dynamic(updated: IndexMapping): IO[IndexMapping] = for {
-    fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
-    migrations <- fieldNames.toList.traverse(field => migrateField(fields.get(field), updated.fields.get(field)))
-    _ <- migrations.traverse {
-      case Add(field) => info(s"field ${field.name} added to the index $name mapping")
-      case _          => IO.unit
-    }
-    _ <- IO.whenA(this != updated)(info(s"migration of changed index mapping '$name' is successful"))
-    mergedFields <- IO(
-      fieldNames.toList
-        .flatMap(field => updated.fields.get(field).orElse(fields.get(field)).map(f => f.name -> f))
-        .toMap
-    )
-  } yield {
-    IndexMapping(
-      name = updated.name,
-      alias = updated.alias,
-      config = updated.config,
-      fields = mergedFields
-    )
   }
 
   def migrateField(before: Option[FieldSchema[_ <: Field]], after: Option[FieldSchema[_ <: Field]]): IO[Migration] =
@@ -83,7 +69,10 @@ case class IndexMapping(
           )
         )
     }
-
+  def modelHandles(): List[ModelHandle] =
+    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _) =>
+      model
+    }
 }
 
 object IndexMapping extends Logging {
@@ -100,6 +89,14 @@ object IndexMapping extends Logging {
 
   def apply(name: String, fields: List[FieldSchema[_ <: Field]]): IndexMapping = {
     new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig())
+  }
+
+  def createAnalyzer(mapping: IndexMapping): Analyzer = {
+    val fieldAnalyzers = mapping.fields.values.collect {
+      case TextFieldSchema(name, LexicalSearchLike(language), _, _, _, _)     => name -> language.analyzer
+      case TextListFieldSchema(name, LexicalSearchLike(language), _, _, _, _) => name -> language.analyzer
+    }
+    new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
   }
 
   def fromDocument(docs: List[Document], indexName: String): IO[IndexMapping] = for {
@@ -133,6 +130,8 @@ object IndexMapping extends Logging {
   }
 
   object yaml {
+    import StoreConfig.yaml.given
+
     def indexMappingDecoder(name: String): Decoder[IndexMapping] = Decoder.instance(c =>
       for {
         alias <- decodeAlias(c.downField("alias"))
@@ -143,7 +142,7 @@ object IndexMapping extends Logging {
         fields <- fieldJsons.traverse { case (name, json) =>
           FieldSchema.yaml.fieldSchemaDecoder(name).decodeJson(json)
         }
-
+        store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
@@ -155,7 +154,7 @@ object IndexMapping extends Logging {
           case None =>
             fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
-        IndexMapping(name, alias = alias, fields = extendedFields, config = config)
+        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store)
 
       }
     )
@@ -172,6 +171,7 @@ object IndexMapping extends Logging {
   object json {
     import FieldSchema.json.given
     import SearchType.json.given
+    import ai.nixiesearch.util.PathJson.given
     given indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
     given indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder
   }

@@ -109,153 +109,182 @@ class RangeAggregationTest extends SearchTest with Matchers {
     )
   )
 
-  it should "aggregate over int range with gte-lt" in new Index {
-    val result = searchRaw(aggs =
-      Aggs(
-        Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
-      )
-    )
-    result.aggs shouldBe Map(
-      "count" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(2.0)), 1),
-          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
-          RangeCount(Some(Gte(4.0)), None, 3)
-        )
-      )
-    )
-  }
-
-  it should "aggregate over int range with gt-lte" in new Index {
-    val result = searchRaw(aggs =
-      Aggs(
-        Map("count" -> RangeAggregation("count", List(RangeTo(Lte(2)), RangeFromTo(Gt(2), Lte(4)), RangeFrom(Gt(4)))))
-      )
-    )
-    result.aggs shouldBe Map(
-      "count" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lte(2.0)), 2),
-          RangeCount(Some(Gt(2.0)), Some(Lte(4.0)), 2),
-          RangeCount(Some(Gt(4.0)), None, 2)
-        )
-      )
-    )
-  }
-
-  it should "aggregate over float range" in new Index {
-    val result = searchRaw(aggs =
-      Aggs(
-        Map("fcount" -> RangeAggregation("fcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
-      )
-    )
-    result.aggs shouldBe Map(
-      "fcount" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(2.0)), 1),
-          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
-          RangeCount(Some(Gte(4.0)), None, 3)
-        )
-      )
-    )
-  }
-
-  it should "aggregate over long range" in new Index {
-    val result = searchRaw(aggs =
-      Aggs(
-        Map("lcount" -> RangeAggregation("lcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
-      )
-    )
-    result.aggs shouldBe Map(
-      "lcount" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(2.0)), 1),
-          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
-          RangeCount(Some(Gte(4.0)), None, 3)
-        )
-      )
-    )
-  }
-
-  it should "aggregate over double range" in new Index {
-    val result = searchRaw(aggs =
-      Aggs(
-        Map("dcount" -> RangeAggregation("dcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
-      )
-    )
-    result.aggs shouldBe Map(
-      "dcount" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(2.0)), 1),
-          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
-          RangeCount(Some(Gte(4.0)), None, 3)
-        )
-      )
-    )
-  }
-
-  it should "aggregate and filter" in new Index {
-    val result = searchRaw(
-      aggs = Aggs(
-        Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
-      ),
-      filters = Filters(include = Some(RangeLt("count", Lte(2.5))))
-    )
-    result.aggs shouldBe Map(
-      "count" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(2.0)), 1),
-          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
-          RangeCount(Some(Gte(4.0)), None, 0)
-        )
-      )
-    )
-  }
-
-  it should "fail when aggregating over text field" in new Index {
-    val result = Try(
-      searchRaw(aggs =
+  it should "aggregate over int range with gte-lt" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
         Aggs(
-          Map("count" -> RangeAggregation("title", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+          Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
         )
       )
-    )
-    result.isFailure shouldBe true
+      result.aggs shouldBe Map(
+        "count" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2.0)), 1),
+            RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+            RangeCount(Some(Gte(4.0)), None, 3)
+          )
+        )
+      )
+    }
   }
 
-  it should "return zeroes for out of range facets" in new Index {
-    val result = searchRaw(aggs =
-      Aggs(
-        Map(
-          "count" -> RangeAggregation("count", List(RangeTo(Lt(20)), RangeFromTo(Gte(20), Lt(40)), RangeFrom(Gte(40))))
+  it should "aggregate over int range with gt-lte" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Aggs(
+          Map("count" -> RangeAggregation("count", List(RangeTo(Lte(2)), RangeFromTo(Gt(2), Lte(4)), RangeFrom(Gt(4)))))
         )
       )
-    )
-    result.aggs shouldBe Map(
-      "count" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(20.0)), 6),
-          RangeCount(Some(Gte(20.0)), Some(Lt(40.0)), 0),
-          RangeCount(Some(Gte(40.0)), None, 0)
+      result.aggs shouldBe Map(
+        "count" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lte(2.0)), 2),
+            RangeCount(Some(Gt(2.0)), Some(Lte(4.0)), 2),
+            RangeCount(Some(Gt(4.0)), None, 2)
+          )
         )
       )
-    )
+    }
   }
-  it should "aggregate over int range and search" in new Index {
-    val result = searchRaw(
-      aggs = Aggs(
-        Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
-      ),
-      query = MultiMatchQuery("socks", List("title"))
-    )
-    result.aggs shouldBe Map(
-      "count" -> RangeAggregationResult(
-        List(
-          RangeCount(None, Some(Lt(2.0)), 1),
-          RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 1),
-          RangeCount(Some(Gte(4.0)), None, 2)
+
+  it should "aggregate over float range" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Aggs(
+          Map(
+            "fcount" -> RangeAggregation("fcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+          )
         )
       )
-    )
+      result.aggs shouldBe Map(
+        "fcount" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2.0)), 1),
+            RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+            RangeCount(Some(Gte(4.0)), None, 3)
+          )
+        )
+      )
+    }
+  }
+
+  it should "aggregate over long range" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Aggs(
+          Map(
+            "lcount" -> RangeAggregation("lcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+          )
+        )
+      )
+      result.aggs shouldBe Map(
+        "lcount" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2.0)), 1),
+            RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+            RangeCount(Some(Gte(4.0)), None, 3)
+          )
+        )
+      )
+    }
+  }
+
+  it should "aggregate over double range" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Aggs(
+          Map(
+            "dcount" -> RangeAggregation("dcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+          )
+        )
+      )
+      result.aggs shouldBe Map(
+        "dcount" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2.0)), 1),
+            RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+            RangeCount(Some(Gte(4.0)), None, 3)
+          )
+        )
+      )
+    }
+  }
+
+  it should "aggregate and filter" in withIndex { index =>
+    {
+      val result = index.searchRaw(
+        aggs = Aggs(
+          Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+        ),
+        filters = Filters(include = Some(RangeLt("count", Lte(2.5))))
+      )
+      result.aggs shouldBe Map(
+        "count" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2.0)), 1),
+            RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 2),
+            RangeCount(Some(Gte(4.0)), None, 0)
+          )
+        )
+      )
+    }
+  }
+
+  it should "fail when aggregating over text field" in withIndex { index =>
+    {
+      val result = Try(
+        index.searchRaw(aggs =
+          Aggs(
+            Map(
+              "count" -> RangeAggregation("title", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+            )
+          )
+        )
+      )
+      result.isFailure shouldBe true
+    }
+  }
+
+  it should "return zeroes for out of range facets" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Aggs(
+          Map(
+            "count" -> RangeAggregation(
+              "count",
+              List(RangeTo(Lt(20)), RangeFromTo(Gte(20), Lt(40)), RangeFrom(Gte(40)))
+            )
+          )
+        )
+      )
+      result.aggs shouldBe Map(
+        "count" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(20.0)), 6),
+            RangeCount(Some(Gte(20.0)), Some(Lt(40.0)), 0),
+            RangeCount(Some(Gte(40.0)), None, 0)
+          )
+        )
+      )
+    }
+  }
+  it should "aggregate over int range and search" in withIndex { index =>
+    {
+      val result = index.searchRaw(
+        aggs = Aggs(
+          Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+        ),
+        query = MultiMatchQuery("socks", List("title"))
+      )
+      result.aggs shouldBe Map(
+        "count" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2.0)), 1),
+            RangeCount(Some(Gte(2.0)), Some(Lt(4.0)), 1),
+            RangeCount(Some(Gte(4.0)), None, 2)
+          )
+        )
+      )
+    }
   }
 }

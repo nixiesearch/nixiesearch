@@ -3,7 +3,6 @@ package ai.nixiesearch.api.query
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.IndexReader
 import cats.effect.IO
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*

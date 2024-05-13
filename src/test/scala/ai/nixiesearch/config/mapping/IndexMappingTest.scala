@@ -46,20 +46,6 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     result shouldBe after
   }
 
-  "dynamic mapping" should "update existing mapping with new fields" in {
-    val before = IndexMapping("foo", fields = Map("test1" -> IntFieldSchema("test1")))
-    val after  = IndexMapping("foo", fields = Map("test2" -> IntFieldSchema("test2")))
-    val result = before.dynamic(after).unsafeRunSync()
-    result shouldBe IndexMapping("foo", fields = before.fields ++ after.fields)
-  }
-
-  it should "accept the same field" in {
-    val before = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
-    val after  = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
-    val result = before.migrate(after).unsafeRunSync()
-    result shouldBe after
-  }
-
   it should "encode-decode a json schema" in {
     import IndexMapping.json.given
     val mapping = IndexMapping(

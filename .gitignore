@@ -12,3 +12,5 @@ docs/.venv
 .cache
 docs/site
 .run
+indices
+indexes

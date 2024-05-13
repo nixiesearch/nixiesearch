@@ -11,6 +11,8 @@
     <logger name="org.http4s.blaze.client" level="ERROR"/>
     <logger name="org.http4s.blaze.channel" level="ERROR"/>
     <logger name="ch.qos.logback" level="WARN"/>
+    <logger name="software.amazon" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
 
     <root level="error">
         <appender-ref ref="STDOUT"/>
@@ -22,8 +24,8 @@
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <!--root level="debug">
+    <root level="debug">
         <appender-ref ref="STDOUT"/>
-    </root-->
+    </root>
 
 </configuration>
