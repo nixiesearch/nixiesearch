@@ -172,6 +172,7 @@ object IndexMapping extends Logging {
     import FieldSchema.json.given
     import SearchType.json.given
     import ai.nixiesearch.util.PathJson.given
+    import ai.nixiesearch.config.StoreConfig.json.given
     given indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
     given indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder
   }
