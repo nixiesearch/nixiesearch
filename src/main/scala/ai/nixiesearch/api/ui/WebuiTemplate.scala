@@ -104,10 +104,10 @@ object WebuiTemplate {
     }
   }
 
-  def create(): IO[WebuiTemplate] = for {
-    template <- IO(IOUtils.resourceToString("/ui/search.jinja2.html", StandardCharsets.UTF_8))
-    jinja    <- IO(new Jinjava())
-  } yield {
-    WebuiTemplate(jinja, template)
+  def apply() = {
+    val template = IOUtils.resourceToString("/ui/search.jinja2.html", StandardCharsets.UTF_8)
+    val jinja    = new Jinjava()
+    new WebuiTemplate(jinja, template)
   }
+
 }

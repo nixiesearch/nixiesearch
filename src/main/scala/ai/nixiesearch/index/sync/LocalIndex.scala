@@ -21,8 +21,8 @@ case class LocalIndex(
     master: StateClient,
     directory: Directory,
     seqnum: Ref[IO, Long]
-) extends ReplicatedIndex {
-  override def sync(): IO[Unit] = for {
+) extends Index {
+  override def sync(): IO[Boolean] = for {
     manifest <- master.readManifest().flatMap {
       case None =>
         IO.raiseError(StateError.InconsistentStateError("missing manifest for opened index: this should never happen!"))
@@ -30,9 +30,9 @@ case class LocalIndex(
     }
     _ <- seqnum.set(manifest.seqnum)
     _ <- debug(s"local index '${mapping.name}' sync done, seqnum=${manifest.seqnum}")
-  } yield {}
-
-  override def close(): IO[Unit] = IO.unit
+  } yield {
+    true
+  }
 
   override def local: StateClient   = master
   override def replica: StateClient = master

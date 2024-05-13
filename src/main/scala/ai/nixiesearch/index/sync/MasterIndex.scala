@@ -23,40 +23,6 @@ case class MasterIndex(
     seqnum: Ref[IO, Long]
 ) extends ReplicatedIndex
     with Logging {
-  override def sync(): IO[Unit] = for {
-    _                     <- debug("index sync in progress")
-    masterManifestOption  <- master.readManifest()
-    replicaManifestOption <- replica.readManifest()
-    _ <- (masterManifestOption, replicaManifestOption) match {
-      case (Some(masterManifest), Some(replicaManifest)) if masterManifest.seqnum > replicaManifest.seqnum =>
-        Stream
-          .evalSeq(IO(IndexManifest.diff(masterManifest, replicaManifest)))
-          .evalMap {
-            case ChangedFileOp.Add(fileName) => replica.write(fileName, master.read(fileName))
-            case ChangedFileOp.Del(fileName) => replica.delete(fileName)
-          }
-          .compile
-          .drain
-      case (Some(masterManifest), Some(replicaManifest)) =>
-        info(s"local seqnum=${masterManifest.seqnum} remote=${replicaManifest.seqnum}, no need to sync")
-      case (Some(masterManifest), None) =>
-        Stream
-          .evalSeq(IO(IndexManifest.diff(masterManifest)))
-          .evalMap {
-            case ChangedFileOp.Add(fileName) => replica.write(fileName, master.read(fileName))
-            case ChangedFileOp.Del(fileName) => replica.delete(fileName)
-          }
-          .compile
-          .drain
-
-      case (None, Some(replicaManifest)) =>
-        IO.raiseError(new Exception(s"local manifest empty for index '${mapping.name}'"))
-      case (None, None) =>
-        IO.raiseError(new Exception(s"both manifests for local and remote are empty for index '${mapping.name}'"))
-    }
-    _ <- debug("index sync done")
-  } yield {}
-  override def close(): IO[Unit]  = IO.unit
   override def local: StateClient = master
 }
 
@@ -65,24 +31,25 @@ object MasterIndex extends Logging {
     for {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
       directory    <- LocalDirectory.fromRemote(conf.indexer, replicaState, configMapping.name)
-      masterState  <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
+      masterState  <- DirectoryStateClient.create(directory, configMapping.name)
 
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
       encoders <- BiEncoderCache.create(handles, cache.embedding)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
-      index <- Resource.pure(
-        MasterIndex(
-          mapping = manifest.mapping,
-          encoders = encoders,
-          master = masterState,
-          replica = replicaState,
-          directory = directory,
-          seqnum = seqnum
+      index <- Resource.make(
+        IO(
+          MasterIndex(
+            mapping = manifest.mapping,
+            encoders = encoders,
+            master = masterState,
+            replica = replicaState,
+            directory = directory,
+            seqnum = seqnum
+          )
         )
-      )
-      _ <- fs2.Stream.repeatEval(index.sync()).metered(1.second).compile.drain.background
-      _ <- Resource.eval(info(s"index ${manifest.mapping.name} opened"))
+      )(index => debug(s"closing master index=${index.mapping.name}"))
+      _ <- Resource.eval(info(s"master index ${manifest.mapping.name} opened for writing"))
     } yield {
       index
     }

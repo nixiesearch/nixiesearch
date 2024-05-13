@@ -24,6 +24,7 @@ case class DirectoryStateClient(dir: Directory, indexName: String) extends State
     now   <- IO(Instant.now().toEpochMilli)
     entries <- Stream
       .emits(files)
+      .filter(f => !f.endsWith(".tmp"))
       .evalMap(file => IO(IndexFile(file, now)))
       .compile
       .toList
@@ -98,13 +99,19 @@ case class DirectoryStateClient(dir: Directory, indexName: String) extends State
   override def delete(fileName: String): IO[Unit] =
     debug(s"deleting $fileName") *> IO(dir.deleteFile(fileName)).handleErrorWith(wrapExceptions)
 
-  override def close(): IO[Unit] = IO.unit
-
   private def wrapExceptions(ex: Throwable) = ex match {
     case ex: NoSuchFileException =>
       error(s"IO error: $ex", ex) *> IO.raiseError(FileMissingError(IndexManifest.MANIFEST_FILE_NAME))
     case ex: FileAlreadyExistsException =>
       error(s"IO error: $ex", ex) *> IO.raiseError(FileExistsError(IndexManifest.MANIFEST_FILE_NAME))
     case other => IO.raiseError(ex)
+  }
+}
+
+object DirectoryStateClient extends Logging {
+  def create(dir: Directory, indexName: String): Resource[IO, DirectoryStateClient] = for {
+    _ <- Resource.eval(debug(s"created DirectoryStateClient for dir=$dir index=$indexName"))
+  } yield {
+    DirectoryStateClient(dir, indexName)
   }
 }

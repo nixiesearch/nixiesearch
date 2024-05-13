@@ -38,7 +38,7 @@ import java.time.Instant
 import java.util.concurrent.CompletableFuture
 
 case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: String) extends StateClient with Logging {
-  val IO_BUFFER_SIZE = 1024 * 1024
+  val IO_BUFFER_SIZE = 5 * 1024 * 1024
 
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
     path  <- IO(s"${conf.prefix}/$indexName/")
@@ -131,11 +131,6 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: Str
     _       <- IO.fromCompletableFuture(IO(client.deleteObject(request))).handleErrorWith(wrapException(fileName))
   } yield {}
 
-  override def close(): IO[Unit] = for {
-    _ <- info(s"closing S3 client")
-    _ <- IO(client.close())
-  } yield {}
-
   private def wrapException[T](fileName: String)(ex: Throwable): IO[T] = ex match {
     case e: NoSuchKeyException => IO.raiseError(StateError.FileMissingError(fileName))
     case other                 => IO.raiseError(other)
@@ -184,7 +179,7 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: Str
   }
 }
 
-object S3StateClient {
+object S3StateClient extends Logging {
   case class S3File(name: String, lastModified: Long)
   class S3GetObjectResponseStream[T]()
       extends AsyncResponseTransformer[GetObjectResponse, Stream[IO, Byte]]
@@ -213,6 +208,7 @@ object S3StateClient {
   }
 
   def create(conf: S3Location, indexName: String): Resource[IO, S3StateClient] = for {
+    _     <- Resource.eval(debug(s"creating S3StateClient for conf=$conf index=$indexName"))
     creds <- Resource.eval(IO(DefaultCredentialsProvider.create()))
     clientBuilder <- Resource.eval(
       IO(

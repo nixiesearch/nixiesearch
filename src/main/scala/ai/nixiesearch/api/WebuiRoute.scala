@@ -19,13 +19,13 @@ import org.http4s.headers.`Content-Type`
 import scodec.bits.ByteVector
 
 case class WebuiRoute(
-    searchRoute: SearchRoute,
+    searcher: Searcher,
     tmpl: WebuiTemplate
 ) extends Route
     with Logging {
 
   val routes = HttpRoutes.of[IO] {
-    case GET -> Root / indexName / "_ui" / "assets" / fileName if indexName == searchRoute.searcher.index.name =>
+    case GET -> Root / indexName / "_ui" / "assets" / fileName if indexName == searcher.index.name =>
       for {
         bytes <- IO(IOUtils.resourceToByteArray(s"/ui/assets/$fileName"))
         _     <- info(s"GET assets/$fileName")
@@ -37,23 +37,23 @@ case class WebuiRoute(
           entity = Entity.strict(ByteVector(bytes))
         )
       }
-    case GET -> Root / indexName / "_ui" :? QueryParam(query) if indexName == searchRoute.searcher.index.name =>
+    case GET -> Root / indexName / "_ui" :? QueryParam(query) if indexName == searcher.index.name =>
       search(Some(query))
-    case GET -> Root / indexName / "_ui" if indexName == searchRoute.searcher.index.name =>
+    case GET -> Root / indexName / "_ui" if indexName == searcher.index.name =>
       search(None)
   }
 
   def search(queryString: Option[String]) = {
     for {
-      query    <- makeQuery(searchRoute.searcher, queryString)
-      request  <- makeRequest(searchRoute.searcher, query)
-      response <- searchRoute.searcher.search(request)
+      query    <- makeQuery(searcher, queryString)
+      request  <- makeRequest(searcher, query)
+      response <- searcher.search(request)
       html <- tmpl.render(
-        index = searchRoute.searcher.index.name,
+        index = searcher.index.name,
         request,
         response
       )
-      _ <- info(s"rendering search UI for index '${searchRoute.searcher.index.name}' and request $request")
+      _ <- info(s"rendering search UI for index '${searcher.index.name}' and request $request")
     } yield {
       Response[IO](
         headers = Headers(`Content-Type`(MediaType.text.html)),
@@ -94,8 +94,7 @@ case class WebuiRoute(
 }
 
 object WebuiRoute {
-
-  def create(searchRoute: SearchRoute): IO[WebuiRoute] =
-    WebuiTemplate.create().map(tmpl => WebuiRoute(searchRoute, tmpl))
+  lazy val template                         = WebuiTemplate()
+  def apply(searcher: Searcher): WebuiRoute = WebuiRoute(searcher, template)
 
 }

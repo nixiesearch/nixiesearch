@@ -11,7 +11,7 @@ import fs2.io.file.Files
 import fs2.io.{readInputStream, writeOutputStream}
 import fs2.io.file.Path
 import io.circe.parser.*
-
+import cats.implicits.*
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Path as JPath
 import fs2.Stream
@@ -83,5 +83,12 @@ case class RemotePathStateClient(path: JPath, indexName: String) extends StateCl
     _        <- Files[IO].deleteIfExists(Path.fromNioPath(filePath))
   } yield {}
 
-  override def close(): IO[Unit] = IO.unit
+}
+
+object RemotePathStateClient extends Logging {
+  def create(path: JPath, indexName: String): Resource[IO, RemotePathStateClient] = for {
+    _ <- Resource.eval(debug(s"created RemotePathStateClient for path=$path index=$indexName"))
+  } yield {
+    RemotePathStateClient(path, indexName)
+  }
 }

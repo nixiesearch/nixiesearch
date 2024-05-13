@@ -17,21 +17,23 @@ import ai.nixiesearch.core.codec.{
 }
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.sync.ReplicatedIndex
+import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, Term}
 import org.apache.lucene.store.{Directory, MMapDirectory}
 import org.apache.lucene.document.Document as LuceneDocument
+
 import scala.concurrent.duration.*
 import java.util
 import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
 import fs2.Stream
+
 import scala.collection.mutable.ArrayBuffer
 
-case class Indexer(index: ReplicatedIndex, writer: IndexWriter) extends Logging {
+case class Indexer(index: Index, writer: IndexWriter) extends Logging {
 
   lazy val textFieldWriter     = TextFieldWriter()
   lazy val textListFieldWriter = TextListFieldWriter()
@@ -142,26 +144,28 @@ case class Indexer(index: ReplicatedIndex, writer: IndexWriter) extends Logging 
       .map(_.toMap)
   }
 
-  def flush(): IO[Unit] = IO(writer.commit()).flatMap {
-    case -1 => debug(s"nothing to commit for index '${index.name}'")
+  def flush(): IO[Boolean] = IO(writer.commit()).flatMap {
+    case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
     case seqnum =>
       for {
         _        <- debug(s"index commit, seqnum=$seqnum")
         manifest <- index.master.createManifest(index.mapping, seqnum)
+        _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
         _        <- index.master.writeManifest(manifest)
-      } yield {}
+      } yield {
+        true
+      }
   }
 
-  def close(): IO[Unit] = flush() // writer close is managed by the parent resource
+  def close(): IO[Unit] = flush().void // writer close is managed by the parent resource
 }
 
 object Indexer {
-  def open(index: ReplicatedIndex): Resource[IO, Indexer] = {
+  def open(index: Index): Resource[IO, Indexer] = {
     for {
       writer <- indexWriter(index.directory, index.mapping)
       niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.close())
       _      <- Resource.eval(niw.flush())
-      _      <- Stream.repeatEval(niw.flush()).metered(1.second).compile.drain.background
     } yield {
       niw
     }

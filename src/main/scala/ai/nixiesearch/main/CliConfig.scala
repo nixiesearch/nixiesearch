@@ -1,7 +1,7 @@
 package ai.nixiesearch.main
 
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.fileConverter
 import cats.effect.IO
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
@@ -47,19 +47,33 @@ object CliConfig extends Logging {
   object CliArgs {
     case class StandaloneArgs(config: Option[File]) extends CliArgs
     case class IndexArgs(config: Option[File])      extends CliArgs
-    case class SearchArgs(config: Option[File])         extends CliArgs
+    case class SearchArgs(config: Option[File])     extends CliArgs
   }
 
   def load(args: List[String]): IO[CliArgs] = for {
     parser <- IO(CliConfig(args))
     _      <- IO(parser.verify())
     opts <- parser.subcommand match {
-      case Some(standalone) =>
+      case Some(parser.standalone) =>
         for {
           config <- parseOption(parser.standalone.config)
         } yield {
           StandaloneArgs(config)
         }
+      case Some(parser.index) =>
+        for {
+          config <- parseOption(parser.index.config)
+        } yield {
+          IndexArgs(config)
+        }
+      case Some(parser.search) =>
+        for {
+          config <- parseOption(parser.search.config)
+        } yield {
+          SearchArgs(config)
+        }
+      case Some(other) =>
+        IO.raiseError(new Exception(s"Subcommand $other is not supported. Try standalone/search/index."))
       case None => IO.raiseError(new Exception("No command given. If unsure, try 'nixiesearch standalone'"))
     }
   } yield {

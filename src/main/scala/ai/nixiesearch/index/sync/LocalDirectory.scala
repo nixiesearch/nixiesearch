@@ -71,7 +71,7 @@ object LocalDirectory extends Logging {
           _ <- (localManifest.seqnum, remoteManifest.seqnum) match {
             case (ls, rs) if ls < rs =>
               Stream
-                .evalSeq(IO(IndexManifest.diff(remoteManifest, localManifest)))
+                .evalSeq(remoteManifest.diff(Some(localManifest)))
                 .evalMap {
                   case ChangedFileOp.Add(fileName) => local.write(fileName, remote.read(fileName))
                   case ChangedFileOp.Del(fileName) => local.delete(fileName)
@@ -82,7 +82,7 @@ object LocalDirectory extends Logging {
               info(s"both local and remote for index '$indexName' are the same, skipping sync")
             case (ls, rs) if ls > rs =>
               Stream
-                .evalSeq(IO(IndexManifest.diff(localManifest, remoteManifest)))
+                .evalSeq(localManifest.diff(Some(remoteManifest)))
                 .evalMap {
                   case ChangedFileOp.Add(fileName) => remote.write(fileName, local.read(fileName))
                   case ChangedFileOp.Del(fileName) => remote.delete(fileName)

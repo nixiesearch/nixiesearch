@@ -15,7 +15,6 @@ trait StateClient {
   def read(fileName: String): Stream[IO, Byte]
   def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit]
   def delete(fileName: String): IO[Unit]
-  def close(): IO[Unit]
 
   def writeManifest(manifest: IndexManifest): IO[Unit] =
     write(
@@ -33,8 +32,7 @@ object StateClient {
 
   def createRemote(config: BlockStoreLocation, indexName: String): Resource[IO, StateClient] = config match {
     case s: BlockStoreLocation.S3Location         => S3StateClient.create(s, indexName)
-    case s: BlockStoreLocation.RemoteDiskLocation => Resource.pure(RemotePathStateClient(s.path, indexName))
+    case s: BlockStoreLocation.RemoteDiskLocation => RemotePathStateClient.create(s.path, indexName)
   }
-  
-  
+
 }

@@ -19,14 +19,14 @@ import java.time.Instant
 import scala.util.Random
 
 trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
-  def client(): T
+  def client(): Resource[IO, T]
 
   protected def withClient[O](code: StateClient => O): Unit = {
-    val clientInstance = client()
+    val (clientInstance, shutdownHook) = client().allocated.unsafeRunSync()
     try {
       code(clientInstance)
     } finally {
-      clientInstance.close().unsafeRunSync()
+      shutdownHook.unsafeRunSync()
     }
   }
 

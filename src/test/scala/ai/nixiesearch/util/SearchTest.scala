@@ -30,6 +30,7 @@ trait SearchTest extends AnyFlatSpec {
       if (docs.nonEmpty) {
         cluster.indexer.addDocuments(docs).unsafeRunSync()
         cluster.indexer.flush().unsafeRunSync()
+        cluster.indexer.index.sync().unsafeRunSync()
         cluster.searcher.sync().unsafeRunSync()
       }
       code(cluster)

@@ -29,15 +29,16 @@ import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.Searcher.FieldTopDocs
 import ai.nixiesearch.index.manifest.IndexManifest
-import ai.nixiesearch.index.sync.ReplicatedIndex
+import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
+
 import scala.concurrent.duration.*
 import scala.collection.mutable
 
 case class Searcher(
-    index: ReplicatedIndex,
+    index: Index,
     readerRef: Ref[IO, DirectoryReader],
     searcherRef: Ref[IO, IndexSearcher],
     searcherSeqnumRef: Ref[IO, Long]
@@ -221,7 +222,7 @@ case class Searcher(
 
 object Searcher extends Logging {
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
-  def open(index: ReplicatedIndex): Resource[IO, Searcher] = {
+  def open(index: Index): Resource[IO, Searcher] = {
     for {
       reader      <- Resource.eval(IO(DirectoryReader.open(index.directory)))
       readerRef   <- Resource.eval(Ref.of[IO, DirectoryReader](reader))

@@ -4,5 +4,5 @@ import ai.nixiesearch.util.TestIndexMapping
 import org.apache.lucene.store.ByteBuffersDirectory
 
 class DirectoryStateClientTest extends StateClientSuite[DirectoryStateClient] {
-  override def client(): DirectoryStateClient = DirectoryStateClient(new ByteBuffersDirectory(), "test")
+  override def client() = DirectoryStateClient.create(new ByteBuffersDirectory(), "test")
 }
