@@ -19,11 +19,11 @@ class TermJsonTest extends AnyFlatSpec with Matchers {
 
   it should "fail on multi field" in {
     val result = decode[TermPredicate]("""{"color":"red", "size":"big"}""")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
   }
 
   it should "fail on non-string value" in {
     val result = decode[TermPredicate]("""{"color":1}""")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
   }
 }

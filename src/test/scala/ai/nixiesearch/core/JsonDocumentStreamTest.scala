@@ -11,7 +11,7 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val expected = Document(List(TextField("_id", "1"), TextField("text", "foo")))
 
   it should "decode raw json" in {
-    val result = Stream(doc.getBytes(): _*).through(JsonDocumentStream.parse).compile.toList.unsafeRunSync()
+    val result = Stream(doc.getBytes()*).through(JsonDocumentStream.parse).compile.toList.unsafeRunSync()
     result shouldBe List(expected)
   }
 
@@ -23,7 +23,7 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
 
   it should "decode json arrays" in {
     val input  = s"[$doc, $doc]"
-    val result = Stream(input.getBytes(): _*).through(JsonDocumentStream.parse).compile.toList.unsafeRunSync()
+    val result = Stream(input.getBytes()*).through(JsonDocumentStream.parse).compile.toList.unsafeRunSync()
     result shouldBe List(expected, expected)
   }
 }

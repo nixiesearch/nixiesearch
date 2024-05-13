@@ -36,7 +36,7 @@ object AggregationResult {
         from.map(x => x.name -> Json.fromDoubleOrNull(x.value)).toList,
         to.map(x => x.name -> Json.fromDoubleOrNull(x.value)).toList,
         List("count" -> Json.fromInt(count))
-      ): _*
+      )*
     )
   }
   given rangeAggregationResultEncoder: Encoder[RangeAggregationResult] = deriveEncoder

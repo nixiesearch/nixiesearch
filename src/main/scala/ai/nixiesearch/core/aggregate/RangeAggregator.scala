@@ -16,7 +16,7 @@ object RangeAggregator {
       reader: IndexReader,
       request: RangeAggregation,
       facets: FacetsCollector,
-      field: FieldSchema[_ <: Field]
+      field: FieldSchema[? <: Field]
   ): IO[RangeAggregationResult] = field match {
     case int: IntFieldSchema    => intLongAggregate(reader, request, facets)
     case long: LongFieldSchema  => intLongAggregate(reader, request, facets)
@@ -37,7 +37,7 @@ object RangeAggregator {
       case AggRange.RangeFromTo(from, to) =>
         new LongRange(s"$from-$to", math.round(from.value), from.inclusive, math.round(to.value), to.inclusive)
     }
-    val counts = new LongRangeFacetCounts(request.field, facets, ranges: _*)
+    val counts = new LongRangeFacetCounts(request.field, facets, ranges*)
     val buckets = for {
       (count, range) <- counts.getAllChildren(request.field).labelValues.map(_.value.intValue()).zip(request.ranges)
     } yield {
@@ -61,7 +61,7 @@ object RangeAggregator {
       case AggRange.RangeFromTo(from, to) =>
         new DoubleRange(s"$from-$to", from.value, from.inclusive, to.value, to.inclusive)
     }
-    val counts = new DoubleRangeFacetCounts(request.field, facets, ranges: _*)
+    val counts = new DoubleRangeFacetCounts(request.field, facets, ranges*)
     val buckets = for {
       (count, range) <- counts.getAllChildren(request.field).labelValues.map(_.value.intValue()).zip(request.ranges)
     } yield {

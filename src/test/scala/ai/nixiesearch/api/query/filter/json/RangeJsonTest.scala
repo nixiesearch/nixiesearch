@@ -27,12 +27,12 @@ class RangeJsonTest extends AnyFlatSpec with Matchers {
 
   it should "fail decoding when no gte+lte" in {
     val result = decode[RangePredicate]("""{"price":{"nope":10}}""")
-    result shouldBe a[Left[_, RangePredicate]]
+    result shouldBe a[Left[?, RangePredicate]]
   }
 
   it should "fail when decoding both gt and gte" in {
     val result = decode[RangePredicate]("""{"price":{"gt":10, "gte":10}}""")
-    result shouldBe a[Left[_, RangePredicate]]
+    result shouldBe a[Left[?, RangePredicate]]
   }
 
   it should "encode gte/lte range" in {

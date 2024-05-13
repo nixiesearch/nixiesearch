@@ -28,7 +28,7 @@ case class IndexMapping(
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
     store: StoreConfig = StoreConfig(),
-    fields: Map[String, FieldSchema[_ <: Field]]
+    fields: Map[String, FieldSchema[? <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
   val longFields     = fields.collect { case (name, s: LongFieldSchema) => name -> s }
@@ -52,7 +52,7 @@ case class IndexMapping(
     updated
   }
 
-  def migrateField(before: Option[FieldSchema[_ <: Field]], after: Option[FieldSchema[_ <: Field]]): IO[Migration] =
+  def migrateField(before: Option[FieldSchema[? <: Field]], after: Option[FieldSchema[? <: Field]]): IO[Migration] =
     (before, after) match {
       case (Some(deleted), None)                                        => IO.pure(Delete(deleted))
       case (None, Some(added))                                          => IO.pure(Add(added))
@@ -77,17 +77,17 @@ case class IndexMapping(
 
 object IndexMapping extends Logging {
   sealed trait Migration {
-    def field: FieldSchema[_ <: Field]
+    def field: FieldSchema[? <: Field]
   }
   object Migration {
-    case class Add(field: FieldSchema[_ <: Field])    extends Migration
-    case class Delete(field: FieldSchema[_ <: Field]) extends Migration
-    case class Keep(field: FieldSchema[_ <: Field])   extends Migration
+    case class Add(field: FieldSchema[? <: Field])    extends Migration
+    case class Delete(field: FieldSchema[? <: Field]) extends Migration
+    case class Keep(field: FieldSchema[? <: Field])   extends Migration
   }
 
   case class Alias(name: String)
 
-  def apply(name: String, fields: List[FieldSchema[_ <: Field]]): IndexMapping = {
+  def apply(name: String, fields: List[FieldSchema[? <: Field]]): IndexMapping = {
     new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig())
   }
 
@@ -112,7 +112,7 @@ object IndexMapping extends Logging {
           case f: FloatField                      => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
           case f: DoubleField                     => IO.pure(List(DoubleFieldSchema.dynamicDefault(fieldName)))
         }
-      case (fieldName, _) => IO(List.empty[FieldSchema[_ <: Field]]) // should never happen
+      case (fieldName, _) => IO(List.empty[FieldSchema[? <: Field]]) // should never happen
     }
   } yield {
     val withId =

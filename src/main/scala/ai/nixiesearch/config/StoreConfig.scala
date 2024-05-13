@@ -36,9 +36,55 @@ object StoreConfig {
   }
 
   object yaml {
+    given diskLocationDecoder: Decoder[LocalStoreLocation.DiskLocation] = Decoder.instance(c =>
+      for {
+        path <- c.downField("path").as[Option[Path]]
+      } yield {
+        DiskLocation(path.getOrElse(DEFAULT_WORKDIR))
+      }
+    )
+
+    given memoryLocationDecoder: Decoder[LocalStoreLocation.MemoryLocation] =
+      Decoder.instance(c => Right(MemoryLocation()))
+
+    given localStoreLocationDecoder: Decoder[LocalStoreLocation] = Decoder.instance(c =>
+      c.downField("disk").focus match {
+        case Some(disk) => diskLocationDecoder.decodeJson(disk)
+        case None =>
+          c.downField("memory").focus match {
+            case Some(memory) => memoryLocationDecoder.decodeJson(memory)
+            case None =>
+              Left(
+                DecodingFailure(s"cannot decode LocalStoreLocation: expected disk/memory, but got ${c.keys}", c.history)
+              )
+          }
+      }
+    )
     given localStoreConfigDecoder: Decoder[LocalStoreConfig] =
       Decoder.instance(c => c.as[LocalStoreLocation].map(c => LocalStoreConfig(c)))
 
+    given s3LocationDecoder: Decoder[BlockStoreLocation.S3Location] = Decoder.instance(c =>
+      for {
+        bucket   <- c.downField("bucket").as[String]
+        prefix   <- c.downField("prefix").as[String]
+        region   <- c.downField("region").as[Option[String]]
+        endpoint <- c.downField("endpoint").as[Option[String]]
+      } yield {
+        S3Location(bucket, prefix, region, endpoint)
+      }
+    )
+    given remoteDiskLocationDecoder: Decoder[BlockStoreLocation.RemoteDiskLocation] = deriveDecoder
+    given blockStoreLocationDecoder: Decoder[BlockStoreLocation] = Decoder.instance(c =>
+      c.downField("s3").focus match {
+        case Some(s3) => s3LocationDecoder.decodeJson(s3)
+        case None =>
+          c.downField("disk").focus match {
+            case Some(disk) => remoteDiskLocationDecoder.decodeJson(disk)
+            case None =>
+              Left(DecodingFailure(s"cannot decode BlockStoreLocation: expected s3/disk, got ${c.keys}", c.history))
+          }
+      }
+    )
     given distributedStoreConfigDecoder: Decoder[DistributedStoreConfig] = Decoder.instance(c =>
       for {
         searcher <- c.downField("searcher").as[Option[LocalStoreLocation]]
@@ -65,50 +111,6 @@ object StoreConfig {
       }
     )
 
-    given diskLocationDecoder: Decoder[LocalStoreLocation.DiskLocation] = Decoder.instance(c =>
-      for {
-        path <- c.downField("path").as[Option[Path]]
-      } yield {
-        DiskLocation(path.getOrElse(DEFAULT_WORKDIR))
-      }
-    )
-    given memoryLocationDecoder: Decoder[LocalStoreLocation.MemoryLocation] =
-      Decoder.instance(c => Right(MemoryLocation()))
-    given localStoreLocationDecoder: Decoder[LocalStoreLocation] = Decoder.instance(c =>
-      c.downField("disk").focus match {
-        case Some(disk) => diskLocationDecoder.decodeJson(disk)
-        case None =>
-          c.downField("memory").focus match {
-            case Some(memory) => memoryLocationDecoder.decodeJson(memory)
-            case None =>
-              Left(
-                DecodingFailure(s"cannot decode LocalStoreLocation: expected disk/memory, but got ${c.keys}", c.history)
-              )
-          }
-      }
-    )
-    given s3LocationDecoder: Decoder[BlockStoreLocation.S3Location] = Decoder.instance(c =>
-      for {
-        bucket   <- c.downField("bucket").as[String]
-        prefix   <- c.downField("prefix").as[String]
-        region   <- c.downField("region").as[Option[String]]
-        endpoint <- c.downField("endpoint").as[Option[String]]
-      } yield {
-        S3Location(bucket, prefix, region, endpoint)
-      }
-    )
-    given remoteDiskLocationDecoder: Decoder[BlockStoreLocation.RemoteDiskLocation] = deriveDecoder
-    given blockStoreLocationDecoder: Decoder[BlockStoreLocation] = Decoder.instance(c =>
-      c.downField("s3").focus match {
-        case Some(s3) => s3LocationDecoder.decodeJson(s3)
-        case None =>
-          c.downField("disk").focus match {
-            case Some(disk) => remoteDiskLocationDecoder.decodeJson(disk)
-            case None =>
-              Left(DecodingFailure(s"cannot decode BlockStoreLocation: expected s3/disk, got ${c.keys}", c.history))
-          }
-      }
-    )
   }
 
   object json {

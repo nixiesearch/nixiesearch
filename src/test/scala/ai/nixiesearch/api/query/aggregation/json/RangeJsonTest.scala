@@ -21,7 +21,7 @@ class RangeJsonTest extends AnyFlatSpec with Matchers {
 
   it should "fail on empty range" in {
     val result = decode[AggRange]("""{"ffrom":1,"tto":2}""")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
   }
 
 }

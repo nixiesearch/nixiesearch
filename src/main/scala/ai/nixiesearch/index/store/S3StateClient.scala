@@ -12,21 +12,7 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import fs2.{Chunk, Stream}
-import software.amazon.awssdk.services.s3.model.{
-  CompleteMultipartUploadRequest,
-  CompletedMultipartUpload,
-  CompletedPart,
-  CreateMultipartUploadRequest,
-  DeleteObjectRequest,
-  GetObjectRequest,
-  GetObjectResponse,
-  HeadObjectRequest,
-  HeadObjectResponse,
-  ListObjectsV2Request,
-  NoSuchKeyException,
-  PutObjectRequest,
-  UploadPartRequest
-}
+import software.amazon.awssdk.services.s3.model.{CompleteMultipartUploadRequest, CompletedMultipartUpload, CompletedPart, CreateMultipartUploadRequest, DeleteObjectRequest, GetObjectRequest, GetObjectResponse, HeadObjectRequest, HeadObjectResponse, ListObjectsV2Request, NoSuchKeyException, PutObjectRequest, UploadPartRequest}
 import fs2.interop.reactivestreams.*
 import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
 import io.circe.parser.*
@@ -36,6 +22,7 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
+import scala.compiletime.uninitialized
 
 case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 5 * 1024 * 1024
@@ -117,7 +104,7 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: Str
         .bucket(conf.bucket)
         .key(path)
         .uploadId(mpart.uploadId())
-        .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts: _*).build())
+        .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts*).build())
         .build()
     )
     _ <- IO.fromCompletableFuture(IO(client.completeMultipartUpload(request)))
@@ -184,7 +171,7 @@ object S3StateClient extends Logging {
   class S3GetObjectResponseStream[T]()
       extends AsyncResponseTransformer[GetObjectResponse, Stream[IO, Byte]]
       with Logging {
-    var cf: CompletableFuture[Stream[IO, Byte]] = _
+    var cf: CompletableFuture[Stream[IO, Byte]] = uninitialized
 
     override def prepare(): CompletableFuture[Stream[IO, Byte]] = {
       cf = new CompletableFuture[Stream[IO, Byte]]()

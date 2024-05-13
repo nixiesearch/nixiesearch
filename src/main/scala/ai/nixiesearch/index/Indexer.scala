@@ -95,7 +95,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         all.add(buffer)
       })
       val deleteIds = ids.map(id => new Term("_id_raw", id))
-      writer.deleteDocuments(deleteIds.toSeq: _*)
+      writer.deleteDocuments(deleteIds.toSeq*)
       writer.addDocuments(all)
     }
   }

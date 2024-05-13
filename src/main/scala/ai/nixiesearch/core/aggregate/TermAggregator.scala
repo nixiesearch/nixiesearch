@@ -14,7 +14,7 @@ object TermAggregator {
       reader: IndexReader,
       request: TermAggregation,
       facets: FacetsCollector,
-      field: FieldSchema[_ <: Field]
+      field: FieldSchema[? <: Field]
   ): IO[TermAggregationResult] = {
     field match {
       case _: FieldSchema.TextFieldSchema     => IO(doAggregate(reader, request, facets))

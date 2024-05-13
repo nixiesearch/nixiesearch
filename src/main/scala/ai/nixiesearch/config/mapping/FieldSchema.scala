@@ -24,7 +24,7 @@ object FieldSchema {
   }
 
   object TextLikeFieldSchema {
-    def unapply(f: TextLikeFieldSchema[_ <: Field]): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean)] =
+    def unapply(f: TextLikeFieldSchema[? <: Field]): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean)] =
       f match {
         case TextFieldSchema(name, search, store, sort, facet, filter) =>
           Some((name, search, store, sort, facet, filter))
@@ -212,7 +212,7 @@ object FieldSchema {
       }
     )
 
-    def fieldSchemaDecoder(name: String): Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
+    def fieldSchemaDecoder(name: String): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
         case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)
@@ -249,7 +249,7 @@ object FieldSchema {
     given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] = deriveDecoder
     given doubleFieldSchemaEncoder: Encoder[DoubleFieldSchema] = deriveEncoder
 
-    given fieldSchemaEncoder: Encoder[FieldSchema[_ <: Field]] = Encoder.instance {
+    given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
       case f: FloatFieldSchema    => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
@@ -258,7 +258,7 @@ object FieldSchema {
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
     }
 
-    given fieldSchemaDecoder: Decoder[FieldSchema[_ <: Field]] = Decoder.instance(c =>
+    given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Right("int")    => intFieldSchemaDecoder.tryDecode(c)
         case Right("long")   => longFieldSchemaDecoder.tryDecode(c)
