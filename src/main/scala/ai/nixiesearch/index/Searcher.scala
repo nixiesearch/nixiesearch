@@ -14,9 +14,11 @@ import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter}
 import org.apache.lucene.search.{
   IndexSearcher,
   MultiCollector,
+  MultiCollectorManager,
   ScoreDoc,
   TopDocs,
   TopScoreDocCollector,
+  TopScoreDocCollectorManager,
   TotalHits,
   Query as LuceneQuery
 }
@@ -30,7 +32,7 @@ import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index.Searcher.FieldTopDocs
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
-import org.apache.lucene.facet.FacetsCollector
+import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
 
@@ -133,12 +135,12 @@ case class Searcher(
     }
 
   def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int): IO[FieldTopDocs] = for {
-    topCollector   <- IO.pure(TopScoreDocCollector.create(size, size))
-    facetCollector <- IO.pure(new FacetsCollector(false))
-    collector      <- IO.pure(MultiCollector.wrap(topCollector, facetCollector))
-    _              <- IO(searcher.search(query, collector))
+    topCollector   <- IO.pure(new TopScoreDocCollectorManager(size, size))
+    facetCollector <- IO.pure(new FacetsCollectorManager())
+    collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
+    results        <- IO(searcher.search(query, collector))
   } yield {
-    FieldTopDocs(docs = topCollector.topDocs(), facets = facetCollector)
+    FieldTopDocs(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
   }
 
   case class ShardDoc(docid: Int, shardIndex: Int)
