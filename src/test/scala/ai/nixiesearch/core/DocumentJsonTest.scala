@@ -77,11 +77,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
   }
 
   it should "fail on zero fields" in {
-    decode[Document]("{}") shouldBe a[Left[_, _]]
+    decode[Document]("{}") shouldBe a[Left[?, ?]]
   }
 
   it should "generate synthetic ID" in {
-    decode[Document]("""{"title":"foo"}""") shouldBe a[Right[_, _]]
+    decode[Document]("""{"title":"foo"}""") shouldBe a[Right[?, ?]]
   }
 
   it should "accept numeric ids" in {
@@ -91,7 +91,7 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
   }
 
   it should "fail on real ids" in {
-    decode[Document]("""{"_id": 1.666,"title":"foo"}""") shouldBe a[Left[_, _]]
+    decode[Document]("""{"_id": 1.666,"title":"foo"}""") shouldBe a[Left[?, ?]]
 
   }
 

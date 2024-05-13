@@ -36,6 +36,7 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
+import scala.compiletime.uninitialized
 
 case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 5 * 1024 * 1024
@@ -117,7 +118,7 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: Str
         .bucket(conf.bucket)
         .key(path)
         .uploadId(mpart.uploadId())
-        .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts: _*).build())
+        .multipartUpload(CompletedMultipartUpload.builder().parts(completedParts*).build())
         .build()
     )
     _ <- IO.fromCompletableFuture(IO(client.completeMultipartUpload(request)))
@@ -184,7 +185,7 @@ object S3StateClient extends Logging {
   class S3GetObjectResponseStream[T]()
       extends AsyncResponseTransformer[GetObjectResponse, Stream[IO, Byte]]
       with Logging {
-    var cf: CompletableFuture[Stream[IO, Byte]] = _
+    var cf: CompletableFuture[Stream[IO, Byte]] = uninitialized
 
     override def prepare(): CompletableFuture[Stream[IO, Byte]] = {
       cf = new CompletableFuture[Stream[IO, Byte]]()
