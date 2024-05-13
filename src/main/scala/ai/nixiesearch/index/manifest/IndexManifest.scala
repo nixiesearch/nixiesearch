@@ -11,6 +11,8 @@ import io.circe.parser.*
 import org.apache.lucene.store.{Directory, IOContext}
 import fs2.Stream
 
+import java.time.Instant
+
 case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: Long)
 
 object IndexManifest extends Logging {
@@ -31,14 +33,32 @@ object IndexManifest extends Logging {
     case Del(fileName: String) extends ChangedFileOp
   }
   def diff(source: IndexManifest, dest: IndexManifest): List[ChangedFileOp] = {
-    val sourceFiles               = source.files.map(_.name)
-    val destFiles                 = dest.files.map(_.name)
-    val adds: List[ChangedFileOp] = sourceFiles.filter(f => !destFiles.contains(f)).map(f => ChangedFileOp.Add(f))
+    val sourceFiles = source.files.map(_.name)
+    val sourceFilesWithManifest = if (!sourceFiles.contains(IndexManifest.MANIFEST_FILE_NAME)) {
+      sourceFiles :+ IndexManifest.MANIFEST_FILE_NAME
+    } else {
+      sourceFiles
+    }
+    val destFiles = dest.files.map(_.name)
+    val adds: List[ChangedFileOp] =
+      sourceFilesWithManifest.filter(f => !destFiles.contains(f)).map(f => ChangedFileOp.Add(f))
     val dels: List[ChangedFileOp] = destFiles.filter(f => !sourceFiles.contains(f)).map(f => ChangedFileOp.Del(f))
-    adds ++ dels
+    val result                    = adds ++ dels
+    logger.debug(s"manifest diff: $result")
+    result
   }
 
-  def diff(source: IndexManifest): List[ChangedFileOp] =
-    source.files.map(f => ChangedFileOp.Add(f.name))
+  def diff(source: IndexManifest): List[ChangedFileOp] = {
+    val sourceFiles = source.files.map(_.name)
+    val sourceFilesWithManifest = if (!sourceFiles.contains(IndexManifest.MANIFEST_FILE_NAME)) {
+      sourceFiles :+ IndexManifest.MANIFEST_FILE_NAME
+    } else {
+      sourceFiles
+    }
+
+    val result = sourceFilesWithManifest.map(f => ChangedFileOp.Add(f))
+    logger.debug(s"manifest diff: $result")
+    result
+  }
 
 }

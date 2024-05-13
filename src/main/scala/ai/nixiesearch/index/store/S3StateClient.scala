@@ -34,6 +34,7 @@ import io.circe.parser.*
 import scala.jdk.CollectionConverters.*
 import java.net.URI
 import java.nio.ByteBuffer
+import java.time.Instant
 import java.util.concurrent.CompletableFuture
 
 case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: String) extends StateClient with Logging {
@@ -43,8 +44,13 @@ case class S3StateClient(client: S3AsyncClient, conf: S3Location, indexName: Str
     path  <- IO(s"${conf.prefix}/$indexName/")
     _     <- debug(s"Creating manifest for index s3://${conf.bucket}/$path")
     files <- listObjectsRequest(path)
+    now   <- IO(Instant.now().toEpochMilli)
   } yield {
-    IndexManifest(mapping, files = files.map(f => IndexFile(f.name, f.lastModified)), seqnum)
+    IndexManifest(
+      mapping = mapping,
+      files = files.map(f => IndexFile(f.name, f.lastModified)),
+      seqnum = seqnum
+    )
   }
   override def readManifest(): IO[Option[IndexManifest]] =
     for {

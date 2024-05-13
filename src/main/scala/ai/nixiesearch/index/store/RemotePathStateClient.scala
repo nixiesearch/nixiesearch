@@ -16,6 +16,8 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Path as JPath
 import fs2.Stream
 
+import java.time.Instant
+
 case class RemotePathStateClient(path: JPath, indexName: String) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024
 

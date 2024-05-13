@@ -24,6 +24,7 @@ case class MasterIndex(
 ) extends ReplicatedIndex
     with Logging {
   override def sync(): IO[Unit] = for {
+    _                     <- debug("index sync in progress")
     masterManifestOption  <- master.readManifest()
     replicaManifestOption <- replica.readManifest()
     _ <- (masterManifestOption, replicaManifestOption) match {
@@ -53,6 +54,7 @@ case class MasterIndex(
       case (None, None) =>
         IO.raiseError(new Exception(s"both manifests for local and remote are empty for index '${mapping.name}'"))
     }
+    _ <- debug("index sync done")
   } yield {}
   override def close(): IO[Unit]  = IO.unit
   override def local: StateClient = master
@@ -68,7 +70,6 @@ object MasterIndex extends Logging {
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
       encoders <- BiEncoderCache.create(handles, cache.embedding)
-      _        <- Resource.eval(info(s"index ${manifest.mapping.name} opened"))
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(
         MasterIndex(
@@ -81,6 +82,7 @@ object MasterIndex extends Logging {
         )
       )
       _ <- fs2.Stream.repeatEval(index.sync()).metered(1.second).compile.drain.background
+      _ <- Resource.eval(info(s"index ${manifest.mapping.name} opened"))
     } yield {
       index
     }
