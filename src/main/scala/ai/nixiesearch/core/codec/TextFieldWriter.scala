@@ -2,20 +2,12 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearchLike, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.{BiEncoderCache, OnnxBiEncoder}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{
-  BinaryDocValuesField,
-  KnnFloatVectorField,
-  SortedDocValuesField,
-  SortedSetDocValuesField,
-  StoredField,
-  StringField,
-  Document as LuceneDocument
-}
+import org.apache.lucene.document.{BinaryDocValuesField, KnnFloatVectorField, SortedDocValuesField, SortedSetDocValuesField, StoredField, StringField, Document as LuceneDocument}
 import org.apache.lucene.facet.FacetsConfig
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
 import org.apache.lucene.index.{IndexableField, VectorSimilarityFunction}
@@ -43,7 +35,7 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
     }
     spec.search match {
-      case LexicalSearchLike(language) =>
+      case _: SemanticSearch | _: LexicalSearch =>
         val trimmed =
           if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
           else field.value

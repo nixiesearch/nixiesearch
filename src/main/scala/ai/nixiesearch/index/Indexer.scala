@@ -60,7 +60,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
               case Some(mapping) =>
                 if (name == "_id") ids.addOne(value)
                 mapping match {
-                  case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _) =>
+                  case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _, _, _) =>
                     textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
                   case _ => textFieldWriter.write(field, mapping, buffer, Map.empty)
                 }
@@ -105,7 +105,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       doc   <- docs
       field <- doc.fields
       model <- mapping.fields.get(field.name).toList.flatMap {
-        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _) =>
+        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _, _) =>
           Some(tpe)
         case other =>
           None

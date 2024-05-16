@@ -8,7 +8,7 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, LexicalSearchLike, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearchLikeType}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.Field.*
@@ -70,7 +70,7 @@ case class IndexMapping(
         )
     }
   def modelHandles(): List[ModelHandle] =
-    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _) =>
+    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _, _) =>
       model
     }
 }
@@ -92,33 +92,10 @@ object IndexMapping extends Logging {
   }
 
   def createAnalyzer(mapping: IndexMapping): Analyzer = {
-    val fieldAnalyzers = mapping.fields.values.collect {
-      case TextFieldSchema(name, LexicalSearchLike(language), _, _, _, _)     => name -> language.analyzer
-      case TextListFieldSchema(name, LexicalSearchLike(language), _, _, _, _) => name -> language.analyzer
+    val fieldAnalyzers = mapping.fields.values.collect { case TextLikeFieldSchema(name, _, _, _, _, _, language) =>
+      name -> language.analyzer
     }
     new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
-  }
-
-  def fromDocument(docs: List[Document], indexName: String): IO[IndexMapping] = for {
-    fieldValues1 <- IO(docs.flatMap(_.fields).groupBy(_.name).toList)
-    fieldValues <- fieldValues1.flatTraverse {
-      case (fieldName, values @ head :: _) =>
-        head match {
-          case f: TextField if fieldName == "_id" => IO.pure(List(TextFieldSchema.idDefault()))
-          case f: TextField                       => IO.pure(List(TextFieldSchema.dynamicDefault(fieldName)))
-          case f: TextListField                   => IO.pure(List(TextListFieldSchema.dynamicDefault(fieldName)))
-          case f: IntField                        => IO.pure(List(IntFieldSchema.dynamicDefault(fieldName)))
-          case f: LongField                       => IO.pure(List(LongFieldSchema.dynamicDefault(fieldName)))
-          case f: FloatField                      => IO.pure(List(FloatFieldSchema.dynamicDefault(fieldName)))
-          case f: DoubleField                     => IO.pure(List(DoubleFieldSchema.dynamicDefault(fieldName)))
-        }
-      case (fieldName, _) => IO(List.empty[FieldSchema[? <: Field]]) // should never happen
-    }
-  } yield {
-    val withId =
-      if (fieldValues.exists(_.name == "_id")) fieldValues
-      else fieldValues :+ TextFieldSchema.idDefault()
-    IndexMapping(indexName, withId)
   }
 
   object Alias {

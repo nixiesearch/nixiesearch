@@ -35,6 +35,7 @@ import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
+import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 
 import scala.concurrent.duration.*
 import scala.collection.mutable
@@ -43,6 +44,7 @@ case class Searcher(
     index: Index,
     readerRef: Ref[IO, DirectoryReader],
     searcherRef: Ref[IO, IndexSearcher],
+    suggesterRef: Ref[IO, SuggestIndexSearcher],
     searcherSeqnumRef: Ref[IO, Long]
 ) extends Logging {
 
@@ -98,9 +100,9 @@ case class Searcher(
   ): IO[List[LuceneQuery]] =
     mapping.fields.get(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
-      case Some(TextLikeFieldSchema(_, LexicalSearch(language), _, _, _, _)) =>
+      case Some(TextLikeFieldSchema(_, LexicalSearch(), _, _, _, _, language)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-      case Some(TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _)) =>
+      case Some(TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _, _)) =>
         SemanticLuceneQuery
           .create(
             encoders = encoders,
@@ -112,7 +114,7 @@ case class Searcher(
             filter = filter,
             mapping = mapping
           )
-      case Some(TextLikeFieldSchema(_, HybridSearch(model, prefix, language), _, _, _, _)) =>
+      case Some(TextLikeFieldSchema(_, HybridSearch(model, prefix), _, _, _, _, language)) =>
         for {
           x1 <- LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
           x2 <- SemanticLuceneQuery
@@ -226,15 +228,19 @@ object Searcher extends Logging {
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
   def open(index: Index): Resource[IO, Searcher] = {
     for {
-      reader      <- Resource.eval(IO(DirectoryReader.open(index.directory)))
-      readerRef   <- Resource.eval(Ref.of[IO, DirectoryReader](reader))
-      searcher    <- Resource.eval(IO(new IndexSearcher(reader)))
-      searcherRef <- Resource.eval(Ref.of[IO, IndexSearcher](searcher))
-      diskSeqnum  <- Resource.eval(index.seqnum.get)
-      versionRef  <- Resource.eval(Ref.of[IO, Long](diskSeqnum))
-      _           <- Resource.eval(info(s"opened index ${index.name} version=$diskSeqnum"))
-      searcher    <- Resource.make(IO.pure(Searcher(index, readerRef, searcherRef, versionRef)))(s => s.close())
-      _           <- fs2.Stream.repeatEval(searcher.sync()).metered(1.second).compile.drain.background
+      reader       <- Resource.eval(IO(DirectoryReader.open(index.directory)))
+      readerRef    <- Resource.eval(Ref.of[IO, DirectoryReader](reader))
+      searcher     <- Resource.eval(IO(new IndexSearcher(reader)))
+      searcherRef  <- Resource.eval(Ref.of[IO, IndexSearcher](searcher))
+      suggester    <- Resource.eval(IO(new SuggestIndexSearcher(reader)))
+      suggesterRef <- Resource.eval(Ref.of[IO, SuggestIndexSearcher](suggester))
+      diskSeqnum   <- Resource.eval(index.seqnum.get)
+      versionRef   <- Resource.eval(Ref.of[IO, Long](diskSeqnum))
+      _            <- Resource.eval(info(s"opened index ${index.name} version=$diskSeqnum"))
+      searcher <- Resource.make(IO.pure(Searcher(index, readerRef, searcherRef, suggesterRef, versionRef)))(s =>
+        s.close()
+      )
+      _ <- fs2.Stream.repeatEval(searcher.sync()).metered(1.second).compile.drain.background
     } yield {
       searcher
     }

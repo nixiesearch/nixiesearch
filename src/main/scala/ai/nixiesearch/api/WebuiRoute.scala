@@ -78,7 +78,7 @@ case class WebuiRoute(
     case Some(qtext) =>
       for {
         textFields <- IO(index.index.mapping.fields.toList.collect {
-          case (name, TextLikeFieldSchema(_, search, _, _, _, _)) if search != NoSearch => name
+          case (name, TextLikeFieldSchema(_, search, _, _, _, _, _)) if search != NoSearch => name
         })
         query <- textFields match {
           case Nil =>

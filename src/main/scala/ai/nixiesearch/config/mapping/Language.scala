@@ -11,6 +11,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import java.util.Locale
 import scala.collection.mutable.ArrayBuffer
 
+
 sealed trait Language {
   def analyzer: Analyzer
   def stopwords: CharArraySet

@@ -1,13 +1,6 @@
 api:
   host: localhost
   port: 8080
-suggest:
-  as-is:
-    model: nixiesearch/nixie-suggest-small-v1
-  with-transform:
-    transform:
-      fields: [title]
-      model: nixiesearch/nixie-suggest-small-v1
 
 search:
   helloworld:
@@ -15,6 +8,23 @@ search:
       title:
         type: text
         search: semantic
+        suggest: true
+      title2:
+        type: text
+        search: semantic
+        language: english
+        suggest:
+          index:
+            lowercase: false
+            expand:
+                min-terms: 1
+                max-terms: 3
+            lemmatize:
+                dictionary: file://path/to/lemmas.csv
+          search:
+            deduplicate:
+            rerank:
+                model: file://path/to/model.lgbm
       desc:
         type: text
         search: # more advanced setup

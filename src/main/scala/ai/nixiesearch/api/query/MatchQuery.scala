@@ -77,12 +77,6 @@ object MatchQuery {
       case Right(other)                 => Left(DecodingFailure(s"cannot decode query $other", c.history))
     }
   )
-
-  def analyze(mapping: IndexMapping, field: String, query: String): IO[List[String]] = mapping.fields.get(field) match {
-    case Some(TextFieldSchema(_, LexicalSearch(lang), _, _, _, _))     => IO(lang.analyze(query, field))
-    case Some(TextListFieldSchema(_, LexicalSearch(lang), _, _, _, _)) => IO(lang.analyze(query, field))
-    case Some(other) => IO.raiseError(new Exception(s"Cannot search over a non-text field '$field' of type $other"))
-    case None        => IO.raiseError(new Exception(s"Cannot search over a non-existent field '$field'"))
-  }
+  
 
 }
