@@ -51,7 +51,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val decoded = decode[IndexMapping](json)
     decoded shouldBe Right(mapping)
   }
-
+  
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =
       """
