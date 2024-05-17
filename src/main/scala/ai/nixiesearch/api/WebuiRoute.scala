@@ -8,7 +8,7 @@ import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Searcher
-import cats.effect.IO
+import cats.effect.{IO, Ref}
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{Entity, EntityDecoder, EntityEncoder, Headers, HttpRoutes, MediaType, Request, Response, Status}
 import org.http4s.dsl.io.*
@@ -78,7 +78,7 @@ case class WebuiRoute(
     case Some(qtext) =>
       for {
         textFields <- IO(index.index.mapping.fields.toList.collect {
-          case (name, TextLikeFieldSchema(_, search, _, _, _, _, _)) if search != NoSearch => name
+          case (name, TextLikeFieldSchema(_, search, _, _, _, _, _, _)) if search != NoSearch => name
         })
         query <- textFields match {
           case Nil =>

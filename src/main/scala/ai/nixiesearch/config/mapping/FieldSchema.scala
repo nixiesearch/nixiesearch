@@ -28,12 +28,12 @@ object FieldSchema {
   object TextLikeFieldSchema {
     def unapply(
         f: TextLikeFieldSchema[? <: Field]
-    ): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean, Language)] =
+    ): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean, Language, Option[SuggestSchema])] =
       f match {
         case TextFieldSchema(name, search, store, sort, facet, filter, lang, suggest) =>
-          Some((name, search, store, sort, facet, filter, lang))
+          Some((name, search, store, sort, facet, filter, lang, suggest))
         case TextListFieldSchema(name, search, store, sort, facet, filter, lang, suggest) =>
-          Some((name, search, store, sort, facet, filter, lang))
+          Some((name, search, store, sort, facet, filter, lang, suggest))
       }
   }
 

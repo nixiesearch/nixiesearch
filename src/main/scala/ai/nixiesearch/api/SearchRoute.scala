@@ -1,6 +1,8 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.IndexRoute.IndexResponse
+import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestProcess
+import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.api.SearchRoute.{ErrorResponse, SearchRequest, SearchResponse}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
@@ -11,7 +13,8 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
-import cats.effect.IO
+import ai.nixiesearch.index.sync.Index
+import cats.effect.{IO, Ref}
 import io.circe.{Codec, Decoder, Encoder, Json}
 import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
@@ -85,5 +88,68 @@ object SearchRoute {
     given errorResponseCodec: Codec[ErrorResponse]            = deriveCodec
     given errorResponseJson: EntityEncoder[IO, ErrorResponse] = jsonEncoderOf
   }
+
+  case class SuggestRequest(
+      query: String,
+      fields: List[String] = Nil,
+      count: Int = 10,
+      process: Option[SuggestProcess] = None
+  )
+  object SuggestRequest {
+    case class SuggestProcess(deduplicate: Option[Deduplicate] = None, rerank: Option[Rerank] = None)
+    case class Deduplicate(caseSensitive: Boolean = false)
+    case class Rerank(depth: Int = 100)
+
+    given rerankEncoder: Encoder[Rerank] = deriveEncoder
+    given rerankDecoder: Decoder[Rerank] = Decoder.instance(c =>
+      for {
+        depth <- c.downField("depth").as[Option[Int]]
+      } yield {
+        Rerank(depth.getOrElse(100))
+      }
+    )
+    given deduplicateEncoder: Encoder[Deduplicate] = deriveEncoder
+    given deduplicateDecoder: Decoder[Deduplicate] = Decoder.instance(c =>
+      for {
+        caseSensitive <- c.downField("caseSensitive").as[Option[Boolean]]
+      } yield {
+        Deduplicate(caseSensitive.getOrElse(false))
+      }
+    )
+    given processEncoder: Encoder[SuggestProcess] = deriveEncoder
+    given processDecoder: Decoder[SuggestProcess] = Decoder.instance(c =>
+      for {
+        dedup  <- c.downField("deduplicate").as[Option[Deduplicate]]
+        rerank <- c.downField("rerank").as[Option[Rerank]]
+      } yield {
+        SuggestProcess(dedup, rerank)
+      }
+    )
+    given suggestRequestEncoder: Encoder[SuggestRequest] = deriveEncoder
+    given suggestRequestDecoder: Decoder[SuggestRequest] = Decoder.instance(c =>
+      for {
+        query   <- c.downField("query").as[String]
+        fields  <- c.downField("fields").as[Option[List[String]]]
+        count   <- c.downField("count").as[Option[Int]]
+        process <- c.downField("process").as[Option[SuggestProcess]]
+      } yield {
+        SuggestRequest(query, fields.getOrElse(Nil), count.getOrElse(10), process)
+      }
+    )
+  }
+
+  case class SuggestResponse(suggestions: List[Suggestion], took: Long)
+  object SuggestResponse {
+    case class Suggestion(text: String, score: Float)
+
+    given suggestionCodec: Codec[Suggestion]              = deriveCodec
+    given suggestionResponseCodec: Codec[SuggestResponse] = deriveCodec
+  }
+
+  given suggestRequestDecJson: EntityDecoder[IO, SuggestRequest] = jsonOf
+  given suggestRequestEncJson: EntityEncoder[IO, SuggestRequest] = jsonEncoderOf
+
+  given suggestResponseEncJson: EntityEncoder[IO, SuggestResponse] = jsonEncoderOf
+  given suggestResponseDecJson: EntityDecoder[IO, SuggestResponse] = jsonOf
 
 }

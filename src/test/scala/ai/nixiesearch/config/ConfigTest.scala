@@ -5,9 +5,12 @@ import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
+import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
+import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.SuggestSchema.Lemmatize
+import ai.nixiesearch.config.mapping.{IndexMapping, SuggestSchema}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -88,4 +91,47 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val p    = parse("nope:")
     parse(yaml).flatMap(_.as[Config]) shouldBe Right(Config())
   }
+
+  it should "parse suggest config" in {
+    val yaml   = IOUtils.resourceToString("/config/suggest.yml", StandardCharsets.UTF_8)
+    val parsed = parse(yaml).flatMap(_.as[Config])
+    parsed shouldBe Right(
+      Config(
+        api = ApiConfig(host = Hostname("localhost")),
+        search = Map(
+          "helloworld" -> IndexMapping(
+            name = "helloworld",
+            alias = Nil,
+            fields = Map(
+              "_id" -> TextFieldSchema(name = "_id", filter = true),
+              "title1" -> TextFieldSchema(
+                name = "title1",
+                search =
+                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5),
+                suggest = Some(SuggestSchema())
+              ),
+              "title2" -> TextFieldSchema(
+                name = "title2",
+                language = English,
+                search =
+                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5),
+                suggest = Some(
+                  SuggestSchema(
+                    lemmatize = Some(Lemmatize(LocalURL(Paths.get("/path/to/lemmas.csv"))))
+                  )
+                )
+              ),
+              "desc" -> TextFieldSchema(
+                name = "desc",
+                search =
+                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5)
+              ),
+              "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
+            )
+          )
+        )
+      )
+    )
+  }
+
 }

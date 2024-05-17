@@ -1,6 +1,6 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
@@ -10,7 +10,7 @@ import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import cats.effect.{IO, Ref, Resource}
-import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter}
+import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter, Term}
 import org.apache.lucene.search.{
   IndexSearcher,
   MultiCollector,
@@ -29,37 +29,81 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.Searcher.FieldTopDocs
+import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
+import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
-import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
+import org.apache.lucene.search.suggest.document.{FuzzyCompletionQuery, PrefixCompletionQuery, SuggestIndexSearcher}
+import fs2.Stream
+import org.apache.lucene.store.Directory
 
 import scala.concurrent.duration.*
 import scala.collection.mutable
 
-case class Searcher(
-    index: Index,
-    readerRef: Ref[IO, DirectoryReader],
-    searcherRef: Ref[IO, IndexSearcher],
-    suggesterRef: Ref[IO, SuggestIndexSearcher],
-    searcherSeqnumRef: Ref[IO, Long]
-) extends Logging {
+case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends Logging {
 
   def name = index.mapping.name
 
   def sync(): IO[Unit] = for {
-    ondiskSeqnum   <- index.seqnum.get
-    searcherSeqnum <- searcherSeqnumRef.get
-    _ <- IO.whenA(ondiskSeqnum > searcherSeqnum)(for {
-      _      <- searcherSeqnumRef.set(ondiskSeqnum)
-      reader <- readerRef.updateAndGet(reader => Option(DirectoryReader.openIfChanged(reader)).getOrElse(reader))
-      _      <- searcherRef.set(new IndexSearcher(reader))
-      _      <- debug(s"index searcher reloaded, seqnum $searcherSeqnum -> $ondiskSeqnum")
+    readers      <- getReadersOrFail()
+    ondiskSeqnum <- index.seqnum.get
+    _ <- IO.whenA(ondiskSeqnum > readers.seqnum)(for {
+      newReaders <- Readers.reopen(readers.reader, ondiskSeqnum)
+      _          <- readersRef.set(Some(newReaders))
+      _          <- debug(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
     } yield {})
   } yield {}
+
+  def suggest(request: SuggestRequest): IO[SuggestResponse] = for {
+    start     <- IO(System.currentTimeMillis())
+    suggester <- getReadersOrFail().map(_.suggester)
+    fieldSuggestions <- Stream
+      .emits(request.fields)
+      .evalMap(fieldName =>
+        index.mapping.fields.get(fieldName) match {
+          case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
+          case Some(TextLikeFieldSchema(_, _, _, _, _, _, language, Some(schema))) =>
+            IO {
+              GeneratedSuggestions(
+                field = fieldName,
+                prefix = suggester
+                  .suggest(
+                    new PrefixCompletionQuery(language.analyzer, new Term(fieldName, request.query)),
+                    request.count,
+                    true
+                  ),
+                fuzzy1 = suggester
+                  .suggest(
+                    new FuzzyCompletionQuery(language.analyzer, new Term(fieldName, request.query)),
+                    request.count,
+                    true
+                  ),
+                fuzzy2 = suggester
+                  .suggest(
+                    new FuzzyCompletionQuery(language.analyzer, new Term(fieldName, request.query)),
+                    request.count,
+                    true
+                  )
+              )
+            }
+          case Some(TextLikeFieldSchema(_, _, _, _, _, _, language, None)) =>
+            IO.raiseError(UserError(s"field '$fieldName' is not suggestable in mapping"))
+          case Some(other) => IO.raiseError(UserError(s"cannot generate suggestions over field $other"))
+
+        }
+      )
+      .compile
+      .toList
+    ranked <- IO(SuggestionRanker().rank(fieldSuggestions))
+  } yield {
+    SuggestResponse(
+      suggestions = ranked,
+      took = System.currentTimeMillis() - start
+    )
+  }
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
     start <- IO(System.currentTimeMillis())
@@ -74,7 +118,7 @@ case class Searcher(
           )
           .map(_.flatten)
     }
-    searcher      <- searcherRef.get
+    searcher      <- getReadersOrFail().map(_.searcher)
     fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size))
     mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets)))
     mergedTopDocs <- reciprocalRank(fieldTopDocs.map(_.docs))
@@ -100,9 +144,9 @@ case class Searcher(
   ): IO[List[LuceneQuery]] =
     mapping.fields.get(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
-      case Some(TextLikeFieldSchema(_, LexicalSearch(), _, _, _, _, language)) =>
+      case Some(TextLikeFieldSchema(_, LexicalSearch(), _, _, _, _, language, _)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-      case Some(TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _, _)) =>
+      case Some(TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _, _, _)) =>
         SemanticLuceneQuery
           .create(
             encoders = encoders,
@@ -114,7 +158,7 @@ case class Searcher(
             filter = filter,
             mapping = mapping
           )
-      case Some(TextLikeFieldSchema(_, HybridSearch(model, prefix), _, _, _, _, language)) =>
+      case Some(TextLikeFieldSchema(_, HybridSearch(model, prefix), _, _, _, _, language, _)) =>
         for {
           x1 <- LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
           x2 <- SemanticLuceneQuery
@@ -178,7 +222,7 @@ case class Searcher(
       collector: FacetsCollector,
       aggs: Aggs
   ): IO[Map[String, AggregationResult]] = for {
-    reader <- readerRef.get
+    reader <- getReadersOrFail().map(_.reader)
     result <- aggs.aggs.toList
       .traverse { case (name, agg) =>
         mapping.fields.get(agg.field) match {
@@ -204,7 +248,7 @@ case class Searcher(
       top: TopDocs,
       fields: List[String]
   ): IO[List[Document]] = for {
-    reader <- readerRef.get
+    reader <- getReadersOrFail().map(_.reader)
     docs <- IO {
       val fieldSet = fields.toSet
       val docs = top.scoreDocs.map(doc => {
@@ -218,29 +262,69 @@ case class Searcher(
     docs
   }
 
-  def close(): IO[Unit] = for {
-    _ <- info(s"closing index $name")
-    _ <- readerRef.get.flatMap(reader => IO(reader.close()))
-  } yield {}
+  def getReadersOrFail(): IO[Readers] = {
+    readersRef.get.flatMap {
+      case None =>
+        Readers.attemptOpenIfExists(index).flatMap {
+          case None =>
+            IO.raiseError(BackendError(s"index '${index.name} does not yet have an index with documents'"))
+          case Some(opened) =>
+            readersRef.set(Some(opened)) *> IO.pure(opened)
+        }
+      case Some(result) => IO.pure(result)
+    }
+  }
+
+  def close(): IO[Unit] = readersRef.get.flatMap {
+    case Some(readers) => readers.close() *> info(s"closed index reader for index ${index.name}")
+    case None          => info(s"index '${index.name} does not have a reader open, there's nothing to close'")
+  }
+
 }
 
 object Searcher extends Logging {
+  case class Readers(reader: DirectoryReader, searcher: IndexSearcher, suggester: SuggestIndexSearcher, seqnum: Long) {
+    def close(): IO[Unit] = IO(reader.close())
+  }
+  object Readers {
+    def attemptOpenIfExists(index: Index): IO[Option[Readers]] = {
+      IO(DirectoryReader.indexExists(index.directory)).flatMap {
+        case false => info(s"index '${index.name}' does not yet exist") *> IO.none
+        case true =>
+          for {
+            reader     <- IO(DirectoryReader.open(index.directory))
+            searcher   <- IO(new IndexSearcher(reader))
+            suggester  <- IO(new SuggestIndexSearcher(reader))
+            diskSeqnum <- index.seqnum.get
+            _          <- info(s"opened index reader for index '${index.name}', seqnum=${diskSeqnum}")
+          } yield {
+            Some(Readers(reader, searcher, suggester, diskSeqnum))
+          }
+
+      }
+    }
+
+    def reopen(oldReader: DirectoryReader, newSeqnum: Long): IO[Readers] = for {
+      readerOption <- IO(Option(DirectoryReader.openIfChanged(oldReader)))
+      reader <- readerOption match {
+        case None => IO.pure(oldReader)
+        case Some(newReader) =>
+          debug(s"reopening reader, seqnum=$newSeqnum") *> IO(oldReader.close()) *> IO.pure(newReader)
+      }
+      searcher  <- IO(new IndexSearcher(reader))
+      suggester <- IO(new SuggestIndexSearcher(reader))
+    } yield {
+      Readers(reader, searcher, suggester, newSeqnum)
+    }
+  }
+
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
   def open(index: Index): Resource[IO, Searcher] = {
     for {
-      reader       <- Resource.eval(IO(DirectoryReader.open(index.directory)))
-      readerRef    <- Resource.eval(Ref.of[IO, DirectoryReader](reader))
-      searcher     <- Resource.eval(IO(new IndexSearcher(reader)))
-      searcherRef  <- Resource.eval(Ref.of[IO, IndexSearcher](searcher))
-      suggester    <- Resource.eval(IO(new SuggestIndexSearcher(reader)))
-      suggesterRef <- Resource.eval(Ref.of[IO, SuggestIndexSearcher](suggester))
-      diskSeqnum   <- Resource.eval(index.seqnum.get)
-      versionRef   <- Resource.eval(Ref.of[IO, Long](diskSeqnum))
-      _            <- Resource.eval(info(s"opened index ${index.name} version=$diskSeqnum"))
-      searcher <- Resource.make(IO.pure(Searcher(index, readerRef, searcherRef, suggesterRef, versionRef)))(s =>
-        s.close()
-      )
-      _ <- fs2.Stream.repeatEval(searcher.sync()).metered(1.second).compile.drain.background
+
+      _          <- Resource.eval(info(s"opening index ${index.name}"))
+      readersRef <- Resource.eval(Ref.of[IO, Option[Readers]](None))
+      searcher   <- Resource.make(IO.pure(Searcher(index, readersRef)))(s => s.close())
     } yield {
       searcher
     }

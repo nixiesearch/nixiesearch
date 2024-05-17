@@ -5,16 +5,18 @@ import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.{BiEncoderCache, OnnxBiEncoder}
+import ai.nixiesearch.core.suggest.SuggestCandidates
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{BinaryDocValuesField, KnnFloatVectorField, SortedDocValuesField, SortedSetDocValuesField, StoredField, StringField, Document as LuceneDocument}
-import org.apache.lucene.facet.FacetsConfig
-import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
-import org.apache.lucene.index.{IndexableField, VectorSimilarityFunction}
+import org.apache.lucene.document.{
+  KnnFloatVectorField,
+  SortedDocValuesField,
+  StoredField,
+  StringField,
+  Document as LuceneDocument
+}
+import org.apache.lucene.index.VectorSimilarityFunction
+import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
-
-import java.util
-import scala.runtime.ByteRef
 
 case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] with Logging {
   import TextFieldWriter._
@@ -53,6 +55,14 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       case _ =>
       //
     }
+    spec.suggest.foreach(schema => {
+      SuggestCandidates
+        .fromString(schema, spec.name, field.value)
+        .foreach(candidate => {
+          val s = SuggestField(field.name, candidate, 1)
+          buffer.add(s)
+        })
+    })
     val br = 1
   }
 }

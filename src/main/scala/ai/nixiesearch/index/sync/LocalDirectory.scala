@@ -24,7 +24,6 @@ object LocalDirectory extends Logging {
         _             <- Resource.eval(info("initialized MMapDirectory"))
         safeIndexPath <- Resource.eval(indexPath(path, indexName))
         directory     <- Resource.make(IO(new MMapDirectory(safeIndexPath)))(dir => IO(dir.close()))
-        _             <- Resource.eval(LocalDirectory.maybeCreateEmptySegment(directory))
       } yield {
         directory
       }
@@ -32,7 +31,6 @@ object LocalDirectory extends Logging {
       for {
         _         <- Resource.eval(info("initialized in-mem ByteBuffersDirectory"))
         directory <- Resource.make(IO(new ByteBuffersDirectory()))(dir => IO(dir.close()))
-        _         <- Resource.eval(LocalDirectory.maybeCreateEmptySegment(directory))
       } yield {
         directory
       }
@@ -111,7 +109,7 @@ object LocalDirectory extends Logging {
   def maybeCreateEmptySegment(directory: Directory): IO[Unit] = {
     IO.whenA(!DirectoryReader.indexExists(directory))(
       Indexer
-        .indexWriter(directory, new StandardAnalyzer())
+        .indexWriter(directory, new StandardAnalyzer(), List("title"))
         .use(w => IO(w.commit()) *> debug("index is empty, created empty segment"))
     )
   }

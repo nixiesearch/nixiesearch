@@ -2,6 +2,7 @@ package ai.nixiesearch.core.search.lucene
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.mapping.{IndexMapping, Language}
+import ai.nixiesearch.core.suggest.AnalyzedIterator
 import cats.effect.IO
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.Term
@@ -30,10 +31,9 @@ object LexicalLuceneQuery {
     }
   }
 
-  private def fieldQuery(field: String, query: String, analyzer: Language, occur: Occur): LuceneQuery = {
+  private def fieldQuery(field: String, query: String, language: Language, occur: Occur): LuceneQuery = {
     val fieldQuery = new BooleanQuery.Builder()
-    analyzer
-      .analyze(field, query)
+    AnalyzedIterator(language.analyzer, field, query)
       .foreach(term => fieldQuery.add(new BooleanClause(new TermQuery(new Term(field, term)), occur)))
     fieldQuery.build()
   }

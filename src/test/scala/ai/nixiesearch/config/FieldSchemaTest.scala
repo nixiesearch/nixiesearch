@@ -3,7 +3,7 @@ package ai.nixiesearch.config
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.{Language, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
-import ai.nixiesearch.config.mapping.SuggestSchema.{Deduplicate, Expand, IndexSteps, SearchSteps}
+import ai.nixiesearch.config.mapping.SuggestSchema.Expand
 import ai.nixiesearch.core.Field
 import io.circe.Decoder
 import io.circe.yaml.parser.parse
@@ -78,14 +78,10 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
       """type: text
         |search: false
         |suggest:
-        |  index:
-        |    lowercase: true
-        |    expand:
-        |      min-terms: 1
-        |      max-terms: 5
-        |  search:
-        |    deduplicate:
-        |      case-sensitive: false
+        |  lowercase: true
+        |  expand:
+        |    min-terms: 1
+        |    max-terms: 5
         """.stripMargin
     val result = parseYaml(yaml)
     result shouldBe Right(
@@ -98,13 +94,8 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
         language = Language.Generic,
         suggest = Some(
           SuggestSchema(
-            index = IndexSteps(
-              lowercase = true,
-              expand = Some(Expand(1, 5))
-            ),
-            search = SearchSteps(
-              deduplicate = Some(Deduplicate(false))
-            )
+            lowercase = true,
+            expand = Some(Expand(1, 5))
           )
         )
       )

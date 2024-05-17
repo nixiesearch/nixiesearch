@@ -70,8 +70,13 @@ case class IndexMapping(
         )
     }
   def modelHandles(): List[ModelHandle] =
-    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _, _) =>
+    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _, _, _) =>
       model
+    }
+
+  def suggestFields(): List[String] =
+    fields.values.toList.collect { case TextLikeFieldSchema(name, _, _, _, _, _, _, Some(_)) =>
+      name
     }
 }
 
@@ -92,7 +97,7 @@ object IndexMapping extends Logging {
   }
 
   def createAnalyzer(mapping: IndexMapping): Analyzer = {
-    val fieldAnalyzers = mapping.fields.values.collect { case TextLikeFieldSchema(name, _, _, _, _, _, language) =>
+    val fieldAnalyzers = mapping.fields.values.collect { case TextLikeFieldSchema(name, _, _, _, _, _, language, _) =>
       name -> language.analyzer
     }
     new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
