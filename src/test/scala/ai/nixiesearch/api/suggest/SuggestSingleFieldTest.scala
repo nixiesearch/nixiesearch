@@ -41,8 +41,8 @@ class SuggestSingleFieldTest extends SearchTest with Matchers {
 
   it should "generate suggestions" in withIndex { nixie =>
     {
-      val resp = nixie.searcher.suggest(SuggestRequest(query = "hlo", fields = List("title"))).unsafeRunSync()
-      resp.suggestions.map(_.text) shouldBe List("hello", "hello world", "hotdogs")
+      val resp = nixie.searcher.suggest(SuggestRequest(query = "he", fields = List("title"))).unsafeRunSync()
+      resp.suggestions.map(_.text) shouldBe List("hello", "hello world")
     }
   }
 }

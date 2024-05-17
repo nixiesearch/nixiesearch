@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.index.{Indexer, Searcher}
 import ai.nixiesearch.util.{TestDocument, TestIndexMapping}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,8 +21,10 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
       .unsafeRunSync()
 
     val (searcher, searcherShutdown) = Searcher.open(localIndex).allocated.unsafeRunSync()
-    val response                     = searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
-    response.hits.size shouldBe 0
+    a[BackendError] shouldBe thrownBy {
+      searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
+
+    }
     searcherShutdown.unsafeRunSync()
     localShutdown.unsafeRunSync()
   }
