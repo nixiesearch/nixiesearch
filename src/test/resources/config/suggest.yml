@@ -12,7 +12,7 @@ search:
       title2:
         type: text
         search: semantic
-        language: english
+        language: en
         suggest:
           lowercase: false
           expand:
