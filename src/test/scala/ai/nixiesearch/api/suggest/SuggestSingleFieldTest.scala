@@ -4,7 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SuggestRequest
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.Language.Generic
 import ai.nixiesearch.config.mapping.{IndexMapping, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.SearchTest
@@ -30,7 +30,7 @@ class SuggestSingleFieldTest extends SearchTest with Matchers {
     name = "test",
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = LexicalSearch(), suggest = Some(SuggestSchema()))
+      TextFieldSchema(name = "title", search = NoSearch, suggest = Some(SuggestSchema()))
     )
   )
   val docs = List(
@@ -41,36 +41,8 @@ class SuggestSingleFieldTest extends SearchTest with Matchers {
 
   it should "generate suggestions" in withIndex { nixie =>
     {
-      val resp = nixie.searcher.suggest(SuggestRequest(query = "he", fields = List("title"))).unsafeRunSync()
-      resp.suggestions.map(_.text) shouldBe List("hello")
+      val resp = nixie.searcher.suggest(SuggestRequest(query = "hlo", fields = List("title"))).unsafeRunSync()
+      resp.suggestions.map(_.text) shouldBe List("hello", "hello world", "hotdogs")
     }
-  }
-  it should "mock" in {
-    val dir          = new ByteBuffersDirectory()
-    val defaultCodec = new Lucene99Codec()
-    val codec = new FilterCodec(defaultCodec.getName, defaultCodec) {
-      val suggestPostingsFormat = new Completion99PostingsFormat(CompletionPostingsFormat.FSTLoadMode.AUTO)
-      override def postingsFormat(): PostingsFormat = new PerFieldPostingsFormat {
-        override def getPostingsFormatForField(field: String): PostingsFormat =
-          if (field == "title") {
-            suggestPostingsFormat
-          } else {
-            delegate.postingsFormat().asInstanceOf[PerFieldPostingsFormat].getPostingsFormatForField(field)
-          }
-      }
-    }
-    val config = new IndexWriterConfig(Generic.analyzer)
-    config.setCodec(codec)
-    val writer = new IndexWriter(dir, config)
-//    val doc    = new org.apache.lucene.document.Document()
-//    doc.add(new SuggestField("title", "hello", 1))
-//    doc.add(new SuggestField("title", "world", 1))
-//    doc.add(new SuggestField("title", "hello world", 1))
-//    writer.addDocument(doc)
-    writer.commit()
-    val reader   = DirectoryReader.open(dir)
-    val searcher = new SuggestIndexSearcher(reader)
-    val docs     = searcher.suggest(new PrefixCompletionQuery(Generic.analyzer, new Term("title", "he")), 10, false)
-    docs.totalHits.value shouldBe 2L
   }
 }

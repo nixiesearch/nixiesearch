@@ -7,12 +7,12 @@ import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat
 import org.apache.lucene.codecs.{Codec, FilterCodec, PostingsFormat}
 import org.apache.lucene.search.suggest.document.{Completion99PostingsFormat, CompletionPostingsFormat}
 
-class NixiesearchCodec(suggestFields: Set[String], parent: Codec) extends FilterCodec(parent.getName, parent) {
+class NixiesearchCodec(parent: Codec) extends FilterCodec(parent.getName, parent) {
   val suggestPostingsFormat = new Completion99PostingsFormat(CompletionPostingsFormat.FSTLoadMode.AUTO)
 
   override def postingsFormat(): PostingsFormat = new PerFieldPostingsFormat {
     override def getPostingsFormatForField(field: String): PostingsFormat =
-      if (suggestFields.contains(field)) {
+      if (field.endsWith(TextFieldWriter.SUGGEST_SUFFIX)) {
         suggestPostingsFormat
       } else {
         delegate.postingsFormat().asInstanceOf[PerFieldPostingsFormat].getPostingsFormatForField(field)
@@ -21,8 +21,7 @@ class NixiesearchCodec(suggestFields: Set[String], parent: Codec) extends Filter
 }
 
 object NixiesearchCodec {
-  def apply(suggestFields: List[String]): NixiesearchCodec = {
-    val baseCodec = new Lucene99Codec()
-    new NixiesearchCodec(suggestFields.toSet, baseCodec)
+  def apply(): NixiesearchCodec = {
+    new NixiesearchCodec(new Lucene99Codec())
   }
 }

@@ -106,11 +106,4 @@ object LocalDirectory extends Logging {
     indexPath
   }
 
-  def maybeCreateEmptySegment(directory: Directory): IO[Unit] = {
-    IO.whenA(!DirectoryReader.indexExists(directory))(
-      Indexer
-        .indexWriter(directory, new StandardAnalyzer(), List("title"))
-        .use(w => IO(w.commit()) *> debug("index is empty, created empty segment"))
-    )
-  }
 }

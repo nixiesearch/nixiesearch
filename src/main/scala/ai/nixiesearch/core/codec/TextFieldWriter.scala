@@ -59,7 +59,7 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       SuggestCandidates
         .fromString(schema, spec.name, field.value)
         .foreach(candidate => {
-          val s = SuggestField(field.name, candidate, 1)
+          val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
           buffer.add(s)
         })
     })
@@ -70,5 +70,6 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
 object TextFieldWriter {
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
-  val RAW_SUFFIX            = "_raw"
+  val RAW_SUFFIX            = "$raw"
+  val SUGGEST_SUFFIX        = "$suggest"
 }

@@ -148,17 +148,23 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       .map(_.toMap)
   }
 
-  def flush(): IO[Boolean] = IO(writer.commit()).flatMap {
-    case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
-    case seqnum =>
-      for {
-        _        <- debug(s"index commit, seqnum=$seqnum")
-        manifest <- index.master.createManifest(index.mapping, seqnum)
-        _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
-        _        <- index.master.writeManifest(manifest)
-      } yield {
-        true
-      }
+  def flush(): IO[Boolean] = {
+    IO(writer.numRamDocs()).flatMap {
+      case 0 => debug("skipping flush, no uncommitted changes") *> IO(false)
+      case other =>
+        debug(s"mem docs: $other") *> IO(writer.commit()).flatMap {
+          case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+          case seqnum =>
+            for {
+              _        <- debug(s"index commit, seqnum=$seqnum")
+              manifest <- index.master.createManifest(index.mapping, seqnum)
+              _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
+              _        <- index.master.writeManifest(manifest)
+            } yield {
+              true
+            }
+        }
+    }
   }
 
 }
@@ -175,14 +181,14 @@ object Indexer extends Logging {
 
   def indexWriter(directory: Directory, mapping: IndexMapping): Resource[IO, IndexWriter] = for {
     analyzer <- Resource.eval(IO(IndexMapping.createAnalyzer(mapping)))
-    writer   <- Indexer.indexWriter(directory, analyzer, mapping.suggestFields())
+    writer   <- Indexer.indexWriter(directory, analyzer)
   } yield {
     writer
   }
 
-  def indexWriter(directory: Directory, analyzer: Analyzer, suggestFields: List[String]): Resource[IO, IndexWriter] =
+  def indexWriter(directory: Directory, analyzer: Analyzer): Resource[IO, IndexWriter] =
     for {
-      codec  <- Resource.pure(NixiesearchCodec(suggestFields))
+      codec  <- Resource.pure(NixiesearchCodec())
       config <- Resource.eval(IO(new IndexWriterConfig(analyzer).setCodec(codec)))
       _      <- Resource.eval(debug("opening IndexWriter"))
       writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()) *> debug("IndexWriter closed"))

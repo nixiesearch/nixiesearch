@@ -27,7 +27,7 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.{DocumentVisitor, TextFieldWriter}
 import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
@@ -71,19 +71,28 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
                 field = fieldName,
                 prefix = suggester
                   .suggest(
-                    new PrefixCompletionQuery(language.analyzer, new Term(fieldName, request.query)),
+                    new PrefixCompletionQuery(
+                      language.analyzer,
+                      new Term(fieldName + TextFieldWriter.SUGGEST_SUFFIX, request.query)
+                    ),
                     request.count,
                     true
                   ),
                 fuzzy1 = suggester
                   .suggest(
-                    new FuzzyCompletionQuery(language.analyzer, new Term(fieldName, request.query)),
+                    new FuzzyCompletionQuery(
+                      language.analyzer,
+                      new Term(fieldName + TextFieldWriter.SUGGEST_SUFFIX, request.query)
+                    ),
                     request.count,
                     true
                   ),
                 fuzzy2 = suggester
                   .suggest(
-                    new FuzzyCompletionQuery(language.analyzer, new Term(fieldName, request.query)),
+                    new FuzzyCompletionQuery(
+                      language.analyzer,
+                      new Term(fieldName + TextFieldWriter.SUGGEST_SUFFIX, request.query)
+                    ),
                     request.count,
                     true
                   )
@@ -267,7 +276,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case None =>
         Readers.attemptOpenIfExists(index).flatMap {
           case None =>
-            IO.raiseError(BackendError(s"index '${index.name} does not yet have an index with documents'"))
+            IO.raiseError(BackendError(s"index '${index.name}' does not yet have an index with documents"))
           case Some(opened) =>
             readersRef.set(Some(opened)) *> IO.pure(opened)
         }
