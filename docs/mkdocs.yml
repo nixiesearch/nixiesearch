@@ -149,6 +149,7 @@ nav:
             - Index mapping: reference/config/mapping.md
             - Caching: reference/config/cache.md
             - Supported embedding models: reference/config/models.md
+            - Language support: reference/config/languages.md
         - Command-line interface:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md
