@@ -2,27 +2,21 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearchLike, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.{BiEncoderCache, OnnxBiEncoder}
+import ai.nixiesearch.core.suggest.SuggestCandidates
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
-  BinaryDocValuesField,
   KnnFloatVectorField,
   SortedDocValuesField,
-  SortedSetDocValuesField,
   StoredField,
   StringField,
   Document as LuceneDocument
 }
-import org.apache.lucene.facet.FacetsConfig
-import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField
-import org.apache.lucene.index.{IndexableField, VectorSimilarityFunction}
+import org.apache.lucene.index.VectorSimilarityFunction
+import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
-
-import java.util
-import scala.runtime.ByteRef
 
 case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] with Logging {
   import TextFieldWriter._
@@ -43,7 +37,7 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
     }
     spec.search match {
-      case LexicalSearchLike(language) =>
+      case _: SemanticSearch | _: LexicalSearch =>
         val trimmed =
           if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
           else field.value
@@ -61,6 +55,14 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       case _ =>
       //
     }
+    spec.suggest.foreach(schema => {
+      SuggestCandidates
+        .fromString(schema, spec.name, field.value)
+        .foreach(candidate => {
+          val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
+          buffer.add(s)
+        })
+    })
     val br = 1
   }
 }
@@ -68,5 +70,6 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
 object TextFieldWriter {
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
-  val RAW_SUFFIX            = "_raw"
+  val RAW_SUFFIX            = "$raw"
+  val SUGGEST_SUFFIX        = "$suggest"
 }

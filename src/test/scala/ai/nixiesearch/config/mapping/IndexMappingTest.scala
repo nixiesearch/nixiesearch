@@ -15,16 +15,6 @@ import io.circe.syntax.*
 import io.circe.parser.*
 
 class IndexMappingTest extends AnyFlatSpec with Matchers {
-  it should "create mapping from document with string fields" in {
-    val result = IndexMapping.fromDocument(List(Document(List(TextField("title", "yo")))), "test").unsafeRunSync()
-    result shouldBe IndexMapping(
-      name = "test",
-      fields = List(
-        TextFieldSchema("title", search = HybridSearch(), sort = true, facet = true, filter = true),
-        TextFieldSchema("_id", filter = true)
-      )
-    )
-  }
   "migration" should "preserve compatible int fields" in {
     val before = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
     val after  = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
@@ -61,7 +51,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val decoded = decode[IndexMapping](json)
     decoded shouldBe Right(mapping)
   }
-
+  
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =
       """

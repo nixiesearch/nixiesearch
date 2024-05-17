@@ -22,30 +22,20 @@ object SearchType {
   ) extends SearchType
       with SemanticSearchLikeType
 
-  case class LexicalSearch(language: Language = English) extends SearchType
+  case class LexicalSearch() extends SearchType
 
   case class HybridSearch(
       model: ModelHandle = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx", None),
-      prefix: ModelPrefix = ModelPrefix.e5,
-      language: Language = English
+      prefix: ModelPrefix = ModelPrefix.e5
   ) extends SearchType
       with SemanticSearchLikeType
 
   object SemanticSearchLikeType {
     def unapply(tpe: SearchType): Option[(ModelHandle, ModelPrefix)] = tpe match {
-      case NoSearch                              => None
-      case SemanticSearch(model, prefix)         => Some((model, prefix))
-      case LexicalSearch(language)               => None
-      case HybridSearch(model, prefix, language) => Some((model, prefix))
-    }
-  }
-
-  object LexicalSearchLike {
-    def unapply(tpe: SearchType): Option[Language] = tpe match {
-      case NoSearch                              => None
-      case SemanticSearch(model, prefix)         => None
-      case LexicalSearch(language)               => Some(language)
-      case HybridSearch(model, prefix, language) => Some(language)
+      case NoSearch                      => None
+      case SemanticSearch(model, prefix) => Some((model, prefix))
+      case LexicalSearch()               => None
+      case HybridSearch(model, prefix)   => Some((model, prefix))
     }
   }
 
@@ -115,19 +105,12 @@ object SearchType {
             case e5 if e5.contains("e5") => ModelPrefix.e5
             case _                       => ModelPrefix()
           }))
-        lang <- c.downField("language").as[Option[Language]].map(_.getOrElse(LexicalSearch().language))
       } yield {
-        HybridSearch(model, prefix, lang)
+        HybridSearch(model, prefix)
       }
     )
 
-    given lexicalSearchDecoder: Decoder[LexicalSearch] = Decoder.instance(c =>
-      for {
-        lang <- c.downField("language").as[Option[Language]].map(_.getOrElse(LexicalSearch().language))
-      } yield {
-        LexicalSearch(lang)
-      }
-    )
+    given lexicalSearchDecoder: Decoder[LexicalSearch] = Decoder.const(LexicalSearch())
 
     given searchTypeDecoder: Decoder[SearchType] = Decoder.instance(c =>
       c.as[String] match {

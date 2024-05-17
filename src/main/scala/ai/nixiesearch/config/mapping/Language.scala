@@ -3,9 +3,11 @@ package ai.nixiesearch.config.mapping
 import scala.util.{Failure, Success}
 import io.circe.{Decoder, Encoder}
 import io.circe.Json
-import org.apache.lucene.analysis.{Analyzer, CharArraySet}
+import org.apache.lucene.analysis.{Analyzer, CharArraySet, Tokenizer}
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.en.EnglishAnalyzer
+import org.apache.lucene.analysis.icu.segmentation.ICUTokenizer
+import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 
 import java.util.Locale
@@ -13,19 +15,15 @@ import scala.collection.mutable.ArrayBuffer
 
 sealed trait Language {
   def analyzer: Analyzer
-  def stopwords: CharArraySet
 
-  def analyze(field: String, query: String): List[String] = Language.analyze(analyzer, field, query)
 }
 
 object Language {
   case object Generic extends Language {
-    override val analyzer  = new EnglishAnalyzer()
-    override val stopwords = EnglishAnalyzer.getDefaultStopSet
+    override val analyzer = new StandardAnalyzer()
   }
   case object English extends Language {
-    override val analyzer  = new EnglishAnalyzer()
-    override val stopwords = EnglishAnalyzer.getDefaultStopSet
+    override val analyzer = new EnglishAnalyzer()
   }
 
   given languageTypeDecoder: Decoder[Language] = Decoder.decodeString.emapTry {
@@ -39,15 +37,4 @@ object Language {
     case Generic => Json.fromString("generic")
   }
 
-  def analyze(analyzer: Analyzer, field: String, text: String): List[String] = {
-    val buf    = new ArrayBuffer[String]()
-    val stream = analyzer.tokenStream(field, text)
-    stream.reset()
-    val term = stream.addAttribute(classOf[CharTermAttribute])
-    while (stream.incrementToken()) {
-      buf.addOne(term.toString)
-    }
-    stream.close()
-    buf.toList
-  }
 }

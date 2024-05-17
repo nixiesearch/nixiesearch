@@ -12,6 +12,7 @@ import ai.nixiesearch.core.codec.{
   FloatFieldWriter,
   IntFieldWriter,
   LongFieldWriter,
+  NixiesearchCodec,
   TextFieldWriter,
   TextListFieldWriter
 }
@@ -30,6 +31,9 @@ import cats.implicits.*
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
 import fs2.Stream
+import org.apache.lucene.codecs.FilterCodec
+import org.apache.lucene.codecs.lucene99.Lucene99Codec
+import org.apache.lucene.search.suggest.document.Completion99PostingsFormat
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -60,7 +64,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
               case Some(mapping) =>
                 if (name == "_id") ids.addOne(value)
                 mapping match {
-                  case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _) =>
+                  case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _, _, _) =>
                     textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
                   case _ => textFieldWriter.write(field, mapping, buffer, Map.empty)
                 }
@@ -105,7 +109,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       doc   <- docs
       field <- doc.fields
       model <- mapping.fields.get(field.name).toList.flatMap {
-        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _) =>
+        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _, _, _) =>
           Some(tpe)
         case other =>
           None
@@ -144,28 +148,32 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       .map(_.toMap)
   }
 
-  def flush(): IO[Boolean] = IO(writer.commit()).flatMap {
-    case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
-    case seqnum =>
-      for {
-        _        <- debug(s"index commit, seqnum=$seqnum")
-        manifest <- index.master.createManifest(index.mapping, seqnum)
-        _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
-        _        <- index.master.writeManifest(manifest)
-      } yield {
-        true
-      }
+  def flush(): IO[Boolean] = {
+    IO(writer.numRamDocs()).flatMap {
+      case 0 => debug("skipping flush, no uncommitted changes") *> IO(false)
+      case other =>
+        debug(s"mem docs: $other") *> IO(writer.commit()).flatMap {
+          case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+          case seqnum =>
+            for {
+              _        <- debug(s"index commit, seqnum=$seqnum")
+              manifest <- index.master.createManifest(index.mapping, seqnum)
+              _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
+              _        <- index.master.writeManifest(manifest)
+            } yield {
+              true
+            }
+        }
+    }
   }
 
-  def close(): IO[Unit] = flush().void // writer close is managed by the parent resource
 }
 
-object Indexer {
+object Indexer extends Logging {
   def open(index: Index): Resource[IO, Indexer] = {
     for {
       writer <- indexWriter(index.directory, index.mapping)
-      niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.close())
-      _      <- Resource.eval(niw.flush())
+      niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.flush().void)
     } yield {
       niw
     }
@@ -178,10 +186,14 @@ object Indexer {
     writer
   }
 
-  def indexWriter(directory: Directory, analyzer: Analyzer): Resource[IO, IndexWriter] = for {
-    config <- Resource.eval(IO(new IndexWriterConfig(analyzer)))
-    writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()))
-  } yield {
-    writer
-  }
+  def indexWriter(directory: Directory, analyzer: Analyzer): Resource[IO, IndexWriter] =
+    for {
+      codec  <- Resource.pure(NixiesearchCodec())
+      config <- Resource.eval(IO(new IndexWriterConfig(analyzer).setCodec(codec)))
+      _      <- Resource.eval(debug("opening IndexWriter"))
+      writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()) *> debug("IndexWriter closed"))
+    } yield {
+      writer
+    }
+
 }

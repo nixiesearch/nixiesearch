@@ -5,9 +5,21 @@ api:
 search:
   helloworld:
     fields:
-      title:
+      title1:
         type: text
         search: semantic
+        suggest: true
+      title2:
+        type: text
+        search: semantic
+        language: english
+        suggest:
+          lowercase: false
+          expand:
+            min-terms: 1
+            max-terms: 3
+          lemmatize:
+            dictionary: file://path/to/lemmas.csv
       desc:
         type: text
         search: # more advanced setup

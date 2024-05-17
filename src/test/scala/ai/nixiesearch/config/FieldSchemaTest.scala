@@ -1,7 +1,9 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.mapping.{Language, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
+import ai.nixiesearch.config.mapping.SuggestSchema.Expand
 import ai.nixiesearch.core.Field
 import io.circe.Decoder
 import io.circe.yaml.parser.parse
@@ -49,6 +51,55 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val yaml   = """type: int""".stripMargin
     val result = parseYaml(yaml)
     result shouldBe Right(IntFieldSchema(name = "field"))
+  }
+
+  it should "decode fields with simple suggest mapping" in {
+    val yaml =
+      """type: text
+        |search: false
+        |suggest: true
+        """.stripMargin
+    val result = parseYaml(yaml)
+    result shouldBe Right(
+      TextFieldSchema(
+        name = "field",
+        search = NoSearch,
+        store = true,
+        filter = false,
+        facet = false,
+        language = Language.Generic,
+        suggest = Some(SuggestSchema())
+      )
+    )
+  }
+
+  it should "decode fields with extended suggest mapping" in {
+    val yaml =
+      """type: text
+        |search: false
+        |suggest:
+        |  lowercase: true
+        |  expand:
+        |    min-terms: 1
+        |    max-terms: 5
+        """.stripMargin
+    val result = parseYaml(yaml)
+    result shouldBe Right(
+      TextFieldSchema(
+        name = "field",
+        search = NoSearch,
+        store = true,
+        filter = false,
+        facet = false,
+        language = Language.Generic,
+        suggest = Some(
+          SuggestSchema(
+            lowercase = true,
+            expand = Some(Expand(1, 5))
+          )
+        )
+      )
+    )
   }
 
   def parseYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {
