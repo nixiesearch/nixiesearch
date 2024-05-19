@@ -8,5 +8,5 @@ object Deps {
   lazy val fs2Version       = "3.10.2"
   lazy val luceneVersion    = "9.10.0"
   lazy val djlVersion       = "0.28.0"
-  lazy val awsVersion       = "2.25.54"
+  lazy val awsVersion       = "2.25.55"
 }
