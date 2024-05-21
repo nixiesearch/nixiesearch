@@ -143,7 +143,7 @@ Nixiesearch is not a general-purpose search engine like Elasticsearch:
 
 At the moment, Nixiesearch is in the process of active development, so please reach out to use via [the contact](https://www.metarank.ai/contact) form if you want to try it!
 
-- [x] Search/Index API
+- [x] Search/Index API: 
 - [x] Index mapping
 - [x] Config file parsing
 - [x] Lexical search with Lucene
@@ -153,9 +153,13 @@ At the moment, Nixiesearch is in the process of active development, so please re
 - [x] Facets for terms and ranges
 - [x] Boolean filtering for lexical/semantic search
 - [x] Autocomplete suggestions
-- [ ] S3 index sync
-- [ ] LLM fine-tuning
+- [x] S3 index sync
+- [x] LLM fine-tuning
 - [ ] Cut-off threshold prediction for semantic search
+- [ ] Sorting support
+- [ ] Swagger/OpenAPI schema
+- [ ] Nice webui
+- [ ] Pull-based indexing from file/Kafka
 
 License
 =====
