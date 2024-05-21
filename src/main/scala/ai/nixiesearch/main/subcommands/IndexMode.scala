@@ -14,7 +14,7 @@ import scala.concurrent.duration.*
 
 object IndexMode extends Logging {
   def run(args: IndexArgs): IO[Unit] = for {
-    _      <- info("Starting in 'index' mode with indexer only")
+    _      <- info("Starting in 'index' mode with indexer only ")
     config <- Config.load(args.config)
     _ <- config.search.values.toList
       .map(im =>

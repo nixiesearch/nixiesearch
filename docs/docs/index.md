@@ -8,13 +8,11 @@
 
 ## What is Nixiesearch?
 
-Nixiesearch is a hybrid (semantic + lexical) search engine, focused on simplicity and developer UX:
+Nixiesearch is a hybrid search engine that fine-tunes to your data. 
 
-* **state-of-the-art hybrid search**: combinging [Lucene](https://lucene.apache.org/)-powered lexical retrieval, bi-encoder retrieval and [LambdaMART Learn-to-Rank](https://xgboost.readthedocs.io/en/latest/tutorials/learning_to_rank.html) reranking for the best search quality.
-* **zero configuration**: batteries included, but everything is tunable.
-* *(coming soon)* **fine-tuned for your data**: fine-tune semantic search models like [E5](https://huggingface.co/intfloat/e5-base-v2)
-  or [MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) for your data out-of-the-box.
-* *(coming soon)* **cloud-native**: stateless searchers allow smooth auto-scaling in Kubernetes.
+* Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
+* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/config/languages.md), [facets](reference/api/search/facet.md), [advanced filters](reference/api/search/filter.md), [autocomplete suggestions](reference/api/suggest.md) and [sorting](TODO) out of the box.
+* Designed to be cloud-native with [S3/blockstore index persistence](TODO). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
 
 > Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
 
@@ -27,6 +25,13 @@ Unlike some of the other vector search engines:
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 
 The project is in active development and not intended for production use *just yet*. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
+
+### Why NOT Nixiesearch?
+
+Nixiesearch has the following design limitations:
+
+* **Does not support sharding**: sharding requires multi-node coordination and consensus, and we would like to avoid having any distributed state in the cluster - at least in the v1. If you plan to use Nixiesearch for searching 1TB of logs, please don't: consider [ELK](https://www.elastic.co/elastic-stack) or [Quickwit](https://github.com/quickwit-oss/quickwit) as better alternatives.
+* **Query language is simple**: supporting analytical queries over deeply-nested documents is out of scope for the project. Nixiesearch is about search, and for analytical databases consider using [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
 
 ## Usage
 
