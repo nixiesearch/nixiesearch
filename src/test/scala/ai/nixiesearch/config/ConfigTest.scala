@@ -1,6 +1,6 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.ApiConfig.Hostname
+import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
@@ -16,6 +16,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
+import ai.nixiesearch.config.IndexerConfig.IndexerSourceConfig.ApiSourceConfig
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
@@ -26,7 +27,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        api = ApiConfig(host = Hostname("localhost")),
+        indexer = IndexerConfig(ApiSourceConfig(Hostname("0.0.0.0"), Port(8080))),
+        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
@@ -56,7 +58,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        api = ApiConfig(host = Hostname("localhost")),
+        indexer = IndexerConfig(ApiSourceConfig(Hostname("0.0.0.0"), Port(8080))),
+        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
@@ -97,7 +100,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        api = ApiConfig(host = Hostname("localhost")),
+        indexer = IndexerConfig(ApiSourceConfig(Hostname("0.0.0.0"), Port(8080))),
+        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
