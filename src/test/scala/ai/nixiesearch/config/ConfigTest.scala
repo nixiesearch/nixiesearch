@@ -27,7 +27,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     parsed shouldBe Right(
       Config(
         api = ApiConfig(host = Hostname("localhost")),
-        search = Map(
+        schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
             alias = Nil,
@@ -57,7 +57,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     parsed shouldBe Right(
       Config(
         api = ApiConfig(host = Hostname("localhost")),
-        search = Map(
+        schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
             alias = Nil,
@@ -98,7 +98,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     parsed shouldBe Right(
       Config(
         api = ApiConfig(host = Hostname("localhost")),
-        search = Map(
+        schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
             alias = Nil,

@@ -1,6 +1,7 @@
 package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.{API, HealthRoute, IndexRoute}
+import ai.nixiesearch.config.IndexerConfig.IndexerSourceConfig.ApiSourceConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.core.Logging
@@ -10,16 +11,21 @@ import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
+
 import scala.concurrent.duration.*
 
 object IndexMode extends Logging {
   def run(args: IndexArgs): IO[Unit] = for {
     _      <- info("Starting in 'index' mode with indexer only ")
     config <- Config.load(args.config)
-    _ <- config.search.values.toList
+
+  } yield {}
+
+  def runApi(indexes: List[IndexMapping], source: ApiSourceConfig): IO[Unit] = for {
+    _ <- indexes
       .map(im =>
         for {
-          index   <- Index.forIndexing(im, config.core.cache)
+          index   <- Index.forIndexing(im)
           indexer <- Indexer.open(index)
           _ <- Stream
             .repeatEval(indexer.flush().flatMap {
@@ -38,12 +44,11 @@ object IndexMode extends Logging {
           indexRoutes <- IO(indexers.map(indexer => IndexRoute(indexer).routes).reduce(_ <+> _))
           healthRoute <- IO(HealthRoute())
           routes      <- IO(indexRoutes <+> healthRoute.routes)
-          server      <- API.start(routes, config)
+          server      <- API.start(routes, source.host, source.port)
           _           <- server.use(_ => IO.never)
 
         } yield {}
       )
-
   } yield {}
 
 }

@@ -13,8 +13,8 @@ object StandaloneMode extends Logging {
   def run(args: StandaloneArgs): IO[Unit] = for {
     _      <- info("Starting in 'standalone' mode with indexer+searcher colocated within a single process")
     config <- Config.load(args.config)
-    _ <- config.search.values.toList
-      .map(im => Index.local(im, config.core.cache))
+    _ <- config.schema.values.toList
+      .map(im => Index.local(im))
       .sequence
       .use(indexes =>
         indexes
@@ -30,7 +30,7 @@ object StandaloneMode extends Logging {
                   searchRoutes <- IO(searchers.map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes).reduce(_ <+> _))
                   health       <- IO(HealthRoute())
                   routes       <- IO(indexRoutes <+> searchRoutes <+> health.routes)
-                  server       <- API.start(routes, config)
+                  server       <- API.start(routes, config.searcher.host, config.searcher.port)
                   _            <- server.use(_ => IO.never)
                 } yield {}
               )

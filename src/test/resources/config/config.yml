@@ -1,8 +1,28 @@
-api:
-  host: localhost
-  port: 8080
 
-search:
+indexer:
+  # option with rest api, default one
+  api:
+    host: localhost
+    port: 8081
+  # from a single file
+  file:
+    path: file://dir/to/file.jsonl
+  # from a dir
+  file:
+    path: file://dir/path/
+    recursive: true
+  # todo: use kafka
+  kafka:
+    broker: kafka.local
+    topic: test
+
+searcher:
+  api:
+    host: localhost
+    port: 8080
+
+
+schema:
   helloworld:
     fields:
       title:

@@ -24,20 +24,20 @@ trait Index extends Logging {
 }
 
 object Index {
-  def local(mapping: IndexMapping, cache: CacheConfig): Resource[IO, LocalIndex] = mapping.store match {
-    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, cache)
+  def local(mapping: IndexMapping): Resource[IO, LocalIndex] = mapping.store match {
+    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local)
     case dist: config.StoreConfig.DistributedStoreConfig =>
       Resource.raiseError[IO, LocalIndex, Throwable](
         new UnsupportedOperationException("cannot open distributed index in local standalone mode")
       )
   }
-  def forSearch(mapping: IndexMapping, cache: CacheConfig): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cache)
-    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist, cache)
+  def forSearch(mapping: IndexMapping): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local)
+    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist)
   }
 
-  def forIndexing(mapping: IndexMapping, cache: CacheConfig): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cache)
-    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist, cache)
+  def forIndexing(mapping: IndexMapping): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local)
+    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist)
   }
 }

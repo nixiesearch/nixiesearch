@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.{FieldSchema, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, FieldSchema, StoreConfig}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -28,6 +28,7 @@ case class IndexMapping(
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
     store: StoreConfig = StoreConfig(),
+    cache: CacheConfig = CacheConfig(),
     fields: Map[String, FieldSchema[? <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
@@ -126,6 +127,7 @@ object IndexMapping extends Logging {
         }
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
+        cache  <- c.downField("cache").as[Option[CacheConfig]].map(_.getOrElse(CacheConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
         val extendedFields = fieldsMap.get("_id") match {
@@ -136,7 +138,7 @@ object IndexMapping extends Logging {
           case None =>
             fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
-        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store)
+        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store, cache = cache)
 
       }
     )
