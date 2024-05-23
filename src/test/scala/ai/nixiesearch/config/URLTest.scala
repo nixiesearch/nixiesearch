@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
 import io.circe.generic.semiauto.*
 import org.http4s.Uri
-
+import io.circe.yaml.parser.parse
 import java.nio.file.Paths
 
 class URLTest extends AnyFlatSpec with Matchers {
@@ -40,6 +40,17 @@ class URLTest extends AnyFlatSpec with Matchers {
 
   it should "decode valid http urls" in {
     decodeURL("http://google.com") shouldBe Right(HttpURL(Uri.unsafeFromString("http://google.com")))
+  }
+
+  it should "decode s3 urls in full format" in {
+    val yml =
+      """
+        |s3:
+        |  bucket: foo
+        |  prefix: bar
+        |  region: us-east-1""".stripMargin
+    val decoded = parse(yml).flatMap(_.as[URL])
+    decoded shouldBe Right(S3URL("foo", "bar", Some("us-east-1")))
   }
 
   def decodeURL(value: String): Either[io.circe.Error, URL] = {
