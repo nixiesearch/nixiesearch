@@ -126,8 +126,7 @@ Compared to traditional search engines like Elasticsearch/Solr:
 
 * **Independent stateful indexer and stateless search backends**: with index sync happening via S3-compatible block storage.
   No more red index status and cluster split-brains due to indexer overload.
-* **Pull-based indexing**: pull updated documents right from [Kafka](https://kafka.apache.org/) in real-time, no need for
-  separate indexing ETL jobs with limited throughput.
+* **Pull-based indexing**: pull updated documents right from [Kafka](https://kafka.apache.org/) in real-time, no need for separate indexing ETL jobs with limited throughput.
 
 Nixiesearch uses [RRF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) for combining text and neural search results.
 

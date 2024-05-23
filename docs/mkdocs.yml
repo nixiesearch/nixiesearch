@@ -123,6 +123,11 @@ nav:
         - Search: concepts/search.md
         - Autocomplete: concepts/autocomplete.md
         - Deployment: concepts/deploy.md
+    - Deployment:
+        - Overview: deployment/overview.md
+        - Standalone: deployment/standalone.md
+        - Distributed: deployment/distributed.md
+        - Pull-based ingestion: deployment/kafka.md
     - Reference:
         - API:
             - Overview: reference/api/overview.md
