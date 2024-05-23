@@ -4,6 +4,8 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
@@ -19,7 +21,8 @@ class TermFilterTest extends SearchTest with Matchers {
       TextFieldSchema("_id", filter = true),
       TextFieldSchema("color", filter = true),
       TextFieldSchema("color2", filter = true)
-    )
+    ),
+    store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("color", "red"))),

@@ -1,12 +1,16 @@
 package ai.nixiesearch.util.source
 
-import ai.nixiesearch.config.URL.LocalURL
-import ai.nixiesearch.util.source.SourceReader.SourceLocation.*
+import ai.nixiesearch.config.URL.{LocalURL, S3URL}
+import ai.nixiesearch.util.S3Client
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
+
 import java.io.FileOutputStream
 import java.nio.file.Files
+import fs2.Stream
+
+import scala.util.Random
 
 class URLReaderTest extends AnyFlatSpec with Matchers {
   it should "read local file" in {
@@ -15,7 +19,7 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
     val stream = new FileOutputStream(path.toFile)
     stream.write(data.toArray)
     stream.close()
-    val read = URLReader.bytes(FileLocation(LocalURL(path))).compile.toList.unsafeRunSync()
+    val read = URLReader.bytes(LocalURL(path)).compile.toList.unsafeRunSync()
     read shouldBe data
   }
 
@@ -28,7 +32,37 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
       stream.write(data.toArray)
       stream.close()
     })
-    val read = URLReader.bytes(DirLocation(LocalURL(dir))).compile.toList.unsafeRunSync()
+    val read = URLReader.bytes(LocalURL(dir), true).compile.toList.unsafeRunSync()
     read shouldBe List.concat(data, data, data, data)
+  }
+
+  it should "read s3 files" in {
+    val data             = List(1, 2, 3, 4).map(_.toByte)
+    val name             = Random.nextInt(1024000).toString + ".tmp"
+    val client: S3Client = S3Client.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
+    client.multipartUpload("bucket", name, Stream.emits(data)).unsafeRunSync()
+    client.client.close()
+    val out = URLReader
+      .bytes(S3URL("bucket", name, Some("us-east-1"), Some("http://localhost:4566")))
+      .compile
+      .toList
+      .unsafeRunSync()
+    out shouldBe data
+  }
+
+  it should "read s3 dirs" in {
+    val data             = List(1, 2, 3, 4).map(_.toByte)
+    val name             = Random.nextInt(1024000).toString + "_dir"
+    val client: S3Client = S3Client.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
+    (0 until 4).foreach(i => {
+      client.multipartUpload("bucket", s"$name/$i.tmp", Stream.emits(data)).unsafeRunSync()
+    })
+    client.client.close()
+    val out = URLReader
+      .bytes(S3URL("bucket", name, Some("us-east-1"), Some("http://localhost:4566")), recursive = true)
+      .compile
+      .toList
+      .unsafeRunSync()
+    out shouldBe List.concat(data, data, data, data)
   }
 }

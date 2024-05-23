@@ -6,6 +6,8 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.MultiMatchQuery
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
@@ -26,7 +28,8 @@ class TermAggregationTest extends SearchTest with Matchers {
       TextFieldSchema("color", filter = true, facet = true),
       TextListFieldSchema("size", filter = true, facet = true),
       IntFieldSchema("count", facet = true)
-    )
+    ),
+    store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
     Document(

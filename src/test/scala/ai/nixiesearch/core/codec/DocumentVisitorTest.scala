@@ -8,6 +8,8 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import cats.effect.unsafe.implicits.global
 import ai.nixiesearch.core.Field.{FloatField, IntField, TextField}
 import ai.nixiesearch.util.SearchTest
@@ -16,7 +18,8 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val docs = Nil
   val mapping = IndexMapping(
     name = "test",
-    fields = List(TextFieldSchema("_id"), TextFieldSchema("title"), IntFieldSchema("count"))
+    fields = List(TextFieldSchema("_id"), TextFieldSchema("title"), IntFieldSchema("count")),
+    store = LocalStoreConfig(MemoryLocation())
   )
 
   it should "collect doc from fields" in withIndex { store =>

@@ -29,7 +29,6 @@ object API extends Logging {
     port <- IO.fromOption(SPort.fromInt(port.value))(
       new Exception(s"cannot parse port '${port.value}'")
     )
-    _ <- Logo.lines.map(line => info(line)).sequence
     api <- IO(
       EmberServerBuilder
         .default[IO]

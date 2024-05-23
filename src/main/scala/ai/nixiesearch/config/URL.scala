@@ -7,8 +7,8 @@ import java.nio.file.{Files, Path, Paths}
 import scala.util.{Failure, Success}
 
 enum URL {
-  case LocalURL(path: Path)                                                                    extends URL
-  case HttpURL(path: Uri)                                                                      extends URL
+  case LocalURL(path: Path)                                                                                  extends URL
+  case HttpURL(path: Uri)                                                                                    extends URL
   case S3URL(bucket: String, prefix: String, region: Option[String] = None, endpoint: Option[String] = None) extends URL
 }
 
@@ -33,17 +33,7 @@ object URL {
     c.focus match {
       case Some(json) =>
         json.asString match {
-          case Some(localScheme3Pattern(path)) => Right(LocalURL(Paths.get("/" + path)))
-          case Some(localScheme2Pattern(path)) => Right(LocalURL(Paths.get("/" + path)))
-          case Some(localPattern(path))        => Right(LocalURL(Paths.get("/" + path)))
-          case Some(s3Pattern(bucket, prefix)) => Right(URL.S3URL(bucket, prefix, None, None))
-          case Some(httpPattern(http)) =>
-            Uri.fromString(http) match {
-              case Left(value)  => Left(DecodingFailure(s"cannot decode HTTP uri '$http': ${value}", Nil))
-              case Right(value) => Right(HttpURL(value))
-            }
-          case Some(catchAllPrefix(url)) => Left(DecodingFailure(s"cannot decode URL '$url'", Nil))
-          case Some(relative)            => Right(LocalURL(Paths.get(System.getProperty("user.dir"), relative)))
+          case Some(string) => fromString(string)
           case None =>
             json.asObject match {
               case Some(obj) =>
@@ -57,4 +47,19 @@ object URL {
       case None => Left(DecodingFailure(s"cannot decode url", c.history))
     }
   )
+
+  def fromString(string: String): Either[DecodingFailure, URL] = string match {
+    case localScheme3Pattern(path) => Right(LocalURL(Paths.get("/" + path)))
+    case localScheme2Pattern(path) => Right(LocalURL(Paths.get("/" + path)))
+    case localPattern(path)        => Right(LocalURL(Paths.get("/" + path)))
+    case s3Pattern(bucket, prefix) => Right(URL.S3URL(bucket, prefix, None, None))
+    case httpPattern(http) =>
+      Uri.fromString(http) match {
+        case Left(value)  => Left(DecodingFailure(s"cannot decode HTTP uri '$http': ${value}", Nil))
+        case Right(value) => Right(HttpURL(value))
+      }
+    case catchAllPrefix(url) => Left(DecodingFailure(s"cannot decode URL '$url'", Nil))
+    case relative            => Right(LocalURL(Paths.get(System.getProperty("user.dir"), relative)))
+
+  }
 }

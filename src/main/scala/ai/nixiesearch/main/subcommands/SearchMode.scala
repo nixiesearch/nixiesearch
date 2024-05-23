@@ -1,15 +1,18 @@
 package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.*
+import ai.nixiesearch.api.API.info
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Searcher
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.SearchArgs
+import ai.nixiesearch.main.Logo
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
+
 import scala.concurrent.duration.*
 
 object SearchMode extends Logging {
@@ -41,6 +44,7 @@ object SearchMode extends Logging {
           health       <- IO(HealthRoute())
           routes       <- IO(searchRoutes <+> health.routes)
           server       <- API.start(routes, config.searcher.host, config.searcher.port)
+          _            <- Logo.lines.map(line => info(line)).sequence
           _            <- server.use(_ => IO.never)
         } yield {}
       )

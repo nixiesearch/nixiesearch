@@ -8,6 +8,8 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearchLikeType}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
@@ -93,8 +95,12 @@ object IndexMapping extends Logging {
 
   case class Alias(name: String)
 
-  def apply(name: String, fields: List[FieldSchema[? <: Field]]): IndexMapping = {
-    new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig())
+  def apply(
+      name: String,
+      fields: List[FieldSchema[? <: Field]],
+      store: StoreConfig
+  ): IndexMapping = {
+    new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig(), store = store)
   }
 
   def createAnalyzer(mapping: IndexMapping): Analyzer = {

@@ -41,22 +41,14 @@ object Config extends Logging {
     }
   )
 
-  def load(pathOption: Option[File]): IO[Config] = pathOption match {
-    case Some(file) =>
-      for {
-        text    <- IO(IOUtils.toString(new FileInputStream(file), StandardCharsets.UTF_8))
-        yaml    <- IO.fromEither(parse(text))
-        decoded <- IO.fromEither(yaml.as[Config])
-        _       <- info(s"Loaded config: $file")
-      } yield {
-        decoded
-      }
-    case None =>
-      for {
-        _    <- info("No config file given, using defaults")
-        dflt <- IO.pure(Config())
-      } yield {
-        dflt
-      }
+  def load(path: File): IO[Config] = {
+    for {
+      text    <- IO(IOUtils.toString(new FileInputStream(path), StandardCharsets.UTF_8))
+      yaml    <- IO.fromEither(parse(text))
+      decoded <- IO.fromEither(yaml.as[Config])
+      _       <- info(s"Loaded config: $path")
+    } yield {
+      decoded
+    }
   }
 }
