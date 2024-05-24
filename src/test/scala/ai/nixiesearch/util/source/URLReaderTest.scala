@@ -2,15 +2,23 @@ package ai.nixiesearch.util.source
 
 import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
 import ai.nixiesearch.util.S3Client
+import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
+import com.comcast.ip4s.{Host, Port}
 
 import java.io.FileOutputStream
 import java.nio.file.Files
 import fs2.Stream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
-import org.http4s.Uri
+import org.http4s.{Entity, HttpRoutes, Response, Status, Uri}
+import org.http4s.ember.server.EmberServerBuilder
+import scodec.bits.ByteVector
+import org.http4s.dsl.io.*
+import org.http4s.server.Router
+import org.typelevel.log4cats.*
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 import scala.util.Random
 
@@ -79,7 +87,22 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
   }
 
   it should "read http files" in {
-    val out = URLReader.bytes(HttpURL(Uri.unsafeFromString("https://httpbin.org/get"))).compile.toList.unsafeRunSync()
-    out.size should be > (0)
+    implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
+    val data                                = "hello".getBytes()
+    val route = HttpRoutes.of[IO] { case req @ GET -> Root / "file.json" =>
+      IO(Response[IO](status = Status.Ok, entity = Entity.strict(ByteVector(data))))
+    }
+    val (server, shutdown) = EmberServerBuilder
+      .default[IO]
+      .withHost(Host.fromString("0.0.0.0").get)
+      .withPort(Port.fromInt(18080).get)
+      .withHttpApp(Router("/" -> route).orNotFound)
+      .build
+      .allocated
+      .unsafeRunSync()
+    val out =
+      URLReader.bytes(HttpURL(Uri.unsafeFromString("http://127.0.0.1:18080/file.json"))).compile.toList.unsafeRunSync()
+    out shouldBe data.toList
+    shutdown.unsafeRunSync()
   }
 }
