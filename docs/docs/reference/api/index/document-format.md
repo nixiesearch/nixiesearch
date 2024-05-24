@@ -37,7 +37,7 @@ Flat documents without any nesting are mapped 1-to-1 to underlying index fields.
 will match (or [dynamically generate when missing](../../../concepts/indexing.md#dynamic-index-mapping)) the following index mapping:
 
 ```yaml
-search:
+schema:
   my-index:
     fields:
       - title:
@@ -64,7 +64,7 @@ For example, the following document:
 should match (or [dynamically generate when missing](../../../concepts/indexing.md#dynamic-index-mapping)) the following index mapping:
 
 ```yaml
-search:
+schema:
   my-index:
     fields:
       - tags:
@@ -89,7 +89,7 @@ A non-repeated nested document like this:
 will be flattened into a dot-separated field in the mapping:
 
 ```yaml
-search:
+schema:
   my-index:
     fields:
       - meta.asin:
@@ -111,7 +111,7 @@ Repeated documents are also flattened in a similar way, but with a notable excep
 will flatten itself into a collection of repeated fields:
 
 ```yaml
-search:
+schema:
   my-index:
     fields:
       - tracks.name:

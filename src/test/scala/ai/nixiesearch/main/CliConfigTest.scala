@@ -11,6 +11,6 @@ class CliConfigTest extends AnyFlatSpec with Matchers {
   it should "parse standalone args" in {
     val temp   = Files.createTempFile("config", ".yml")
     val result = CliConfig.load(List("standalone", "--config", temp.toString)).unsafeRunSync()
-    result shouldBe StandaloneArgs(Some(temp.toFile))
+    result shouldBe StandaloneArgs(temp.toFile)
   }
 }

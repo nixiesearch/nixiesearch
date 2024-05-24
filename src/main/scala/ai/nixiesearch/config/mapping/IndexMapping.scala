@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.{FieldSchema, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, FieldSchema, StoreConfig}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -8,6 +8,8 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearchLikeType}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
@@ -28,6 +30,7 @@ case class IndexMapping(
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
     store: StoreConfig = StoreConfig(),
+    cache: CacheConfig = CacheConfig(),
     fields: Map[String, FieldSchema[? <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
@@ -92,8 +95,12 @@ object IndexMapping extends Logging {
 
   case class Alias(name: String)
 
-  def apply(name: String, fields: List[FieldSchema[? <: Field]]): IndexMapping = {
-    new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig())
+  def apply(
+      name: String,
+      fields: List[FieldSchema[? <: Field]],
+      store: StoreConfig
+  ): IndexMapping = {
+    new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig(), store = store)
   }
 
   def createAnalyzer(mapping: IndexMapping): Analyzer = {
@@ -126,6 +133,7 @@ object IndexMapping extends Logging {
         }
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
+        cache  <- c.downField("cache").as[Option[CacheConfig]].map(_.getOrElse(CacheConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
         val extendedFields = fieldsMap.get("_id") match {
@@ -136,7 +144,7 @@ object IndexMapping extends Logging {
           case None =>
             fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
-        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store)
+        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store, cache = cache)
 
       }
     )

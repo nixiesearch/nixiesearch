@@ -1,11 +1,13 @@
 package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.*
+import ai.nixiesearch.api.API.info
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.{Indexer, Searcher}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
+import ai.nixiesearch.main.Logo
 import cats.effect.IO
 import cats.implicits.*
 
@@ -13,8 +15,8 @@ object StandaloneMode extends Logging {
   def run(args: StandaloneArgs): IO[Unit] = for {
     _      <- info("Starting in 'standalone' mode with indexer+searcher colocated within a single process")
     config <- Config.load(args.config)
-    _ <- config.search.values.toList
-      .map(im => Index.local(im, config.core.cache))
+    _ <- config.schema.values.toList
+      .map(im => Index.local(im))
       .sequence
       .use(indexes =>
         indexes
@@ -30,7 +32,8 @@ object StandaloneMode extends Logging {
                   searchRoutes <- IO(searchers.map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes).reduce(_ <+> _))
                   health       <- IO(HealthRoute())
                   routes       <- IO(indexRoutes <+> searchRoutes <+> health.routes)
-                  server       <- API.start(routes, config)
+                  server       <- API.start(routes, config.searcher.host, config.searcher.port)
+                  _            <- Logo.lines.map(line => info(line)).sequence
                   _            <- server.use(_ => IO.never)
                 } yield {}
               )

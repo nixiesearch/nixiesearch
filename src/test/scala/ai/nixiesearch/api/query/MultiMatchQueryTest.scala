@@ -2,6 +2,8 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.MatchQuery.Operator
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
@@ -17,7 +19,8 @@ class MultiMatchQueryTest extends SearchTest with Matchers {
       TextFieldSchema(name = "_id"),
       TextFieldSchema(name = "title", search = LexicalSearch(), sort = true),
       TextFieldSchema(name = "desc", search = LexicalSearch(), sort = true)
-    )
+    ),
+    store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "dress"), TextField("desc", "red"))),

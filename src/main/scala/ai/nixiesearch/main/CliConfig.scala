@@ -1,11 +1,14 @@
 package ai.nixiesearch.main
 
+import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
+import ai.nixiesearch.config.URL
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
-import ai.nixiesearch.main.CliConfig.fileConverter
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSource.*
+import ai.nixiesearch.main.CliConfig.CliArgs.*
+import ai.nixiesearch.main.CliConfig.{fileConverter, hostnameConverter, portConverter}
 import cats.effect.IO
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
-import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, ValueConverter, singleArgConverter, throwError}
+import org.rogach.scallop.*
 
 import java.io.File
 import scala.util.{Failure, Success, Try}
@@ -19,8 +22,48 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
   }
 
   object standalone extends Subcommand("standalone") with ConfigOption
-  object index      extends Subcommand("index") with ConfigOption
-  object search     extends Subcommand("search") with ConfigOption
+  object index extends Subcommand("index") {
+    object api extends Subcommand("api") with ConfigOption {
+      val host =
+        opt[Hostname](
+          name = "host",
+          required = false,
+          descr = "iface to bind to, optional, default=0.0.0.0",
+          default = Some(Hostname("0.0.0.0"))
+        )(
+          hostnameConverter
+        )
+      val port =
+        opt[Port](
+          name = "port",
+          required = false,
+          default = Some(Port(8080)),
+          descr = "port to bind to, optional, default=8080"
+        )(portConverter)
+    }
+    object file extends Subcommand("file") with ConfigOption {
+      val index = opt[String](name = "index", descr = "to which index to write to")
+      val url   = opt[URL](name = "url", descr = "path to documents source")(CliConfig.urlConverter)
+      val recursive =
+        opt[Boolean](
+          name = "recursive",
+          required = false,
+          default = Some(false),
+          descr = "recursive listing for directories, optional, default=false"
+        )
+      val endpoint =
+        opt[String](
+          name = "endpoint",
+          required = false,
+          default = None,
+          descr = "custom S3 endpoint, optional, default=None"
+        )
+    }
+
+    addSubcommand(api)
+    addSubcommand(file)
+  }
+  object search extends Subcommand("search") with ConfigOption
   addSubcommand(standalone)
   addSubcommand(index)
   addSubcommand(search)
@@ -45,9 +88,15 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 object CliConfig extends Logging {
   sealed trait CliArgs
   object CliArgs {
-    case class StandaloneArgs(config: Option[File]) extends CliArgs
-    case class IndexArgs(config: Option[File])      extends CliArgs
-    case class SearchArgs(config: Option[File])     extends CliArgs
+    case class StandaloneArgs(config: File)                 extends CliArgs
+    case class IndexArgs(config: File, source: IndexSource) extends CliArgs
+    case class SearchArgs(config: File)                     extends CliArgs
+
+    enum IndexSource {
+      case ApiIndexSource(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSource
+      case FileIndexSource(url: URL, index: String, recursive: Boolean = false, endpoint: Option[String] = None)
+          extends IndexSource
+    }
   }
 
   def load(args: List[String]): IO[CliArgs] = for {
@@ -56,19 +105,39 @@ object CliConfig extends Logging {
     opts <- parser.subcommand match {
       case Some(parser.standalone) =>
         for {
-          config <- parseOption(parser.standalone.config)
+          config <- parse(parser.standalone.config)
         } yield {
           StandaloneArgs(config)
         }
       case Some(parser.index) =>
-        for {
-          config <- parseOption(parser.index.config)
-        } yield {
-          IndexArgs(config)
+        parser.index.subcommand match {
+          case Some(parser.index.api) =>
+            for {
+              config <- parse(parser.index.api.config)
+              host   <- parseOption(parser.index.api.host)
+              port   <- parseOption(parser.index.api.port)
+            } yield {
+              IndexArgs(config, ApiIndexSource(host.getOrElse(Hostname("0.0.0.0")), port.getOrElse(Port(8080))))
+            }
+          case Some(parser.index.file) =>
+            for {
+              config    <- parse(parser.index.file.config)
+              url       <- parse(parser.index.file.url)
+              index     <- parse(parser.index.file.index)
+              recursive <- parseOption(parser.index.file.recursive)
+              endpoint  <- parseOption(parser.index.file.endpoint)
+            } yield {
+              IndexArgs(config, FileIndexSource(url, index, recursive.getOrElse(false), endpoint))
+            }
+          case Some(other) =>
+            IO.raiseError(new Exception(s"Subcommand $other is not supported. Try indexer api."))
+          case None =>
+            IO.raiseError(new Exception("No command given. If unsure, try 'nixiesearch standalone'"))
+
         }
       case Some(parser.search) =>
         for {
-          config <- parseOption(parser.search.config)
+          config <- parse(parser.search.config)
         } yield {
           SearchArgs(config)
         }
@@ -114,4 +183,19 @@ object CliConfig extends Logging {
 
     }
   })
+
+  given urlConverter: ValueConverter[URL] = singleArgConverter(string => {
+    URL.fromString(string) match {
+      case Left(error)  => throw new Exception(s"Cannot decode URL $string: $error")
+      case Right(value) => value
+    }
+  })
+
+  given hostnameConverter: ValueConverter[Hostname] = singleArgConverter(string => Hostname(string))
+  given portConverter: ValueConverter[Port] = singleArgConverter(port =>
+    port.toIntOption match {
+      case Some(p) => Port(p)
+      case None    => throw new Exception(s"cannot parse port $port")
+    }
+  )
 }

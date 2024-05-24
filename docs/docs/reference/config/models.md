@@ -7,7 +7,7 @@ Nixiesearch uses [ONNXRuntime](https://onnxruntime.ai/) to support the vast majo
 You can reference any HF model handle in the text field index mapping block, for example:
 
 ```yaml
-search:
+schema:
   <index-name>:
     fields:
       desc:
@@ -20,7 +20,7 @@ search:
 Optionally you can define which particular ONNX file to load, for example the QInt8 quantized one:
 
 ```yaml
-search:
+schema:
   <index-name>:
     fields:
       desc:

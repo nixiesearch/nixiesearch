@@ -7,14 +7,9 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeLt
 import ai.nixiesearch.api.query.MultiMatchQuery
-import ai.nixiesearch.config.FieldSchema.{
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
@@ -38,7 +33,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
       FloatFieldSchema("fcount", facet = true),
       LongFieldSchema("lcount", facet = true),
       DoubleFieldSchema("dcount", facet = true)
-    )
+    ),
+    store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
     Document(

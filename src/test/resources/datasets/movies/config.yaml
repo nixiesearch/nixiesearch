@@ -1,0 +1,14 @@
+searcher:
+  api:
+    host: localhost
+    port: 8080
+
+schema:
+  movies:
+    fields:
+      title:
+        type: text
+        search: semantic
+      overview:
+        type: text
+        search: semantic

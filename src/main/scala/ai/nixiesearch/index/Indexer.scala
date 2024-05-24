@@ -156,7 +156,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
           case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
           case seqnum =>
             for {
-              _        <- debug(s"index commit, seqnum=$seqnum")
+              _        <- info(s"index commit, seqnum=$seqnum")
               manifest <- index.master.createManifest(index.mapping, seqnum)
               _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
               _        <- index.master.writeManifest(manifest)

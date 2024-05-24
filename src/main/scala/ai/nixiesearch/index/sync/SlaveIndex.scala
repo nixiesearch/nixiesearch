@@ -62,7 +62,7 @@ case class SlaveIndex(
 }
 
 object SlaveIndex extends Logging {
-  def create(configMapping: IndexMapping, conf: DistributedStoreConfig, cache: CacheConfig): Resource[IO, SlaveIndex] =
+  def create(configMapping: IndexMapping, conf: DistributedStoreConfig): Resource[IO, SlaveIndex] =
     for {
       _            <- Resource.eval(debug(s"creating SlaveIndex for index=${configMapping.name} conf=$conf"))
       masterState  <- StateClient.createRemote(conf.remote, configMapping.name)
@@ -71,7 +71,7 @@ object SlaveIndex extends Logging {
 
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
-      encoders <- BiEncoderCache.create(handles, cache.embedding)
+      encoders <- BiEncoderCache.create(handles, configMapping.cache.embedding)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

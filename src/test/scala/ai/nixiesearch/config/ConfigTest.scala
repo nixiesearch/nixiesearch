@@ -1,6 +1,6 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.ApiConfig.Hostname
+import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
@@ -26,8 +26,9 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        api = ApiConfig(host = Hostname("localhost")),
-        search = Map(
+        indexer = IndexerConfig(),
+        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
+        schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
             alias = Nil,
@@ -56,8 +57,9 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        api = ApiConfig(host = Hostname("localhost")),
-        search = Map(
+        indexer = IndexerConfig(),
+        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
+        schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
             alias = Nil,
@@ -97,8 +99,9 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
-        api = ApiConfig(host = Hostname("localhost")),
-        search = Map(
+        indexer = IndexerConfig(),
+        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
+        schema = Map(
           "helloworld" -> IndexMapping(
             name = "helloworld",
             alias = Nil,

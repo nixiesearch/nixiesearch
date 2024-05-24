@@ -7,17 +7,20 @@ In practice many documents you ingest into index share a lot of common strings, 
 Nixiesearch has an in-memory [LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies) cache for common embeddings, which can be configured as follows:
 
 ```yaml
-core:
-  cache:
-    embedding:
-      maxSize: 32768
+schema:
+  my-index-name:
+    fields:
+      # fields here
+    cache:
+      embedding:
+        maxSize: 32768
 ```
 
-> The whole `core` and `core.cache` sections of config file are optional.
+> The whole `cache` and `cache.embedding` sections of config file are optional.
 
 Where:
 
-* `core.cache.embedding.maxSize`: integer, optional, default=32768. Maximal number of entries in embedding [LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies) cache.
+* `cache.embedding.maxSize`: integer, optional, default=32768. Maximal number of entries in embedding [LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies) cache.
 
 A ballpark estimation of cache RAM usage:
 

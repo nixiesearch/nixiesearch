@@ -4,6 +4,8 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
@@ -19,7 +21,8 @@ class MatchQuerySemanticTest extends SearchTest with Matchers {
       TextFieldSchema(name = "_id", filter = true),
       TextFieldSchema(name = "title", search = HybridSearch()),
       TextListFieldSchema(name = "cat", search = NoSearch, filter = true)
-    )
+    ),
+    store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"), TextListField("cat", "a", "b"))),

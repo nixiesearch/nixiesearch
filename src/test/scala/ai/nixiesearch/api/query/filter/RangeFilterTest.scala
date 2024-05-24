@@ -4,13 +4,9 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGtLt
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.{
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Field}
 import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField}
@@ -51,7 +47,8 @@ object RangeFilterTest {
       fields = List(
         TextFieldSchema("_id", filter = true),
         schema()
-      )
+      ),
+      store = LocalStoreConfig(MemoryLocation())
     )
     val docs = List(
       Document(List(TextField("_id", "1"), field(10))),

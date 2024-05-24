@@ -13,9 +13,10 @@ import java.nio.charset.StandardCharsets
 import io.circe.yaml.parser.*
 
 case class Config(
+    searcher: SearcherConfig = SearcherConfig(),
+    indexer: IndexerConfig = IndexerConfig(),
     core: CoreConfig = CoreConfig(),
-    api: ApiConfig = ApiConfig(),
-    search: Map[String, IndexMapping] = Map.empty
+    schema: Map[String, IndexMapping] = Map.empty
 )
 
 object Config extends Logging {
@@ -23,37 +24,31 @@ object Config extends Logging {
 
   implicit val configDecoder: Decoder[Config] = Decoder.instance(c =>
     for {
+      searcher  <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
+      indexer   <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
       core      <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
-      api       <- c.downField("api").as[Option[ApiConfig]].map(_.getOrElse(ApiConfig()))
-      indexJson <- c.downField("search").as[Option[Map[String, Json]]].map(_.getOrElse(Map.empty))
+      indexJson <- c.downField("schema").as[Option[Map[String, Json]]].map(_.getOrElse(Map.empty))
       index <- indexJson.toList.traverse { case (name, json) =>
         IndexMapping.yaml.indexMappingDecoder(name).decodeJson(json)
       }
     } yield {
       Config(
-        core,
-        api,
-        search = index.map(i => i.name -> i).toMap
+        searcher = searcher,
+        indexer = indexer,
+        core = core,
+        schema = index.map(i => i.name -> i).toMap
       )
     }
   )
 
-  def load(pathOption: Option[File]): IO[Config] = pathOption match {
-    case Some(file) =>
-      for {
-        text    <- IO(IOUtils.toString(new FileInputStream(file), StandardCharsets.UTF_8))
-        yaml    <- IO.fromEither(parse(text))
-        decoded <- IO.fromEither(yaml.as[Config])
-        _       <- info(s"Loaded config: $file")
-      } yield {
-        decoded
-      }
-    case None =>
-      for {
-        _    <- info("No config file given, using defaults")
-        dflt <- IO.pure(Config())
-      } yield {
-        dflt
-      }
+  def load(path: File): IO[Config] = {
+    for {
+      text    <- IO(IOUtils.toString(new FileInputStream(path), StandardCharsets.UTF_8))
+      yaml    <- IO.fromEither(parse(text))
+      decoded <- IO.fromEither(yaml.as[Config])
+      _       <- info(s"Loaded config: $path")
+    } yield {
+      decoded
+    }
   }
 }

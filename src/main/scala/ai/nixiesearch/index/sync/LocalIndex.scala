@@ -41,15 +41,14 @@ case class LocalIndex(
 object LocalIndex extends Logging {
   def create(
       configMapping: IndexMapping,
-      config: StoreConfig.LocalStoreConfig,
-      cache: CacheConfig
+      config: StoreConfig.LocalStoreConfig
   ): Resource[IO, LocalIndex] = {
     for {
       directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       handles   <- Resource.pure(manifest.mapping.modelHandles())
-      encoders  <- BiEncoderCache.create(handles, cache.embedding)
+      encoders  <- BiEncoderCache.create(handles, configMapping.cache.embedding)
       _         <- Resource.eval(info(s"index ${manifest.mapping.name} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(

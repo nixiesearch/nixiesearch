@@ -27,7 +27,7 @@ case class MasterIndex(
 }
 
 object MasterIndex extends Logging {
-  def create(configMapping: IndexMapping, conf: DistributedStoreConfig, cache: CacheConfig): Resource[IO, MasterIndex] =
+  def create(configMapping: IndexMapping, conf: DistributedStoreConfig): Resource[IO, MasterIndex] =
     for {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
       directory    <- LocalDirectory.fromRemote(conf.indexer, replicaState, configMapping.name)
@@ -35,7 +35,7 @@ object MasterIndex extends Logging {
 
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
-      encoders <- BiEncoderCache.create(handles, cache.embedding)
+      encoders <- BiEncoderCache.create(handles, configMapping.cache.embedding)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(
