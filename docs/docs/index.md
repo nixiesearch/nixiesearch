@@ -12,7 +12,7 @@ Nixiesearch is a hybrid search engine that fine-tunes to your data.
 
 * Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
 * Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/config/languages.md), [facets](reference/api/search/facet.md), [advanced filters](reference/api/search/filter.md), [autocomplete suggestions](reference/api/suggest.md) and [sorting](TODO) out of the box.
-* Designed to be cloud-native with [S3/blockstore index persistence](TODO). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
+* Designed to be cloud-native with [S3-compatible index persistence](reference/config/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
 
 > Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
 

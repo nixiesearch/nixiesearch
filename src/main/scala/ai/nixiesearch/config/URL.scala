@@ -25,6 +25,7 @@ object URL {
 
   val localScheme3Pattern = "file:///(.*)".r
   val localScheme2Pattern = "file://(.*)".r
+  val localScheme1Pattern = "file:/(.*)".r
   val localPattern        = "/(.*)".r
   val s3Pattern           = "s3://([a-zA-Z0-9\\-\\.]{3,})/(.+)".r
   val httpPattern         = "(https?://.*)".r
@@ -51,6 +52,7 @@ object URL {
   def fromString(string: String): Either[DecodingFailure, URL] = string match {
     case localScheme3Pattern(path) => Right(LocalURL(Paths.get("/" + path)))
     case localScheme2Pattern(path) => Right(LocalURL(Paths.get("/" + path)))
+    case localScheme1Pattern(path) => Right(LocalURL(Paths.get("/" + path)))
     case localPattern(path)        => Right(LocalURL(Paths.get("/" + path)))
     case s3Pattern(bucket, prefix) => Right(URL.S3URL(bucket, prefix, None, None))
     case httpPattern(http) =>

@@ -73,13 +73,13 @@ curl -XPUT -d '{"title": "hello", "color": ["red"], "meta": {"sku":"a123"}}'\
   http://localhost:8080/dev/_index
 ```
 
-> As Nixiesearch deliberately has no indexing queue, it asynchronously blocks till all the documents in the submitted batch were indexed. You should avoid doing HTTP PUT's with too large payloads and instead split them into smaller batches of 100-500 documents.
+> As Nixiesearch deliberately has no indexing queue, it asynchronously blocks the response till all the documents in the submitted batch were indexed. You should avoid doing HTTP PUT's with too large payloads and instead split them into smaller batches of 100-500 documents.
 
-> To have proper back-pressure mechanisms, prefer using a pull-based indexing with [Apache Kafka](../deployment/kafka.md)
+> To have proper back-pressure mechanism, prefer using a pull-based indexing with [Apache Kafka](../deployment/kafka.md) or with [offline file-based ingestion](../reference/cli/index.md#offline-indexing).
 
 ### Streaming document indexing
 
-With pull-based streaming indexing it becomes trivial to support these typical scenarios:
+With pull-based streaming indexing supported natively, it becomes trivial to implement these typical scenarios:
 
 1. **Batch full re-indexing**: take all documents from a datasource and periodically re-build index from scratch.
 2. **Distributed journal as a single source of truth**: use [Kafka compacted topics](https://developer.confluent.io/courses/architecture/compaction/) as a view over last versions of documents, with real-time updates.
@@ -89,11 +89,11 @@ With pull-based streaming indexing it becomes trivial to support these typical s
 
  Nixiesearch supports [Apache Kafka](https://kafka.apache.org/), [AWS S3](https://aws.amazon.com/s3/) (and also compatible object stores) and local files as a source of documents for indexing.
  
-If you have your dataset in a JSON file, instead of making HTTP PUT with very large payload using REST API, you can invoke a `nixiesearch index` sub-command to perform streaming indexing in a separate process:
+If you have your dataset in a JSON file, instead of making HTTP PUT with very large payload using REST API, you can invoke a [`nixiesearch index`](../reference/cli/index.md) sub-command to perform streaming indexing in a separate process:
 
 ```shell
 docker run -i -t -v <your-local-dir>:/data nixiesearch/nixiesearch:latest index file\
   --config /data/conf.yml --index <index name> --url file:///data/docs.json
 ```
 
-Where `<your-local-dir>` is a directory containing the `conf.yml` config file and a `docs.json` with documents for indexing. See [index CLI reference](../reference/cli/index.md) for more details. 
+Where `<your-local-dir>` is a directory containing the `conf.yml` config file and a `docs.json` with documents for indexing. See [index CLI reference](../reference/cli/index.md) and [Supported URL formats](../reference/config/url.md) for more details.

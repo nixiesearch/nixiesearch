@@ -151,7 +151,9 @@ nav:
                 - Local file: reference/config/persistence/file.md
                 - S3: reference/config/persistence/s3.md
             - Autocomplete index: reference/config/autocomplete.md
-            - Index mapping: reference/config/mapping.md
+            - Index mapping:
+                - Overview: reference/config/mapping.md
+                - URL formats: reference/config/url.md
             - Caching: reference/config/cache.md
             - Supported embedding models: reference/config/models.md
             - Language support: reference/config/languages.md

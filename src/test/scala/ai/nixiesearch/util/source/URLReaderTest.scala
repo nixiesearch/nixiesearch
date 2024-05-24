@@ -1,6 +1,6 @@
 package ai.nixiesearch.util.source
 
-import ai.nixiesearch.config.URL.{LocalURL, S3URL}
+import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
 import ai.nixiesearch.util.S3Client
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -9,6 +9,7 @@ import cats.effect.unsafe.implicits.global
 import java.io.FileOutputStream
 import java.nio.file.Files
 import fs2.Stream
+import org.http4s.Uri
 
 import scala.util.Random
 
@@ -64,5 +65,10 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
       .toList
       .unsafeRunSync()
     out shouldBe List.concat(data, data, data, data)
+  }
+
+  it should "read http files" in {
+    val out = URLReader.bytes(HttpURL(Uri.unsafeFromString("https://httpbin.org/get"))).compile.toList.unsafeRunSync()
+    out.size should be > (0)
   }
 }
