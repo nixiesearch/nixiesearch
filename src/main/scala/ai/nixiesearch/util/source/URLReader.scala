@@ -5,6 +5,7 @@ import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.util.S3Client
 import cats.effect.{IO, Resource}
+import de.lhns.fs2.compress.{Bzip2Decompressor, GzipDecompressor, ZstdDecompressor}
 import fs2.Stream
 import fs2.io.file.{Files, Path as FPath}
 import fs2.io.readInputStream
@@ -33,14 +34,20 @@ object URLReader extends SourceReader with Logging {
       _    <- Stream.eval(info(s"recursively reading file directory ${dir.path}"))
       file <- Files[IO].list(FPath.fromNioPath(dir.path))
       _    <- Stream.eval(info(s"reading file ${file}"))
-      byte <- readInputStream[IO](IO(new FileInputStream(file.toNioPath.toFile)), 1024)
+      byte <- maybeDecompress(
+        readInputStream[IO](IO(new FileInputStream(file.toNioPath.toFile)), 1024),
+        file.fileName.toString
+      )
     } yield {
       byte
     }
 
     def bytes(url: LocalURL): Stream[IO, Byte] = for {
-      _    <- Stream.eval(info(s"reading file ${url.path}"))
-      byte <- readInputStream[IO](IO(new FileInputStream(url.path.toFile)), 1024)
+      _ <- Stream.eval(info(s"reading file ${url.path}"))
+      byte <- maybeDecompress(
+        readInputStream[IO](IO(new FileInputStream(url.path.toFile)), 1024),
+        url.path.getFileName.toString
+      )
     } yield {
       byte
     }
@@ -53,7 +60,7 @@ object URLReader extends SourceReader with Logging {
       file   <- client.listObjects(url.bucket, url.prefix)
       _      <- Stream.eval(info(s"reading S3 file ${file}"))
       stream <- Stream.eval(client.getObject(url.bucket, url.prefix + file.name))
-      byte   <- stream
+      byte   <- maybeDecompress(stream, file.name)
     } yield {
       byte
     }
@@ -62,7 +69,7 @@ object URLReader extends SourceReader with Logging {
       _      <- Stream.eval(info(s"reading S3 file ${url}"))
       client <- Stream.resource(S3Client.create(url.region.getOrElse("us-east-1"), url.endpoint))
       stream <- Stream.eval(client.getObject(url.bucket, url.prefix))
-      byte   <- stream
+      byte   <- maybeDecompress(stream, url.prefix)
     } yield {
       byte
     }
@@ -73,11 +80,34 @@ object URLReader extends SourceReader with Logging {
       _            <- Stream.eval(info(s"reading HTTP file ${url.path}"))
       client       <- Stream.resource(EmberClientBuilder.default[IO].build)
       responseBody <- Stream.eval(client.get(url.path)(response => IO(response.body)))
-      byte         <- responseBody
+      byte         <- maybeDecompress(responseBody, url.path.fragment.getOrElse(""))
     } yield {
       byte
     }
 
+  }
+
+  given gzip: GzipDecompressor[IO]   = GzipDecompressor.make()
+  given bzip2: Bzip2Decompressor[IO] = Bzip2Decompressor.make()
+  given zstd: ZstdDecompressor[IO]   = ZstdDecompressor.make()
+
+  def maybeDecompress(source: Stream[IO, Byte], fileName: String): Stream[IO, Byte] = fileName match {
+    case f if f.endsWith(".gz") =>
+      for {
+        _    <- Stream.eval(info(s"decompressing gzipped file $fileName"))
+        byte <- source.through(GzipDecompressor[IO].decompress)
+      } yield byte
+    case f if f.endsWith(".bzip2") =>
+      for {
+        _    <- Stream.eval(info(s"decompressing bzipped file $fileName"))
+        byte <- source.through(Bzip2Decompressor[IO].decompress)
+      } yield byte
+    case f if f.endsWith(".zst") =>
+      for {
+        _    <- Stream.eval(info(s"decompressing zstd file $fileName"))
+        byte <- source.through(ZstdDecompressor[IO].decompress)
+      } yield byte
+    case _ => source
   }
 
 }
