@@ -4,7 +4,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
-import io.circe.{Decoder, Json}
+import io.circe.{Decoder, DecodingFailure, Json}
 import cats.implicits.*
 import org.apache.commons.io.IOUtils
 
@@ -24,10 +24,13 @@ object Config extends Logging {
 
   implicit val configDecoder: Decoder[Config] = Decoder.instance(c =>
     for {
-      searcher  <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
-      indexer   <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
-      core      <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
-      indexJson <- c.downField("schema").as[Option[Map[String, Json]]].map(_.getOrElse(Map.empty))
+      searcher <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
+      indexer  <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
+      core     <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
+      indexJson <- c.downField("schema").as[Map[String, Json]].flatMap {
+        case map if map.isEmpty => Left(DecodingFailure("There should be at least one index schema defined", c.history))
+        case map                => Right(map)
+      }
       index <- indexJson.toList.traverse { case (name, json) =>
         IndexMapping.yaml.indexMappingDecoder(name).decodeJson(json)
       }
