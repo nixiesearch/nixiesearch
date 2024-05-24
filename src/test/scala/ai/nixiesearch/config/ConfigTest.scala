@@ -88,10 +88,36 @@ class ConfigTest extends AnyFlatSpec with Matchers {
 
   }
 
-  it should "parse empty config" in {
-    val yaml = "store:".stripMargin
-    val p    = parse("nope:")
-    parse(yaml).flatMap(_.as[Config]) shouldBe Right(Config())
+  it should "fail on parse empty config" in {
+    val yaml = "a:".stripMargin
+    parse(yaml).flatMap(_.as[Config]) shouldBe a[Left[?, ?]]
+  }
+
+  it should "fail on no schemas" in {
+    val yaml = """
+                 |searcher:
+                 |  api:
+                 |    host: localhost
+                 |    port: 8080
+                 |
+                 |
+                 |schema:""".stripMargin
+    parse(yaml).flatMap(_.as[Config]) shouldBe a[Left[?, ?]]
+  }
+
+  it should "fail on schema with no fields" in {
+    val yaml = """searcher:
+                 |  api:
+                 |    host: localhost
+                 |    port: 8080
+                 |
+                 |
+                 |schema:
+                 |  helloworld:
+                 |    fields:
+                 |""".stripMargin
+    val result = parse(yaml).flatMap(_.as[Config])
+    result shouldBe a[Left[?, ?]]
   }
 
   it should "parse suggest config" in {
