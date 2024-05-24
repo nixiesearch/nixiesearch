@@ -7,7 +7,7 @@ Nixiesearch language support differs for lexical and semantic search methods:
 Language can be set in the index mapping for text-like fields:
 
 ```yaml
-search:
+schema:
   your-index-name:
     fields:
       title:

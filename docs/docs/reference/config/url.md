@@ -46,7 +46,7 @@ $ export AWS_DEFAULT_REGION=us-west-2
 For a [configuration file](overview.md) URL usage, you can also unfold the S3 URL into a YAML object, which has all the internal settings exposed:
 
 ```yaml
-search:
+schema:
   helloworld:
     store:
       distributed:

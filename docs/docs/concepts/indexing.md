@@ -14,7 +14,7 @@ To add a set of documents to an index, you need to perform two steps:
 To define a static index mapping, you need to add an index-specific block to the `search` section of the [configuration file](../reference/config/mapping.md):
 
 ```yaml
-search:
+schema:
   my-first-index:
     store:
       local:
