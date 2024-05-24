@@ -62,3 +62,13 @@ schema:
 ## URLs in command-line options
 
 Also the [nixiesearch CLI](../cli/index.md) has an `--endpoint` parameter, so you can pass custom endpoint for all S3 URLs passed as cmdline parameters.
+
+## Decompression support
+
+Nixiesearch also detects gz/bz2/zst compressed files (by their extension) and decompresses them on the fly. So you can also compress your source files to save space and bandwidth:
+
+```shell
+docker run -i -t -v <your-local-dir>:/data nixiesearch/nixiesearch:latest \
+   index file --config /data/conf.yml --index <index name> \
+   --url file:///data/docs.json.gz
+```

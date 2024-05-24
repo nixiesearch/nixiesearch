@@ -9,6 +9,7 @@ import cats.effect.unsafe.implicits.global
 import java.io.FileOutputStream
 import java.nio.file.Files
 import fs2.Stream
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
 import org.http4s.Uri
 
 import scala.util.Random
@@ -18,6 +19,16 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
     val data   = List(1, 2, 3, 4).map(_.toByte)
     val path   = Files.createTempFile("nixie_", ".tmp")
     val stream = new FileOutputStream(path.toFile)
+    stream.write(data.toArray)
+    stream.close()
+    val read = URLReader.bytes(LocalURL(path)).compile.toList.unsafeRunSync()
+    read shouldBe data
+  }
+
+  it should "read local compressed files" in {
+    val data   = List(1, 2, 3, 4).map(_.toByte)
+    val path   = Files.createTempFile("nixie_", ".tmp.gz")
+    val stream = new GzipCompressorOutputStream(new FileOutputStream(path.toFile))
     stream.write(data.toArray)
     stream.close()
     val read = URLReader.bytes(LocalURL(path)).compile.toList.unsafeRunSync()
