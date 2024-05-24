@@ -5,7 +5,7 @@ import ai.nixiesearch.config.URL
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSource.*
 import ai.nixiesearch.main.CliConfig.CliArgs.*
-import ai.nixiesearch.main.CliConfig.{fileConverter, hostnameConverter, portConverter}
+import ai.nixiesearch.main.CliConfig.Loglevel.INFO
 import cats.effect.IO
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
 import org.rogach.scallop.*
@@ -15,23 +15,32 @@ import scala.util.{Failure, Success, Try}
 
 case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) with Logging {
   import CliConfig.*
+  import ai.nixiesearch.main.args.implicits.given
 
   trait ConfigOption { this: Subcommand =>
     val config =
-      opt[File](name = "config", short = 'c', descr = "Path to a config file", required = false)(fileConverter)
+      opt[File](name = "config", short = 'c', descr = "Path to a config file", required = false)
   }
 
-  object standalone extends Subcommand("standalone") with ConfigOption
+  trait LoglevelOption { this: Subcommand =>
+    val loglevel = opt[Loglevel](
+      name = "loglevel",
+      short = 'l',
+      descr = "Logging level: debug/info/warn/error, default=info",
+      required = false,
+      default = Some(INFO)
+    )
+  }
+
+  object standalone extends Subcommand("standalone") with ConfigOption with LoglevelOption
   object index extends Subcommand("index") {
-    object api extends Subcommand("api") with ConfigOption {
+    object api extends Subcommand("api") with ConfigOption with LoglevelOption {
       val host =
         opt[Hostname](
           name = "host",
           required = false,
           descr = "iface to bind to, optional, default=0.0.0.0",
           default = Some(Hostname("0.0.0.0"))
-        )(
-          hostnameConverter
         )
       val port =
         opt[Port](
@@ -39,11 +48,11 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
           required = false,
           default = Some(Port(8080)),
           descr = "port to bind to, optional, default=8080"
-        )(portConverter)
+        )
     }
-    object file extends Subcommand("file") with ConfigOption {
+    object file extends Subcommand("file") with ConfigOption with LoglevelOption {
       val index = opt[String](name = "index", descr = "to which index to write to")
-      val url   = opt[URL](name = "url", descr = "path to documents source")(CliConfig.urlConverter)
+      val url   = opt[URL](name = "url", descr = "path to documents source")
       val recursive =
         opt[Boolean](
           name = "recursive",
@@ -63,7 +72,7 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
     addSubcommand(api)
     addSubcommand(file)
   }
-  object search extends Subcommand("search") with ConfigOption
+  object search extends Subcommand("search") with ConfigOption with LoglevelOption
   addSubcommand(standalone)
   addSubcommand(index)
   addSubcommand(search)
@@ -86,11 +95,13 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 }
 
 object CliConfig extends Logging {
-  sealed trait CliArgs
+  sealed trait CliArgs {
+    def loglevel: Loglevel
+  }
   object CliArgs {
-    case class StandaloneArgs(config: File)                 extends CliArgs
-    case class IndexArgs(config: File, source: IndexSource) extends CliArgs
-    case class SearchArgs(config: File)                     extends CliArgs
+    case class StandaloneArgs(config: File, loglevel: Loglevel = INFO)                 extends CliArgs
+    case class IndexArgs(config: File, source: IndexSource, loglevel: Loglevel = INFO) extends CliArgs
+    case class SearchArgs(config: File, loglevel: Loglevel = INFO)                     extends CliArgs
 
     enum IndexSource {
       case ApiIndexSource(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSource
@@ -99,25 +110,38 @@ object CliConfig extends Logging {
     }
   }
 
+  enum Loglevel {
+    case DEBUG extends Loglevel
+    case INFO  extends Loglevel
+    case WARN  extends Loglevel
+    case ERROR extends Loglevel
+  }
+
   def load(args: List[String]): IO[CliArgs] = for {
     parser <- IO(CliConfig(args))
     _      <- IO(parser.verify())
     opts <- parser.subcommand match {
       case Some(parser.standalone) =>
         for {
-          config <- parse(parser.standalone.config)
+          config   <- parse(parser.standalone.config)
+          loglevel <- parseOption(parser.standalone.loglevel)
         } yield {
-          StandaloneArgs(config)
+          StandaloneArgs(config, loglevel.getOrElse(INFO))
         }
       case Some(parser.index) =>
         parser.index.subcommand match {
           case Some(parser.index.api) =>
             for {
-              config <- parse(parser.index.api.config)
-              host   <- parseOption(parser.index.api.host)
-              port   <- parseOption(parser.index.api.port)
+              config   <- parse(parser.index.api.config)
+              host     <- parseOption(parser.index.api.host)
+              port     <- parseOption(parser.index.api.port)
+              loglevel <- parseOption(parser.index.api.loglevel)
             } yield {
-              IndexArgs(config, ApiIndexSource(host.getOrElse(Hostname("0.0.0.0")), port.getOrElse(Port(8080))))
+              IndexArgs(
+                config = config,
+                loglevel = loglevel.getOrElse(INFO),
+                source = ApiIndexSource(host.getOrElse(Hostname("0.0.0.0")), port.getOrElse(Port(8080)))
+              )
             }
           case Some(parser.index.file) =>
             for {
@@ -126,8 +150,13 @@ object CliConfig extends Logging {
               index     <- parse(parser.index.file.index)
               recursive <- parseOption(parser.index.file.recursive)
               endpoint  <- parseOption(parser.index.file.endpoint)
+              loglevel  <- parseOption(parser.index.file.loglevel)
             } yield {
-              IndexArgs(config, FileIndexSource(url, index, recursive.getOrElse(false), endpoint))
+              IndexArgs(
+                config = config,
+                loglevel = loglevel.getOrElse(INFO),
+                source = FileIndexSource(url, index, recursive.getOrElse(false), endpoint)
+              )
             }
           case Some(other) =>
             IO.raiseError(new Exception(s"Subcommand $other is not supported. Try indexer api."))
@@ -137,9 +166,10 @@ object CliConfig extends Logging {
         }
       case Some(parser.search) =>
         for {
-          config <- parse(parser.search.config)
+          config   <- parse(parser.search.config)
+          loglevel <- parseOption(parser.search.loglevel)
         } yield {
-          SearchArgs(config)
+          SearchArgs(config, loglevel.getOrElse(INFO))
         }
       case Some(other) =>
         IO.raiseError(new Exception(s"Subcommand $other is not supported. Try standalone/search/index."))
@@ -163,39 +193,4 @@ object CliConfig extends Logging {
       case Failure(ex)    => IO.raiseError(ex)
     }
   }
-
-  given fileConverter: ValueConverter[File] = singleArgConverter(string => {
-    val file = if (string.startsWith("/")) {
-      new File(string)
-    } else {
-      val prefix = System.getProperty("user.dir")
-      new File(s"$prefix/$string")
-    }
-    if (file.exists()) {
-      file
-    } else {
-      Option(file.getParentFile) match {
-        case Some(parent) if parent.exists() && parent.isDirectory =>
-          val other = Option(parent.listFiles()).map(_.map(_.getName).mkString("\n", "\n", "\n"))
-          throw new Exception(s"$file: file does not exist. Perhaps you've meant: $other")
-        case _ => throw new Exception(s"$file: file does not exist (and we cannot list parent directory)")
-      }
-
-    }
-  })
-
-  given urlConverter: ValueConverter[URL] = singleArgConverter(string => {
-    URL.fromString(string) match {
-      case Left(error)  => throw new Exception(s"Cannot decode URL $string: $error")
-      case Right(value) => value
-    }
-  })
-
-  given hostnameConverter: ValueConverter[Hostname] = singleArgConverter(string => Hostname(string))
-  given portConverter: ValueConverter[Port] = singleArgConverter(port =>
-    port.toIntOption match {
-      case Some(p) => Port(p)
-      case None    => throw new Exception(s"cannot parse port $port")
-    }
-  )
 }

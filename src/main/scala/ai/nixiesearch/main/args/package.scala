@@ -1,0 +1,18 @@
+package ai.nixiesearch.main
+
+import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
+import ai.nixiesearch.config.URL
+import ai.nixiesearch.main.CliConfig.Loglevel
+import org.rogach.scallop.ValueConverter
+
+import java.io.File
+
+package object args {
+  object implicits {
+    given loglevelConverter: ValueConverter[Loglevel] = LoglevelConverter
+    given hostnameConverter: ValueConverter[Hostname] = HostnameConverter
+    given portConverter: ValueConverter[Port]         = PortConverter
+    given urlConverter: ValueConverter[URL]           = URLConverter
+    given fileConverter: ValueConverter[File]         = FileConverter
+  }
+}
