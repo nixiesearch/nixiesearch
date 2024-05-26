@@ -8,11 +8,15 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.core.aggregate.AggregationResult
+import ai.nixiesearch.core.suggest.rank.SuggestionProcessor.ProcessorOptions
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
-import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
+import ai.nixiesearch.index.sync.Index
+import cats.effect.{IO, Ref}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
+import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
@@ -101,31 +105,62 @@ object SearchRoute {
       process: Option[SuggestProcess] = None
   )
   object SuggestRequest {
-    case class SuggestProcess(deduplicate: Option[Deduplicate] = None, rerank: Option[Rerank] = None)
-    case class Deduplicate(caseSensitive: Boolean = false)
-    case class Rerank(depth: Int = 100)
+    case class SuggestProcess(deduplicate: Option[DeduplicateOptions] = None, rerank: Option[RerankProcess] = None)
 
-    given rerankEncoder: Encoder[Rerank] = deriveEncoder
-    given rerankDecoder: Decoder[Rerank] = Decoder.instance(c =>
-      for {
-        depth <- c.downField("depth").as[Option[Int]]
-      } yield {
-        Rerank(depth.getOrElse(100))
+    case class DeduplicateOptions(caseSensitive: Boolean = false) extends ProcessorOptions
+    enum RerankProcess extends ProcessorOptions {
+      case RRFProcess(depth: Int = 50, scale: Float = 60.0)     extends RerankProcess
+      case LTRProcess(depth: Int = 50, model: String = "small") extends RerankProcess
+    }
+
+    object RerankProcess {
+      given rrfProcessEncoder: Encoder[RRFProcess] = deriveEncoder
+      given ltrProcessEncoder: Encoder[LTRProcess] = deriveEncoder
+      given rrfProcessDecoder: Decoder[RRFProcess] = Decoder.instance(c =>
+        for {
+          depth <- c.downField("depth").as[Option[Int]]
+          scale <- c.downField("scale").as[Option[Float]]
+        } yield {
+          RRFProcess(depth.getOrElse(50), scale.getOrElse(60.0))
+        }
+      )
+      given ltrProcessDecoder: Decoder[LTRProcess] = Decoder.instance(c =>
+        for {
+          depth <- c.downField("depth").as[Option[Int]]
+          model <- c.downField("model").as[Option[String]]
+        } yield {
+          LTRProcess(depth.getOrElse(50), model.getOrElse("small"))
+        }
+      )
+      given rerankEncoder: Encoder[RerankProcess] = Encoder.instance {
+        case r: RRFProcess => Json.fromJsonObject(JsonObject.fromMap(Map("rrf" -> rrfProcessEncoder(r))))
+        case r: LTRProcess => Json.fromJsonObject(JsonObject.fromMap(Map("ltr" -> ltrProcessEncoder(r))))
       }
-    )
-    given deduplicateEncoder: Encoder[Deduplicate] = deriveEncoder
-    given deduplicateDecoder: Decoder[Deduplicate] = Decoder.instance(c =>
+      given rerankDecoder: Decoder[RerankProcess] = Decoder.instance(c =>
+        c.downField("rrf").as[RRFProcess] match {
+          case Left(_) =>
+            c.downField("ltr").as[LTRProcess] match {
+              case Right(ltr) => Right(ltr)
+              case Left(err)  => Left(DecodingFailure(s"cannot decode rerank process", c.history))
+            }
+          case Right(rrf) => Right(rrf)
+        }
+      )
+    }
+
+    given deduplicateEncoder: Encoder[DeduplicateOptions] = deriveEncoder
+    given deduplicateDecoder: Decoder[DeduplicateOptions] = Decoder.instance(c =>
       for {
         caseSensitive <- c.downField("caseSensitive").as[Option[Boolean]]
       } yield {
-        Deduplicate(caseSensitive.getOrElse(false))
+        DeduplicateOptions(caseSensitive.getOrElse(false))
       }
     )
     given processEncoder: Encoder[SuggestProcess] = deriveEncoder
     given processDecoder: Decoder[SuggestProcess] = Decoder.instance(c =>
       for {
-        dedup  <- c.downField("deduplicate").as[Option[Deduplicate]]
-        rerank <- c.downField("rerank").as[Option[Rerank]]
+        dedup  <- c.downField("deduplicate").as[Option[DeduplicateOptions]]
+        rerank <- c.downField("rerank").as[Option[RerankProcess]]
       } yield {
         SuggestProcess(dedup, rerank)
       }

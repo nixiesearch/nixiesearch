@@ -49,9 +49,11 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
     Ok(indexer.index.mapping)
   }
 
-  def flush(indexName: String): IO[Response[IO]] = {
-    indexer.flush().flatMap(_ => Ok())
-  }
+  def flush(indexName: String): IO[Response[IO]] = for {
+    _        <- indexer.flush()
+    _        <- indexer.index.sync()
+    response <- Ok()
+  } yield response
 
 }
 

@@ -75,7 +75,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       )
       .compile
       .toList
-    ranked <- IO(SuggestionRanker().rank(fieldSuggestions))
+    ranked <- SuggestionRanker().rank(fieldSuggestions, request)
   } yield {
     SuggestResponse(
       suggestions = ranked,

@@ -9,6 +9,7 @@ import org.apache.lucene.search.suggest.document.TopSuggestDocs.SuggestScoreDoc
 import org.apache.lucene.search.suggest.document.{
   FuzzyCompletionQuery,
   PrefixCompletionQuery,
+  RegexCompletionQuery,
   SuggestIndexSearcher,
   TopSuggestDocs
 }
@@ -20,7 +21,8 @@ case class GeneratedSuggestions(
     field: String,
     prefix: List[SuggestDoc],
     fuzzy1: List[SuggestDoc],
-    fuzzy2: List[SuggestDoc]
+    fuzzy2: List[SuggestDoc],
+    regex: List[SuggestDoc]
 )
 
 object GeneratedSuggestions {
@@ -67,7 +69,7 @@ object GeneratedSuggestions {
               analyzer,
               new Term(field, query),
               null,
-              3,
+              2,
               FuzzyCompletionQuery.DEFAULT_TRANSPOSITIONS,
               FuzzyCompletionQuery.DEFAULT_NON_FUZZY_PREFIX,
               FuzzyCompletionQuery.DEFAULT_MIN_FUZZY_LENGTH,
@@ -77,6 +79,9 @@ object GeneratedSuggestions {
             count,
             true
           )
+      ),
+      regex = SuggestDoc.fromTopSuggestDocs(
+        suggester.suggest(new RegexCompletionQuery(new Term(field, s".*$query.*")), count, true)
       )
     )
   }
