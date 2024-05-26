@@ -7,16 +7,17 @@ import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.core.suggest.rank.{LTRSuggestionProcessor, RRFSuggestionProcessor}
 import cats.effect.IO
 
-import scala.collection.mutable
-
 case class SuggestionRanker() {
 
   // RRF by default
-  def rank(candidates: List[GeneratedSuggestions], request: SuggestRequest): IO[List[Suggestion]] = {
-    request.process.getOrElse(SuggestProcess()).rerank match {
+  def rank(candidates: List[GeneratedSuggestions], request: SuggestRequest): IO[List[Suggestion]] = for {
+    sorted <- request.process.getOrElse(SuggestProcess()).rerank match {
       case Some(r: RRFProcess) => RRFSuggestionProcessor.process(candidates, r)
       case Some(r: LTRProcess) => LTRSuggestionProcessor.process(candidates, r)
       case None                => RRFSuggestionProcessor.process(candidates, RRFProcess())
     }
+    top <- IO(sorted.take(request.count))
+  } yield {
+    top
   }
 }
