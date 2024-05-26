@@ -1,26 +1,20 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.IndexRoute.IndexResponse
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestProcess
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
-import ai.nixiesearch.api.SearchRoute.{ErrorResponse, SearchRequest, SearchResponse}
+import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
-import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
-import ai.nixiesearch.index.sync.Index
-import cats.effect.{IO, Ref}
-import io.circe.{Codec, Decoder, Encoder, Json}
-import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
+import cats.effect.IO
+import io.circe.{Codec, Decoder, Encoder}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
-import org.apache.lucene.queryparser.classic.QueryParser
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   val emptyRequest = SearchRequest(query = MatchAllQuery())

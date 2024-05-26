@@ -1,4 +1,5 @@
 package ai.nixiesearch.util.source
+
 import ai.nixiesearch.config.URL
 import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
 import ai.nixiesearch.core.Error.BackendError
