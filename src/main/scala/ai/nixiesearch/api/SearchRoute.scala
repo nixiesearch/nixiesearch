@@ -3,6 +3,7 @@ package ai.nixiesearch.api
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestProcess
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.api.SearchRoute.SearchRequest
+import ai.nixiesearch.api.SearchRoute.{ErrorResponse, SearchRequest, SearchResponse, SuggestRequest}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
@@ -21,6 +22,16 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   val routes = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name =>
       search(request)
+    case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name =>
+      suggest(request)
+  }
+
+  def suggest(request: Request[IO]): IO[Response[IO]] = for {
+    query    <- request.as[SuggestRequest]
+    _        <- info(s"suggest index='${searcher.index.name}' query=$query")
+    response <- searcher.suggest(query).flatMap(docs => Ok(docs))
+  } yield {
+    response
   }
 
   def search(request: Request[IO]): IO[Response[IO]] = for {

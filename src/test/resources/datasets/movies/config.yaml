@@ -9,6 +9,8 @@ schema:
       title:
         type: text
         search: semantic
+        suggest: true
       overview:
         type: text
         search: semantic
+        suggest: true

@@ -28,12 +28,11 @@ class IndexModeTest extends AnyFlatSpec with Matchers {
       .runOffline(
         indexes = List(mapping),
         source = FileIndexSource(
-          url = LocalURL(Paths.get("src/test/resources/datasets/movies/movies.jsonl")),
+          url = LocalURL(Paths.get("src/test/resources/datasets/movies/movies.jsonl.gz")),
           index = "movies"
         )
       )
       .unsafeRunSync()
   }
-
 
 }

@@ -6,7 +6,7 @@ import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.util.SearchTest
+import ai.nixiesearch.util.{DatasetLoader, SearchTest}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,22 +26,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd     = System.getProperty("user.dir")
   lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml")).unsafeRunSync()
   lazy val mapping = conf.schema("msmarco")
-  lazy val docs = readInputStream[IO](
-    IO(new FileInputStream(new File(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json"))),
-    1024000
-  ).through(fs2.text.utf8.decode)
-    .through(fs2.text.lines)
-    .filter(_.nonEmpty)
-    .parEvalMapUnordered(8)(line =>
-      IO(decode[Document](line)).flatMap {
-        case Left(value)  => IO.raiseError(value)
-        case Right(value) => IO.pure(value)
-      }
-    )
-    .take(1000)
-    .compile
-    .toList
-    .unsafeRunSync()
+  lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json", 1000)
 
   it should "load docs and search" in withIndex { nixie =>
     {
