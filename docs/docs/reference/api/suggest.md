@@ -56,7 +56,13 @@ A full suggest request JSON format:
   "fields": ["title"],
   "count": 10,
   "process": {
-    "deduplicate": "true"
+    "deduplicate": "true",
+    "rerank": {
+      "rrf": {
+        "depth": 50,
+        "scale": 60
+      }
+    }
   }
 }
 ```
@@ -81,3 +87,15 @@ The request above emits the following response:
   "took": 11
 }
 ```
+
+## Reranking configuration
+
+Suggestion request can include a single reranking processor step:
+
+* Reciprocal Rank Fusion (RRF) reranking.
+* (Planned in v0.2) Learn-to-Rank suggestions.
+
+Reciprocal Rank Fusion configuration block has the following options:
+
+* `rerank.rrf.depth`: How many suggestion candidates should be generated before reranking. Having more might affect latency, but increase precision. Optional, int, default=50.
+* `rerank.rrf.scale`: An RRF constant scaling factor, importance of top vs bottom candidate position on the final ranking. Optional, int, default=60.

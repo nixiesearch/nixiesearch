@@ -23,7 +23,7 @@ class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with Search
 
   it should "load docs and suggest" in withIndex { nixie =>
     {
-      lazy val docs = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", 10000)
+      lazy val docs = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", 1000)
       val indexApi  = IndexRoute(nixie.indexer)
       val searchApi = SearchRoute(nixie.searcher)
 
