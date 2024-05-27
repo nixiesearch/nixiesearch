@@ -62,6 +62,30 @@ For such a request, Nixie will return a suggestion response:
 }
 ```
 
+Internally, Nixie unfolds a single suggestion request into multiple Lucene queries:
+* Prefix match: for `hu` suggest `hugo`.
+* Fuzzy matches with [Levenstein distance](https://en.wikipedia.org/wiki/Levenshtein_distance) of 1 and 2. For `man` suggest `men`.
+* Substring match: for `scrape` suggest `skyscraper`.
+
+Suggestions are generated separately per each field, and then reduced together with [Reciprocal Rank Fusion (RRF)](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf). A [pseudocode example from Elasticsearch docs about RRF]() describes the algorithm well:
+
+```python
+score = 0.0
+for q in queries:
+    if d in result(q):
+        score += 1.0 / ( k + rank( result(q), d ) )
+return score
+
+# where
+# k is a ranking constant
+# q is a query in the set of queries
+# d is a document in the result set of q
+# result(q) is the result set of q
+# rank( result(q), d ) is d's rank within the result(q) starting from 1
+```
+
+See [suggestion API reference](../reference/api/suggest.md) for more details on how to configure RRF.
+
 ### Deduplication
 
 Suggestion request also has an optional section for suggestions post-processing:

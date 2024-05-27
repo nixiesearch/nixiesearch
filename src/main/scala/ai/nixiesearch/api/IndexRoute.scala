@@ -32,11 +32,12 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   private def indexDocStream(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
     start <- IO(System.currentTimeMillis())
     _ <- request
-      .chunkN(64)
-      .unchunks
       .through(PrintProgress.tap("indexed docs"))
       .chunkN(64)
-      .evalMap(chunk => indexer.addDocuments(chunk.toList))
+      .evalMap(chunk => {
+        val b = 1
+        indexer.addDocuments(chunk.toList)
+      })
       .compile
       .drain
       .flatTap(_ => info(s"completed indexing, took ${System.currentTimeMillis() - start}ms"))
@@ -48,9 +49,11 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
     Ok(indexer.index.mapping)
   }
 
-  def flush(indexName: String): IO[Response[IO]] = {
-    indexer.flush().flatMap(_ => Ok())
-  }
+  def flush(indexName: String): IO[Response[IO]] = for {
+    _        <- indexer.flush()
+    _        <- indexer.index.sync()
+    response <- Ok()
+  } yield response
 
 }
 

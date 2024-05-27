@@ -66,38 +66,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
         index.mapping.fields.get(fieldName) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
           case Some(TextLikeFieldSchema(_, _, _, _, _, _, language, Some(schema))) =>
-            IO {
-              GeneratedSuggestions(
-                field = fieldName,
-                prefix = suggester
-                  .suggest(
-                    new PrefixCompletionQuery(
-                      language.analyzer,
-                      new Term(fieldName + TextFieldWriter.SUGGEST_SUFFIX, request.query)
-                    ),
-                    request.count,
-                    true
-                  ),
-                fuzzy1 = suggester
-                  .suggest(
-                    new FuzzyCompletionQuery(
-                      language.analyzer,
-                      new Term(fieldName + TextFieldWriter.SUGGEST_SUFFIX, request.query)
-                    ),
-                    request.count,
-                    true
-                  ),
-                fuzzy2 = suggester
-                  .suggest(
-                    new FuzzyCompletionQuery(
-                      language.analyzer,
-                      new Term(fieldName + TextFieldWriter.SUGGEST_SUFFIX, request.query)
-                    ),
-                    request.count,
-                    true
-                  )
-              )
-            }
+            GeneratedSuggestions.fromField(fieldName, suggester, language.analyzer, request.query, request.count)
           case Some(TextLikeFieldSchema(_, _, _, _, _, _, language, None)) =>
             IO.raiseError(UserError(s"field '$fieldName' is not suggestable in mapping"))
           case Some(other) => IO.raiseError(UserError(s"cannot generate suggestions over field $other"))
@@ -106,7 +75,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       )
       .compile
       .toList
-    ranked <- IO(SuggestionRanker().rank(fieldSuggestions))
+    ranked <- SuggestionRanker().rank(fieldSuggestions, request)
   } yield {
     SuggestResponse(
       suggestions = ranked,
