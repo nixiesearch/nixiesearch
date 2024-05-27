@@ -67,43 +67,7 @@ Internally, Nixie unfolds a single suggestion request into multiple Lucene queri
 * Fuzzy matches with [Levenstein distance](https://en.wikipedia.org/wiki/Levenshtein_distance) of 1 and 2. For `man` suggest `men`.
 * Substring match: for `scrape` suggest `skyscraper`.
 
-Suggestions are generated separately per each field, and then reduced together with [Reciprocal Rank Fusion (RRF)](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf). A [pseudocode example from Elasticsearch docs about RRF]() describes the algorithm well:
-
-```python
-score = 0.0
-for q in queries:
-    if d in result(q):
-        score += 1.0 / ( k + rank( result(q), d ) )
-return score
-
-# where
-# k is a ranking constant
-# q is a query in the set of queries
-# d is a document in the result set of q
-# result(q) is the result set of q
-# rank( result(q), d ) is d's rank within the result(q) starting from 1
-```
+Suggestion candidates are generated separately per field (and per method), and then ranked together with [Reciprocal Rank Fusion (RRF)](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
 
 See [suggestion API reference](../reference/api/suggest.md) for more details on how to configure RRF.
 
-### Deduplication
-
-Suggestion request also has an optional section for suggestions post-processing:
-
-```json
-{
-  "query": "hu",
-  "fields": ["title"],
-  "count": 10,
-  "process": {
-    "deduplicate": "true"
-  }
-}
-```
-
-Currently, Nixie supports only a single post-processor, deduplication - but we plan to support more:
-
-* LTR for suggestions: https://github.com/nixiesearch/nixiesearch/issues/173
-* Lemmatization: https://github.com/nixiesearch/nixiesearch/issues/184
-
-If you have more ideas, you're [welcome to our issues](https://github.com/nixiesearch/nixiesearch/issues).

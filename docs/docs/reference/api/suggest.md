@@ -55,13 +55,10 @@ A full suggest request JSON format:
   "query": "hu",
   "fields": ["title"],
   "count": 10,
-  "process": {
-    "deduplicate": "true",
-    "rerank": {
-      "rrf": {
-        "depth": 50,
-        "scale": 60
-      }
+  "rerank": {
+    "rrf": {
+      "depth": 50,
+      "scale": 60
     }
   }
 }
@@ -72,8 +69,7 @@ Where request fields are defined in the following way:
 * `query`: **required**, *string*. A suggestion search query.
 * `fields`: **required**, *string[]*. Fields to use for suggestion generation.
 * `count`: **optional**, *int*, *default=10*. The number of top-level suggestions to generate.
-* `process`: **optional**, *obj*, *default=None*. Post-processing options.
-* `process.deduplicate`: **optional**, *boolean*, *default=false*. Should the resulting suggestion list be deduplicated?
+* `rerank`: **optional**, *obj*, *default="rrf"*. Suggestion ranking method, see [section on RRF below](#reranking-configuration) for more details.
 
 The request above emits the following response:
 
@@ -99,3 +95,26 @@ Reciprocal Rank Fusion configuration block has the following options:
 
 * `rerank.rrf.depth`: How many suggestion candidates should be generated before reranking. Having more might affect latency, but increase precision. Optional, int, default=50.
 * `rerank.rrf.scale`: An RRF constant scaling factor, importance of top vs bottom candidate position on the final ranking. Optional, int, default=60.
+
+Suggestions are generated separately per each field, and then reduced together with [Reciprocal Rank Fusion (RRF)](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf). A [pseudocode example from Elasticsearch docs about RRF]() describes the algorithm well:
+
+```python
+score = 0.0
+for q in queries:
+    if d in result(q):
+        score += 1.0 / ( k + rank( result(q), d ) )
+return score
+
+# where
+# k is a ranking constant
+# q is a query in the set of queries
+# d is a document in the result set of q
+# result(q) is the result set of q
+# rank( result(q), d ) is d's rank within the result(q) starting from 1
+```
+
+Some important considerations regarding RRF ranking:
+
+* Suggestions are fused into a single ranking in a case-insensitive way, so `hello` and `Hello` are considered equal.
+* Suggestion candidates are not lowercased, Nixie preserves a case of the most highly ranked suggestion, and other variations are linked to it.
+* By default we use scale constant for RRF as 60 to match [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/rrf.html#rrf-api) implementation.
