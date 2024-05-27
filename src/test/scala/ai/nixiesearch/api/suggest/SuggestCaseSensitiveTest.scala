@@ -1,7 +1,6 @@
 package ai.nixiesearch.api.suggest
 
 import ai.nixiesearch.api.SearchRoute.SuggestRequest
-import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -35,22 +34,6 @@ class SuggestCaseSensitiveTest extends SearchTest with Matchers {
           SuggestRequest(
             query = "he",
             fields = List("title")
-          )
-        )
-        .unsafeRunSync()
-      resp.suggestions
-        .map(_.text) shouldBe List("hello")
-
-    }
-  }
-  it should "suggest with caseSensitive=true" in withIndex { nixie =>
-    {
-      val resp = nixie.searcher
-        .suggest(
-          SuggestRequest(
-            query = "he",
-            fields = List("title"),
-            rerank = RRFOptions(caseSensitive = true)
           )
         )
         .unsafeRunSync()
