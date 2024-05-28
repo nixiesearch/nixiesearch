@@ -6,11 +6,15 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.*
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexSourceArgs, *}
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
+<<<<<<< Updated upstream
 import ai.nixiesearch.source.SourceOffset
 import ai.nixiesearch.source.SourceOffset.Latest
+=======
+import ai.nixiesearch.util.Version
+>>>>>>> Stashed changes
 import cats.effect.IO
-import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
-import org.rogach.scallop.*
+import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version as ScallopVersion}
+import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, throwError, given}
 
 import java.io.File
 import scala.util.{Failure, Success, Try}
@@ -103,6 +107,11 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
   addSubcommand(standalone)
   addSubcommand(index)
   addSubcommand(search)
+  version("Nixiesearch v:" + Version().getOrElse("unknown"))
+  banner("""Usage: metarank <subcommand> <options>
+           |Options:
+           |""".stripMargin)
+  footer("\nFor all other tricks, consult the docs on https://nixiesearch.ai")
 
   override protected def onError(e: Throwable): Unit = e match {
     case r: ScallopResult if !throwError.value =>
@@ -111,11 +120,11 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
           logger.info("\n" + builder.getFullHelpString())
         case Help(subname) =>
           logger.info("\n" + builder.findSubbuilder(subname).get.getFullHelpString())
-        case Version =>
+        case ScallopVersion =>
           "\n" + getVersionString().foreach(logger.info)
-        case ScallopException(message) => errorMessageHandler(message)
+        case e @ ScallopException(message) => throw e
         // following should never match, but just in case
-        case other: ScallopException => errorMessageHandler(other.getMessage)
+        case other: ScallopException => throw other
       }
     case e => throw e
   }
