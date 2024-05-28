@@ -6,12 +6,9 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.*
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexSourceArgs, *}
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
-<<<<<<< Updated upstream
 import ai.nixiesearch.source.SourceOffset
 import ai.nixiesearch.source.SourceOffset.Latest
-=======
 import ai.nixiesearch.util.Version
->>>>>>> Stashed changes
 import cats.effect.IO
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version as ScallopVersion}
 import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, throwError, given}
