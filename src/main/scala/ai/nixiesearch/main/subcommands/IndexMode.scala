@@ -9,8 +9,13 @@ import ai.nixiesearch.core.{JsonDocumentStream, Logging}
 import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSource.{ApiIndexSource, FileIndexSource}
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
+  ApiIndexSourceArgs,
+  FileIndexSourceArgs,
+  KafkaIndexSourceArgs
+}
 import ai.nixiesearch.main.Logo
+import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.{IO, Resource}
 import cats.implicits.*
@@ -24,14 +29,15 @@ object IndexMode extends Logging {
     config  <- Config.load(args.config)
     indexes <- IO(config.schema.values.toList)
     _ <- args.source match {
-      case apiConfig: ApiIndexSource   => runApi(indexes, apiConfig)
-      case fileConfig: FileIndexSource => runOffline(indexes, fileConfig)
+      case apiConfig: ApiIndexSourceArgs     => runApi(indexes, apiConfig)
+      case fileConfig: FileIndexSourceArgs   => runOffline(indexes, FileSource(fileConfig), fileConfig.index)
+      case kafkaConfig: KafkaIndexSourceArgs => runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index)
     }
   } yield {}
 
-  def runOffline(indexes: List[IndexMapping], source: FileIndexSource): IO[Unit] = for {
+  def runOffline(indexes: List[IndexMapping], source: DocumentSource, index: String): IO[Unit] = for {
     indexMapping <- IO
-      .fromOption(indexes.find(_.name == source.index))(UserError(s"index '${source.index} not found in mapping'"))
+      .fromOption(indexes.find(_.name == index))(UserError(s"index '${index} not found in mapping'"))
     _ <- debug(s"found index mapping for index '${indexMapping.name}'")
     _ <- Index
       .forIndexing(indexMapping)
@@ -41,9 +47,8 @@ object IndexMode extends Logging {
           .use(indexer =>
             for {
               _ <- Logo.lines.map(line => info(line)).sequence
-              _ <- URLReader
-                .bytes(source.url, recursive = source.recursive)
-                .through(JsonDocumentStream.parse)
+              _ <- source
+                .stream()
                 .chunkN(1024)
                 .evalMap(batch => indexer.addDocuments(batch.toList) *> indexer.flush())
                 .compile
@@ -57,7 +62,7 @@ object IndexMode extends Logging {
     logger.info(s"indexing done")
   }
 
-  def runApi(indexes: List[IndexMapping], source: ApiIndexSource): IO[Unit] = for {
+  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs): IO[Unit] = for {
     _ <- indexes
       .map(im =>
         for {

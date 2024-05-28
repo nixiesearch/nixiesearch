@@ -127,7 +127,7 @@ nav:
         - Overview: deployment/overview.md
         - Standalone: deployment/standalone.md
         - Distributed: deployment/distributed.md
-        - Pull-based ingestion: deployment/kafka.md
+        - Kafka pull-based indexing: deployment/kafka.md
     - Reference:
         - API:
             - Overview: reference/api/overview.md

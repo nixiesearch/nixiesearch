@@ -6,7 +6,8 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSource.FileIndexSource
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
+import ai.nixiesearch.source.FileSource
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -27,10 +28,13 @@ class IndexModeTest extends AnyFlatSpec with Matchers {
     IndexMode
       .runOffline(
         indexes = List(mapping),
-        source = FileIndexSource(
-          url = LocalURL(Paths.get("src/test/resources/datasets/movies/movies.jsonl.gz")),
-          index = "movies"
-        )
+        source = FileSource(
+          FileIndexSourceArgs(
+            url = LocalURL(Paths.get("src/test/resources/datasets/movies/movies.jsonl.gz")),
+            index = "movies"
+          )
+        ),
+        "movies"
       )
       .unsafeRunSync()
   }

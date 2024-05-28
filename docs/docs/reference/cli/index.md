@@ -17,18 +17,33 @@ $ java -jar target/scala-3.4.2/nixiesearch.jar index --help
   -h, --help   Show help message
 
 Subcommand: api
-  -c, --config  <arg>   Path to a config file
-  -h, --host  <arg>     iface to bind to, optional, default=0.0.0.0
-  -p, --port  <arg>     port to bind to, optional, default=8080
-      --help            Show help message
+  -c, --config  <arg>     Path to a config file
+  -h, --host  <arg>       iface to bind to, optional, default=0.0.0.0
+  -l, --loglevel  <arg>   Logging level: debug/info/warn/error, default=info
+  -p, --port  <arg>       port to bind to, optional, default=8080
+      --help              Show help message
 
 Subcommand: file
   -c, --config  <arg>     Path to a config file
   -e, --endpoint  <arg>   custom S3 endpoint, optional, default=None
   -i, --index  <arg>      to which index to write to
+  -l, --loglevel  <arg>   Logging level: debug/info/warn/error, default=info
   -r, --recursive         recursive listing for directories, optional,
                           default=false
   -u, --url  <arg>        path to documents source
+  -h, --help              Show help message
+
+Subcommand: kafka
+  -b, --brokers  <arg>    Kafka brokers endpoints, comma-separated list
+  -c, --config  <arg>     Path to a config file
+  -g, --group_id  <arg>   groupId identifier of consumer. default=nixiesearch
+  -i, --index  <arg>      to which index to write to
+  -l, --loglevel  <arg>   Logging level: debug/info/warn/error, default=info
+  -o, --offset  <arg>     which topic offset to use for initial connection?
+                          earliest/latest/ts=<unixtime>/last=<offset>
+                          default=none (use committed offsets)
+      --options  <arg>    comma-separated list of kafka client custom options
+  -t, --topic  <arg>      Kafka topic name
   -h, --help              Show help message
 java.lang.Exception: No command given. If unsure, try 'nixiesearch standalone'
 ```

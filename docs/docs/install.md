@@ -4,7 +4,7 @@ Nixiesearch is only available as a Docker image from an official [nixiesearch/ni
 
 * Docker: [Docker Desktop](https://docs.docker.com/engine/install/) for Mac/Windows, or Docker for Linux.
 * Operating system: Linux, macOS, Windows with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install).
-* Architecture: x86_64. On Mac M1+, you need to turn on [Rosetta](https://docs.docker.com/desktop/settings/mac/#general) for x86_64 emulation.
+* Architecture: x86_64, arm64/aarch64. [Mac M1+ are supported without emulation](#mac-m1-and-aarch64arm64).
 * Memory: 2Gb dedicated to Docker.
 
 ## Running a docker image
@@ -38,3 +38,13 @@ Used options breakdown:
 * `standalone`: a Nixiesearch running mode, with colocated indexer and searcher processes. See [CLI reference](reference/cli/standalone.md) for more details and other running modes.
 
 For a complete walk-through on setting Nixiesearch up, see the [Quickstart guide](quickstart.md).
+
+## Mac M1+ and AArch64/Arm64
+
+[Nixiesearch docker images](https://hub.docker.com/r/nixiesearch/nixiesearch/tags) are build in a multi-arch mode: the same image references two arch-specific tags, and tag selection is based on client's architecture.
+
+You can force a specific CPU arch by using tag suffixes:
+
+* `0.0.3-arm64`: for ARM64 image.
+* `0.0.3-amd64`: for x86_64 image.
+

@@ -1,7 +1,7 @@
 package ai.nixiesearch.main
 
 import ai.nixiesearch.config.URL.S3URL
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSource.FileIndexSource
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.Loglevel.*
 import org.scalatest.flatspec.AnyFlatSpec
@@ -28,6 +28,6 @@ class CliConfigTest extends AnyFlatSpec with Matchers {
     val result = CliConfig
       .load(List("index", "file", "--config", temp.toString, "--url", "s3://bucket/prefix.json", "--index", "movies"))
       .unsafeRunSync()
-    result shouldBe IndexArgs(temp.toFile, FileIndexSource(S3URL("bucket", "prefix.json"), "movies"))
+    result shouldBe IndexArgs(temp.toFile, FileIndexSourceArgs(S3URL("bucket", "prefix.json"), "movies"))
   }
 }

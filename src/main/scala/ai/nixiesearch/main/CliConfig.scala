@@ -3,9 +3,11 @@ package ai.nixiesearch.main
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSource.*
-import ai.nixiesearch.main.CliConfig.CliArgs.*
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.*
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexSourceArgs, *}
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
+import ai.nixiesearch.source.SourceOffset
+import ai.nixiesearch.source.SourceOffset.Latest
 import cats.effect.IO
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version}
 import org.rogach.scallop.*
@@ -68,9 +70,34 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
           descr = "custom S3 endpoint, optional, default=None"
         )
     }
+    object kafka extends Subcommand("kafka") with ConfigOption with LoglevelOption {
+      val index = opt[String](name = "index", descr = "to which index to write to")
+      val brokers =
+        opt[List[String]](name = "brokers", required = true, descr = "Kafka brokers endpoints, comma-separated list")
+      val topic = opt[String](name = "topic", required = true, descr = "Kafka topic name")
+      val groupId = opt[String](
+        name = "group_id",
+        required = false,
+        descr = "groupId identifier of consumer. default=nixiesearch",
+        default = Some("nixiesearch")
+      )
+      val offset = opt[SourceOffset](
+        name = "offset",
+        required = false,
+        default = Some(Latest),
+        descr =
+          "which topic offset to use for initial connection? earliest/latest/ts=<unixtime>/last=<offset> default=none (use committed offsets)"
+      )
+      val options = opt[Map[String, String]](
+        name = "options",
+        required = false,
+        descr = "comma-separated list of kafka client custom options"
+      )
+    }
 
     addSubcommand(api)
     addSubcommand(file)
+    addSubcommand(kafka)
   }
   object search extends Subcommand("search") with ConfigOption with LoglevelOption
   addSubcommand(standalone)
@@ -99,14 +126,22 @@ object CliConfig extends Logging {
     def loglevel: Loglevel
   }
   object CliArgs {
-    case class StandaloneArgs(config: File, loglevel: Loglevel = INFO)                 extends CliArgs
-    case class IndexArgs(config: File, source: IndexSource, loglevel: Loglevel = INFO) extends CliArgs
-    case class SearchArgs(config: File, loglevel: Loglevel = INFO)                     extends CliArgs
+    case class StandaloneArgs(config: File, loglevel: Loglevel = INFO)                     extends CliArgs
+    case class IndexArgs(config: File, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs
+    case class SearchArgs(config: File, loglevel: Loglevel = INFO)                         extends CliArgs
 
-    enum IndexSource {
-      case ApiIndexSource(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSource
-      case FileIndexSource(url: URL, index: String, recursive: Boolean = false, endpoint: Option[String] = None)
-          extends IndexSource
+    enum IndexSourceArgs {
+      case ApiIndexSourceArgs(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSourceArgs
+      case FileIndexSourceArgs(url: URL, index: String, recursive: Boolean = false, endpoint: Option[String] = None)
+          extends IndexSourceArgs
+      case KafkaIndexSourceArgs(
+          index: String,
+          brokers: List[String],
+          topic: String,
+          groupId: String,
+          offset: Option[SourceOffset],
+          options: Option[Map[String, String]] = None
+      ) extends IndexSourceArgs
     }
   }
 
@@ -140,7 +175,7 @@ object CliConfig extends Logging {
               IndexArgs(
                 config = config,
                 loglevel = loglevel.getOrElse(INFO),
-                source = ApiIndexSource(host.getOrElse(Hostname("0.0.0.0")), port.getOrElse(Port(8080)))
+                source = ApiIndexSourceArgs(host.getOrElse(Hostname("0.0.0.0")), port.getOrElse(Port(8080)))
               )
             }
           case Some(parser.index.file) =>
@@ -155,13 +190,39 @@ object CliConfig extends Logging {
               IndexArgs(
                 config = config,
                 loglevel = loglevel.getOrElse(INFO),
-                source = FileIndexSource(url, index, recursive.getOrElse(false), endpoint)
+                source = FileIndexSourceArgs(url, index, recursive.getOrElse(false), endpoint)
+              )
+            }
+          case Some(parser.index.kafka) =>
+            for {
+              config   <- parse(parser.index.kafka.config)
+              index    <- parse(parser.index.kafka.index)
+              loglevel <- parseOption(parser.index.kafka.loglevel)
+              brokers  <- parse(parser.index.kafka.brokers)
+              topic    <- parse(parser.index.kafka.topic)
+              groupId  <- parseOption(parser.index.kafka.groupId)
+              offset   <- parseOption(parser.index.kafka.offset)
+              options  <- parseOption(parser.index.kafka.options)
+            } yield {
+              IndexArgs(
+                config = config,
+                loglevel = loglevel.getOrElse(INFO),
+                source = IndexSourceArgs.KafkaIndexSourceArgs(
+                  index = index,
+                  brokers = brokers,
+                  topic = topic,
+                  groupId = groupId.getOrElse("nixiesearch"),
+                  offset = offset,
+                  options = options
+                )
               )
             }
           case Some(other) =>
             IO.raiseError(new Exception(s"Subcommand $other is not supported. Try indexer api."))
           case None =>
-            IO.raiseError(new Exception("No command given. If unsure, try 'nixiesearch standalone'"))
+            IO.raiseError(
+              new Exception("No command given. If unsure, try 'nixiesearch standalone' or `nixiesearch --help'")
+            )
 
         }
       case Some(parser.search) =>
