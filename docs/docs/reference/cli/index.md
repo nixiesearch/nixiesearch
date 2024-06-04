@@ -199,3 +199,11 @@ WARNING: Java vector incubator module is not readable. For optimal vector perfor
 14:12:19.143 INFO  ai.nixiesearch.api.API$ - HTTP/1.1 POST /movies/_index
 14:12:19.143 INFO  ai.nixiesearch.api.API$ - HTTP/1.1 200 OK
 ```
+
+Finally, flush the index to disk, using the `_flush` endpoint:
+
+```shell
+$ curl -XPOST http://localhost:8080/movies/_flush
+```
+
+Nixiesearch will synchonously flush the index, and acknowledge the request with an empty (200 OK) response.
