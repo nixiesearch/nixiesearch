@@ -13,7 +13,7 @@ class AdminRouteTest extends AnyFlatSpec with Matchers {
 
     val route = AdminRoute(Config(schema = Map(IndexName.unsafe("test") -> TestIndexMapping())))
     val response =
-      route.routes(Request(uri = Uri.unsafeFromString("http://localhost/test/_mapping"))).value.unsafeRunSync()
+      route.routes(Request(uri = Uri.unsafeFromString("http://localhost/_config"))).value.unsafeRunSync()
     response.map(_.status.code) shouldBe Some(200)
   }
 
