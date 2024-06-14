@@ -1,7 +1,9 @@
 package ai.nixiesearch.index.store
 
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation
+import ai.nixiesearch.config.mapping.IndexName
 import org.scalatest.flatspec.AnyFlatSpec
+
 import scala.util.Random
 
 class S3StateClientTest extends StateClientSuite[S3StateClient] {
@@ -13,6 +15,6 @@ class S3StateClientTest extends StateClientSuite[S3StateClient] {
       prefix = s"test_${Random.nextInt(1000000)}",
       endpoint = Some("http://localhost:4566")
     )
-    S3StateClient.create(conf, "test")
+    S3StateClient.create(conf, IndexName.unsafe("test"))
   }
 }

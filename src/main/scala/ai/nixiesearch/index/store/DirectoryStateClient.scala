@@ -1,6 +1,6 @@
 package ai.nixiesearch.index.store
 
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
@@ -16,7 +16,7 @@ import java.nio.ByteBuffer
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import java.time.Instant
 
-case class DirectoryStateClient(dir: Directory, indexName: String) extends StateClient with Logging {
+case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024L
 
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
@@ -109,8 +109,8 @@ case class DirectoryStateClient(dir: Directory, indexName: String) extends State
 }
 
 object DirectoryStateClient extends Logging {
-  def create(dir: Directory, indexName: String): Resource[IO, DirectoryStateClient] = for {
-    _ <- Resource.eval(debug(s"created DirectoryStateClient for dir=$dir index=$indexName"))
+  def create(dir: Directory, indexName: IndexName): Resource[IO, DirectoryStateClient] = for {
+    _ <- Resource.eval(debug(s"created DirectoryStateClient for dir=$dir index=${indexName.value}"))
   } yield {
     DirectoryStateClient(dir, indexName)
   }

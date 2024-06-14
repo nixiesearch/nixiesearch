@@ -4,7 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SuggestRequest
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{IndexMapping, SuggestSchema}
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
@@ -14,7 +14,7 @@ import cats.effect.unsafe.implicits.global
 
 class SuggestCaseSensitiveTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
       TextFieldSchema(name = "title", search = NoSearch, suggest = Some(SuggestSchema()))

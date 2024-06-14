@@ -7,7 +7,7 @@ import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{FloatField, TextField}
 import ai.nixiesearch.core.FiniteRange.Lower.Gt
@@ -16,7 +16,7 @@ import org.scalatest.matchers.should.Matchers
 
 class BoolFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema("_id", filter = true),
       TextFieldSchema("color", filter = true),

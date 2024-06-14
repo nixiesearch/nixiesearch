@@ -16,22 +16,22 @@ import io.circe.parser.*
 
 class IndexMappingTest extends AnyFlatSpec with Matchers {
   "migration" should "preserve compatible int fields" in {
-    val before = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
-    val after  = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
+    val before = IndexMapping(IndexName("foo"), fields = Map("test" -> IntFieldSchema("test")))
+    val after  = IndexMapping(IndexName("foo"), fields = Map("test" -> IntFieldSchema("test")))
     val result = before.migrate(after).unsafeRunSync()
     result shouldBe after
   }
 
   it should "fail on incompatible migrations" in {
-    val before = IndexMapping("foo", fields = Map("test" -> IntFieldSchema("test")))
-    val after  = IndexMapping("foo", fields = Map("test" -> TextFieldSchema("test")))
+    val before = IndexMapping(IndexName("foo"), fields = Map("test" -> IntFieldSchema("test")))
+    val after  = IndexMapping(IndexName("foo"), fields = Map("test" -> TextFieldSchema("test")))
     val result = Try(before.migrate(after).unsafeRunSync())
     result.isFailure shouldBe true
   }
 
   it should "add+remove fields" in {
-    val before = IndexMapping("foo", fields = Map("test1" -> IntFieldSchema("test1")))
-    val after  = IndexMapping("foo", fields = Map("test2" -> IntFieldSchema("test2")))
+    val before = IndexMapping(IndexName("foo"), fields = Map("test1" -> IntFieldSchema("test1")))
+    val after  = IndexMapping(IndexName("foo"), fields = Map("test2" -> IntFieldSchema("test2")))
     val result = before.migrate(after).unsafeRunSync()
     result shouldBe after
   }
@@ -39,7 +39,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
   it should "encode-decode a json schema" in {
     import IndexMapping.json.given
     val mapping = IndexMapping(
-      name = "foo",
+      name = IndexName("foo"),
       alias = List(Alias("bar")),
       config = IndexConfig(mapping = MappingConfig(dynamic = true)),
       fields = Map(
@@ -51,7 +51,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val decoded = decode[IndexMapping](json)
     decoded shouldBe Right(mapping)
   }
-  
+
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =
       """
@@ -60,11 +60,11 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         |  title:
         |    type: text
         |    search: false""".stripMargin
-    val decoder = IndexMapping.yaml.indexMappingDecoder("test")
+    val decoder = IndexMapping.yaml.indexMappingDecoder(IndexName("test"))
     val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](decoder))
     json shouldBe Right(
       IndexMapping(
-        name = "test",
+        name = IndexName("test"),
         alias = List(Alias("prod")),
         fields = Map(
           "_id"   -> TextFieldSchema("_id", filter = true),

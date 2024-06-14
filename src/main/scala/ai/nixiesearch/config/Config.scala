@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
@@ -17,7 +17,7 @@ case class Config(
     searcher: SearcherConfig = SearcherConfig(),
     indexer: IndexerConfig = IndexerConfig(),
     core: CoreConfig = CoreConfig(),
-    schema: Map[String, IndexMapping] = Map.empty
+    schema: Map[IndexName, IndexMapping] = Map.empty
 )
 
 object Config extends Logging {
@@ -29,7 +29,7 @@ object Config extends Logging {
       searcher <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
       indexer  <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
       core     <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
-      indexJson <- c.downField("schema").as[Map[String, Json]].flatMap {
+      indexJson <- c.downField("schema").as[Map[IndexName, Json]].flatMap {
         case map if map.isEmpty => Left(DecodingFailure("There should be at least one index schema defined", c.history))
         case map                => Right(map)
       }

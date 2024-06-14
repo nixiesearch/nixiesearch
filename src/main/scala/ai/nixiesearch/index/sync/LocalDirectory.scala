@@ -2,7 +2,7 @@ package ai.nixiesearch.index.sync
 
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, LocalStoreLocation}
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.manifest.IndexManifest
@@ -18,7 +18,7 @@ import java.nio.file.{Files, Path}
 
 object LocalDirectory extends Logging {
   case class DirectoryError(m: String) extends Exception(m)
-  def fromLocal(local: LocalStoreLocation, indexName: String): Resource[IO, Directory] = local match {
+  def fromLocal(local: LocalStoreLocation, indexName: IndexName): Resource[IO, Directory] = local match {
     case StoreConfig.LocalStoreLocation.DiskLocation(path) =>
       for {
         _             <- Resource.eval(info("initialized MMapDirectory"))
@@ -39,7 +39,7 @@ object LocalDirectory extends Logging {
   def fromRemote(
       localLocation: LocalStoreLocation,
       remote: StateClient,
-      indexName: String
+      indexName: IndexName
   ): Resource[IO, Directory] = for {
     directory            <- fromLocal(localLocation, indexName)
     local                <- Resource.pure(DirectoryStateClient(directory, indexName))
@@ -94,8 +94,8 @@ object LocalDirectory extends Logging {
     directory
   }
 
-  def indexPath(path: Path, indexName: String): IO[Path] = for {
-    indexPath <- IO(path.resolve(indexName))
+  def indexPath(path: Path, indexName: IndexName): IO[Path] = for {
+    indexPath <- IO(path.resolve(indexName.value))
     exists    <- IO(Files.exists(indexPath))
     _ <- IO.whenA(!exists)(IO(Files.createDirectories(indexPath)) *> info(s"created on-disk directory $indexPath"))
     _ <- IO.whenA(exists)(IO(Files.isDirectory(indexPath)).flatMap {

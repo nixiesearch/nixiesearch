@@ -49,7 +49,7 @@ case class WebuiRoute(
       request  <- makeRequest(searcher, query)
       response <- searcher.search(request)
       html <- tmpl.render(
-        index = searcher.index.name,
+        index = searcher.index.name.value,
         request,
         response
       )

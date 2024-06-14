@@ -26,7 +26,7 @@ import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import scala.jdk.CollectionConverters.*
 
 case class IndexMapping(
-    name: String,
+    name: IndexName,
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
     store: StoreConfig = StoreConfig(),
@@ -96,11 +96,16 @@ object IndexMapping extends Logging {
   case class Alias(name: String)
 
   def apply(
-      name: String,
+      name: IndexName,
       fields: List[FieldSchema[? <: Field]],
       store: StoreConfig
   ): IndexMapping = {
-    new IndexMapping(name, fields = fields.map(f => f.name -> f).toMap, config = IndexConfig(), store = store)
+    new IndexMapping(
+      name,
+      fields = fields.map(f => f.name -> f).toMap,
+      config = IndexConfig(),
+      store = store
+    )
   }
 
   def createAnalyzer(mapping: IndexMapping): Analyzer = {
@@ -121,7 +126,7 @@ object IndexMapping extends Logging {
   object yaml {
     import StoreConfig.yaml.given
 
-    def indexMappingDecoder(name: String): Decoder[IndexMapping] = Decoder.instance(c =>
+    def indexMappingDecoder(name: IndexName): Decoder[IndexMapping] = Decoder.instance(c =>
       for {
         alias <- decodeAlias(c.downField("alias"))
         fieldJsons <- c.downField("fields").as[Map[String, Json]].map(_.toList) match {

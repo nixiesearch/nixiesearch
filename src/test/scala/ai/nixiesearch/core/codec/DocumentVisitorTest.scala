@@ -4,7 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
@@ -17,7 +17,7 @@ import ai.nixiesearch.util.SearchTest
 class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val docs = Nil
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(TextFieldSchema("_id"), TextFieldSchema("title"), IntFieldSchema("count")),
     store = LocalStoreConfig(MemoryLocation())
   )

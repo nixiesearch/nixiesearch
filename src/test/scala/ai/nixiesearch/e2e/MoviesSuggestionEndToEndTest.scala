@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SuggestReq
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.Config
+import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.util.{DatasetLoader, SearchTest}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
@@ -18,7 +19,7 @@ import java.io.File
 class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd     = System.getProperty("user.dir")
   lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml")).unsafeRunSync()
-  lazy val mapping = conf.schema("movies")
+  lazy val mapping = conf.schema(IndexName.unsafe("movies"))
   val docs         = Nil
 
   it should "load docs and suggest" in withIndex { nixie =>
