@@ -7,7 +7,14 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeLt
 import ai.nixiesearch.api.query.MultiMatchQuery
-import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping

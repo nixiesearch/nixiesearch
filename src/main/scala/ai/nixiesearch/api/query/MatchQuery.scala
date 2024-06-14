@@ -77,6 +77,5 @@ object MatchQuery {
       case Right(other)                 => Left(DecodingFailure(s"cannot decode query $other", c.history))
     }
   )
-  
 
 }
