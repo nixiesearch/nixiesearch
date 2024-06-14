@@ -130,7 +130,7 @@ object IndexMapping extends Logging {
       for {
         alias <- decodeAlias(c.downField("alias"))
         fieldJsons <- c.downField("fields").as[Map[String, Json]].map(_.toList) match {
-          case Left(value)  => Left(DecodingFailure(s"'fields' expected to be a map", c.history))
+          case Left(value)  => Left(DecodingFailure(s"'fields' expected to be a map: $value", c.history))
           case Right(value) => Right(value)
         }
         fields <- fieldJsons.traverse { case (name, json) =>

@@ -1,7 +1,7 @@
 package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.API.info
-import ai.nixiesearch.api.{API, HealthRoute, IndexRoute}
+import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, IndexerConfig}
 import ai.nixiesearch.core.Error.UserError
@@ -29,7 +29,7 @@ object IndexMode extends Logging {
     config  <- Config.load(args.config)
     indexes <- IO(config.schema.values.toList)
     _ <- args.source match {
-      case apiConfig: ApiIndexSourceArgs     => runApi(indexes, apiConfig)
+      case apiConfig: ApiIndexSourceArgs     => runApi(indexes, apiConfig, config)
       case fileConfig: FileIndexSourceArgs   => runOffline(indexes, FileSource(fileConfig), fileConfig.index)
       case kafkaConfig: KafkaIndexSourceArgs => runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index)
     }
@@ -62,7 +62,7 @@ object IndexMode extends Logging {
     logger.info(s"indexing done")
   }
 
-  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs): IO[Unit] = for {
+  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = for {
     _ <- indexes
       .map(im =>
         for {
@@ -84,7 +84,7 @@ object IndexMode extends Logging {
         for {
           indexRoutes <- IO(indexers.map(indexer => IndexRoute(indexer).routes).reduce(_ <+> _))
           healthRoute <- IO(HealthRoute())
-          routes      <- IO(indexRoutes <+> healthRoute.routes)
+          routes      <- IO(indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes)
           server      <- API.start(routes, source.host, source.port)
           _           <- server.use(_ => IO.never)
 
