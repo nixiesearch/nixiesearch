@@ -4,8 +4,9 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
-import io.circe.{Decoder, DecodingFailure, Json}
+import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import cats.implicits.*
+import io.circe.generic.semiauto.*
 import org.apache.commons.io.IOUtils
 
 import java.io.{File, FileInputStream}
@@ -20,9 +21,10 @@ case class Config(
 )
 
 object Config extends Logging {
+  import IndexMapping.json.given
   case class ConfigParsingError(msg: String) extends Exception(msg)
-
-  implicit val configDecoder: Decoder[Config] = Decoder.instance(c =>
+  given configEncoder: Encoder[Config] = deriveEncoder
+  given configDecoder: Decoder[Config] = Decoder.instance(c =>
     for {
       searcher <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
       indexer  <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))

@@ -1,7 +1,7 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.mapping.IndexNameTest.{IndexNameWrapper, indexNameWrapperDecoder}
-import ai.nixiesearch.config.mapping.IndexNames.IndexName
+import ai.nixiesearch.config.mapping.IndexName
 import io.circe.{Decoder, Encoder}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -21,7 +21,7 @@ class IndexNameTest extends AnyFlatSpec with Matchers {
 }
 
 object IndexNameTest {
-  import IndexNames.*
+  import IndexName.*
   import IndexName.given
   case class IndexNameWrapper(name: IndexName)
   given indexNameWrapperDecoder: Decoder[IndexNameWrapper] = deriveDecoder[IndexNameWrapper]
