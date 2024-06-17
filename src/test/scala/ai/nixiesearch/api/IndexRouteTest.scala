@@ -22,24 +22,6 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   val docs    = Nil
   val mapping = TestIndexMapping()
 
-  it should "return index mapping on GET" in withIndex { store =>
-    {
-      val route = IndexRoute(store.indexer)
-      val response =
-        route.routes(Request(uri = Uri.unsafeFromString("http://localhost/test/_mapping"))).value.unsafeRunSync()
-      response.map(_.status.code) shouldBe Some(200)
-    }
-  }
-
-  it should "fail on 404" in withIndex { store =>
-    {
-      val route = IndexRoute(store.indexer)
-      val response =
-        route.routes(Request(uri = Uri.unsafeFromString("http://localhost/nope/_mapping"))).value.unsafeRunSync()
-      response shouldBe None
-    }
-  }
-
   it should "accept docs for existing indices" in withIndex { store =>
     {
       val doc = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))

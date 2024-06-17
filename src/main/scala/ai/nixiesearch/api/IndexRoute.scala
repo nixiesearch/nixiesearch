@@ -15,23 +15,22 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   val routes = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value => flush(indexName)
+    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value => flush()
     case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
-      index(request, indexName)
+      index(request)
     case request @ POST -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
-      index(request, indexName)
-    case GET -> Root / indexName / "_mapping" if indexName == indexer.index.name.value => mapping(indexName)
+      index(request)
   }
 
-  def index(request: Request[IO], indexName: String): IO[Response[IO]] = for {
-    _        <- info(s"PUT /$indexName/_index")
-    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse), indexName)
+  def index(request: Request[IO]): IO[Response[IO]] = for {
+    _        <- info(s"PUT /${indexer.index.name.value}/_index")
+    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse))
     response <- Ok(ok)
   } yield {
     response
   }
 
-  private def indexDocStream(request: Stream[IO, Document], indexName: String): IO[IndexResponse] = for {
+  private def indexDocStream(request: Stream[IO, Document]): IO[IndexResponse] = for {
     start <- IO(System.currentTimeMillis())
     _ <- request
       .through(PrintProgress.tap("indexed docs"))
@@ -47,11 +46,7 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
     IndexResponse.withStartTime("created", start)
   }
 
-  def mapping(indexName: String): IO[Response[IO]] = {
-    Ok(indexer.index.mapping)
-  }
-
-  def flush(indexName: String): IO[Response[IO]] = for {
+  def flush(): IO[Response[IO]] = for {
     _        <- indexer.flush()
     _        <- indexer.index.sync()
     response <- Ok()

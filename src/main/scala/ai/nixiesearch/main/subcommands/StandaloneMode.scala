@@ -28,13 +28,17 @@ object StandaloneMode extends Logging {
               .sequence
               .use(searchers =>
                 for {
-                  indexRoutes  <- IO(indexers.map(indexer => IndexRoute(indexer).routes).reduce(_ <+> _))
-                  searchRoutes <- IO(searchers.map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes).reduce(_ <+> _))
-                  health       <- IO(HealthRoute())
-                  routes       <- IO(indexRoutes <+> searchRoutes <+> health.routes <+> AdminRoute(config).routes)
-                  server       <- API.start(routes, config.searcher.host, config.searcher.port)
-                  _            <- Logo.lines.map(line => info(line)).sequence
-                  _            <- server.use(_ => IO.never)
+                  indexRoutes <- IO(indexers.map(indexer => IndexRoute(indexer).routes).reduce(_ <+> _))
+                  searchRoutes <- IO(
+                    searchers
+                      .map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes)
+                      .reduce(_ <+> _)
+                  )
+                  health <- IO(HealthRoute())
+                  routes <- IO(indexRoutes <+> searchRoutes <+> health.routes <+> AdminRoute(config).routes)
+                  server <- API.start(routes, config.searcher.host, config.searcher.port)
+                  _      <- Logo.lines.map(line => info(line)).sequence
+                  _      <- server.use(_ => IO.never)
                 } yield {}
               )
           )
