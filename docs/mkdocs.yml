@@ -141,7 +141,9 @@ nav:
                 - Filters: reference/api/search/filter.md
                 - Facets: reference/api/search/facet.md
             - Suggest: reference/api/suggest.md
-            - Metrics: reference/api/metrics.md
+            - System endpoints:
+              - Metrics: reference/api/metrics.md
+              - Config: reference/api/admin/config.md
         - Configuration:
             - Overview: reference/config/overview.md
             - API: reference/config/api.md

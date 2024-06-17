@@ -12,6 +12,7 @@ object ApiConfig {
   case class Hostname(value: String)
 
   object Hostname {
+    given hostnameEncoder: Encoder[Hostname] = Encoder.encodeString.contramap(_.value)
     given hostnameDecoder: Decoder[Hostname] = Decoder.decodeString.emapTry {
       case ""    => Failure(ConfigParsingError("hostname cannot be empty"))
       case other => Success(Hostname(other))
@@ -21,6 +22,7 @@ object ApiConfig {
   case class Port(value: Int)
 
   object Port {
+    given portEncoder: Encoder[Port] = Encoder.encodeInt.contramap(_.value)
     given portDecoder: Decoder[Port] = Decoder.decodeInt.emapTry {
       case port if port > 0 && port < 65536 => Success(Port(port))
       case other                            => Failure(ConfigParsingError(s"port $other should be in 0..65536 range"))

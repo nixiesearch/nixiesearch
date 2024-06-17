@@ -13,7 +13,7 @@ import ai.nixiesearch.config.FieldSchema.{
 }
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.{Document, Field}
 import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField}
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
@@ -49,7 +49,7 @@ object RangeFilterTest {
     def field(value: Int): F
 
     val mapping = IndexMapping(
-      name = "test",
+      name = IndexName.unsafe("test"),
       fields = List(
         TextFieldSchema("_id", filter = true),
         schema()

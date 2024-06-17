@@ -10,7 +10,7 @@ import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
 import ai.nixiesearch.config.mapping.SuggestSchema.Lemmatize
-import ai.nixiesearch.config.mapping.{IndexMapping, SuggestSchema}
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -29,8 +29,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         indexer = IndexerConfig(),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
-          "helloworld" -> IndexMapping(
-            name = "helloworld",
+          IndexName.unsafe("helloworld") -> IndexMapping(
+            name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
               "_id" -> TextFieldSchema(name = "_id", filter = true),
@@ -60,8 +60,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         indexer = IndexerConfig(),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
-          "helloworld" -> IndexMapping(
-            name = "helloworld",
+          IndexName.unsafe("helloworld") -> IndexMapping(
+            name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
               "_id" -> TextFieldSchema(name = "_id", filter = true),
@@ -128,8 +128,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         indexer = IndexerConfig(),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
-          "helloworld" -> IndexMapping(
-            name = "helloworld",
+          IndexName.unsafe("helloworld") -> IndexMapping(
+            name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
               "_id" -> TextFieldSchema(name = "_id", filter = true),

@@ -5,7 +5,7 @@ import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.Language.Generic
-import ai.nixiesearch.config.mapping.{IndexMapping, SuggestSchema}
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
@@ -29,7 +29,7 @@ import org.checkerframework.checker.units.qual.Prefix
 
 class SuggestSingleFieldTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
       TextFieldSchema(name = "title", search = NoSearch, suggest = Some(SuggestSchema()))

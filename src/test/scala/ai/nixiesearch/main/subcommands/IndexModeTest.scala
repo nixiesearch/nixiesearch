@@ -4,7 +4,7 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.URL.LocalURL
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
 import ai.nixiesearch.source.FileSource
@@ -16,7 +16,7 @@ import java.nio.file.Paths
 
 class IndexModeTest extends AnyFlatSpec with Matchers {
   val mapping = IndexMapping(
-    name = "movies",
+    name = IndexName.unsafe("movies"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
       TextFieldSchema("title", search = LexicalSearch()),

@@ -4,7 +4,7 @@ import ai.nixiesearch.api.query.MatchQuery.Operator
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
@@ -14,7 +14,7 @@ import cats.effect.unsafe.implicits.global
 
 class MultiMatchQueryTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id"),
       TextFieldSchema(name = "title", search = LexicalSearch(), sort = true),

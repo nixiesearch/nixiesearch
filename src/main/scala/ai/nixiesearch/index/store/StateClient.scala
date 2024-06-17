@@ -1,7 +1,7 @@
 package ai.nixiesearch.index.store
 
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.index.manifest.IndexManifest
 import cats.effect.{IO, Resource}
 import fs2.{Chunk, Stream}
@@ -30,7 +30,7 @@ object StateClient {
     case InconsistentStateError(reason: String) extends StateError
   }
 
-  def createRemote(config: BlockStoreLocation, indexName: String): Resource[IO, StateClient] = config match {
+  def createRemote(config: BlockStoreLocation, indexName: IndexName): Resource[IO, StateClient] = config match {
     case s: BlockStoreLocation.S3Location         => S3StateClient.create(s, indexName)
     case s: BlockStoreLocation.RemoteDiskLocation => RemotePathStateClient.create(s.path, indexName)
   }

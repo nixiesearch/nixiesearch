@@ -6,7 +6,7 @@ import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{TextField, TextListField}
@@ -16,7 +16,7 @@ import cats.effect.unsafe.implicits.global
 
 class MatchQuerySemanticTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
       TextFieldSchema(name = "title", search = HybridSearch()),

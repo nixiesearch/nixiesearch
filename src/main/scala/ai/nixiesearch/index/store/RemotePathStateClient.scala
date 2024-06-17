@@ -1,6 +1,6 @@
 package ai.nixiesearch.index.store
 
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
@@ -12,13 +12,14 @@ import fs2.io.{readInputStream, writeOutputStream}
 import fs2.io.file.Path
 import io.circe.parser.*
 import cats.implicits.*
+
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Path as JPath
 import fs2.Stream
 
 import java.time.Instant
 
-case class RemotePathStateClient(path: JPath, indexName: String) extends StateClient with Logging {
+case class RemotePathStateClient(path: JPath, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024
 
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
@@ -86,8 +87,8 @@ case class RemotePathStateClient(path: JPath, indexName: String) extends StateCl
 }
 
 object RemotePathStateClient extends Logging {
-  def create(path: JPath, indexName: String): Resource[IO, RemotePathStateClient] = for {
-    _ <- Resource.eval(debug(s"created RemotePathStateClient for path=$path index=$indexName"))
+  def create(path: JPath, indexName: IndexName): Resource[IO, RemotePathStateClient] = for {
+    _ <- Resource.eval(debug(s"created RemotePathStateClient for path=$path index=${indexName.value}"))
   } yield {
     RemotePathStateClient(path, indexName)
   }

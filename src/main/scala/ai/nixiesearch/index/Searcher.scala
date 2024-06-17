@@ -245,7 +245,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case None =>
         Readers.attemptOpenIfExists(index).flatMap {
           case None =>
-            IO.raiseError(BackendError(s"index '${index.name}' does not yet have an index with documents"))
+            IO.raiseError(BackendError(s"index '${index.name.value}' does not yet have an index with documents"))
           case Some(opened) =>
             readersRef.set(Some(opened)) *> IO.pure(opened)
         }
@@ -254,8 +254,8 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   }
 
   def close(): IO[Unit] = readersRef.get.flatMap {
-    case Some(readers) => readers.close() *> info(s"closed index reader for index ${index.name}")
-    case None          => info(s"index '${index.name} does not have a reader open, there's nothing to close'")
+    case Some(readers) => readers.close() *> info(s"closed index reader for index ${index.name.value}")
+    case None          => info(s"index '${index.name.value} does not have a reader open, there's nothing to close'")
   }
 
 }
@@ -267,14 +267,14 @@ object Searcher extends Logging {
   object Readers {
     def attemptOpenIfExists(index: Index): IO[Option[Readers]] = {
       IO(DirectoryReader.indexExists(index.directory)).flatMap {
-        case false => info(s"index '${index.name}' does not yet exist") *> IO.none
+        case false => info(s"index '${index.name.value}' does not yet exist") *> IO.none
         case true =>
           for {
             reader     <- IO(DirectoryReader.open(index.directory))
             searcher   <- IO(new IndexSearcher(reader))
             suggester  <- IO(new SuggestIndexSearcher(reader))
             diskSeqnum <- index.seqnum.get
-            _          <- info(s"opened index reader for index '${index.name}', seqnum=${diskSeqnum}")
+            _          <- info(s"opened index reader for index '${index.name.value}', seqnum=${diskSeqnum}")
           } yield {
             Some(Readers(reader, searcher, suggester, diskSeqnum))
           }
@@ -300,7 +300,7 @@ object Searcher extends Logging {
   def open(index: Index): Resource[IO, Searcher] = {
     for {
 
-      _          <- Resource.eval(info(s"opening index ${index.name}"))
+      _          <- Resource.eval(info(s"opening index ${index.name.value}"))
       readersRef <- Resource.eval(Ref.of[IO, Option[Readers]](None))
       searcher   <- Resource.make(IO.pure(Searcher(index, readersRef)))(s => s.close())
     } yield {

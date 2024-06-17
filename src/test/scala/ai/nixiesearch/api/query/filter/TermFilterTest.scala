@@ -6,7 +6,7 @@ import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
@@ -16,7 +16,7 @@ import cats.effect.unsafe.implicits.global
 
 class TermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
-    name = "test",
+    name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema("_id", filter = true),
       TextFieldSchema("color", filter = true),

@@ -1,9 +1,7 @@
 package ai.nixiesearch.core.search
 
-import com.carrotsearch.hppc.IntHashSet
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.facet.FacetsCollector.MatchingDocs
-import org.apache.lucene.search.DocIdSet
 import org.apache.lucene.util.{BitDocIdSet, FixedBitSet}
 
 import scala.jdk.CollectionConverters.*
