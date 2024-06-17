@@ -24,9 +24,9 @@ import io.circe.generic.semiauto.*
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   val emptyRequest = SearchRequest(query = MatchAllQuery())
   val routes = HttpRoutes.of[IO] {
-    case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name =>
+    case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name.value =>
       search(request)
-    case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name =>
+    case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name.value =>
       suggest(request)
   }
 
