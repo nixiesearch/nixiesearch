@@ -16,5 +16,5 @@ class AdminRouteTest extends AnyFlatSpec with Matchers {
       route.routes(Request(uri = Uri.unsafeFromString("http://localhost/_config"))).value.unsafeRunSync()
     response.map(_.status.code) shouldBe Some(200)
   }
-
+  
 }

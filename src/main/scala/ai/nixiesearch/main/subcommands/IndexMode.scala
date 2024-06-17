@@ -1,7 +1,7 @@
 package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.API.info
-import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute}
+import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MappingRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, IndexerConfig}
 import ai.nixiesearch.core.Error.UserError
@@ -82,7 +82,9 @@ object IndexMode extends Logging {
       .sequence
       .use(indexers =>
         for {
-          indexRoutes <- IO(indexers.map(indexer => IndexRoute(indexer).routes).reduce(_ <+> _))
+          indexRoutes <- IO(
+            indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes).reduce(_ <+> _)
+          )
           healthRoute <- IO(HealthRoute())
           routes      <- IO(indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes)
           server      <- API.start(routes, source.host, source.port)

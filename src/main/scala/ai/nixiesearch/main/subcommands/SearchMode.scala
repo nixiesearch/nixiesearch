@@ -40,12 +40,16 @@ object SearchMode extends Logging {
       .sequence
       .use(searchers =>
         for {
-          searchRoutes <- IO(searchers.map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes).reduce(_ <+> _))
-          health       <- IO(HealthRoute())
-          routes       <- IO(searchRoutes <+> health.routes <+> AdminRoute(config).routes)
-          server       <- API.start(routes, config.searcher.host, config.searcher.port)
-          _            <- Logo.lines.map(line => info(line)).sequence
-          _            <- server.use(_ => IO.never)
+          searchRoutes <- IO(
+            searchers
+              .map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes)
+              .reduce(_ <+> _)
+          )
+          health <- IO(HealthRoute())
+          routes <- IO(searchRoutes <+> health.routes <+> AdminRoute(config).routes)
+          server <- API.start(routes, config.searcher.host, config.searcher.port)
+          _      <- Logo.lines.map(line => info(line)).sequence
+          _      <- server.use(_ => IO.never)
         } yield {}
       )
   } yield {}

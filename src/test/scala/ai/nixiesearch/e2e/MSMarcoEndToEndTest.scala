@@ -40,8 +40,8 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
         uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_index"),
         entity = Entity.strict(ByteVector.view(jsonPayload.getBytes()))
       )
-      indexApi.index(indexRequest, "msmarco").unsafeRunSync()
-      indexApi.flush("msmarco").unsafeRunSync()
+      indexApi.index(indexRequest).unsafeRunSync()
+      indexApi.flush().unsafeRunSync()
       nixie.searcher.sync().unsafeRunSync()
 
       val searchRequest = Request[IO](

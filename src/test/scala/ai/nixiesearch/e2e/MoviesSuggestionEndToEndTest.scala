@@ -34,8 +34,8 @@ class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with Search
         uri = Uri.unsafeFromString("http://localhost:8080/movies/_index"),
         entity = Entity.strict(ByteVector.view(jsonPayload.getBytes()))
       )
-      indexApi.index(indexRequest, "movies").unsafeRunSync()
-      indexApi.flush("movies").unsafeRunSync()
+      indexApi.index(indexRequest).unsafeRunSync()
+      indexApi.flush().unsafeRunSync()
 
       val searchRequest = Request[IO](
         method = Method.POST,
