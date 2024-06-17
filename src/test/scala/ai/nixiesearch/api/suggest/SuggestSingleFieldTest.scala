@@ -17,7 +17,13 @@ import org.apache.lucene.codecs.{FilterCodec, PostingsFormat}
 import org.apache.lucene.codecs.lucene99.Lucene99Codec
 import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat
 import org.apache.lucene.index.{DirectoryReader, IndexWriter, IndexWriterConfig, Term}
-import org.apache.lucene.search.suggest.document.{Completion99PostingsFormat, CompletionPostingsFormat, PrefixCompletionQuery, SuggestField, SuggestIndexSearcher}
+import org.apache.lucene.search.suggest.document.{
+  Completion99PostingsFormat,
+  CompletionPostingsFormat,
+  PrefixCompletionQuery,
+  SuggestField,
+  SuggestIndexSearcher
+}
 import org.apache.lucene.store.ByteBuffersDirectory
 import org.checkerframework.checker.units.qual.Prefix
 
