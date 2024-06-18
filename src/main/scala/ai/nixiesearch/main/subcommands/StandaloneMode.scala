@@ -8,6 +8,7 @@ import ai.nixiesearch.index.{Indexer, Searcher}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import ai.nixiesearch.main.Logo
+import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import cats.effect.IO
 import cats.implicits.*
 
@@ -20,7 +21,14 @@ object StandaloneMode extends Logging {
       .sequence
       .use(indexes =>
         indexes
-          .map(index => Indexer.open(index))
+          .map(index =>
+            for {
+              indexer <- Indexer.open(index)
+              _       <- PeriodicFlushStream.run(index, indexer)
+            } yield {
+              indexer
+            }
+          )
           .sequence
           .use(indexers =>
             indexes
