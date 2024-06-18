@@ -5,7 +5,7 @@ import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MappingRout
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, IndexerConfig}
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.{JsonDocumentStream, Logging}
+import ai.nixiesearch.core.{JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
@@ -50,6 +50,7 @@ object IndexMode extends Logging {
               _ <- source
                 .stream()
                 .chunkN(1024)
+                .through(PrintProgress.tapChunk("indexed docs"))
                 .evalMap(batch => indexer.addDocuments(batch.toList) *> indexer.flush())
                 .compile
                 .drain

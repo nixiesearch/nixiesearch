@@ -33,10 +33,9 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   private def indexDocStream(request: Stream[IO, Document]): IO[IndexResponse] = for {
     start <- IO(System.currentTimeMillis())
     _ <- request
-      .through(PrintProgress.tap("indexed docs"))
       .chunkN(64)
+      .through(PrintProgress.tapChunk("indexed docs"))
       .evalMap(chunk => {
-        val b = 1
         indexer.addDocuments(chunk.toList)
       })
       .compile
