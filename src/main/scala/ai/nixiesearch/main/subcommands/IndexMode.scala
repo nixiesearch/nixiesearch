@@ -15,6 +15,7 @@ import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
   KafkaIndexSourceArgs
 }
 import ai.nixiesearch.main.Logo
+import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.{IO, Resource}
@@ -68,15 +69,7 @@ object IndexMode extends Logging {
         for {
           index   <- Index.forIndexing(im)
           indexer <- Indexer.open(index)
-          _ <- Stream
-            .repeatEval(indexer.flush().flatMap {
-              case false => IO.unit
-              case true  => index.sync()
-            })
-            .metered(1.second)
-            .compile
-            .drain
-            .background
+          _       <- PeriodicFlushStream.run(index, indexer)
         } yield { indexer }
       )
       .sequence
