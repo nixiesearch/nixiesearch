@@ -157,8 +157,8 @@ At the moment, Nixiesearch is in the process of active development, so please re
 - [ ] Cut-off threshold prediction for semantic search
 - [ ] Sorting support
 - [ ] Swagger/OpenAPI schema
-- [ ] Nice webui
-- [ ] Pull-based indexing from file/Kafka
+- [x] Nice webui
+- [x] Pull-based indexing from file/Kafka
 
 License
 =====

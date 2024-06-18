@@ -22,6 +22,5 @@ class DoubleFieldWriter extends FieldWriter[DoubleField, DoubleFieldSchema] {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
     }
-
   }
 }

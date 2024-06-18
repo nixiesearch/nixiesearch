@@ -4,7 +4,7 @@ import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, No
 import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.yaml.searchTypeDecoder
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
@@ -92,6 +92,14 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false
   ) extends FieldSchema[DoubleField]
+
+  case class BooleanFieldSchema(
+      name: String,
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false
+  ) extends FieldSchema[BooleanField]
 
   object yaml {
     import SearchType.yaml.given
@@ -184,6 +192,17 @@ object FieldSchema {
       }
     )
 
+    def booleanFieldSchemaDecoder(name: String): Decoder[BooleanFieldSchema] = Decoder.instance(c =>
+      for {
+        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        BooleanFieldSchema(name, store, sort, facet, filter)
+      }
+    )
+
     def fieldSchemaDecoder(name: String): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
@@ -193,6 +212,7 @@ object FieldSchema {
         case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
         case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
+        case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
         case Right(other) =>
           Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
@@ -222,6 +242,9 @@ object FieldSchema {
     given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] = deriveDecoder
     given doubleFieldSchemaEncoder: Encoder[DoubleFieldSchema] = deriveEncoder
 
+    given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] = deriveDecoder
+    given boolFieldSchemaEncoder: Encoder[BooleanFieldSchema] = deriveEncoder
+
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
@@ -229,6 +252,7 @@ object FieldSchema {
       case f: DoubleFieldSchema   => doubleFieldSchemaEncoder.apply(f).deepMerge(withType("double"))
       case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
+      case f: BooleanFieldSchema  => boolFieldSchemaEncoder.apply(f).deepMerge(withType("bool"))
     }
 
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
@@ -237,6 +261,7 @@ object FieldSchema {
         case Right("long")   => longFieldSchemaDecoder.tryDecode(c)
         case Right("float")  => floatFieldSchemaDecoder.tryDecode(c)
         case Right("double") => doubleFieldSchemaDecoder.tryDecode(c)
+        case Right("bool")   => boolFieldSchemaDecoder.tryDecode(c)
         case Right("text")   => textFieldSchemaDecoder.tryDecode(c)
         case Right("text[]") => textListFieldSchemaDecoder.tryDecode(c)
         case Right(other)    => Left(DecodingFailure(s"field type '$other' is not supported", c.history))

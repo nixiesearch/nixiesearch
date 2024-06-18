@@ -1,6 +1,6 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
@@ -23,6 +23,7 @@ object Document {
         case IntField(name, value)            => (name, Json.fromInt(value))
         case LongField(name, value)           => (name, Json.fromLong(value))
         case TextField(name, value)           => (name, Json.fromString(value))
+        case BooleanField(name, value)        => (name, Json.fromBoolean(value))
         case Field.TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
       }
       Json.fromJsonObject(JsonObject.fromIterable(fields))
@@ -77,7 +78,7 @@ object Document {
   def decodeField(c: HCursor, name: String, json: Json): Decoder.Result[List[Field]] =
     json.fold[Decoder.Result[List[Field]]](
       jsonNull = Right(Nil),
-      jsonBoolean = _ => Left(DecodingFailure(s"cannot parse null field $name=$json", c.history)),
+      jsonBoolean = b => Right(List(BooleanField(name, b))),
       jsonNumber = n => Right(List(FloatField(name, n.toFloat))),
       jsonString = s => Right(List(TextField(name, s))),
       jsonArray = arr =>

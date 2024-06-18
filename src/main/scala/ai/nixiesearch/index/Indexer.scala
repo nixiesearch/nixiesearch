@@ -7,6 +7,7 @@ import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchL
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.{
+  BooleanFieldWriter,
   DoubleFieldWriter,
   FieldWriter,
   FloatFieldWriter,
@@ -45,6 +46,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   lazy val longFieldWriter     = LongFieldWriter()
   lazy val floatFieldWriter    = FloatFieldWriter()
   lazy val doubleFieldWriter   = DoubleFieldWriter()
+  lazy val boolFieldWriter     = BooleanFieldWriter()
 
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
@@ -94,6 +96,11 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
             index.mapping.doubleFields.get(name) match {
               case None          => logger.warn(s"double field '$name' is not defined in mapping")
               case Some(mapping) => doubleFieldWriter.write(field, mapping, buffer)
+            }
+          case field @ BooleanField(name, value) =>
+            index.mapping.booleanFields.get(name) match {
+              case None          => logger.warn(s"boolean field '$name' is not defined in mapping")
+              case Some(mapping) => boolFieldWriter.write(field, mapping, buffer)
             }
         }
         all.add(buffer)

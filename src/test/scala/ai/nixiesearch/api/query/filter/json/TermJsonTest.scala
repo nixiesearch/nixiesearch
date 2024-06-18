@@ -7,14 +7,34 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class TermJsonTest extends AnyFlatSpec with Matchers {
-  it should "encode term predicate" in {
+  it should "encode string term predicate" in {
     val result = TermPredicate("color", "red").asJson.noSpaces
     result shouldBe """{"color":"red"}"""
   }
 
-  it should "decode term predicate" in {
+  it should "decode string term predicate" in {
     val result = decode[TermPredicate]("""{"color":"red"}""")
     result shouldBe Right(TermPredicate("color", "red"))
+  }
+
+  it should "encode num term predicate" in {
+    val result = TermPredicate("color", 1).asJson.noSpaces
+    result shouldBe """{"color":1}"""
+  }
+
+  it should "decode bool term predicate" in {
+    val result = decode[TermPredicate]("""{"color":true}""")
+    result shouldBe Right(TermPredicate("color", true))
+  }
+
+  it should "encode bool term predicate" in {
+    val result = TermPredicate("color", true).asJson.noSpaces
+    result shouldBe """{"color":true}"""
+  }
+
+  it should "decode num term predicate" in {
+    val result = decode[TermPredicate]("""{"color":1}""")
+    result shouldBe Right(TermPredicate("color", 1))
   }
 
   it should "fail on multi field" in {
@@ -22,8 +42,4 @@ class TermJsonTest extends AnyFlatSpec with Matchers {
     result shouldBe a[Left[?, ?]]
   }
 
-  it should "fail on non-string value" in {
-    val result = decode[TermPredicate]("""{"color":1}""")
-    result shouldBe a[Left[?, ?]]
-  }
 }
