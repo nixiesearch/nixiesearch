@@ -14,4 +14,7 @@ object Field {
   case class LongField(name: String, value: Long)     extends Field
   case class FloatField(name: String, value: Float)   extends Field
   case class DoubleField(name: String, value: Double) extends Field
+  case class BooleanField(name: String, value: Boolean) extends Field {
+    def intValue: Int = if (value) 1 else 0
+  }
 }

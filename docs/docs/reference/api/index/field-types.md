@@ -2,15 +2,16 @@
 
 Nixiesearch supports following field types:
 
-* text fields: `text`, `text[]`.
-* numeric fields: `int`, `float`, `long`, `double`.
+* [text fields](#text-fields): `text`, `text[]`.
+* [numeric fields](#numeric-fields): `int`, `float`, `long`, `double`, `bool`.
+* other fields: `bool`
 
-`bool`, `int[]` and `float[]` field types are not yet supported.
+Other field types like `int[]`, `float[]`, `date` and `datetime` are not yet supported - but on the roadmap.
 
 ## Text fields
 
-TODO
+Unlike other Lucene-based search engines, Nixiesearch has [a distinction between singular and repeated](document-format.md#repeated-fields) fields on a [schema](../../config/mapping.md) level - so choose your field type wisely.
 
 ## Numeric fields
 
-TODO
+Numeric fields `int`, `float`, `long`, `double`, `bool` are supported. The `bool` field is more an API syntax sugar and is built on top of an internal `int` field. 

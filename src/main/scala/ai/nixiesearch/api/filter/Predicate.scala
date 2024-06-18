@@ -1,14 +1,20 @@
 package ai.nixiesearch.api.filter
 
+import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, NotPredicate, OrPredicate}
+import ai.nixiesearch.api.filter.Predicate.FilterTerm
+import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, NumTerm, StringTerm}
 import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
   DoubleFieldSchema,
   FloatFieldSchema,
   IntFieldSchema,
   LongFieldSchema,
   TextFieldSchema,
+  TextLikeFieldSchema,
   TextListFieldSchema
 }
 import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.TextListField
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
 import ai.nixiesearch.core.{FiniteRange, Logging}
@@ -20,7 +26,7 @@ import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
 import cats.implicits.*
-import org.apache.lucene.document.NumericDocValuesField
+import org.apache.lucene.document.{IntField, LongField, NumericDocValuesField}
 
 sealed trait Predicate {
   def compile(mapping: IndexMapping): IO[LuceneQuery]
@@ -54,39 +60,88 @@ object Predicate {
       builder
     }
 
-    implicit val boolPredicateEncoder: Encoder[BoolPredicate] = Encoder.instance { bool =>
+    given boolPredicateEncoder: Encoder[BoolPredicate] = Encoder.instance { bool =>
       Json.fromValues(bool.predicates.map(p => predicateEncoder(p)))
     }
 
   }
-  case class TermPredicate(field: String, value: String) extends Predicate with Logging {
-    def compile(mapping: IndexMapping): IO[LuceneQuery] = for {
-      _ <- mapping.fields.get(field) match {
-        case Some(t: TextFieldSchema) if t.filter     => IO.unit
-        case Some(t: TextListFieldSchema) if t.filter => IO.unit
-        case Some(schema) if !schema.filter =>
-          IO.raiseError(new Exception(s"Cannot filter over a non-filterable field '$field'"))
-        case Some(schema) =>
-          IO.raiseError(new Exception(s"Term filtering only works with text fields, and field '$field' is $schema"))
-        case None => IO.raiseError(new Exception(s"cannot make term "))
+
+  enum FilterTerm {
+    case StringTerm(value: String)   extends FilterTerm
+    case BooleanTerm(value: Boolean) extends FilterTerm
+    case NumTerm(value: Long)        extends FilterTerm
+  }
+
+  object FilterTerm {
+    given filterTermEncoder: Encoder[FilterTerm] = Encoder.instance {
+      case StringTerm(value)  => Json.fromString(value)
+      case BooleanTerm(value) => Json.fromBoolean(value)
+      case NumTerm(value)     => Json.fromLong(value)
+    }
+    given filterTermDecoder: Decoder[FilterTerm] = Decoder.instance(c =>
+      c.focus match {
+        case None => Left(DecodingFailure("got empty json for a term", c.history))
+        case Some(json) =>
+          json.fold(
+            jsonNull = Left(DecodingFailure("got null instead of term", c.history)),
+            jsonBoolean = b => Right(BooleanTerm(b)),
+            jsonNumber = num =>
+              num.toLong match {
+                case Some(long) => Right(NumTerm(long))
+                case None       => Left(DecodingFailure(s"cannot convert $num to long to use as a term", c.history))
+              },
+            jsonString = s => Right(StringTerm(s)),
+            jsonArray = s => Left(DecodingFailure("arrays are not supported as filter terms", c.history)),
+            jsonObject = o => Left(DecodingFailure("objects are not supported as filter terms", c.history))
+          )
       }
+    )
+  }
 
-    } yield { new TermQuery(new Term(field + TextFieldWriter.RAW_SUFFIX, value)) }
-
+  case class TermPredicate(field: String, value: FilterTerm) extends Predicate with Logging {
+    def compile(mapping: IndexMapping): IO[LuceneQuery] = {
+      IO((mapping.fields.get(field), value)).flatMap {
+        case (None, _) =>
+          IO.raiseError(UserError(s"field $field is not defined in index mapping"))
+        case (Some(schema), _) if !schema.filter =>
+          IO.raiseError(UserError(s"Cannot filter over a non-filterable field '$field'"))
+        case (Some(schema: TextLikeFieldSchema[?]), FilterTerm.StringTerm(value)) if schema.filter =>
+          IO(new TermQuery(new Term(field + TextFieldWriter.RAW_SUFFIX, value)))
+        case (Some(schema: TextLikeFieldSchema[?]), other) =>
+          IO.raiseError(UserError(s"field $field expects string filter term, but got $other"))
+        case (Some(schema: IntFieldSchema), FilterTerm.NumTerm(value)) if schema.filter =>
+          if ((value <= Int.MaxValue) && (value >= Int.MinValue))
+            IO(IntField.newExactQuery(field, value.toInt))
+          else
+            IO.raiseError(UserError(s"field $field is int field, but term $value cannot be cast to int safely"))
+        case (Some(schema: LongFieldSchema), FilterTerm.NumTerm(value)) if schema.filter =>
+          IO(LongField.newExactQuery(field, value))
+        case (Some(schema: BooleanFieldSchema), FilterTerm.BooleanTerm(value)) if schema.filter =>
+          IO(IntField.newExactQuery(field, if (value) 1 else 0))
+        case (Some(other), _) =>
+          IO.raiseError(
+            UserError(s"Term filtering only works with text/bool/int/long fields, and field '$field' is $other")
+          )
+      }
+    }
   }
 
   object TermPredicate {
-    implicit val termPredicateEncoder: Encoder[TermPredicate] =
-      Encoder.instance(t => Json.fromJsonObject(JsonObject.singleton(t.field, Json.fromString(t.value))))
+    def apply(field: String, value: String)  = new TermPredicate(field, StringTerm(value))
+    def apply(field: String, value: Int)     = new TermPredicate(field, NumTerm(value))
+    def apply(field: String, value: Long)    = new TermPredicate(field, NumTerm(value))
+    def apply(field: String, value: Boolean) = new TermPredicate(field, BooleanTerm(value))
+    given termPredicateEncoder: Encoder[TermPredicate] =
+      Encoder.instance(t => Json.fromJsonObject(JsonObject.singleton(t.field, FilterTerm.filterTermEncoder(t.value))))
 
-    implicit val termPredicateDecoder: Decoder[TermPredicate] = Decoder.instance(c =>
+    given termPredicateDecoder: Decoder[TermPredicate] = Decoder.instance(c =>
       c.value.asObject match {
         case Some(obj) =>
           obj.toList match {
             case ((field, json) :: Nil) =>
-              json.asString match {
-                case Some(string) => Right(TermPredicate(field, string))
-                case None         => Left(DecodingFailure(s"term predicate value should be a string: $json", c.history))
+              FilterTerm.filterTermDecoder.decodeJson(json) match {
+                case Left(value)  => Left(value)
+                case Right(value) => Right(TermPredicate(field, value))
               }
             case Nil   => Left(DecodingFailure(s"term predicate should be a non-empty json object: $obj", c.history))
             case other => Left(DecodingFailure(s"term predicate can contain only a single field: $other", c.history))
@@ -197,7 +252,7 @@ object Predicate {
       (lower, higher)
     }
 
-    implicit val rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
+    given rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
       c.keys.map(_.toList) match {
         case None      => Left(DecodingFailure(s"cannot decode range without a field", c.history))
         case Some(Nil) => Left(DecodingFailure(s"cannot decode range without a field", c.history))
@@ -241,7 +296,7 @@ object Predicate {
       }
     })
 
-    implicit val rangePredicateEncoder: Encoder[RangePredicate] = Encoder.instance {
+    given rangePredicateEncoder: Encoder[RangePredicate] = Encoder.instance {
       case RangeGt(field, gt) => json(field, JsonObject.singleton(gt.name, Json.fromDoubleOrNull(gt.value)))
       case RangeLt(field, lt) => json(field, JsonObject.singleton(lt.name, Json.fromDoubleOrNull(lt.value)))
       case RangeGtLt(field, gt, lt) =>
@@ -258,11 +313,11 @@ object Predicate {
 
   }
 
-  import BoolPredicate.*
-  import TermPredicate.*
-  import RangePredicate.*
+  import BoolPredicate.given
+  import TermPredicate.given
+  import RangePredicate.given
 
-  implicit val predicateEncoder: Encoder[Predicate] = Encoder.instance {
+  given predicateEncoder: Encoder[Predicate] = Encoder.instance {
     case bool: BoolPredicate =>
       bool match {
         case and: AndPredicate => json("and", boolPredicateEncoder(bool))
@@ -273,7 +328,7 @@ object Predicate {
     case range: RangePredicate => json("range", rangePredicateEncoder(range))
   }
 
-  implicit val predicateDecoder: Decoder[Predicate] = Decoder.instance(c =>
+  given predicateDecoder: Decoder[Predicate] = Decoder.instance(c =>
     c.value.asObject match {
       case Some(obj) =>
         obj.toList match {

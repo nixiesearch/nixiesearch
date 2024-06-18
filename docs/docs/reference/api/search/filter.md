@@ -43,6 +43,21 @@ Term predicate can be defined as a simple JSON key-value pair, where key is a fi
 ```
 
 > A simple term filter works only with a single field and a single value. If you want to filter over multiple fields and multiple values, use a [boolean filter](#boolean-filters) to combine them together in a single expression.
+ 
+Term filters currently support the following field types: `int`, `long`, `string`, `boolean`. For example, filtering over a boolean field called `active` can be done with the following query:
+
+```json
+{
+  "query": { "match_all": {}},
+  "filters": {
+    "include": {
+      "term": {
+        "active": true
+      }
+    }
+  }
+}
+```
 
 ## Range filters
 

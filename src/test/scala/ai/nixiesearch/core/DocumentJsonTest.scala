@@ -1,6 +1,6 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.core.Field.{FloatField, IntField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{BooleanField, FloatField, IntField, TextField, TextListField}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
@@ -92,7 +92,21 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
 
   it should "fail on real ids" in {
     decode[Document]("""{"_id": 1.666,"title":"foo"}""") shouldBe a[Left[?, ?]]
+  }
 
+  it should "fail on bool ids" in {
+    decode[Document]("""{"_id": true,"title":"foo"}""") shouldBe a[Left[?, ?]]
+  }
+
+  it should "fail on bool arrays" in {
+    decode[Document]("""{"_id": 1,"title":[true, false]}""") shouldBe a[Left[?, ?]]
+  }
+
+  it should "decode booleans" in {
+    val json = """{"_id": "a", "title": "foo", "flag": true}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), BooleanField("flag", true)))
+    )
   }
 
 }
