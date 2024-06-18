@@ -52,7 +52,7 @@ Nixiesearch currently supports the following types of facet aggregations:
 
 ## Term aggregations
 
-A term facet aggregation scans over all values of a specific [text]() field of matching documents, and builds a list of top-N values:
+A term facet aggregation scans over all values of a specific [text](../index/field-types.md#text-fields) field of matching documents, and builds a list of top-N values:
 
 ```json
 {
