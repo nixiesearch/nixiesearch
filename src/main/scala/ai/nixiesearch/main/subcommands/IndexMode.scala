@@ -38,7 +38,7 @@ object IndexMode extends Logging {
 
   def runOffline(indexes: List[IndexMapping], source: DocumentSource, index: String): IO[Unit] = for {
     indexMapping <- IO
-      .fromOption(indexes.find(_.name == index))(UserError(s"index '${index} not found in mapping'"))
+      .fromOption(indexes.find(_.name.value == index))(UserError(s"index '${index} not found in mapping'"))
     _ <- debug(s"found index mapping for index '${indexMapping.name}'")
     _ <- Index
       .forIndexing(indexMapping)

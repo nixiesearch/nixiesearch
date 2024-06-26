@@ -25,7 +25,7 @@ case class WebuiRoute(
     with Logging {
 
   val routes = HttpRoutes.of[IO] {
-    case GET -> Root / indexName / "_ui" / "assets" / fileName if indexName == searcher.index.name =>
+    case GET -> Root / indexName / "_ui" / "assets" / fileName if indexName == searcher.index.name.value =>
       for {
         bytes <- IO(IOUtils.resourceToByteArray(s"/ui/assets/$fileName"))
         _     <- info(s"GET assets/$fileName")
@@ -37,9 +37,9 @@ case class WebuiRoute(
           entity = Entity.strict(ByteVector(bytes))
         )
       }
-    case GET -> Root / indexName / "_ui" :? QueryParam(query) if indexName == searcher.index.name =>
+    case GET -> Root / indexName / "_ui" :? QueryParam(query) if indexName == searcher.index.name.value =>
       search(Some(query))
-    case GET -> Root / indexName / "_ui" if indexName == searcher.index.name =>
+    case GET -> Root / indexName / "_ui" if indexName == searcher.index.name.value =>
       search(None)
   }
 
