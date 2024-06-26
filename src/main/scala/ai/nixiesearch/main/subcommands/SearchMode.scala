@@ -46,7 +46,9 @@ object SearchMode extends Logging {
               .reduce(_ <+> _)
           )
           health <- IO(HealthRoute())
-          routes <- IO(searchRoutes <+> health.routes <+> AdminRoute(config).routes)
+          routes <- IO(
+            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(searchers.map(_.index)).routes
+          )
           server <- API.start(routes, config.searcher.host, config.searcher.port)
           _      <- Logo.lines.map(line => info(line)).sequence
           _      <- server.use(_ => IO.never)
