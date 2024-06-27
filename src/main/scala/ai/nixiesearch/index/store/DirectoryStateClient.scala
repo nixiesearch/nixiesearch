@@ -11,20 +11,23 @@ import org.apache.lucene.store.{Directory, IOContext, IndexInput}
 import fs2.{Chunk, Stream}
 import io.circe.parser.*
 import cats.implicits.*
+import org.apache.lucene.index.{DirectoryReader, SegmentInfos}
 
 import java.nio.ByteBuffer
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import java.time.Instant
+import scala.jdk.CollectionConverters.*
 
 case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024L
 
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
-    files <- IO(dir.listAll())
-    now   <- IO(Instant.now().toEpochMilli)
+    now <- IO(Instant.now().toEpochMilli)
+    files <- IO(
+      if (DirectoryReader.indexExists(dir)) SegmentInfos.readLatestCommit(dir).files(true).asScala.toList else Nil
+    )
     entries <- Stream
       .emits(files)
-      .filter(f => !f.endsWith(".tmp"))
       .evalMap(file => IO(IndexFile(file, now)))
       .compile
       .toList
