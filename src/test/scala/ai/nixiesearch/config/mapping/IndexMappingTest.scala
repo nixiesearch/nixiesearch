@@ -52,6 +52,18 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     decoded shouldBe Right(mapping)
   }
 
+  it should "deduplicate same model handles" in {
+    val mapping = IndexMapping(
+      name = IndexName("foo"),
+      fields = Map(
+        "text1" -> TextFieldSchema("text1", search = SemanticSearch()),
+        "text2" -> TextFieldSchema("text2", search = SemanticSearch()),
+        "text3" -> TextFieldSchema("text3", search = SemanticSearch())
+      )
+    )
+    mapping.modelHandles().size shouldBe 1
+  }
+
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =
       """

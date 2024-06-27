@@ -76,7 +76,7 @@ case class IndexMapping(
   def modelHandles(): List[ModelHandle] =
     fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _, _, _) =>
       model
-    }
+    }.distinct
 
   def suggestFields(): List[String] =
     fields.values.toList.collect { case TextLikeFieldSchema(name, _, _, _, _, _, _, Some(_)) =>
