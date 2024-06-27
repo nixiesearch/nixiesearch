@@ -1,10 +1,22 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.core.Field.{BooleanField, FloatField, IntField, TextField, TextListField}
+import ai.nixiesearch.config.FieldSchema.{
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema
+}
+import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
+import ai.nixiesearch.config.mapping.SearchType.NoSearch
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
+import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
 import io.circe.syntax.*
+import cats.effect.unsafe.implicits.global
 
 class DocumentJsonTest extends AnyFlatSpec with Matchers {
   it should "decode flat json documents" in {
@@ -106,6 +118,33 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     val json = """{"_id": "a", "title": "foo", "flag": true}"""
     decode[Document](json) shouldBe Right(
       Document(List(TextField("_id", "a"), TextField("title", "foo"), BooleanField("flag", true)))
+    )
+  }
+
+  it should "cast numeric fields to schema" in {
+    val json = """{"_id": "a","count1": 1,"count2": 1,"count3": 1,"count4": 1}"""
+    val mapping = IndexMapping(
+      name = IndexName("test"),
+      fields = List(
+        TextFieldSchema("_id"),
+        IntFieldSchema("count1"),
+        FloatFieldSchema("count2"),
+        LongFieldSchema("count3"),
+        DoubleFieldSchema("count4")
+      ),
+      store = LocalStoreConfig(MemoryLocation())
+    )
+
+    decode[Document](json).map(doc => doc.cast(mapping)) shouldBe Right(
+      Document(
+        List(
+          TextField("_id", "a"),
+          IntField("count1", 1),
+          FloatField("count2", 1),
+          LongField("count3", 1),
+          DoubleField("count4", 1)
+        )
+      )
     )
   }
 
