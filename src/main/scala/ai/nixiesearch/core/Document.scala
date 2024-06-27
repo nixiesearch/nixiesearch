@@ -1,15 +1,49 @@
 package ai.nixiesearch.core
 
+import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.FieldSchema.*
+import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
+import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
 import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
-case class Document(fields: List[Field])
+case class Document(fields: List[Field]) {
+  def cast(mapping: IndexMapping): Document = {
+    Document(fields.map(castField(_, mapping)))
+  }
+
+  private def castField(field: Field, mapping: IndexMapping): Field = {
+    mapping.fields.get(field.name) match {
+      case None => field
+      case Some(schema) =>
+        (field, schema) match {
+          case (f: IntField, s: IntFieldSchema)       => f
+          case (f: IntField, s: LongFieldSchema)      => LongField(f.name, f.value)
+          case (f: IntField, s: DoubleFieldSchema)    => DoubleField(f.name, f.value.toDouble)
+          case (f: IntField, s: FloatFieldSchema)     => FloatField(f.name, f.value.toFloat)
+          case (f: LongField, s: IntFieldSchema)      => IntField(f.name, f.value.toInt)
+          case (f: LongField, s: LongFieldSchema)     => f
+          case (f: LongField, s: DoubleFieldSchema)   => DoubleField(f.name, f.value.toDouble)
+          case (f: LongField, s: FloatFieldSchema)    => FloatField(f.name, f.value.toFloat)
+          case (f: FloatField, s: IntFieldSchema)     => IntField(f.name, f.value.toInt)
+          case (f: FloatField, s: LongFieldSchema)    => LongField(f.name, f.value.toLong)
+          case (f: FloatField, s: DoubleFieldSchema)  => DoubleField(f.name, f.value.toDouble)
+          case (f: FloatField, s: FloatFieldSchema)   => f
+          case (f: DoubleField, s: IntFieldSchema)    => IntField(f.name, f.value.toInt)
+          case (f: DoubleField, s: LongFieldSchema)   => LongField(f.name, f.value.toLong)
+          case (f: DoubleField, s: DoubleFieldSchema) => f
+          case (f: DoubleField, s: FloatFieldSchema)  => FloatField(f.name, f.value.toFloat)
+          case _                                      => field
+        }
+    }
+  }
+}
 
 object Document {
 

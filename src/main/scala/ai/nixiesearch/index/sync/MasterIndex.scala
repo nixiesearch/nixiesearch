@@ -49,7 +49,7 @@ object MasterIndex extends Logging {
           )
         )
       )(index => debug(s"closing master index=${index.mapping.name}"))
-      _ <- Resource.eval(info(s"master index ${manifest.mapping.name} opened for writing"))
+      _ <- Resource.eval(info(s"Master index ${manifest.mapping.name} opened for writing"))
     } yield {
       index
     }

@@ -49,7 +49,7 @@ object LocalIndex extends Logging {
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       handles   <- Resource.pure(manifest.mapping.modelHandles())
       encoders  <- BiEncoderCache.create(handles, configMapping.cache.embedding)
-      _         <- Resource.eval(info(s"index ${manifest.mapping.name} opened"))
+      _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(
         LocalIndex(
@@ -60,7 +60,6 @@ object LocalIndex extends Logging {
           seqnum = seqnum
         )
       )
-      _ <- Stream.repeatEval(index.sync()).metered(1.second).compile.drain.background
     } yield {
       index
     }

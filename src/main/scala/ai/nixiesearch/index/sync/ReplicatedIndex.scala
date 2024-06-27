@@ -13,7 +13,7 @@ import fs2.Stream
 
 trait ReplicatedIndex extends Index {
   override def sync(): IO[Boolean] = for {
-    _                     <- debug("index sync in progress")
+    _                     <- debug("replicated index sync in progress")
     masterManifestOption  <- master.readManifest()
     replicaManifestOption <- replica.readManifest()
     changed <- (masterManifestOption, replicaManifestOption) match {
