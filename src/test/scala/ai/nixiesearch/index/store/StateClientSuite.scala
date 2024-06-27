@@ -1,5 +1,6 @@
 package ai.nixiesearch.index.store
 
+import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError.{FileExistsError, FileMissingError}
@@ -13,10 +14,15 @@ import io.circe.syntax.*
 
 import java.nio.file.NoSuchFileException
 import fs2.{Chunk, Collector, Stream}
+import org.apache.lucene.document.Field.Store
+import org.apache.lucene.document.{Document, StringField}
+import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, SegmentInfos}
+import org.apache.lucene.util.IOUtils
 
 import java.nio.ByteBuffer
 import java.time.Instant
 import scala.util.Random
+import scala.jdk.CollectionConverters.*
 
 trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
   def client(): Resource[IO, T]
@@ -83,14 +89,35 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
 
   it should "create manifest from dir" in withClient { client =>
     {
-      client.write("seg1.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
-      client.write("seg2.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
-      client.write("seg3.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(Random.nextBytes(1024))))).unsafeRunSync()
+      val dir    = new ByteBuffersDirectory()
+      val writer = new IndexWriter(dir, new IndexWriterConfig())
+      for {
+        _ <- 0 until 1000
+      } {
+        val doc = new Document()
+        doc.add(new StringField("title", "test", Store.YES))
+        writer.addDocument(doc)
+      }
+      writer.commit()
+      writer.forceMerge(1)
+      writer.close()
+      val byteClient = new DirectoryStateClient(dir, IndexName("test"))
+      for {
+        file <- SegmentInfos.readLatestCommit(dir).files(true).asScala.toList
+      } {
+        client.write(file, byteClient.read(file)).unsafeRunSync()
+      }
+
       val mf  = client.createManifest(TestIndexMapping(), 0L).unsafeRunSync()
       val now = Instant.now().toEpochMilli
       mf.copy(files = mf.files.map(_.copy(updated = now)).sortBy(_.name)) shouldBe IndexManifest(
         mapping = TestIndexMapping(),
-        files = List(IndexFile("seg1.bin", now), IndexFile("seg2.bin", now), IndexFile("seg3.bin", now)),
+        files = List(
+          IndexFile("_0.cfe", now),
+          IndexFile("_0.cfs", now),
+          IndexFile("_0.si", now),
+          IndexFile("segments_1", now)
+        ),
         seqnum = 0L
       )
     }

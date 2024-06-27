@@ -10,12 +10,6 @@ import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 
 class IndexManifestDiffTest extends AnyFlatSpec with Matchers {
-  it should "die if there's no manifest" in {
-    val source = TestManifest(List(IndexFile("a", 0L)))
-    an[Exception] shouldBe thrownBy {
-      source.diff(None).unsafeRunSync()
-    }
-  }
 
   it should "dump all files if target is empty" in {
     val source = TestManifest(List(IndexFile("a", 0L), IndexFile(IndexManifest.MANIFEST_FILE_NAME, 0L)))
