@@ -53,7 +53,7 @@ libraryDependencies ++= Seq(
   "de.lhns"                  %% "fs2-compress-gzip"          % fs2CompressVersion,
   "de.lhns"                  %% "fs2-compress-bzip2"         % fs2CompressVersion,
   "de.lhns"                  %% "fs2-compress-zstd"          % fs2CompressVersion,
-  "org.apache.kafka"          % "kafka-clients"              % "3.7.0"
+  "org.apache.kafka"          % "kafka-clients"              % "3.7.1"
 )
 
 libraryDependencySchemes ++= Seq(
