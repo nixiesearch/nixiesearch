@@ -39,7 +39,11 @@ object StandaloneMode extends Logging {
                   indexRoutes <- IO(indexers.map(indexer => IndexRoute(indexer).routes).reduce(_ <+> _))
                   searchRoutes <- IO(
                     searchers
-                      .map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes)
+                      .map(s =>
+                        SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(
+                          s
+                        ).routes
+                      )
                       .reduce(_ <+> _)
                   )
                   health <- IO(HealthRoute())

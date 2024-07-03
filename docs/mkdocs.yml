@@ -142,9 +142,10 @@ nav:
                 - Facets: reference/api/search/facet.md
             - Suggest: reference/api/suggest.md
             - System endpoints:
-              - Metrics: reference/api/metrics.md
+              - Metrics: reference/api/admin/metrics.md
               - Config: reference/api/admin/config.md
               - Indices: reference/api/admin/list-indices.md
+              - Stats: reference/api/admin/stats.md
         - Configuration:
             - Overview: reference/config/overview.md
             - API: reference/config/api.md
