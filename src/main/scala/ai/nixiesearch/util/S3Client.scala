@@ -137,7 +137,6 @@ object S3Client {
     }
 
     override def exceptionOccurred(error: Throwable): Unit = {
-      logger.error("AWS SDK errorq", error)
       cf.completeExceptionally(error)
     }
   }
