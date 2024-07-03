@@ -45,11 +45,10 @@ case class S3StateClient(s3: S3Client, conf: S3Location, indexName: IndexName) e
     path  <- IO(s"${conf.prefix}/${indexName.value}/")
     _     <- debug(s"Creating manifest for index s3://${conf.bucket}/$path")
     files <- s3.listObjects(conf.bucket, path).compile.toList
-    now   <- IO(Instant.now().toEpochMilli)
   } yield {
     IndexManifest(
       mapping = mapping,
-      files = files.map(f => IndexFile(f.name, f.lastModified)),
+      files = files.map(f => IndexFile(f.name, f.size)),
       seqnum = seqnum
     )
   }

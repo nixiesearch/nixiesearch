@@ -16,8 +16,8 @@ import java.time.Instant
 case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: Long) extends Logging {
   def diff(target: Option[IndexManifest]): IO[List[ChangedFileOp]] = {
     IO {
-      val sourceMap = files.map(f => f.name -> f.updated).toMap
-      val destMap   = target.map(_.files.map(f => f.name -> f.updated).toMap).getOrElse(Map.empty)
+      val sourceMap = files.map(f => f.name -> f.size).toMap
+      val destMap   = target.map(_.files.map(f => f.name -> f.size).toMap).getOrElse(Map.empty)
       val allKeys   = (sourceMap.keySet ++ destMap.keySet ++ Set(IndexManifest.MANIFEST_FILE_NAME)).toList
       val result = for {
         key <- allKeys
@@ -25,11 +25,12 @@ case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: 
         destTimeOption   = destMap.get(key)
       } yield {
         (sourceTimeOption, destTimeOption) match {
-          case (Some(st), Some(dt)) if key == IndexManifest.MANIFEST_FILE_NAME => Some(ChangedFileOp.Add(key))
-          case (Some(st), Some(dt))                                            => None
-          case (Some(st), None)                                                => Some(ChangedFileOp.Add(key))
-          case (None, Some(dt))                                                => Some(ChangedFileOp.Del(key))
-          case (None, None)                                                    => None
+          case (_, _) if key == IndexManifest.MANIFEST_FILE_NAME            => Some(ChangedFileOp.Add(key))
+          case (Some(sourceSize), Some(destSize)) if sourceSize == destSize => None
+          case (Some(_), Some(_))                                           => Some(ChangedFileOp.Add(key))
+          case (Some(_), None)                                              => Some(ChangedFileOp.Add(key))
+          case (None, Some(_))                                              => Some(ChangedFileOp.Del(key))
+          case (None, None)                                                 => None
         }
       }
       val ops = result.flatten
@@ -53,7 +54,7 @@ object IndexManifest extends Logging {
   given indexFileEncoder: Encoder[IndexFile] = deriveEncoder
   given indexFileDecoder: Decoder[IndexFile] = deriveDecoder
 
-  case class IndexFile(name: String, updated: Long)
+  case class IndexFile(name: String, size: Long)
 
   enum ChangedFileOp {
     case Add(fileName: String) extends ChangedFileOp

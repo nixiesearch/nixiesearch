@@ -13,13 +13,15 @@ case class IndexStats(luceneVersion: String, segments: List[SegmentStats], leave
 object IndexStats {
   case class SegmentStats(name: String, maxDoc: Int, codec: String, files: List[String], delCount: Int)
   object SegmentStats {
-    def apply(commitInfo: SegmentCommitInfo) = new SegmentStats(
-      name = commitInfo.info.name,
-      maxDoc = commitInfo.info.maxDoc(),
-      codec = commitInfo.info.getCodec.getName,
-      files = commitInfo.files().asScala.toList,
-      delCount = commitInfo.getDelCount
-    )
+    def apply(commitInfo: SegmentCommitInfo) = {
+      new SegmentStats(
+        name = commitInfo.info.name,
+        maxDoc = commitInfo.info.maxDoc(),
+        codec = commitInfo.info.getCodec.getName,
+        files = commitInfo.files().asScala.toList,
+        delCount = commitInfo.getDelCount
+      )
+    }
   }
 
   case class LeafStats(docBase: Int, ord: Int, numDocs: Int, numDeletedDocs: Int, fields: List[FieldStats])
