@@ -22,7 +22,12 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 
   trait ConfigOption { this: Subcommand =>
     val config =
-      opt[File](name = "config", short = 'c', descr = "Path to a config file", required = false)
+      opt[URL](
+        name = "config",
+        short = 'c',
+        descr = "URL of a config file. Can also be HTTP/S3 hosted.",
+        required = false
+      )
   }
 
   trait LoglevelOption { this: Subcommand =>
@@ -132,9 +137,9 @@ object CliConfig extends Logging {
     def loglevel: Loglevel
   }
   object CliArgs {
-    case class StandaloneArgs(config: File, loglevel: Loglevel = INFO)                     extends CliArgs
-    case class IndexArgs(config: File, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs
-    case class SearchArgs(config: File, loglevel: Loglevel = INFO)                         extends CliArgs
+    case class StandaloneArgs(config: URL, loglevel: Loglevel = INFO)                     extends CliArgs
+    case class IndexArgs(config: URL, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs
+    case class SearchArgs(config: URL, loglevel: Loglevel = INFO)                         extends CliArgs
 
     enum IndexSourceArgs {
       case ApiIndexSourceArgs(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSourceArgs

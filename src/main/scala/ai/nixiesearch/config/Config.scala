@@ -1,8 +1,11 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
+import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.main.args.URLConverter
+import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import cats.implicits.*
@@ -46,14 +49,20 @@ object Config extends Logging {
     }
   )
 
-  def load(path: File): IO[Config] = {
-    for {
-      text    <- IO(IOUtils.toString(new FileInputStream(path), StandardCharsets.UTF_8))
-      yaml    <- IO.fromEither(parse(text))
-      decoded <- IO.fromEither(yaml.as[Config])
-      _       <- info(s"Loaded config: $path")
-    } yield {
-      decoded
-    }
+  def load(path: URL): IO[Config] = for {
+    text   <- URLReader.bytes(path).through(fs2.text.utf8.decode).compile.fold("")(_ + _)
+    config <- load(text)
+    _      <- info(s"Loaded config: $path")
+  } yield {
+    config
+  }
+
+  def load(path: File): IO[Config] = load(LocalURL(path.toPath))
+
+  def load(text: String): IO[Config] = for {
+    yaml    <- IO.fromEither(parse(text))
+    decoded <- IO.fromEither(yaml.as[Config])
+  } yield {
+    decoded
   }
 }
