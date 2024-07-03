@@ -4,11 +4,17 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.util.S3Client.{S3File, S3GetObjectResponseStream}
 import cats.effect.{IO, Resource}
 import cats.effect.kernel.Resource
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
+import software.amazon.awssdk.auth.credentials.{
+  AnonymousCredentialsProvider,
+  AwsCredentialsProvider,
+  AwsCredentialsProviderChain,
+  DefaultCredentialsProvider
+}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import fs2.{Chunk, Stream}
 import fs2.interop.reactivestreams.fromPublisher
+import software.amazon.awssdk.auth.credentials.internal.LazyAwsCredentialsProvider
 import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
 import software.amazon.awssdk.services.s3.model.{
   CompleteMultipartUploadRequest,
@@ -141,8 +147,17 @@ object S3Client {
     }
   }
 
+  def createCredentialsProvider(): AwsCredentialsProvider = {
+    val chain = AwsCredentialsProviderChain
+      .builder()
+      .addCredentialsProvider(DefaultCredentialsProvider.create())
+      .addCredentialsProvider(AnonymousCredentialsProvider.create())
+      .build()
+    LazyAwsCredentialsProvider.create(() => chain)
+  }
+
   def create(region: String, endpoint: Option[String]): Resource[IO, S3Client] = for {
-    creds <- Resource.eval(IO(DefaultCredentialsProvider.create()))
+    creds <- Resource.eval(IO(createCredentialsProvider()))
     clientBuilder <- Resource.eval(
       IO(
         S3AsyncClient

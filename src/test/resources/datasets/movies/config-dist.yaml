@@ -1,0 +1,29 @@
+searcher:
+  api:
+    host: localhost
+    port: 8080
+
+schema:
+  movies:
+    store:
+      distributed:
+        searcher:
+          memory:
+        indexer:
+          memory:
+        remote:
+          s3:
+            bucket: bucket
+            prefix: e2e
+            region: us-east-1
+            endpoint: http://localhost:4566/
+
+    fields:
+      title:
+        type: text
+        search: lexical
+        suggest: true
+      overview:
+        type: text
+        search: lexical
+        suggest: true

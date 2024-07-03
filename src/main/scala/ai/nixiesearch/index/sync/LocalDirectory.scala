@@ -50,16 +50,16 @@ object LocalDirectory extends Logging {
       case (Some(localManifest), None) =>
         Resource.eval(
           info("remote location is empty, doing full sync local -> remote") *> Stream
-            .emits(localManifest.files)
-            .evalMap(file => remote.write(file.name, local.read(file.name)))
+            .emits(localManifest.syncFiles())
+            .evalMap(file => remote.write(file, local.read(file)))
             .compile
             .drain *> info("local -> remote full sync done")
         )
       case (None, Some(remoteManifest)) =>
         Resource.eval(
           info("local index is empty, doing full sync remote -> local") *> Stream
-            .emits(remoteManifest.files)
-            .evalMap(file => local.write(file.name, remote.read(file.name)))
+            .emits(remoteManifest.syncFiles())
+            .evalMap(file => local.write(file, remote.read(file)))
             .compile
             .drain *> info("remote -> local full sync done")
         )
