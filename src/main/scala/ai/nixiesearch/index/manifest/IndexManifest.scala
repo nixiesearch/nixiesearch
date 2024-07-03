@@ -14,6 +14,7 @@ import fs2.Stream
 import java.time.Instant
 
 case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: Long) extends Logging {
+  def syncFiles(): List[String] = files.map(_.name) :+ IndexManifest.MANIFEST_FILE_NAME
   def diff(target: Option[IndexManifest]): IO[List[ChangedFileOp]] = {
     IO {
       val sourceMap = files.map(f => f.name -> f.size).toMap
