@@ -25,7 +25,7 @@ case class RemotePathStateClient(path: JPath, indexName: IndexName) extends Stat
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
     files <- Files[IO]
       .list(Path.fromNioPath(path))
-      .evalMap(file => Files[IO].getLastModifiedTime(file).map(ms => IndexFile(file.fileName.toString, ms.toMillis)))
+      .evalMap(file => Files[IO].size(file).map(size => IndexFile(file.fileName.toString, size)))
       .compile
       .toList
   } yield {

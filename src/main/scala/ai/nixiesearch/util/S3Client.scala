@@ -57,7 +57,7 @@ case class S3Client(client: S3AsyncClient) {
             .contents()
             .asScala
             .toList
-            .map(obj => S3File(obj.key().replace(path, ""), obj.lastModified().toEpochMilli))
+            .map(obj => S3File(obj.key().replace(path, ""), obj.lastModified().toEpochMilli, obj.size()))
           if (response.isTruncated) {
             (files, Some(requestBuilder.continuationToken(response.nextContinuationToken()).build()))
           } else {
@@ -114,7 +114,7 @@ case class S3Client(client: S3AsyncClient) {
 }
 
 object S3Client {
-  case class S3File(name: String, lastModified: Long)
+  case class S3File(name: String, lastModified: Long, size: Long)
 
   class S3GetObjectResponseStream[T]()
       extends AsyncResponseTransformer[GetObjectResponse, Stream[IO, Byte]]

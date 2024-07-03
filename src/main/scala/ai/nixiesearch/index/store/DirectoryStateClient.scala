@@ -21,14 +21,20 @@ import scala.jdk.CollectionConverters.*
 case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024L
 
+  private def inputSize(name: String): IO[Long] = IO {
+    val input = dir.openInput(name, IOContext.LOAD)
+    val size  = input.length()
+    input.close()
+    size
+  }
+
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
-    now <- IO(Instant.now().toEpochMilli)
     files <- IO(
       if (DirectoryReader.indexExists(dir)) SegmentInfos.readLatestCommit(dir).files(true).asScala.toList else Nil
     )
     entries <- Stream
       .emits(files)
-      .evalMap(file => IO(IndexFile(file, now)))
+      .evalMap(file => inputSize(file).map(size => IndexFile(file, size)))
       .compile
       .toList
   } yield {
