@@ -9,6 +9,7 @@ import ai.nixiesearch.index.Searcher
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.SearchArgs
 import ai.nixiesearch.main.Logo
+import cats.data.Kleisli
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
@@ -42,7 +43,9 @@ object SearchMode extends Logging {
         for {
           searchRoutes <- IO(
             searchers
-              .map(s => SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes)
+              .map(s =>
+                SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(s).routes
+              )
               .reduce(_ <+> _)
           )
           health <- IO(HealthRoute())
