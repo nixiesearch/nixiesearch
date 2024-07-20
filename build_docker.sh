@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -euxo pipefail
-
+V=$1
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
 PLATFORM=amd64 sbt -mem 5000 dockerBuildAndPush

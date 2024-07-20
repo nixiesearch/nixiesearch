@@ -13,16 +13,24 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.{ErrorAction, Logger}
 import cats.implicits.*
+import org.http4s.server.middleware.CORS
 
 import scala.concurrent.duration.Duration
 
 object API extends Logging {
-  def start(routes: HttpRoutes[IO], host: Hostname, port: Port): IO[Resource[IO, org.http4s.server.Server]] = for {
+  def wrapMiddleware(routes: HttpRoutes[IO]): IO[HttpRoutes[IO]] = for {
     routesWithError <- IO(ErrorAction.httpRoutes(routes, (req, err) => error(err.toString, err)))
     routesWithLog <- IO(
       Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(routesWithError)
     )
-    http <- IO(Router("/" -> routesWithLog).orNotFound)
+    corsMiddleware <- CORS.policy.withAllowOriginAll(routesWithLog)
+  } yield {
+    corsMiddleware
+  }
+
+  def start(routes: HttpRoutes[IO], host: Hostname, port: Port): IO[Resource[IO, org.http4s.server.Server]] = for {
+    withMiddlewareRoutes <- wrapMiddleware(routes)
+    http                 <- IO(Router("/" -> withMiddlewareRoutes).orNotFound)
     host <- IO.fromOption(SHostname.fromString(host.value))(
       new Exception(s"cannot parse hostname '${host.value}'")
     )
