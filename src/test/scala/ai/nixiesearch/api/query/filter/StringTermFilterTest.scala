@@ -31,14 +31,14 @@ class StringTermFilterTest extends SearchTest with Matchers {
 
   it should "select terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("color", "white"))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("color", "white")))))
       results shouldBe List("2")
     }
   }
 
   it should "select terms with space" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("color2", "light white"))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("color2", "light white")))))
       results shouldBe List("2")
     }
   }

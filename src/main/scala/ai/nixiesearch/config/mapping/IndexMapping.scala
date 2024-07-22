@@ -26,12 +26,13 @@ import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import scala.jdk.CollectionConverters.*
 
 case class IndexMapping(
-                         name: IndexName,
-                         alias: List[Alias] = Nil,
-                         config: IndexConfig = IndexConfig(),
-                         store: StoreConfig = StoreConfig(),
-                         cache: IndexCacheConfig = IndexCacheConfig(),
-                         fields: Map[String, FieldSchema[? <: Field]]
+    name: IndexName,
+    alias: List[Alias] = Nil,
+    config: IndexConfig = IndexConfig(),
+    rag: RAGConfig = RAGConfig(),
+    store: StoreConfig = StoreConfig(),
+    cache: IndexCacheConfig = IndexCacheConfig(),
+    fields: Map[String, FieldSchema[? <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
   val longFields     = fields.collect { case (name, s: LongFieldSchema) => name -> s }

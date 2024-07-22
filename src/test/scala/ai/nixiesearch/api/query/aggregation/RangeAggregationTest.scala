@@ -115,8 +115,12 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate over int range with gte-lt" in withIndex { index =>
     {
       val result = index.searchRaw(aggs =
-        Aggs(
-          Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+        Some(
+          Aggs(
+            Map(
+              "count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+            )
+          )
         )
       )
       result.aggs shouldBe Map(
@@ -134,8 +138,12 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate over int range with gt-lte" in withIndex { index =>
     {
       val result = index.searchRaw(aggs =
-        Aggs(
-          Map("count" -> RangeAggregation("count", List(RangeTo(Lte(2)), RangeFromTo(Gt(2), Lte(4)), RangeFrom(Gt(4)))))
+        Some(
+          Aggs(
+            Map(
+              "count" -> RangeAggregation("count", List(RangeTo(Lte(2)), RangeFromTo(Gt(2), Lte(4)), RangeFrom(Gt(4))))
+            )
+          )
         )
       )
       result.aggs shouldBe Map(
@@ -153,9 +161,14 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate over float range" in withIndex { index =>
     {
       val result = index.searchRaw(aggs =
-        Aggs(
-          Map(
-            "fcount" -> RangeAggregation("fcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+        Some(
+          Aggs(
+            Map(
+              "fcount" -> RangeAggregation(
+                "fcount",
+                List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))
+              )
+            )
           )
         )
       )
@@ -174,9 +187,14 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate over long range" in withIndex { index =>
     {
       val result = index.searchRaw(aggs =
-        Aggs(
-          Map(
-            "lcount" -> RangeAggregation("lcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+        Some(
+          Aggs(
+            Map(
+              "lcount" -> RangeAggregation(
+                "lcount",
+                List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))
+              )
+            )
           )
         )
       )
@@ -195,9 +213,14 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate over double range" in withIndex { index =>
     {
       val result = index.searchRaw(aggs =
-        Aggs(
-          Map(
-            "dcount" -> RangeAggregation("dcount", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+        Some(
+          Aggs(
+            Map(
+              "dcount" -> RangeAggregation(
+                "dcount",
+                List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))
+              )
+            )
           )
         )
       )
@@ -216,10 +239,14 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate and filter" in withIndex { index =>
     {
       val result = index.searchRaw(
-        aggs = Aggs(
-          Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+        aggs = Some(
+          Aggs(
+            Map(
+              "count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+            )
+          )
         ),
-        filters = Filters(include = Some(RangeLt("count", Lte(2.5))))
+        filters = Some(Filters(include = Some(RangeLt("count", Lte(2.5)))))
       )
       result.aggs shouldBe Map(
         "count" -> RangeAggregationResult(
@@ -237,9 +264,14 @@ class RangeAggregationTest extends SearchTest with Matchers {
     {
       val result = Try(
         index.searchRaw(aggs =
-          Aggs(
-            Map(
-              "count" -> RangeAggregation("title", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+          Some(
+            Aggs(
+              Map(
+                "count" -> RangeAggregation(
+                  "title",
+                  List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))
+                )
+              )
             )
           )
         )
@@ -251,11 +283,13 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "return zeroes for out of range facets" in withIndex { index =>
     {
       val result = index.searchRaw(aggs =
-        Aggs(
-          Map(
-            "count" -> RangeAggregation(
-              "count",
-              List(RangeTo(Lt(20)), RangeFromTo(Gte(20), Lt(40)), RangeFrom(Gte(40)))
+        Some(
+          Aggs(
+            Map(
+              "count" -> RangeAggregation(
+                "count",
+                List(RangeTo(Lt(20)), RangeFromTo(Gte(20), Lt(40)), RangeFrom(Gte(40)))
+              )
             )
           )
         )
@@ -274,8 +308,12 @@ class RangeAggregationTest extends SearchTest with Matchers {
   it should "aggregate over int range and search" in withIndex { index =>
     {
       val result = index.searchRaw(
-        aggs = Aggs(
-          Map("count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4)))))
+        aggs = Some(
+          Aggs(
+            Map(
+              "count" -> RangeAggregation("count", List(RangeTo(Lt(2)), RangeFromTo(Gte(2), Lt(4)), RangeFrom(Gte(4))))
+            )
+          )
         ),
         query = MultiMatchQuery("socks", List("title"))
       )

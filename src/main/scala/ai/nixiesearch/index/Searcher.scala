@@ -113,7 +113,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
 
   def fieldQuery(
       mapping: IndexMapping,
-      filter: Filters,
+      filter: Option[Filters],
       field: String,
       query: String,
       operator: Occur,
@@ -198,25 +198,30 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   def aggregate(
       mapping: IndexMapping,
       collector: FacetsCollector,
-      aggs: Aggs
+      aggs: Option[Aggs]
   ): IO[Map[String, AggregationResult]] = for {
     reader <- getReadersOrFail().map(_.reader)
-    result <- aggs.aggs.toList
-      .traverse { case (name, agg) =>
-        mapping.fields.get(agg.field) match {
-          case Some(field) if !field.facet =>
-            IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
-          case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
-          case Some(schema) =>
-            agg match {
-              case a @ Aggregation.TermAggregation(field, size) =>
-                TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
-              case a @ Aggregation.RangeAggregation(field, ranges) =>
-                RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+
+    result <- aggs match {
+      case None => IO(Map.empty)
+      case Some(a) =>
+        a.aggs.toList
+          .traverse { case (name, agg) =>
+            mapping.fields.get(agg.field) match {
+              case Some(field) if !field.facet =>
+                IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
+              case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
+              case Some(schema) =>
+                agg match {
+                  case a @ Aggregation.TermAggregation(field, size) =>
+                    TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+                  case a @ Aggregation.RangeAggregation(field, ranges) =>
+                    RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+                }
             }
-        }
-      }
-      .map(_.toMap)
+          }
+          .map(_.toMap)
+    }
   } yield {
     result
   }

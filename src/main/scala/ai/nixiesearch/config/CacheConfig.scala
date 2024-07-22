@@ -1,6 +1,5 @@
 package ai.nixiesearch.config
 
-import cats.effect.std.Env
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import java.io.File
@@ -10,7 +9,7 @@ case class CacheConfig(dir: String = CacheConfig.defaultCacheDir())
 object CacheConfig {
 
   def defaultCacheDir(): String =
-    System.getProperty("user.dir") + File.separator + ".nixiesearch"
+    System.getProperty("java.io.tmpdir") + File.separator + ".nixiesearch"
 
   given cacheConfigEncoder: Encoder[CacheConfig] = deriveEncoder
   given cacheConfigDecoder: Decoder[CacheConfig] = Decoder.instance(c =>

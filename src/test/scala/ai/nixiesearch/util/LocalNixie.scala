@@ -18,8 +18,8 @@ import cats.effect.unsafe.implicits.global
 case class LocalNixie(searcher: Searcher, indexer: Indexer) {
   def search(
       query: Query = MatchAllQuery(),
-      filters: Filters = Filters(),
-      aggs: Aggs = Aggs(),
+      filters: Option[Filters] = None,
+      aggs: Option[Aggs] = None,
       fields: List[String] = List("_id"),
       n: Int = 10
   ): List[String] = {
@@ -32,8 +32,8 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 
   def searchRaw(
       query: Query = MatchAllQuery(),
-      filters: Filters = Filters(),
-      aggs: Aggs = Aggs(),
+      filters: Option[Filters] = None,
+      aggs: Option[Aggs] = None,
       fields: List[String] = List("_id"),
       n: Int = 10
   ): SearchRoute.SearchResponse = {

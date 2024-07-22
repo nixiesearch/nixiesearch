@@ -29,14 +29,14 @@ class NumTermFilterTest extends SearchTest with Matchers {
 
   it should "select by int terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("int", 2))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("int", 2)))))
       results shouldBe List("2")
     }
   }
 
   it should "select by long terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("long", 2))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("long", 2)))))
       results shouldBe List("2")
     }
   }

@@ -40,7 +40,10 @@ class MatchQuerySemanticTest extends SearchTest with Matchers {
   it should "search and filter" in withIndex { index =>
     {
       val response =
-        index.search(MatchQuery("title", "white pajama"), filters = Filters(include = Some(TermPredicate("cat", "b"))))
+        index.search(
+          MatchQuery("title", "white pajama"),
+          filters = Some(Filters(include = Some(TermPredicate("cat", "b"))))
+        )
       response shouldBe List("2", "1")
     }
   }

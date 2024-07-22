@@ -13,21 +13,28 @@ object LexicalLuceneQuery {
   def create(
       field: String,
       query: String,
-      filter: Filters,
+      filter: Option[Filters],
       analyzer: Language,
       mapping: IndexMapping,
       occur: Occur
   ): IO[List[LuceneQuery]] = {
-    filter.toLuceneQuery(mapping).flatMap {
-      case Some(filterQuery) =>
-        IO {
-          val outerQuery = new BooleanQuery.Builder()
-          outerQuery.add(new BooleanClause(filterQuery, Occur.FILTER))
-          outerQuery.add(new BooleanClause(fieldQuery(field, query, analyzer, occur), Occur.MUST))
-          List(outerQuery.build())
-        }
+    filter match {
       case None =>
-        IO { List(fieldQuery(field, query, analyzer, occur)) }
+        IO(List(fieldQuery(field, query, analyzer, occur)))
+      case Some(f) =>
+        f.toLuceneQuery(mapping).flatMap {
+          case Some(filterQuery) =>
+            IO {
+              val outerQuery = new BooleanQuery.Builder()
+              outerQuery.add(new BooleanClause(filterQuery, Occur.FILTER))
+              outerQuery.add(new BooleanClause(fieldQuery(field, query, analyzer, occur), Occur.MUST))
+              List(outerQuery.build())
+            }
+          case None =>
+            IO {
+              List(fieldQuery(field, query, analyzer, occur))
+            }
+        }
     }
   }
 

@@ -53,13 +53,27 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
 }
 
 object SearchRoute {
-
+  case class RAGRequest(prompt: String, topDocs: Int = 10, maxDocLength: Int = 128, fields: List[String] = Nil)
+  object RAGRequest {
+    given ragRequestEncoder: Encoder[RAGRequest] = deriveEncoder
+    given ragRequestDecoder: Decoder[RAGRequest] = Decoder.instance(c =>
+      for {
+        prompt       <- c.downField("prompt").as[String]
+        topDocs      <- c.downField("topDocs").as[Option[Int]]
+        maxDocLength <- c.downField("maxDocLength").as[Option[Int]]
+        fields       <- c.downField("fields").as[Option[List[String]]]
+      } yield {
+        RAGRequest(prompt, topDocs.getOrElse(10), maxDocLength.getOrElse(128), fields = fields.getOrElse(Nil))
+      }
+    )
+  }
   case class SearchRequest(
       query: Query,
-      filters: Filters = Filters(),
+      filters: Option[Filters] = None,
       size: Int = 10,
       fields: List[String] = Nil,
-      aggs: Aggs = Aggs()
+      aggs: Option[Aggs] = None,
+      rag: Option[RAGRequest] = None
   )
   object SearchRequest {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
@@ -67,13 +81,13 @@ object SearchRoute {
       for {
         query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
-        filters <- c.downField("filters").as[Option[Filters]].map(_.getOrElse(Filters()))
+        filters <- c.downField("filters").as[Option[Filters]]
         fields <- c.downField("fields").as[Option[List[String]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil
         }
-        aggs <- c.downField("aggs").as[Option[Aggs]].map(_.getOrElse(Aggs()))
+        aggs <- c.downField("aggs").as[Option[Aggs]]
       } yield {
         SearchRequest(query, filters, size, fields, aggs)
       }
