@@ -3,8 +3,9 @@ package ai.nixiesearch.core.nn.model.loader
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
+import ai.nixiesearch.core.nn.model.embedding.OnnxSession
 import ai.nixiesearch.core.nn.model.loader.ModelLoader.TransformersConfig
-import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache, OnnxSession}
+import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import cats.effect.IO
 import io.circe.parser.*
 

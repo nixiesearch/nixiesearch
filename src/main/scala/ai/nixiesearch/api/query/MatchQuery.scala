@@ -9,7 +9,6 @@ import ai.nixiesearch.config.mapping.{IndexMapping, Language}
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, ModelPrefix, SemanticSearch}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.BiEncoderCache
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.apache.lucene.search.{

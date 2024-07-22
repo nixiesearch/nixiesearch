@@ -28,7 +28,7 @@ import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, Se
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.{DocumentVisitor, TextFieldWriter}
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.BiEncoderCache
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
 import ai.nixiesearch.index.manifest.IndexManifest

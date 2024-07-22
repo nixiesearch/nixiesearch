@@ -1,11 +1,11 @@
-package ai.nixiesearch.core.nn.model
+package ai.nixiesearch.core.nn.model.embedding
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.djl.modality.nlp.DefaultVocabulary
 import ai.djl.modality.nlp.bert.BertFullTokenizer
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.ModelHandle
+import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.model.loader.{HuggingFaceModelLoader, LocalModelLoader, ModelLoader}
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.{ExecutionMode, OptLevel}

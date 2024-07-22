@@ -1,4 +1,4 @@
-package ai.nixiesearch.core.nn.model
+package ai.nixiesearch.core.nn.model.embedding
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.djl.modality.nlp.bert.BertFullTokenizer
@@ -9,9 +9,9 @@ import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}
 import cats.effect.IO
 import com.github.blemale.scaffeine.Scaffeine
 
-import scala.jdk.CollectionConverters.*
 import java.nio.LongBuffer
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 case class OnnxBiEncoder(

@@ -4,7 +4,7 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.BiEncoderCache
 import cats.effect.IO
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, KnnFloatVectorQuery, TermQuery, Query as LuceneQuery}

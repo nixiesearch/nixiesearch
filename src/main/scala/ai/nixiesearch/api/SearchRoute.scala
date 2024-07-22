@@ -88,8 +88,9 @@ object SearchRoute {
           case None       => Nil
         }
         aggs <- c.downField("aggs").as[Option[Aggs]]
+        rag  <- c.downField("rag").as[Option[RAGRequest]]
       } yield {
-        SearchRequest(query, filters, size, fields, aggs)
+        SearchRequest(query, filters, size, fields, aggs, rag)
       }
     )
   }

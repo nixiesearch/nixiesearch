@@ -3,7 +3,7 @@ package ai.nixiesearch.core.nn.model.loader
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.OnnxSession
+import ai.nixiesearch.core.nn.model.embedding.OnnxSession
 import cats.effect.IO
 import io.circe.Decoder
 import io.circe.generic.semiauto.*

@@ -1,4 +1,4 @@
-package ai.nixiesearch.core.nn.model
+package ai.nixiesearch.core.nn.model.embedding
 
 import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.mapping.IndexMapping
@@ -6,7 +6,6 @@ import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.{Config, FieldSchema}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.BiEncoderCache.CacheKey
 import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource

@@ -4,7 +4,7 @@ import ai.nixiesearch.config
 import ai.nixiesearch.config.{IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.BiEncoderCache
 import ai.nixiesearch.index.store.StateClient
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.store.Directory

@@ -3,6 +3,7 @@ package ai.nixiesearch.core.nn.model
 import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
+import ai.nixiesearch.core.nn.model.embedding.{OnnxBiEncoder, OnnxSession}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global

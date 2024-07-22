@@ -3,7 +3,7 @@ package ai.nixiesearch.core.nn.model.loader
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.LocalModelHandle
-import ai.nixiesearch.core.nn.model.OnnxSession
+import ai.nixiesearch.core.nn.model.embedding.OnnxSession
 import ai.nixiesearch.core.nn.model.loader.ModelLoader.TransformersConfig
 import cats.effect.IO
 import fs2.io.file.{Files, Path}

@@ -25,7 +25,7 @@ import ai.nixiesearch.core.codec.{
   TextListFieldWriter
 }
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.BiEncoderCache
 import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.analysis.Analyzer

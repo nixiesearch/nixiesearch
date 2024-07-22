@@ -2,7 +2,6 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.core.Field.IntField
-import ai.nixiesearch.core.nn.model.OnnxBiEncoder
 import org.apache.lucene.document.{
   NumericDocValuesField,
   SortedNumericDocValuesField,
