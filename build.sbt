@@ -37,7 +37,7 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"         % "lucene-analysis-stempel"    % luceneVersion,
   "org.apache.lucene"         % "lucene-analysis-morfologik" % luceneVersion,
   "commons-io"                % "commons-io"                 % "2.16.1",
-  "commons-codec"             % "commons-codec"              % "1.17.0",
+  "commons-codec"             % "commons-codec"              % "1.17.1",
   "org.apache.commons"        % "commons-lang3"              % "3.15.0",
   "ai.djl"                    % "api"                        % djlVersion,
   "ai.djl.huggingface"        % "tokenizers"                 % djlVersion,
