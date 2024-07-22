@@ -9,12 +9,11 @@ import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.model.loader.{HuggingFaceModelLoader, LocalModelLoader, ModelLoader}
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.{ExecutionMode, OptLevel}
-import ai.onnxruntime.{OrtEnvironment, OrtLoggingLevel, OrtSession, TensorInfo}
+import ai.onnxruntime.{OrtEnvironment, OrtSession}
 import cats.effect.IO
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 import java.io.InputStream
-import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters.*
 
 case class OnnxSession(env: OrtEnvironment, session: OrtSession, tokenizer: HuggingFaceTokenizer, dim: Int) {

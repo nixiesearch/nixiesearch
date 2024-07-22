@@ -7,30 +7,30 @@ import scala.util.{Failure, Success}
 sealed trait ModelHandle {
   def name: String
   def asList: List[String]
-  def modelFile: Option[String]
+  def file: Option[String]
 }
 
 object ModelHandle {
   def apply(ns: String, name: String) = HuggingFaceHandle(ns, name, None)
 
-  case class HuggingFaceHandle(ns: String, name: String, modelFile: Option[String] = None) extends ModelHandle {
+  case class HuggingFaceHandle(ns: String, name: String, file: Option[String] = None) extends ModelHandle {
     override def asList: List[String] = List(ns, name)
 
-    override def toString: String = modelFile match {
+    override def toString: String = file match {
       case None    => s"hf://$ns/$name"
-      case Some(f) => s"hf://$ns/$name?modelFile=$f"
+      case Some(f) => s"hf://$ns/$name?file=$f"
     }
   }
-  case class LocalModelHandle(dir: String, modelFile: Option[String] = None) extends ModelHandle {
-    override def toString: String = modelFile match {
+  case class LocalModelHandle(dir: String, file: Option[String] = None) extends ModelHandle {
+    override def toString: String = file match {
       case None    => s"file://$dir"
-      case Some(f) => s"file://$dir?modelFile=$f"
+      case Some(f) => s"file://$dir?file=$f"
     }
     override def name: String         = dir
     override def asList: List[String] = List(dir)
   }
 
-  val huggingFacePattern = "(hf://)?([a-zA-Z0-9\\-]+)/([0-9A-Za-z\\-_]+)(\\?modelFile=([0-9a-zA-Z\\-\\._]+))?".r
+  val huggingFacePattern = "(hf://)?([a-zA-Z0-9\\-]+)/([0-9A-Za-z\\-_]+)(\\?file=([0-9a-zA-Z\\-\\._]+))?".r
   val localPattern       = "file://?(/[^\\?]*)(\\?modelFile=([0-9a-zA-Z\\-\\._]+))?".r
 
   given modelHandleDecoder: Decoder[ModelHandle] = Decoder.decodeString.emapTry {
@@ -41,8 +41,8 @@ object ModelHandle {
 
   given modelHandleEncoder: Encoder[ModelHandle] = Encoder.instance {
     case HuggingFaceHandle(ns, name, None)    => Json.fromString(s"$ns/$name")
-    case HuggingFaceHandle(ns, name, Some(f)) => Json.fromString(s"$ns/$name?modelFile=$f")
+    case HuggingFaceHandle(ns, name, Some(f)) => Json.fromString(s"$ns/$name?file=$f")
     case LocalModelHandle(path, None)         => Json.fromString(s"file://$path")
-    case LocalModelHandle(path, Some(f))      => Json.fromString(s"file://$path?modelFile=$f")
+    case LocalModelHandle(path, Some(f))      => Json.fromString(s"file://$path?file=$f")
   }
 }
