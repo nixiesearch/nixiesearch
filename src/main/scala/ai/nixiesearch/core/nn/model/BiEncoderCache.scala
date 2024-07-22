@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.nn.model
 
-import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
+import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.config.{Config, FieldSchema}

@@ -2,7 +2,7 @@ package ai.nixiesearch.index.sync
 
 import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
-import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.config.IndexCacheConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.index.{Indexer, Searcher}

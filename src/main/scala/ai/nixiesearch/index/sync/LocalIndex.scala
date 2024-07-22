@@ -1,5 +1,5 @@
 package ai.nixiesearch.index.sync
-import ai.nixiesearch.config.{CacheConfig, StoreConfig}
+import ai.nixiesearch.config.{IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.BiEncoderCache

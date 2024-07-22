@@ -3,7 +3,7 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.API.info
 import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{CacheConfig, Config, IndexerConfig}
+import ai.nixiesearch.config.{IndexCacheConfig, Config, IndexerConfig}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer

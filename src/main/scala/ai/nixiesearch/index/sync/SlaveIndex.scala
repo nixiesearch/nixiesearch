@@ -1,6 +1,6 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.config.IndexCacheConfig
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.BackendError

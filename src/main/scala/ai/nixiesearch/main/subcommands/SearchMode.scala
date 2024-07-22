@@ -3,7 +3,7 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.*
 import ai.nixiesearch.api.API.info
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{CacheConfig, Config}
+import ai.nixiesearch.config.{IndexCacheConfig, Config}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Searcher
 import ai.nixiesearch.index.sync.Index

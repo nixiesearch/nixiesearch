@@ -1,29 +1,34 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
-import io.circe.{Decoder, Encoder}
+import cats.effect.std.Env
+import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
+import java.io.File
 
-case class CacheConfig(embedding: EmbeddingCacheConfig = EmbeddingCacheConfig())
+case class CacheConfig(dir: String = CacheConfig.defaultCacheDir())
 
 object CacheConfig {
-  case class EmbeddingCacheConfig(maxSize: Int = 32 * 1024)
+
+  def defaultCacheDir(): String =
+    System.getProperty("user.dir") + File.separator + ".nixiesearch"
 
   given cacheConfigEncoder: Encoder[CacheConfig] = deriveEncoder
   given cacheConfigDecoder: Decoder[CacheConfig] = Decoder.instance(c =>
     for {
-      emb <- c.downField("embedding").as[Option[EmbeddingCacheConfig]]
+      configDir   <- c.downField("dir").as[Option[String]]
+      envOverride <- env("NIXIESEARCH_CORE_CACHE_DIR")
     } yield {
-      CacheConfig(emb.getOrElse(EmbeddingCacheConfig()))
+      val dir = (envOverride, configDir) match {
+        case (Some(value), _) => value
+        case (_, Some(value)) => value
+        case (_, _)           => defaultCacheDir()
+      }
+      CacheConfig(dir)
     }
   )
 
-  given embCacheConfigEncoder: Encoder[EmbeddingCacheConfig] = deriveEncoder
-  given embCacheConfigDecoder: Decoder[EmbeddingCacheConfig] = Decoder.instance(c =>
-    for {
-      maxSize <- c.downField("maxSize").as[Option[Int]]
-    } yield {
-      EmbeddingCacheConfig(maxSize.getOrElse(EmbeddingCacheConfig().maxSize))
-    }
-  )
+  private def env(name: String): Decoder.Result[Option[String]] = Option(System.getenv(name)) match {
+    case Some(value) => Right(Some(value))
+    case None        => Right(None)
+  }
 }

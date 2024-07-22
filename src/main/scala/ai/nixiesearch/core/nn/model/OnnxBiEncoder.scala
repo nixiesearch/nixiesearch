@@ -2,7 +2,7 @@ package ai.nixiesearch.core.nn.model
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.djl.modality.nlp.bert.BertFullTokenizer
-import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
+import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}

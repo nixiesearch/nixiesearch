@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.nn.model
 
-import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig
+import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
 import org.scalatest.flatspec.AnyFlatSpec
