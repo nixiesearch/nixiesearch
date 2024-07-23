@@ -15,7 +15,7 @@ import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.{EntityDecoder, Request, Uri}
 import org.typelevel.ci.CIString
 import ai.nixiesearch.core.Error.*
-import ai.nixiesearch.core.nn.model.ModelCache.CacheKey
+import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
 import fs2.io.readInputStream
 
 import java.io.{ByteArrayOutputStream, File, FileInputStream}
@@ -27,7 +27,7 @@ import cats.implicits.*
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
 
-case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelCache) extends Logging {
+case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFileCache) extends Logging {
   val MODEL_FILE                                                      = "model_card.json"
   implicit val modelResponseDecoder: EntityDecoder[IO, ModelResponse] = jsonOf[IO, ModelResponse]
 
@@ -102,7 +102,7 @@ object HuggingFaceClient extends Logging {
   given modelSiblingCodec: Codec[Sibling]        = deriveCodec
   given modelResponseCodec: Codec[ModelResponse] = deriveCodec
 
-  def create(cache: ModelCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] =
+  def create(cache: ModelFileCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] =
     for {
       uri <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
       client <- EmberClientBuilder

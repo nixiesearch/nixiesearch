@@ -4,14 +4,14 @@ import ai.nixiesearch.config
 import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.embedding.EmbedderDict
+import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.store.StateClient
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.store.Directory
 
 trait Index extends Logging {
   def mapping: IndexMapping
-  def encoders: EmbedderDict
+  def models: Models
   def master: StateClient
   def replica: StateClient
   def local: StateClient

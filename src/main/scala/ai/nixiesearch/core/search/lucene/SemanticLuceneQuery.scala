@@ -4,14 +4,14 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.embedding.EmbedderDict
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, KnnFloatVectorQuery, TermQuery, Query as LuceneQuery}
 
 object SemanticLuceneQuery {
   def create(
-              encoders: EmbedderDict,
+              encoders: EmbedModelDict,
               model: ModelHandle,
               prefix: ModelPrefix,
               query: String,

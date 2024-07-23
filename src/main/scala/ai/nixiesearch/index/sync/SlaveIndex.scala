@@ -5,7 +5,8 @@ import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.embedding.EmbedderDict
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
@@ -17,7 +18,7 @@ import scala.concurrent.duration.*
 
 case class SlaveIndex(
     mapping: IndexMapping,
-    encoders: EmbedderDict,
+    models: Models,
     master: StateClient,
     replica: StateClient,
     directory: Directory,
@@ -76,13 +77,13 @@ object SlaveIndex extends Logging {
       manifestOption <- Resource.eval(replicaState.readManifest())
       manifest <- Resource.eval(IO.fromOption(manifestOption)(BackendError("index.json file not found in the index")))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
-      encoders <- EmbedderDict.create(handles, cacheConfig)
+      models   <- Models.create(handles, Nil, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(
           SlaveIndex(
             mapping = manifest.mapping,
-            encoders = encoders,
+            models = models,
             master = masterState,
             replica = replicaState,
             directory = directory,

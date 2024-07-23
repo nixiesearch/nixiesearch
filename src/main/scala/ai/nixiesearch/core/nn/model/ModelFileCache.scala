@@ -3,7 +3,7 @@ package ai.nixiesearch.core.nn.model
 import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.ModelCache.CacheKey
+import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
 import cats.effect.IO
 import fs2.io.file.{Files, Path as Fs2Path}
 import fs2.Stream
@@ -12,7 +12,7 @@ import fs2.io.writeOutputStream
 import java.io.FileOutputStream
 import java.nio.file.{Paths, Path as NioPath}
 
-case class ModelCache(dir: NioPath) extends Logging {
+case class ModelFileCache(dir: NioPath) extends Logging {
   def exists(key: CacheKey): IO[Boolean] = Files[IO].exists(Fs2Path.fromNioPath(key.resolve(dir)))
 
   def getIfExists(key: CacheKey): IO[Option[NioPath]] = exists(key).flatMap {
@@ -45,13 +45,13 @@ case class ModelCache(dir: NioPath) extends Logging {
   }
 }
 
-object ModelCache extends Logging {
+object ModelFileCache extends Logging {
   case class CacheKey(ns: String, name: String, fileName: String) {
     def resolve(dir: NioPath): NioPath =
       dir.resolve(ns).resolve(name).resolve(fileName)
   }
 
-  def create(config: CacheConfig): IO[ModelCache] = for {
+  def create(config: CacheConfig): IO[ModelFileCache] = for {
     modelCacheDir <- IO(Paths.get(config.dir, "models"))
     _             <- debug(s"using $modelCacheDir as model cache dir")
     dirExists     <- Files[IO].exists(Fs2Path.fromNioPath(modelCacheDir))
@@ -61,6 +61,6 @@ object ModelCache extends Logging {
       )
     )
   } yield {
-    ModelCache(modelCacheDir)
+    ModelFileCache(modelCacheDir)
   }
 }

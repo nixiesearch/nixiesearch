@@ -3,8 +3,8 @@ package ai.nixiesearch.core.nn.model
 import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
-import ai.nixiesearch.core.nn.model.embedding.Embedder.OnnxEmbedder
-import ai.nixiesearch.core.nn.model.embedding.EmbedderDict
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.OnnxEmbedModel
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -14,8 +14,8 @@ import java.nio.file.{Files, Paths}
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {
     val handle = HuggingFaceHandle("nixiesearch", "all-MiniLM-L6-v2-onnx")
-    val (embedder, shutdownHandle) = EmbedderDict
-      .createHuggingface(handle, ModelCache(Files.createTempDirectory("onnx-cache")))
+    val (embedder, shutdownHandle) = EmbedModelDict
+      .createHuggingface(handle, ModelFileCache(Files.createTempDirectory("onnx-cache")))
       .allocated
       .unsafeRunSync()
     val result = embedder

@@ -8,10 +8,10 @@ import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
-import ai.nixiesearch.core.nn.model.embedding.Embedder.OnnxEmbedder
-import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelCache}
-import ai.nixiesearch.core.nn.model.embedding.cache.{EmbedderCache, HeapEmbedderCache}
-import ai.nixiesearch.core.nn.model.embedding.cache.EmbedderCache.CacheKey
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.OnnxEmbedModel
+import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
+import ai.nixiesearch.core.nn.model.embedding.cache.{EmbeddingCache, HeapEmbeddingCache}
+import ai.nixiesearch.core.nn.model.embedding.cache.EmbeddingCache.CacheKey
 import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -27,86 +27,41 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Paths, Files as NIOFiles}
 import scala.collection.mutable.ArrayBuffer
 
-case class EmbedderDict(embedders: Map[ModelHandle, Embedder], cache: EmbedderCache) extends Logging {
+case class EmbedModelDict(embedders: Map[ModelHandle, EmbedModel], cache: EmbeddingCache) extends Logging {
   def encode(handle: ModelHandle, doc: String): IO[Array[Float]] = IO(embedders.get(handle)).flatMap {
     case None => IO.raiseError(new Exception(s"cannot get embedding model $handle"))
     case Some(embedder) =>
-      cache.get(CacheKey(handle, doc)).flatMap {
-        case Some(found) => IO.pure(found)
-        case None        => embedder.encode(doc)
+      cache.getOrEmbedAndCache(List(CacheKey(handle, doc)), embedder).flatMap {
+        case x if x.length == 1 => IO.pure(x(0))
+        case other              => IO.raiseError(BackendError(s"embedder expected to return 1 result, but got $other"))
       }
   }
   def encode(handle: ModelHandle, docs: List[String]): IO[Array[Array[Float]]] = IO(embedders.get(handle)).flatMap {
     case None => IO.raiseError(new Exception(s"cannot get embedding model $handle"))
     case Some(embedder) =>
-      for {
-        cached                            <- cache.get(docs.map(doc => CacheKey(handle, doc)))
-        (nonCachedIndices, nonCachedDocs) <- selectUncached(cached, docs.toArray)
-        nonCachedEmbeddings               <- embedder.encode(nonCachedDocs.toList)
-        _      <- cache.put(nonCachedDocs.map(doc => CacheKey(handle, doc)).toList, nonCachedEmbeddings)
-        merged <- mergeCachedUncached(cached, nonCachedIndices, nonCachedEmbeddings)
-      } yield {
-        merged
-      }
-  }
-
-  private def selectUncached(
-      cached: Array[Option[Array[Float]]],
-      docs: Array[String]
-  ): IO[(Array[Int], Array[String])] = IO {
-    val indices = ArrayBuffer[Int]()
-    val ds      = ArrayBuffer[String]()
-    var i       = 0
-    while (i < cached.length) {
-      if (cached(i).isEmpty) {
-        ds.append(docs(i))
-        indices.append(i)
-      }
-      i += 1
-    }
-    (indices.toArray, ds.toArray)
-  }
-
-  private def mergeCachedUncached(
-      cached: Array[Option[Array[Float]]],
-      uncachedIndices: Array[Int],
-      uncachedEmbeds: Array[Array[Float]]
-  ): IO[Array[Array[Float]]] = IO {
-    val result = new Array[Array[Float]](cached.length)
-    var i      = 0
-    while (i < cached.length) {
-      cached(i).foreach(emb => result(i) = emb)
-      i += 1
-    }
-    var j = 0
-    while (j < uncachedIndices.length) {
-      val index = uncachedIndices(j)
-      result(index) = uncachedEmbeds(j)
-      j += 1
-    }
-    result
+      cache.getOrEmbedAndCache(docs.map(doc => CacheKey(handle, doc)), embedder)
   }
 
 }
 
-object EmbedderDict extends Logging {
+object EmbedModelDict extends Logging {
   val CONFIG_FILE = "config.json"
 
   case class TransformersConfig(hidden_size: Int, model_type: String)
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder
 
-  def create(handles: List[ModelHandle], cacheConfig: CacheConfig): Resource[IO, EmbedderDict] = for {
-    cache <- Resource.eval(ModelCache.create(cacheConfig))
+  def create(handles: List[ModelHandle], cacheConfig: CacheConfig): Resource[IO, EmbedModelDict] = for {
+    cache <- Resource.eval(ModelFileCache.create(cacheConfig))
     encoders <- handles.map {
       case handle: HuggingFaceHandle => createHuggingface(handle, cache).map(embedder => handle -> embedder)
       case handle: LocalModelHandle  => createLocal(handle).map(embedder => handle -> embedder)
     }.sequence
-    cache <- HeapEmbedderCache.create(EmbeddingCacheConfig())
+    cache <- HeapEmbeddingCache.create(EmbeddingCacheConfig())
   } yield {
-    EmbedderDict(encoders.toMap, cache)
+    EmbedModelDict(encoders.toMap, cache)
   }
 
-  def createHuggingface(handle: HuggingFaceHandle, cache: ModelCache): Resource[IO, Embedder] = for {
+  def createHuggingface(handle: HuggingFaceHandle, cache: ModelFileCache): Resource[IO, EmbedModel] = for {
     hf <- HuggingFaceClient.create(cache)
     (model, vocab, config) <- Resource.eval(for {
       card      <- hf.model(handle)
@@ -123,7 +78,7 @@ object EmbedderDict extends Logging {
     } yield {
       (modelPath, vocabPath, config)
     })
-    onnxEmbedder <- OnnxEmbedder.create(
+    onnxEmbedder <- OnnxEmbedModel.create(
       model = new FileInputStream(model.toFile),
       dic = new FileInputStream(vocab.toFile),
       dim = config.hidden_size
@@ -131,7 +86,7 @@ object EmbedderDict extends Logging {
   } yield {
     onnxEmbedder
   }
-  def createLocal(handle: LocalModelHandle): Resource[IO, Embedder] = {
+  def createLocal(handle: LocalModelHandle): Resource[IO, EmbedModel] = {
     for {
       (model, vocab, config) <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))
@@ -145,7 +100,7 @@ object EmbedderDict extends Logging {
       } yield {
         (path.toNioPath.resolve(modelFile), path.toNioPath.resolve(tokenizerFile), config)
       })
-      onnxEmbedder <- OnnxEmbedder.create(
+      onnxEmbedder <- OnnxEmbedModel.create(
         model = new FileInputStream(model.toFile),
         dic = new FileInputStream(vocab.toFile),
         dim = config.hidden_size

@@ -17,7 +17,7 @@ import java.io.InputStream
 import java.nio.LongBuffer
 import fs2.{Chunk, Stream}
 
-sealed trait Embedder extends Logging {
+sealed trait EmbedModel extends Logging {
   def batchSize: Int
   // a helper function to simplify query embedding
   def encode(doc: String): IO[Array[Float]] = encode(List(doc)).flatMap {
@@ -39,14 +39,14 @@ sealed trait Embedder extends Logging {
   def close(): IO[Unit]
 }
 
-object Embedder {
-  case class OnnxEmbedder(
+object EmbedModel {
+  case class OnnxEmbedModel(
       env: OrtEnvironment,
       session: OrtSession,
       tokenizer: HuggingFaceTokenizer,
       dim: Int,
       ttidNeeded: Boolean
-  ) extends Embedder {
+  ) extends EmbedModel {
     override val batchSize = 16
     override def encodeBatch(batch: List[String]): IO[Array[Array[Float]]] = IO {
       val encoded = tokenizer.batchEncode(batch.toArray)
@@ -84,7 +84,7 @@ object Embedder {
     }
   }
 
-  object OnnxEmbedder extends Logging {
+  object OnnxEmbedModel extends Logging {
     val ONNX_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
         model: InputStream,
@@ -93,7 +93,7 @@ object Embedder {
         ttidNeeded: Boolean = true,
         gpu: Boolean = false,
         threads: Int = ONNX_THREADS_DEFAULT
-    ): Resource[IO, OnnxEmbedder] =
+    ): Resource[IO, OnnxEmbedModel] =
       Resource.make(IO(createUnsafe(model, dic, dim, ttidNeeded, gpu, threads)))(e => e.close())
 
     def createUnsafe(
@@ -118,11 +118,11 @@ object Embedder {
       logger.info(s"Loaded ONNX model (size=$size inputs=$inputs outputs=$outputs dim=$dim)")
       model.close()
       dic.close()
-      OnnxEmbedder(env, session, tokenizer, dim, ttidNeeded)
+      OnnxEmbedModel(env, session, tokenizer, dim, ttidNeeded)
     }
   }
 
-  case class OpenAIEmbedder() extends Embedder {
+  case class OpenAIEmbedModel() extends EmbedModel {
     override def encodeBatch(docs: List[String]): IO[Array[Array[Float]]] = ???
     override def close(): IO[Unit]                                        = ???
     override def batchSize: Int                                           = 32

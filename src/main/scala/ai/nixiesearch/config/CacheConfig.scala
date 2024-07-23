@@ -6,6 +6,7 @@ import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 
 import java.io.File
+import java.nio.file.Paths
 
 case class CacheConfig(dir: String = CacheConfig.defaultCacheDir(), embeddings: EmbeddingCacheConfig = HeapCache())
 
@@ -38,8 +39,10 @@ object CacheConfig {
     })
   }
 
-  def defaultCacheDir(): String =
-    System.getProperty("java.io.tmpdir") + File.separator + ".nixiesearch"
+  def defaultCacheDir(): String = Option(System.getenv("XDG_CACHE_HOME")) match {
+    case Some(cacheDir) => Paths.get(cacheDir, "nixiesearch", "cache").toString
+    case None           => Paths.get(System.getProperty("java.io.tmpdir"), ".nixiesearch").toString
+  }
 
   given cacheConfigEncoder: Encoder[CacheConfig] = deriveEncoder
   given cacheConfigDecoder: Decoder[CacheConfig] = Decoder.instance(c =>
