@@ -15,6 +15,10 @@ import java.nio.file.{Paths, Path as NioPath}
 case class ModelCache(dir: NioPath) extends Logging {
   def exists(key: CacheKey): IO[Boolean] = Files[IO].exists(Fs2Path.fromNioPath(key.resolve(dir)))
 
+  def getIfExists(key: CacheKey): IO[Option[NioPath]] = exists(key).flatMap {
+    case true  => get(key).map(path => Some(path))
+    case false => IO.none
+  }
   def get(key: CacheKey): IO[NioPath] =
     exists(key).flatMap {
       case false => IO.raiseError(BackendError(s"trying to read cached file $key, but it's missing"))

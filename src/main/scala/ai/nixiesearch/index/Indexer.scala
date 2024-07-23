@@ -25,7 +25,7 @@ import ai.nixiesearch.core.codec.{
   TextListFieldWriter
 }
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.embedding.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedderDict
 import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.analysis.Analyzer
@@ -143,7 +143,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
 
   def embed(
       targets: Map[SemanticSearchLikeType, List[String]],
-      encoders: BiEncoderCache
+      encoders: EmbedderDict
   ): IO[Map[SemanticSearchLikeType, Map[String, Array[Float]]]] = {
     targets.toList
       .traverse { case (tpe, strings) =>

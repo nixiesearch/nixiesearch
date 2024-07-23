@@ -1,8 +1,8 @@
 package ai.nixiesearch.index.sync
-import ai.nixiesearch.config.{IndexCacheConfig, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.embedding.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedderDict
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.store.StateClient.StateError
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
@@ -17,7 +17,7 @@ import java.nio.ByteBuffer
 
 case class LocalIndex(
     mapping: IndexMapping,
-    encoders: BiEncoderCache,
+    encoders: EmbedderDict,
     master: StateClient,
     directory: Directory,
     seqnum: Ref[IO, Long]
@@ -41,14 +41,15 @@ case class LocalIndex(
 object LocalIndex extends Logging {
   def create(
       configMapping: IndexMapping,
-      config: StoreConfig.LocalStoreConfig
+      config: StoreConfig.LocalStoreConfig,
+      cacheConfig: CacheConfig
   ): Resource[IO, LocalIndex] = {
     for {
       directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       handles   <- Resource.pure(manifest.mapping.modelHandles())
-      encoders  <- BiEncoderCache.create(handles, configMapping.cache.embedding)
+      encoders  <- EmbedderDict.create(handles, cacheConfig)
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(

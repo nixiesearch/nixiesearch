@@ -5,13 +5,13 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
-import ai.nixiesearch.config.IndexCacheConfig
+import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.index.sync.LocalIndex
-import ai.nixiesearch.index.{Searcher, Indexer}
+import ai.nixiesearch.index.{Indexer, Searcher}
 import cats.effect.{IO, Resource}
 import cats.effect.unsafe.implicits.global
 
@@ -46,7 +46,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 
 object LocalNixie {
   def create(mapping: IndexMapping): Resource[IO, LocalNixie] = for {
-    index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()))
+    index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), CacheConfig())
     indexer  <- Indexer.open(index)
     searcher <- Searcher.open(index)
   } yield {

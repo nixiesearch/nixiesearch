@@ -3,7 +3,7 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.API.info
 import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{IndexCacheConfig, Config, IndexerConfig}
+import ai.nixiesearch.config.{CacheConfig, Config, IndexCacheConfig, IndexerConfig}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
@@ -30,18 +30,25 @@ object IndexMode extends Logging {
     config  <- Config.load(args.config)
     indexes <- IO(config.schema.values.toList)
     _ <- args.source match {
-      case apiConfig: ApiIndexSourceArgs     => runApi(indexes, apiConfig, config)
-      case fileConfig: FileIndexSourceArgs   => runOffline(indexes, FileSource(fileConfig), fileConfig.index)
-      case kafkaConfig: KafkaIndexSourceArgs => runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index)
+      case apiConfig: ApiIndexSourceArgs => runApi(indexes, apiConfig, config)
+      case fileConfig: FileIndexSourceArgs =>
+        runOffline(indexes, FileSource(fileConfig), fileConfig.index, config.core.cache)
+      case kafkaConfig: KafkaIndexSourceArgs =>
+        runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index, config.core.cache)
     }
   } yield {}
 
-  def runOffline(indexes: List[IndexMapping], source: DocumentSource, index: String): IO[Unit] = for {
+  def runOffline(
+      indexes: List[IndexMapping],
+      source: DocumentSource,
+      index: String,
+      cacheConfig: CacheConfig
+  ): IO[Unit] = for {
     indexMapping <- IO
       .fromOption(indexes.find(_.name.value == index))(UserError(s"index '${index} not found in mapping'"))
     _ <- debug(s"found index mapping for index '${indexMapping.name}'")
     _ <- Index
-      .forIndexing(indexMapping)
+      .forIndexing(indexMapping, cacheConfig)
       .use(index =>
         Indexer
           .open(index)
@@ -68,7 +75,7 @@ object IndexMode extends Logging {
     _ <- indexes
       .map(im =>
         for {
-          index   <- Index.forIndexing(im)
+          index   <- Index.forIndexing(im, config.core.cache)
           indexer <- Indexer.open(index)
           _       <- PeriodicFlushStream.run(index, indexer)
         } yield { indexer }
