@@ -13,5 +13,9 @@ object Models {
       embeddingHandles: List[ModelHandle],
       generativeHandles: List[ModelHandle],
       cacheConfig: CacheConfig
-  ): Resource[IO, Models] = ???
+  ): Resource[IO, Models] = for {
+    embeddings <- EmbedModelDict.create(embeddingHandles, cacheConfig)
+  } yield {
+    Models(embeddings)
+  }
 }

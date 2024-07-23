@@ -31,7 +31,7 @@ object ModelHandle {
   }
 
   val huggingFacePattern = "(hf://)?([a-zA-Z0-9\\-]+)/([0-9A-Za-z\\-_]+)(\\?file=([0-9a-zA-Z\\-\\._]+))?".r
-  val localPattern       = "file://?(/[^\\?]*)(\\?modelFile=([0-9a-zA-Z\\-\\._]+))?".r
+  val localPattern       = "file://?(/[^\\?]*)(\\?file=([0-9a-zA-Z\\-\\._]+))?".r
 
   given modelHandleDecoder: Decoder[ModelHandle] = Decoder.decodeString.emapTry {
     case huggingFacePattern(_, ns, name, _, mf) => Success(HuggingFaceHandle(ns, name, Option(mf)))

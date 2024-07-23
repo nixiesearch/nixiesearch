@@ -76,7 +76,8 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
   def getCached(handle: HuggingFaceHandle, file: String): IO[Path] = for {
     cached <- cache.getIfExists(CacheKey(handle.ns, handle.name, file))
     bytes <- cached match {
-      case Some(path) => IO.pure(path)
+      case Some(path) =>
+        info(s"found cached $path file for requested ${handle.ns}/${handle.name}/$file") *> IO.pure(path)
       case None =>
         for {
           _    <- info(s"not found $file in cache")

@@ -65,7 +65,7 @@ object EmbedModelDict extends Logging {
     hf <- HuggingFaceClient.create(cache)
     (model, vocab, config) <- Resource.eval(for {
       card      <- hf.model(handle)
-      modelFile <- chooseModelFile(card.siblings.map(_.rfilename))
+      modelFile <- chooseModelFile(card.siblings.map(_.rfilename), handle.file)
       tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
         BackendError("Cannot find tokenizer.json in repo")
       )
@@ -91,7 +91,7 @@ object EmbedModelDict extends Logging {
       (model, vocab, config) <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))
         files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
-        modelFile <- chooseModelFile(files)
+        modelFile <- chooseModelFile(files, handle.file)
         tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
           BackendError("cannot find tokenizer.json file in dir")
         )
@@ -116,16 +116,23 @@ object EmbedModelDict extends Logging {
     "model_opt2_QInt8.onnx",
     "model.onnx"
   )
-  def chooseModelFile(files: List[String]): IO[String] = files.find(x => DEFAULT_MODEL_FILES.contains(x)) match {
-    case Some(value) => info(s"loading $value") *> IO.pure(value)
-    case None =>
-      files.find(_ == "model.onnx") match {
-        case Some(value) => info(s"loading regular FP32 $value") *> IO.pure(value)
-        case None =>
-          files.find(_.endsWith("onnx")) match {
-            case Some(value) => IO.pure(value)
-            case None        => IO.raiseError(BackendError(s"cannot find onnx model: files=$files"))
-          }
-      }
+  def chooseModelFile(files: List[String], forced: Option[String]): IO[String] = {
+    forced match {
+      case Some(f) => IO.pure(f)
+      case None =>
+        files.find(x => DEFAULT_MODEL_FILES.contains(x)) match {
+          case Some(value) => info(s"loading $value") *> IO.pure(value)
+          case None =>
+            files.find(_ == "model.onnx") match {
+              case Some(value) => info(s"loading regular FP32 $value") *> IO.pure(value)
+              case None =>
+                files.find(_.endsWith("onnx")) match {
+                  case Some(value) => IO.pure(value)
+                  case None        => IO.raiseError(BackendError(s"cannot find onnx model: files=$files"))
+                }
+            }
+        }
+    }
+
   }
 }
