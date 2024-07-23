@@ -90,7 +90,7 @@ object Embedder {
         model: InputStream,
         dic: InputStream,
         dim: Int,
-        ttidNeeded: Boolean = false,
+        ttidNeeded: Boolean = true,
         gpu: Boolean = false,
         threads: Int = ONNX_THREADS_DEFAULT
     ): Resource[IO, OnnxEmbedder] =
@@ -100,7 +100,7 @@ object Embedder {
         model: InputStream,
         dic: InputStream,
         dim: Int,
-        ttidNeeded: Boolean = false,
+        ttidNeeded: Boolean = true,
         gpu: Boolean = false,
         threads: Int = ONNX_THREADS_DEFAULT
     ) = {
