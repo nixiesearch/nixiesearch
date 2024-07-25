@@ -8,7 +8,7 @@ import org.http4s.circe.*
 import org.http4s.{EntityEncoder, HttpRoutes}
 import org.http4s.dsl.io.*
 
-case class MappingRoute(index: Index) extends Logging {
+case class MappingRoute(index: Index) extends Route with Logging {
   import MappingRoute.given
 
   val routes = HttpRoutes.of[IO] {

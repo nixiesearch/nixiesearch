@@ -8,10 +8,12 @@ import cats.effect.IO
 import org.http4s.circe.*
 import org.http4s.{EntityEncoder, HttpRoutes}
 import org.http4s.dsl.io.*
+import org.http4s.server.websocket.WebSocketBuilder
 
-case class StatsRoute(searcher: Searcher) {
+case class StatsRoute(searcher: Searcher) extends Route {
   import StatsRoute.given
-  val routes = HttpRoutes.of[IO] {
+
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / indexName / "_stats" if indexName == searcher.index.name.value =>
       for {
         readers  <- searcher.getReadersOrFail()

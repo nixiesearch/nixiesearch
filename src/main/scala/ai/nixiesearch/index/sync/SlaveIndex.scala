@@ -77,7 +77,7 @@ object SlaveIndex extends Logging {
       manifestOption <- Resource.eval(replicaState.readManifest())
       manifest <- Resource.eval(IO.fromOption(manifestOption)(BackendError("index.json file not found in the index")))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
-      models   <- Models.create(handles, Nil, cacheConfig)
+      models   <- Models.create(handles, configMapping.rag.models, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

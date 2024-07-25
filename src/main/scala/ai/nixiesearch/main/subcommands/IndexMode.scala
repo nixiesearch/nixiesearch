@@ -21,6 +21,7 @@ import ai.nixiesearch.util.source.URLReader
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
+import org.http4s.HttpRoutes
 
 import scala.concurrent.duration.*
 
@@ -90,7 +91,7 @@ object IndexMode extends Logging {
           routes <- IO(
             indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes <+> MainRoute(indexers.map(_.index)).routes
           )
-          server <- API.start(routes, source.host, source.port)
+          server <- API.start(routes, _ => HttpRoutes.empty[IO], source.host, source.port)
           _      <- server.use(_ => IO.never)
 
         } yield {}

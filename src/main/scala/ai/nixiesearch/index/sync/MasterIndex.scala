@@ -40,7 +40,7 @@ object MasterIndex extends Logging {
 
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
-      models   <- Models.create(handles, Nil, cacheConfig)
+      models   <- Models.create(handles, configMapping.rag.models, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

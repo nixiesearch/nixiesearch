@@ -141,6 +141,7 @@ object IndexMapping extends Logging {
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
         cache  <- c.downField("cache").as[Option[IndexCacheConfig]].map(_.getOrElse(IndexCacheConfig()))
+        rag    <- c.downField("rag").as[Option[RAGConfig]].map(_.getOrElse(RAGConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
         val extendedFields = fieldsMap.get("_id") match {
@@ -151,7 +152,15 @@ object IndexMapping extends Logging {
           case None =>
             fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
-        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store, cache = cache)
+        IndexMapping(
+          name,
+          alias = alias,
+          fields = extendedFields,
+          config = config,
+          store = store,
+          cache = cache,
+          rag = rag
+        )
 
       }
     )

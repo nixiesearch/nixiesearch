@@ -10,7 +10,7 @@ import org.typelevel.ci.CIString
 class CORSTest extends AnyFlatSpec with Matchers {
 
   it should "accept docs for existing indices" in {
-    val route = API.wrapMiddleware(HealthRoute().routes).unsafeRunSync()
+    val route = API.wrapMiddleware(HealthRoute().routes)
     val request = Request(
       uri = Uri.unsafeFromString("http://localhost:8080/health"),
       method = Method.GET,

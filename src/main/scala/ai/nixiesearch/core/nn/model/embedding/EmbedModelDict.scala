@@ -1,9 +1,6 @@
 package ai.nixiesearch.core.nn.model.embedding
 
 import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
-import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
-import ai.nixiesearch.config.{CacheConfig, Config, FieldSchema}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle
@@ -20,12 +17,9 @@ import fs2.io.file.Files
 import fs2.io.file.Path as Fs2Path
 import io.circe.Decoder
 import io.circe.parser.decode
-import org.apache.commons.io.IOUtils
 import io.circe.generic.semiauto.*
-import java.io.{ByteArrayInputStream, File, FileInputStream}
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Paths, Files as NIOFiles}
-import scala.collection.mutable.ArrayBuffer
+import java.io.FileInputStream
+import java.nio.file.Files as NIOFiles
 
 case class EmbedModelDict(embedders: Map[ModelHandle, EmbedModel], cache: EmbeddingCache) extends Logging {
   def encode(handle: ModelHandle, doc: String): IO[Array[Float]] = IO(embedders.get(handle)).flatMap {
@@ -50,8 +44,7 @@ object EmbedModelDict extends Logging {
   case class TransformersConfig(hidden_size: Int, model_type: String)
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder
 
-  def create(handles: List[ModelHandle], cacheConfig: CacheConfig): Resource[IO, EmbedModelDict] = for {
-    cache <- Resource.eval(ModelFileCache.create(cacheConfig))
+  def create(handles: List[ModelHandle], cache: ModelFileCache): Resource[IO, EmbedModelDict] = for {
     encoders <- handles.map {
       case handle: HuggingFaceHandle => createHuggingface(handle, cache).map(embedder => handle -> embedder)
       case handle: LocalModelHandle  => createLocal(handle).map(embedder => handle -> embedder)

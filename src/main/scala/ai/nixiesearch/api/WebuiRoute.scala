@@ -16,6 +16,7 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.commons.io.{FilenameUtils, IOUtils}
 import org.http4s.headers.`Content-Type`
+import org.http4s.server.websocket.WebSocketBuilder
 import scodec.bits.ByteVector
 
 case class WebuiRoute(
@@ -23,8 +24,7 @@ case class WebuiRoute(
     tmpl: WebuiTemplate
 ) extends Route
     with Logging {
-
-  val routes = HttpRoutes.of[IO] {
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / indexName / "_ui" / "assets" / fileName if indexName == searcher.index.name.value =>
       for {
         bytes <- IO(IOUtils.resourceToByteArray(s"/ui/assets/$fileName"))

@@ -30,7 +30,7 @@ object ModelHandle {
     override def asList: List[String] = List(dir)
   }
 
-  val huggingFacePattern = "(hf://)?([a-zA-Z0-9\\-]+)/([0-9A-Za-z\\-_]+)(\\?file=([0-9a-zA-Z\\-\\._]+))?".r
+  val huggingFacePattern = "(hf://)?([a-zA-Z0-9\\-]+)/([0-9A-Za-z\\-_\\.]+)(\\?file=([0-9a-zA-Z\\-\\._]+))?".r
   val localPattern       = "file://?(/[^\\?]*)(\\?file=([0-9a-zA-Z\\-\\._]+))?".r
 
   given modelHandleDecoder: Decoder[ModelHandle] = Decoder.decodeString.emapTry {

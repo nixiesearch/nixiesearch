@@ -50,7 +50,7 @@ object LocalIndex extends Logging {
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       handles   <- Resource.pure(manifest.mapping.modelHandles())
-      models    <- Models.create(handles, Nil, cacheConfig)
+      models    <- Models.create(handles, configMapping.rag.models, cacheConfig)
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(
@@ -68,8 +68,10 @@ object LocalIndex extends Logging {
   }
 
   def readOrCreateManifest(state: StateClient, configMapping: IndexMapping): IO[IndexManifest] = {
-    state.readManifest().flatMap {
-      case None =>
+    state.readManifest().attempt.flatMap {
+      case Left(e) =>
+        error(s"cannot decode index.json for index ${configMapping.name.value}", e) *> IO.raiseError(e)
+      case Right(None) =>
         for {
           _        <- info("index dir does not contain manifest, creating...")
           manifest <- state.createManifest(configMapping, 0L)
@@ -80,7 +82,7 @@ object LocalIndex extends Logging {
         } yield {
           manifest
         }
-      case Some(indexManifest) =>
+      case Right(Some(indexManifest)) =>
         for {
           mergedMapping <- indexManifest.mapping.migrate(configMapping)
           manifest      <- state.createManifest(mergedMapping, indexManifest.seqnum)

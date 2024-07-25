@@ -1,12 +1,12 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.{Document, Logging}
+import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import cats.effect.{IO, Ref, Resource}
@@ -29,6 +29,7 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.{DocumentVisitor, TextFieldWriter}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict.ModelId
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
 import ai.nixiesearch.index.manifest.IndexManifest
@@ -117,6 +118,23 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       hits = collected,
       aggs = aggs
     )
+  }
+
+  def rag(docs: List[Document], request: RAGRequest): Stream[IO, String] = for {
+    prompt <- Stream.eval(IO(s"${request.prompt}\n\n${docs
+        .take(request.topDocs)
+        .map(doc =>
+          doc.fields
+            .collect {
+              case Field.TextField(name, value) if request.fields.contains(name) => s"$name: $value"
+            }
+            .mkString(" ")
+        )
+        .mkString("\n\n")}"))
+    _     <- Stream.eval(debug(s"prompt: ${prompt}"))
+    token <- index.models.generative.generate(ModelId(request.model), prompt)
+  } yield {
+    token
   }
 
   def fieldQuery(

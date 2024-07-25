@@ -39,10 +39,8 @@ object CacheConfig {
     })
   }
 
-  def defaultCacheDir(): String = Option(System.getenv("XDG_CACHE_HOME")) match {
-    case Some(cacheDir) => Paths.get(cacheDir, "nixiesearch", "cache").toString
-    case None           => Paths.get(System.getProperty("user.dir"), "nixiesearch", "cache").toString
-  }
+  def defaultCacheDir(): String =
+    Paths.get(System.getProperty("user.dir"), "cache").toString
 
   given cacheConfigEncoder: Encoder[CacheConfig] = deriveEncoder
   given cacheConfigDecoder: Decoder[CacheConfig] = Decoder.instance(c =>

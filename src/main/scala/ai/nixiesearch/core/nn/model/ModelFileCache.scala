@@ -51,8 +51,8 @@ object ModelFileCache extends Logging {
       dir.resolve(ns).resolve(name).resolve(fileName)
   }
 
-  def create(config: CacheConfig): IO[ModelFileCache] = for {
-    modelCacheDir <- IO(Paths.get(config.dir, "models"))
+  def create(dir: NioPath): IO[ModelFileCache] = for {
+    modelCacheDir <- IO(dir.resolve("models"))
     _             <- debug(s"using $modelCacheDir as model cache dir")
     dirExists     <- Files[IO].exists(Fs2Path.fromNioPath(modelCacheDir))
     _ <- IO.whenA(!dirExists)(
