@@ -50,7 +50,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
         entity =
           Entity.strict(ByteVector.view(SearchRequest(MatchQuery("text", "manhattan")).asJson.noSpaces.getBytes()))
       )
-      val response = searchApi.search(searchRequest).unsafeRunSync()
+      val response = searchApi.searchBlocking(searchRequest).unsafeRunSync()
       response.as[SearchResponse].map(_.hits.size).unsafeRunSync() shouldBe 10
     }
   }

@@ -1,8 +1,15 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGTokenFrame, SearchResultsFrame}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
-import ai.nixiesearch.api.SearchRoute.{ErrorResponse, RAGTokenResponse, SearchRequest, SearchResponse, SuggestRequest}
+import ai.nixiesearch.api.SearchRoute.{
+  ErrorResponse,
+  SearchRequest,
+  SearchResponse,
+  SearchResponseFrame,
+  SuggestRequest
+}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
@@ -20,16 +27,19 @@ import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.http4s.server.websocket.WebSocketBuilder
-import fs2.Stream
+import fs2.{Pull, Stream}
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import io.circe.parser.*
 import io.circe.syntax.*
+import scodec.bits.ByteVector
+
+import java.util.UUID
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name.value =>
-      search(request)
+      searchBlocking(request)
     case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name.value =>
       suggest(request)
   }
@@ -52,17 +62,9 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
             case Left(value)  => IO.raiseError(value)
             case Right(value) => IO.pure(value)
           })
-          response <- Stream.eval(searcher.search(request))
-          frame1   <- Stream.eval(IO(Text(response.asJson.noSpaces, last = request.rag.isEmpty)))
-          frameN <- request.rag match {
-            case Some(ragRequest) =>
-              Stream.emit(frame1) ++ searcher
-                .rag(response.hits, ragRequest)
-                .map(token => Text(RAGTokenResponse(token).asJson.noSpaces, last = false))
-            case None => Stream.emit(frame1)
-          }
+          frame <- searchStreaming(request)
         } yield {
-          frameN
+          Text(frame.asJson.noSpaces, frame.last)
         }
       )
 
@@ -75,8 +77,22 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   } yield {
     response
   }
+  
+  def searchStreaming(request: SearchRequest): Stream[IO, SearchResponseFrame] = for {
+    response <- Stream.eval(searcher.search(request))
+    id       <- Stream.emit(UUID.randomUUID())
+    frame <- request.rag match {
+      case Some(ragRequest) =>
+        Stream.emit(SearchResultsFrame(request = id, results = response, last = false)) ++ searcher
+          .rag(response.hits, ragRequest)
+          .map(token => RAGTokenFrame(request = id, token = token, last = false))
+      case None => Stream.emit(SearchResultsFrame(request = id, results = response, last = true))
+    }
+  } yield {
+    frame
+  }
 
-  def search(request: Request[IO]): IO[Response[IO]] = for {
+  def searchBlocking(request: Request[IO]): IO[Response[IO]] = for {
     query <- IO(request.entity.length).flatMap {
       case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
@@ -146,6 +162,32 @@ object SearchRoute {
     )
   }
 
+  sealed trait SearchResponseFrame {
+    def last: Boolean
+  }
+  object SearchResponseFrame {
+    case class SearchResultsFrame(request: UUID, results: SearchResponse, last: Boolean) extends SearchResponseFrame
+    case class RAGTokenFrame(request: UUID, token: String, last: Boolean)                extends SearchResponseFrame
+    given searchResultsFrameCodec: Codec[SearchResponseFrame] = deriveCodec
+    given ragTokenFrameCodec: Codec[RAGTokenFrame]            = deriveCodec
+
+    given searchResponseFrameEncoder: Encoder[SearchResponseFrame] = Encoder.instance {
+      case s: SearchResultsFrame =>
+        searchResultsFrameCodec(s).deepMerge(Json.obj("type" -> Json.fromString("search_results")))
+      case r: RAGTokenFrame =>
+        ragTokenFrameCodec(r).deepMerge(Json.obj("type" -> Json.fromString("rag_response")))
+    }
+
+    given searchResponseFrameDecoder: Decoder[SearchResponseFrame] = Decoder.instance(c =>
+      c.downField("type").as[String] match {
+        case Left(value)             => Left(DecodingFailure(s"expected field 'type' in payload: $value", c.history))
+        case Right("search_results") => searchResultsFrameCodec.tryDecode(c)
+        case Right("rag_response")   => ragTokenFrameCodec.tryDecode(c)
+        case Right(other)            => Left(DecodingFailure(s"unsupported frame type '$other'", c.history))
+      }
+    )
+  }
+
   case class SearchResponse(
       took: Long,
       hits: List[Document],
@@ -155,11 +197,6 @@ object SearchRoute {
   object SearchResponse {
     given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder
     given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
-  }
-
-  case class RAGTokenResponse(token: String)
-  object RAGTokenResponse {
-    given ragTokenResponseCodec: Codec[RAGTokenResponse] = deriveCodec
   }
 
   import SearchRequest.given

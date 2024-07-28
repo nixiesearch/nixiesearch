@@ -47,7 +47,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
           )
         )
       )
-      val response = searchApi.search(searchRequest).unsafeRunSync().as[SearchResponse].unsafeRunSync()
+      val response = searchApi.searchBlocking(searchRequest).unsafeRunSync().as[SearchResponse].unsafeRunSync()
       response.response shouldBe Some(
         "The matrix tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers who now rule the earth."
       )
