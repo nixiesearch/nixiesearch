@@ -23,9 +23,9 @@ object API extends Logging {
     routesWithLog <- IO(
       Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(routesWithError)
     )
-    corsMiddleware <- CORS.policy.withAllowOriginAll(routesWithLog)
+    // corsMiddleware <- CORS.policy.withAllowOriginAll(routesWithLog)
   } yield {
-    corsMiddleware
+    routesWithLog
   }
 
   def start(routes: HttpRoutes[IO], host: Hostname, port: Port): IO[Resource[IO, org.http4s.server.Server]] = for {
