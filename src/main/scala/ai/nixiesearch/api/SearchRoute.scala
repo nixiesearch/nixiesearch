@@ -77,7 +77,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   } yield {
     response
   }
-  
+
   def searchStreaming(request: SearchRequest): Stream[IO, SearchResponseFrame] = for {
     response <- Stream.eval(searcher.search(request))
     id       <- Stream.emit(UUID.randomUUID())
@@ -195,7 +195,7 @@ object SearchRoute {
       response: Option[String] = None
   ) {}
   object SearchResponse {
-    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder
+    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
     given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
   }
 
