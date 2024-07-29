@@ -5,7 +5,7 @@ sealed trait Field {
 }
 
 object Field {
-  sealed trait NumericField extends Field
+  sealed trait NumericField                                   extends Field
   case class TextField(name: String, value: String)           extends Field
   case class TextListField(name: String, value: List[String]) extends Field
   object TextListField {

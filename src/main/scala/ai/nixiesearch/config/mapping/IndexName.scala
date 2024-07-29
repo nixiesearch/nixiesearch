@@ -32,6 +32,6 @@ object IndexName {
     override def apply(key: IndexName): String = key.value
   }
 
-  //given eqNameString: CanEqual[IndexName, String]  = CanEqual.derived
-  //given eqStringName: CanEqual[String, IndexName]  = CanEqual.derived
+  // given eqNameString: CanEqual[IndexName, String]  = CanEqual.derived
+  // given eqStringName: CanEqual[String, IndexName]  = CanEqual.derived
 }

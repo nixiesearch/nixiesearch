@@ -14,11 +14,11 @@ import org.apache.lucene.document.Document as LuceneDocument
 
 class BooleanFieldWriter extends FieldWriter[BooleanField, BooleanFieldSchema] {
   override def write(
-                      field: BooleanField,
-                      spec: BooleanFieldSchema,
-                      buffer: LuceneDocument,
-                      embeddings: Map[String, Array[Float]] = Map.empty
-                    ): Unit = {
+      field: BooleanField,
+      spec: BooleanFieldSchema,
+      buffer: LuceneDocument,
+      embeddings: Map[String, Array[Float]] = Map.empty
+  ): Unit = {
     if (spec.filter || spec.sort) {
       buffer.add(new org.apache.lucene.document.IntField(field.name, field.intValue, Store.NO))
     }

@@ -119,7 +119,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       writer.addDocuments(all)
     }
   }
-  
+
   def strings(mapping: IndexMapping, docs: List[Document]): Map[SemanticSearchLikeType, List[String]] = {
     val candidates = for {
       doc   <- docs
