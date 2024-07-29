@@ -14,3 +14,5 @@ docs/site
 .run
 indices
 indexes
+cache
+llama.log
