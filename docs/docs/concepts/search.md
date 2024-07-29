@@ -17,8 +17,7 @@ Where:
 
 * `<search-field-name>`: a text field marked as [searchable in the index mapping](../reference/config/mapping.md)
 * `<query-string>`: a string to search for.
-
-Check more examples of [Query DSL](../reference/api/search/query.md) in the reference.
+* `multi_match`: one of the matching DSL rules. Check more examples of [Query DSL](../reference/api/search/query.md) in the reference.
 
 For such a search request, Nixiesearch will reply with a JSON response with top-N matching documents:
 
@@ -36,12 +35,90 @@ For such a search request, Nixiesearch will reply with a JSON response with top-
 
 > Compared to Elasticsearch/Opensearch, Nixiesearch has no built-in `_source` field as it is frequently mis-used. You need to explicitly mark fields you want to be present in response payload as `store: true` in the [index mapping](../reference/config/mapping.md).
 
-## RRF: Reciprocal Rank Fusion
+## RAG: Retrieval Augmented Generation
 
-When you search over multiple fields marked as [semantic](../../config/mapping.md) and [lexical](../../config/mapping.md), or over a [hybrid](../../config/mapping.md) field, Nixiesearch dows the following:
+Instead of just getting search results for your query, you can use a [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) approach to get a natural language answer to your query, built with locally-running LLM.
 
-1. Collects a separate per-field search result list.
-2. Merges N search results with RRF - [Reciprocal Rank Fusion](#TODO).
+![RAG](../img/rag.png)
+
+Nixiesearch supports any GGUF-compatible LLM [llamacpp](https://github.com/ggerganov/llama.cpp) supports. To use RAG, you need to [list Huggingface handles of models](../reference/api/search/rag.md) you'd like to use in config:
+
+```yaml
+schema:
+  movies:
+    rag:
+      models:
+        - handle: Qwen/Qwen2-0.5B-Instruct-GGUF?file=qwen2-0_5b-instruct-q4_0.gguf
+          prompt: qwen2
+          name: qwen2
+    fields:
+      title:
+        type: text
+        search: semantic
+        suggest: true
+      overview:
+        type: text
+        search: semantic
+        suggest: true
+```
+
+Here we use a [Qwen/Qwen2-0.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2-0.5B-Instruct-GGUF) model with explicitly defined filename (as there may be multiple GGUF model files in the repo).
+
+> LLM inference on a CPU is a tough task, expect much higher latencies for RAG requests, compared to regular ones. 
+
+After that we can send RAG search requests to our index:
+
+```json
+{
+  "query": {
+    "multi_match": {
+      "fields": ["title", "description"],
+      "query": "what is pizza"
+    }
+  },
+  "rag": {
+    "prompt": "Summarize search results for a query 'what is pizza'",
+    "model": "qwen2",
+    "fields": ["title", "description"]
+  }
+}
+```
+
+For this query, Nixiesearch will perform following actions:
+* Make a search for the query `what is pizza` over `title` and `description` fields
+* pick top-N matching documents from results, and build an LLM prompt:
+```
+Summarize search results for a query 'what is pizza':
+
+[1]: Pizza is a traditional Italian dish typically consisting of ...
+
+[2]: One of the simplest and most traditional pizzas is the Margherita ...
+
+[3]: The meaning of PIZZA is a dish made typically of flattened bread dough ...
+```
+* stream generated response among search results:
+
+```json
+{
+  "took": 10,
+  "hits": [
+    {"_id": 1, "title": "...", "description":  "..."},
+    {"_id": 1, "title": "...", "description":  "..."},
+    {"_id": 1, "title": "...", "description":  "..."}
+  ],
+  "response": "Pizza is a dish of Italian origin ..."
+}
+```
+
+As LLM inference is a costly operation, Nixiesearch supports a WebSocket response streaming: you immediately get search result documents in a first frame, and LLM-generated tokens are streamed while being generated. See [RAG reference](../reference/api/search/rag.md) for more details. 
+
+
+## Hybrid search with Reciprocal Rank Fusion
+
+When you search over multiple fields marked a [hybrid](../../config/mapping.md) field, Nixiesearch does the following:
+
+1. Collects a separate per-field search result list for semantic and lexical retrieval methods.
+2. Merges N search results with RRF - [Reciprocal Rank Fusion](https://dl.acm.org/doi/10.1145/1571941.1572114).
 
 ![RRF](../img/hybridsearch.png)
 
