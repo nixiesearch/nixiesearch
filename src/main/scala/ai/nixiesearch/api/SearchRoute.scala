@@ -49,6 +49,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
       wsb.build((stream: Stream[IO, WebSocketFrame]) =>
         for {
           text  <- stream.collect { case t: Text => t }
+          _     <- Stream.eval(debug(s"ws message: ${text}"))
           frame <- Stream.eval(IO(Text("pong", last = true)))
         } yield {
           frame
@@ -58,6 +59,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
       wsb.build((stream: Stream[IO, WebSocketFrame]) =>
         for {
           text <- stream.collect { case t: Text => t }
+          _    <- Stream.eval(debug(s"ws message: ${text}"))
           request <- Stream.eval(IO(decode[SearchRequest](text.str)).flatMap {
             case Left(value)  => IO.raiseError(value)
             case Right(value) => IO.pure(value)
@@ -118,19 +120,28 @@ object SearchRoute {
       model: String,
       topDocs: Int = 10,
       maxDocLength: Int = 128,
+      maxResponseLength: Int = 64,
       fields: List[String] = Nil
   )
   object RAGRequest {
     given ragRequestEncoder: Encoder[RAGRequest] = deriveEncoder
     given ragRequestDecoder: Decoder[RAGRequest] = Decoder.instance(c =>
       for {
-        prompt       <- c.downField("prompt").as[String]
-        model        <- c.downField("model").as[String]
-        topDocs      <- c.downField("topDocs").as[Option[Int]]
-        maxDocLength <- c.downField("maxDocLength").as[Option[Int]]
-        fields       <- c.downField("fields").as[Option[List[String]]]
+        prompt            <- c.downField("prompt").as[String]
+        model             <- c.downField("model").as[String]
+        topDocs           <- c.downField("topDocs").as[Option[Int]]
+        maxDocLength      <- c.downField("maxDocLength").as[Option[Int]]
+        maxResponseLength <- c.downField("maxResponseLength").as[Option[Int]]
+        fields            <- c.downField("fields").as[Option[List[String]]]
       } yield {
-        RAGRequest(prompt, model, topDocs.getOrElse(10), maxDocLength.getOrElse(128), fields = fields.getOrElse(Nil))
+        RAGRequest(
+          prompt,
+          model,
+          topDocs.getOrElse(10),
+          maxDocLength.getOrElse(128),
+          fields = fields.getOrElse(Nil),
+          maxResponseLength = 64
+        )
       }
     )
   }

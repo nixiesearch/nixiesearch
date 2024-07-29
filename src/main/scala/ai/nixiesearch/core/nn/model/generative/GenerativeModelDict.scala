@@ -14,8 +14,8 @@ import fs2.io.file.Path as Fs2Path
 import fs2.Stream
 
 case class GenerativeModelDict(models: Map[ModelId, GenerativeModel]) {
-  def generate(name: ModelId, input: String): Stream[IO, String] = models.get(name) match {
-    case Some(model) => model.generate(input, 128)
+  def generate(name: ModelId, input: String, maxTokens: Int): Stream[IO, String] = models.get(name) match {
+    case Some(model) => model.generate(input, maxTokens)
     case None =>
       Stream.raiseError(
         UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")

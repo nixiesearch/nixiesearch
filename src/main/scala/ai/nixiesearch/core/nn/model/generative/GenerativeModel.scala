@@ -19,9 +19,12 @@ object GenerativeModel {
   case class LlamacppGenerativeModel(model: LlamaModel, promptTemplate: PromptTemplate)
       extends GenerativeModel
       with Logging {
-    override def generate(input: String, maxTokens: Int): Stream[IO, String] = {
-      val params = new InferenceParameters(promptTemplate.build(input)).setSeed(0)
-      Stream.fromBlockingIterator[IO](model.generate(params).iterator().asScala, 1).map(out => out.text)
+    override def generate(input: String, maxTokens: Int): Stream[IO, String] = for {
+      params   <- Stream(new InferenceParameters(promptTemplate.build(input)).setSeed(0).setNPredict(maxTokens))
+      iterator <- Stream.eval(IO(model.generate(params).iterator()))
+      frame    <- Stream.fromBlockingIterator[IO](iterator.asScala, 1)
+    } yield {
+      frame.text
     }
     def close(): IO[Unit] = info("Closing Llamacpp model") *> IO(model.close())
   }

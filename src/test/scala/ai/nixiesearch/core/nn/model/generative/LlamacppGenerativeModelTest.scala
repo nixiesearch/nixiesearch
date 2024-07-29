@@ -21,10 +21,12 @@ class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
         .create(List(RAGModelConfig(handle, Qwen2Template, "qwen")), fileCache)
         .allocated
         .unsafeRunSync()
-    val result = cache.generate(ModelId("qwen"), "knock knock! who is there?").compile.toList.unsafeRunSync()
+    val result = cache.generate(ModelId("qwen"), "knock knock! who is there?", 256).compile.toList.unsafeRunSync()
+    val short  = cache.generate(ModelId("qwen"), "knock knock! who is there?", 10).compile.toList.unsafeRunSync()
     shutdownHandle.unsafeRunSync()
     val expected =
       "I'm an AI, so I don't have a physical body and can't make knock knock. But you can reach out and I'll do my best to answer your questions!"
     result.mkString("") shouldBe expected
+    short.mkString("") shouldBe "I'm an AI, so I don't have"
   }
 }

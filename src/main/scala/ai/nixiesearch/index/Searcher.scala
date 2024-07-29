@@ -126,13 +126,14 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
         .map(doc =>
           doc.fields
             .collect {
-              case Field.TextField(name, value) if request.fields.contains(name) => s"$name: $value"
+              case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
+                s"$name: $value"
             }
             .mkString(" ")
         )
         .mkString("\n\n")}"))
     _     <- Stream.eval(debug(s"prompt: ${prompt}"))
-    token <- index.models.generative.generate(ModelId(request.model), prompt)
+    token <- index.models.generative.generate(ModelId(request.model), prompt, request.maxResponseLength)
   } yield {
     token
   }
