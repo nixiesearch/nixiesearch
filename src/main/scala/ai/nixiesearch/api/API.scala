@@ -10,7 +10,7 @@ import cats.data.Kleisli
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import com.comcast.ip4s.{Hostname as SHostname, Port as SPort}
-import org.http4s.{Header, HttpRoutes, Request, Status}
+import org.http4s.{Header, Headers, HttpApp, HttpRoutes, Request, Status}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.{ErrorAction, Logger}
@@ -23,18 +23,13 @@ import org.typelevel.ci.CIString
 import scala.concurrent.duration.Duration
 
 object API extends Logging {
-  // YOLO CORS handling
-  def addCORSHeader(routes: HttpRoutes[IO]): HttpRoutes[IO] = Kleisli { (req: Request[IO]) =>
-    routes(req).map {
-      case Status.Successful(resp) if req.headers.get(CIString("Origin")).isDefined =>
-        resp.putHeaders(Header.Raw(CIString("Access-Control-Allow-Origin"), "*"))
-      case other => other
-    }
-  }
-  def wrapMiddleware(routes: HttpRoutes[IO]): HttpRoutes[IO] = {
-    Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(
-      ErrorAction.httpRoutes(addCORSHeader(routes), (req, err) => error(err.toString, err))
+
+  def wrapMiddleware(routes: HttpRoutes[IO]): HttpApp[IO] = {
+    val withMiddleware = Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(
+      ErrorAction.httpRoutes(routes, (req, err) => error(err.toString, err))
     )
+    Router("/" -> withMiddleware).orNotFound
+      .map(resp => resp.copy(headers = Headers(Header.Raw(CIString("Access-Control-Allow-Origin"), "*"))))
   }
 
   def start(
@@ -50,7 +45,7 @@ object API extends Logging {
       port <- IO.fromOption(SPort.fromInt(port.value))(
         new Exception(s"cannot parse port '${port.value}'")
       )
-      http = wss.andThen(wsr => Router("/" -> wrapMiddleware(wsr <+> routes)).orNotFound)
+      http = wss.andThen(wsr => wrapMiddleware(wsr <+> routes))
       api <- IO(
         EmberServerBuilder
           .default[IO]
