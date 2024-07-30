@@ -220,10 +220,17 @@ object SearchRoute {
   given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
   given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
-  case class ErrorResponse(error: String)
+  case class ErrorResponse(error: String, cause: Option[String] = None)
   object ErrorResponse {
-    given errorResponseCodec: Codec[ErrorResponse]            = deriveCodec
+    given errorResponseEncoder: Encoder[ErrorResponse]        = deriveEncoder[ErrorResponse].mapJson(_.dropNullValues)
+    given errorResponseDecoder: Decoder[ErrorResponse]        = deriveDecoder
     given errorResponseJson: EntityEncoder[IO, ErrorResponse] = jsonEncoderOf
+    given errorResponseDecoderJson: EntityDecoder[IO, ErrorResponse] = jsonOf
+
+    def apply(e: Throwable) = Option(e.getCause) match {
+      case None        => new ErrorResponse(e.getMessage)
+      case Some(cause) => new ErrorResponse(e.getMessage, Some(cause.getMessage))
+    }
   }
 
   case class RAGResponse(id: Option[String], token: String, ts: Long, took: Long, last: Boolean)

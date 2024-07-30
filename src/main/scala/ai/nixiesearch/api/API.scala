@@ -1,7 +1,9 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.api.SearchRoute.ErrorResponse
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.Config
+import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.StandaloneMode.{error, info}
@@ -10,17 +12,20 @@ import cats.data.Kleisli
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import com.comcast.ip4s.{Hostname as SHostname, Port as SPort}
-import org.http4s.{Header, Headers, HttpApp, HttpRoutes, Request, Status}
+import org.http4s.{Header, Headers, HttpApp, HttpRoutes, Request, Response, Status}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.{ErrorAction, Logger}
 import cats.implicits.*
+import org.http4s.Entity.Strict
 import org.http4s.Header.ToRaw
 import org.http4s.server.middleware.CORS
 import org.http4s.server.websocket.WebSocketBuilder
 import org.typelevel.ci.CIString
+import scodec.bits.ByteVector
 
 import scala.concurrent.duration.Duration
+import io.circe.syntax.*
 
 object API extends Logging {
 
@@ -28,7 +33,7 @@ object API extends Logging {
     val withMiddleware = Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(
       ErrorAction.httpRoutes(routes, (req, err) => error(err.toString, err))
     )
-    Router("/" -> withMiddleware).orNotFound
+    Router("/" -> withMiddleware).orNotFound.handleErrorWith(ErrorHandler.handle)
   }
 
   def start(
@@ -58,4 +63,5 @@ object API extends Logging {
       api.build
     }
   }
+
 }
