@@ -34,7 +34,7 @@ class SearchAndFilterTest extends SearchTest with Matchers {
       val results =
         index.search(
           query = MatchQuery("title", "dress"),
-          filters = Filters(include = Some(TermPredicate("color", "red")))
+          filters = Some(Filters(include = Some(TermPredicate("color", "red"))))
         )
       results shouldBe List("3")
     }

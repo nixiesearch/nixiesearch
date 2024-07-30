@@ -3,6 +3,9 @@ searcher:
     host: localhost
     port: 8080
 
+core:
+  cache:
+    dir: /cache
 
 schema:
   helloworld:

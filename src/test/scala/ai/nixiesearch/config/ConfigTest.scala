@@ -27,6 +27,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     parsed shouldBe Right(
       Config(
         indexer = IndexerConfig(),
+        core = CoreConfig(
+          cache = CacheConfig(
+            dir = "/cache"
+          )
+        ),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(

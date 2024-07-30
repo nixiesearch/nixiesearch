@@ -27,7 +27,7 @@ schema:
         type: text
         search: 
           type: semantic
-          model: nixiesearch/e5-small-v2-onnx?modelFile=model_opt2_QInt8.onnx
+          model: nixiesearch/e5-small-v2-onnx?file=model_opt2_QInt8.onnx
 ```
 
 ## Converted models

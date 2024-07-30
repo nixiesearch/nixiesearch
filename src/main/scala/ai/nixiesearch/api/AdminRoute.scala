@@ -10,11 +10,12 @@ import org.http4s.dsl.io.*
 import io.circe.syntax.*
 import io.circe.generic.semiauto.*
 import org.http4s.circe.*
+import org.http4s.server.websocket.WebSocketBuilder
 
 case class AdminRoute(config: Config) extends Route {
   import AdminRoute.given
 
-  val routes = HttpRoutes.of[IO] {
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / "_config"  => Ok(config)
     case GET -> Root / "_indexes" => Ok(IndexListResponse(config.schema.keys.toList))
     case GET -> Root / "_indices" => Ok(IndexListResponse(config.schema.keys.toList))

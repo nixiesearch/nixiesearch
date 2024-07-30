@@ -1,75 +1,66 @@
 package ai.nixiesearch.core.nn.model
 
+import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
 import cats.effect.IO
-import org.apache.commons.lang3.SystemUtils
-import fs2.io.file.Files
-import fs2.io.readInputStream
-import org.apache.commons.io.IOUtils
+import fs2.io.file.{Files, Path as Fs2Path}
+import fs2.Stream
+import fs2.io.writeOutputStream
 
-import java.io.{ByteArrayInputStream, File, FileInputStream}
-import java.nio.file.Path
+import java.io.FileOutputStream
+import java.nio.file.{Paths, Path as NioPath}
 
-case class ModelFileCache(cacheDir: String) extends Logging {
-  def getIfExists(dir: String, file: String): IO[Option[Array[Byte]]] = for {
-    targetFile <- IO(new File(cacheDir + File.separator + dir + File.separator + file))
-    contents <- targetFile.exists() match {
-      case true  => IO(Some(IOUtils.toByteArray(new FileInputStream(targetFile))))
-      case false => IO.none
-    }
-  } yield {
-    contents
+case class ModelFileCache(dir: NioPath) extends Logging {
+  def exists(key: CacheKey): IO[Boolean] = Files[IO].exists(Fs2Path.fromNioPath(key.resolve(dir)))
+
+  def getIfExists(key: CacheKey): IO[Option[NioPath]] = exists(key).flatMap {
+    case true  => get(key).map(path => Some(path))
+    case false => IO.none
   }
+  def get(key: CacheKey): IO[NioPath] =
+    exists(key).flatMap {
+      case false => IO.raiseError(BackendError(s"trying to read cached file $key, but it's missing"))
+      case true  => IO(key.resolve(dir))
+    }
 
-  def put(dir: String, file: String, bytes: Array[Byte]): IO[Unit] = for {
-    targetDir  <- IO(new File(cacheDir + File.separator + dir))
-    targetFile <- IO(new File(cacheDir + File.separator + dir + File.separator + file))
-    _          <- IO.whenA(!targetDir.exists())(IO(targetDir.mkdirs()))
-    _          <- info(s"writing cache file $dir/$file")
-    _ <- readInputStream[IO](IO(new ByteArrayInputStream(bytes)), 1024)
-      .through(Files[IO].writeAll(fs2.io.file.Path(targetFile.toString)))
-      .compile
-      .drain
-  } yield {}
+  def put(key: CacheKey, bytes: Stream[IO, Byte]): IO[Unit] = {
+    exists(key).flatMap {
+      case true => IO.raiseError(BackendError(s"trying to write a cache file for $key, but it already exists"))
+      case false =>
+        for {
+          modelFilePath   <- IO(key.resolve(dir))
+          parent          <- IO(modelFilePath.getParent)
+          parentDirExists <- Files[IO].exists(Fs2Path.fromNioPath(modelFilePath.getParent))
+          _               <- IO.whenA(!parentDirExists)(Files[IO].createDirectories(Fs2Path.fromNioPath(parent)))
+          parentDirIsDir  <- Files[IO].isDirectory(Fs2Path.fromNioPath(parent))
+          _ <- IO.whenA(!parentDirIsDir)(
+            IO.raiseError(BackendError(s"model cache dir has wrong structure: $parent should be dir, but it's a file"))
+          )
+          _ <- bytes.through(writeOutputStream[IO](IO(new FileOutputStream(modelFilePath.toFile)))).compile.drain
+          _ <- debug(s"cached $key to $modelFilePath")
+        } yield {}
+    }
+  }
 }
 
 object ModelFileCache extends Logging {
-  def create() = {
-    for {
-      topDir   <- cacheDir()
-      nixieDir <- IO(new File(topDir.toString + File.separator + "nixiesearch"))
-      _ <- IO.whenA(!nixieDir.exists())(
-        info(s"cache dir $nixieDir is not present, creating") *> IO(nixieDir.mkdirs())
-      )
-      _ <- info(s"using $nixieDir as local cache dir")
-    } yield {
-      ModelFileCache(nixieDir.toString)
-    }
+  case class CacheKey(ns: String, name: String, fileName: String) {
+    def resolve(dir: NioPath): NioPath =
+      dir.resolve(ns).resolve(name).resolve(fileName)
   }
 
-  def cacheDir() = IO {
-    val fallback = Path.of(System.getProperty("java.io.tmpdir"))
-    val dir = if (SystemUtils.IS_OS_WINDOWS) {
-      Option(System.getenv("LOCALAPPDATA")).map(path => Path.of(path)).filter(_.toFile.exists()).getOrElse(fallback)
-    } else if (SystemUtils.IS_OS_MAC) {
-      Option(System.getProperty("user.home"))
-        .map(home => s"$home/Library/Caches")
-        .map(path => Path.of(path))
-        .filter(_.toFile.exists())
-        .getOrElse(fallback)
-    } else if (SystemUtils.IS_OS_LINUX) {
-      val default = Option(System.getProperty("user.home"))
-        .map(home => s"$home/.cache")
-        .map(path => Path.of(path))
-        .filter(_.toFile.exists())
-      Option(System.getenv("XDG_CACHE_HOME"))
-        .map(path => Path.of(path))
-        .filter(_.toFile.exists())
-        .orElse(default)
-        .getOrElse(fallback)
-    } else {
-      fallback
-    }
-    dir
+  def create(dir: NioPath): IO[ModelFileCache] = for {
+    modelCacheDir <- IO(dir.resolve("models"))
+    _             <- debug(s"using $modelCacheDir as model cache dir")
+    dirExists     <- Files[IO].exists(Fs2Path.fromNioPath(modelCacheDir))
+    _ <- IO.whenA(!dirExists)(
+      info(s"model cache dir $modelCacheDir does not exist, creating") *> Files[IO].createDirectories(
+        Fs2Path.fromNioPath(modelCacheDir)
+      )
+    )
+  } yield {
+    ModelFileCache(modelCacheDir)
   }
 }

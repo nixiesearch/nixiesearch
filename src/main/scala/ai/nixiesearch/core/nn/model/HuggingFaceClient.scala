@@ -6,7 +6,7 @@ import ai.nixiesearch.core.nn.model.HuggingFaceClient.ModelResponse
 import ai.nixiesearch.core.nn.model.HuggingFaceClient.ModelResponse.Sibling
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import fs2.Stream
+import fs2.{Chunk, Stream}
 import io.circe.Codec
 import io.circe.generic.semiauto.{deriveCodec, deriveDecoder}
 import org.http4s.circe.*
@@ -15,77 +15,77 @@ import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.{EntityDecoder, Request, Uri}
 import org.typelevel.ci.CIString
 import ai.nixiesearch.core.Error.*
-import java.io.{ByteArrayOutputStream, File}
+import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
+import fs2.io.readInputStream
+
+import java.io.{ByteArrayOutputStream, File, FileInputStream}
 import scala.concurrent.duration.*
 import io.circe.syntax.*
 import io.circe.parser.*
+import cats.implicits.*
+
+import java.nio.ByteBuffer
+import java.nio.file.{Files, Path}
 
 case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFileCache) extends Logging {
-
+  val MODEL_FILE                                                      = "model_card.json"
   implicit val modelResponseDecoder: EntityDecoder[IO, ModelResponse] = jsonOf[IO, ModelResponse]
 
-  def model(handle: HuggingFaceHandle) = for {
-    modelDirName <- IO(handle.asList.mkString(File.separator))
-    response <- cache.getIfExists(modelDirName, "model.json").flatMap {
-      case Some(value) =>
-        info("found cached model.json card") *> IO.fromEither(decode[ModelResponse](new String(value)))
+  def model(handle: HuggingFaceHandle): IO[ModelResponse] =
+    cache.getIfExists(CacheKey(handle.ns, handle.name, MODEL_FILE)).flatMap {
+      case Some(path) =>
+        info(s"found cached $MODEL_FILE card") *> IO.fromEither(decode[ModelResponse](Files.readString(path)))
       case None =>
         for {
           request  <- IO(Request[IO](uri = endpoint / "api" / "models" / handle.ns / handle.name))
           _        <- info(s"sending HuggingFace API request $request")
           response <- client.expect[ModelResponse](request)
-          _        <- cache.put(modelDirName, "model.json", response.asJson.spaces2.getBytes())
+          _ <- cache.put(
+            key = CacheKey(handle.ns, handle.name, MODEL_FILE),
+            bytes = Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(response.asJson.spaces2.getBytes())))
+          )
         } yield {
           response
         }
     }
-  } yield {
-    response
-  }
 
-  def modelFile(handle: HuggingFaceHandle, fileName: String): IO[Array[Byte]] = {
+  def modelFile(handle: HuggingFaceHandle, fileName: String): Stream[IO, Byte] = {
     get(endpoint / handle.ns / handle.name / "resolve" / "main" / fileName)
   }
 
-  def get(uri: Uri): IO[Array[Byte]] =
-    client
-      .stream(Request[IO](uri = uri))
-      .evalTap(_ => info(s"sending HuggingFace API request for a file $uri"))
-      .evalMap(response =>
-        response.status.code match {
-          case 200 =>
-            info("HuggingFace API: HTTP 200") *> response.entity.body
-              .through(PrintProgress.bytes)
-              .compile
-              .foldChunks(new ByteArrayOutputStream())((acc, c) => {
-                acc.writeBytes(c.toArray)
-                acc
-              })
-              .map(_.toByteArray)
-          case 302 =>
-            response.headers.get(CIString("Location")) match {
-              case Some(locations) =>
-                Uri.fromString(locations.head.value) match {
-                  case Left(value) => IO.raiseError(value)
-                  case Right(uri)  => info("302 redirect") *> get(uri)
-                }
-              case None => IO.raiseError(BackendError(s"Got 302 redirect without location"))
+  def get(uri: Uri): Stream[IO, Byte] = for {
+    response <- client.stream(Request[IO](uri = uri))
+    _        <- Stream.eval(info(s"sending HuggingFace API request for a file $uri"))
+    byte <- response.status.code match {
+      case 200 => response.entity.body.through(PrintProgress.bytes)
+      case 302 =>
+        response.headers.get(CIString("Location")) match {
+          case Some(locations) =>
+            Uri.fromString(locations.head.value) match {
+              case Left(value) => Stream.raiseError[IO](BackendError(value.message))
+              case Right(uri)  => Stream.eval(info(s"redirect to $uri")) *> get(uri)
             }
-          case other => IO.raiseError(BackendError(s"HTTP code $other"))
+          case None => Stream.raiseError[IO](BackendError("No location header"))
         }
-      )
-      .compile
-      .fold(new ByteArrayOutputStream())((acc, c) => {
-        acc.writeBytes(c)
-        acc
-      })
-      .map(_.toByteArray)
+      case other => Stream.raiseError[IO](BackendError(s"HTTP code $other"))
+    }
+  } yield {
+    byte
+  }
 
-  def getCached(handle: HuggingFaceHandle, file: String): IO[Array[Byte]] = for {
-    modelDirName <- IO(handle.asList.mkString(File.separator))
-    bytes <- cache.getIfExists(modelDirName, file).flatMap {
-      case Some(bytes) => info(s"found $file in cache") *> IO.pure(bytes)
-      case None        => modelFile(handle, file).flatTap(bytes => cache.put(modelDirName, file, bytes))
+  def getCached(handle: HuggingFaceHandle, file: String): IO[Path] = for {
+    cached <- cache.getIfExists(CacheKey(handle.ns, handle.name, file))
+    bytes <- cached match {
+      case Some(path) =>
+        info(s"found cached $path file for requested ${handle.ns}/${handle.name}/$file") *> IO.pure(path)
+      case None =>
+        for {
+          _    <- info(s"not found $file in cache")
+          _    <- cache.put(CacheKey(handle.ns, handle.name, file), modelFile(handle, file))
+          path <- cache.get(CacheKey(handle.ns, handle.name, file))
+        } yield {
+          path
+        }
     }
   } yield {
     bytes

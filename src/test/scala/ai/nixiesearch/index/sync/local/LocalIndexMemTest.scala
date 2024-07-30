@@ -3,7 +3,7 @@ package ai.nixiesearch.index.sync
 import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation
-import ai.nixiesearch.config.{CacheConfig, StoreConfig}
+import ai.nixiesearch.config.{IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.index.Searcher
 import ai.nixiesearch.util.TestIndexMapping
 import org.scalatest.flatspec.AnyFlatSpec

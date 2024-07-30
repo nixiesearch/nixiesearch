@@ -11,13 +11,14 @@ import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import cats.effect.IO
 import cats.implicits.*
+import org.http4s.server.websocket.WebSocketBuilder
 
 object StandaloneMode extends Logging {
   def run(args: StandaloneArgs): IO[Unit] = for {
     _      <- info("Starting in 'standalone' mode with indexer+searcher colocated within a single process")
     config <- Config.load(args.config)
     _ <- config.schema.values.toList
-      .map(im => Index.local(im))
+      .map(im => Index.local(im, config.core.cache))
       .sequence
       .use(indexes =>
         indexes
@@ -46,13 +47,16 @@ object StandaloneMode extends Logging {
                       )
                       .reduce(_ <+> _)
                   )
+                  searchRoutesWss <- IO((wsb: WebSocketBuilder[IO]) =>
+                    searchers.map(s => SearchRoute(s).wsroutes(wsb)).reduce(_ <+> _)
+                  )
                   health <- IO(HealthRoute())
                   routes <- IO(
                     indexRoutes <+> searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(
                       searchers.map(_.index)
                     ).routes
                   )
-                  server <- API.start(routes, config.searcher.host, config.searcher.port)
+                  server <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
                   _      <- Logo.lines.map(line => info(line)).sequence
                   _      <- server.use(_ => IO.never)
                 } yield {}

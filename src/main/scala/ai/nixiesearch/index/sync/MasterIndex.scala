@@ -1,10 +1,11 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig}
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
@@ -16,7 +17,7 @@ import fs2.Stream
 
 case class MasterIndex(
     mapping: IndexMapping,
-    encoders: BiEncoderCache,
+    models: Models,
     master: StateClient,
     replica: StateClient,
     directory: Directory,
@@ -27,7 +28,11 @@ case class MasterIndex(
 }
 
 object MasterIndex extends Logging {
-  def create(configMapping: IndexMapping, conf: DistributedStoreConfig): Resource[IO, MasterIndex] =
+  def create(
+      configMapping: IndexMapping,
+      conf: DistributedStoreConfig,
+      cacheConfig: CacheConfig
+  ): Resource[IO, MasterIndex] =
     for {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
       directory    <- LocalDirectory.fromRemote(conf.indexer, replicaState, configMapping.name)
@@ -35,13 +40,13 @@ object MasterIndex extends Logging {
 
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       handles  <- Resource.pure(manifest.mapping.modelHandles())
-      encoders <- BiEncoderCache.create(handles, configMapping.cache.embedding)
+      models   <- Models.create(handles, configMapping.rag.models, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(
           MasterIndex(
             mapping = manifest.mapping,
-            encoders = encoders,
+            models = models,
             master = masterState,
             replica = replicaState,
             directory = directory,

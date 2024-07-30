@@ -65,35 +65,35 @@ object RangeFilterTest {
 
     it should "select all on wide range" in withIndex { index =>
       {
-        val result = index.search(filters = Filters(include = Some(RangeGtLt("field", Gte(0), Lte(100)))))
+        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(0), Lte(100))))))
         result shouldBe List("1", "2", "3", "4")
       }
     }
 
     it should "select none on out-of-range" in withIndex { index =>
       {
-        val result = index.search(filters = Filters(include = Some(RangeGtLt("field", Gte(100), Lte(200)))))
+        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(100), Lte(200))))))
         result shouldBe Nil
       }
     }
 
     it should "select subset" in withIndex { index =>
       {
-        val result = index.search(filters = Filters(include = Some(RangeGtLt("field", Gte(12), Lte(22)))))
+        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(12), Lte(22))))))
         result shouldBe List("2", "3")
       }
     }
 
     it should "include the borders" in withIndex { index =>
       {
-        val result = index.search(filters = Filters(include = Some(RangeGtLt("field", Gte(10), Lte(20)))))
+        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(10), Lte(20))))))
         result shouldBe List("1", "2", "3")
       }
     }
 
     it should "exclude the borders" in withIndex { index =>
       {
-        val result = index.search(filters = Filters(include = Some(RangeGtLt("field", Gt(10), Lt(20)))))
+        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gt(10), Lt(20))))))
         result shouldBe List("2")
       }
     }

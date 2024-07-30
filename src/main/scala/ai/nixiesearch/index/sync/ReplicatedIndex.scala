@@ -1,9 +1,9 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.{CacheConfig, StoreConfig}
+import ai.nixiesearch.config.{IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.StateClient

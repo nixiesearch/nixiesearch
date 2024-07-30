@@ -1,8 +1,9 @@
 package ai.nixiesearch.index.sync
-import ai.nixiesearch.config.{CacheConfig, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.store.StateClient.StateError
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
@@ -17,7 +18,7 @@ import java.nio.ByteBuffer
 
 case class LocalIndex(
     mapping: IndexMapping,
-    encoders: BiEncoderCache,
+    models: Models,
     master: StateClient,
     directory: Directory,
     seqnum: Ref[IO, Long]
@@ -41,20 +42,21 @@ case class LocalIndex(
 object LocalIndex extends Logging {
   def create(
       configMapping: IndexMapping,
-      config: StoreConfig.LocalStoreConfig
+      config: StoreConfig.LocalStoreConfig,
+      cacheConfig: CacheConfig
   ): Resource[IO, LocalIndex] = {
     for {
       directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       handles   <- Resource.pure(manifest.mapping.modelHandles())
-      encoders  <- BiEncoderCache.create(handles, configMapping.cache.embedding)
+      models    <- Models.create(handles, configMapping.rag.models, cacheConfig)
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(
         LocalIndex(
           mapping = manifest.mapping,
-          encoders = encoders,
+          models = models,
           master = state,
           directory = directory,
           seqnum = seqnum
@@ -66,8 +68,10 @@ object LocalIndex extends Logging {
   }
 
   def readOrCreateManifest(state: StateClient, configMapping: IndexMapping): IO[IndexManifest] = {
-    state.readManifest().flatMap {
-      case None =>
+    state.readManifest().attempt.flatMap {
+      case Left(e) =>
+        error(s"cannot decode index.json for index ${configMapping.name.value}", e) *> IO.raiseError(e)
+      case Right(None) =>
         for {
           _        <- info("index dir does not contain manifest, creating...")
           manifest <- state.createManifest(configMapping, 0L)
@@ -78,7 +82,7 @@ object LocalIndex extends Logging {
         } yield {
           manifest
         }
-      case Some(indexManifest) =>
+      case Right(Some(indexManifest)) =>
         for {
           mergedMapping <- indexManifest.mapping.migrate(configMapping)
           manifest      <- state.createManifest(mergedMapping, indexManifest.seqnum)

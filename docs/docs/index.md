@@ -10,28 +10,28 @@
 
 Nixiesearch is a hybrid search engine that fine-tunes to your data. 
 
-* Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
-* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/config/languages.md), [facets](reference/api/search/facet.md), [advanced filters](reference/api/search/filter.md), [autocomplete suggestions](reference/api/suggest.md) and [sorting](TODO) out of the box.
 * Designed to be cloud-native with [S3-compatible index persistence](reference/config/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
-
+* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/config/languages.md), [facets](reference/api/search/facet.md), [advanced filters](reference/api/search/filter.md), [autocomplete suggestions](reference/api/suggest.md) and [sorting](TODO) out of the box.
+* Batteries included: fully local [RAG queries](concepts/search.md) and [vector search](reference/config/models.md) within a [single app](install.md). 
+* Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
 > Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
 
 ### Why Nixiesearch?
 
 Unlike some of the other vector search engines:
 
-* **Supports facets, rich boolean filtering, sorting and autocomplete**: things you got used to in traditional search engines.
+* **Supports [facets](reference/api/search/facet.md), [rich filtering](reference/api/search/filter.md), sorting and [autocomplete](reference/api/suggest.md)**: things you got used to in traditional search engines.
 * **Text in, text out**: LLM embedding is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 
-The project is in active development and not intended for production use *just yet*. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
+The project is in active development and does not yet have backwards compatibility for configuration and data. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
 
 ### Why NOT Nixiesearch?
 
 Nixiesearch has the following design limitations:
 
 * **Does not support sharding**: sharding requires multi-node coordination and consensus, and we would like to avoid having any distributed state in the cluster - at least in the v1. If you plan to use Nixiesearch for searching 1TB of logs, please don't: consider [ELK](https://www.elastic.co/elastic-stack) or [Quickwit](https://github.com/quickwit-oss/quickwit) as better alternatives.
-* **Query language is simple**: supporting analytical queries over deeply-nested documents is out of scope for the project. Nixiesearch is about search, and for analytical databases consider using [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
+* **Query language is simple**: supporting analytical queries over deeply-nested documents is out of scope for the project. Nixiesearch is about consumer-facing search, and for analytical cases consider using [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
 
 ## Usage
 

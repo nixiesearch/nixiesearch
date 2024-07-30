@@ -2,7 +2,6 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema}
 import ai.nixiesearch.core.Field.{FloatField, IntField}
-import ai.nixiesearch.core.nn.model.OnnxBiEncoder
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   NumericDocValuesField,

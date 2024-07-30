@@ -1,0 +1,21 @@
+searcher:
+  api:
+    host: localhost
+    port: 8080
+
+schema:
+  movies:
+    rag:
+      models:
+        - handle: Qwen/Qwen2-0.5B-Instruct-GGUF?file=qwen2-0_5b-instruct-q4_0.gguf
+          prompt: qwen2
+          name: qwen2
+    fields:
+      title:
+        type: text
+        search: semantic
+        suggest: true
+      overview:
+        type: text
+        search: semantic
+        suggest: true

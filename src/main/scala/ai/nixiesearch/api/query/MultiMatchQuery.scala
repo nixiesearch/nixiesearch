@@ -7,7 +7,6 @@ import ai.nixiesearch.api.query.MatchQuery.Operator.OR
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.config.mapping.{IndexMapping, Language, SearchType}
-import ai.nixiesearch.core.nn.model.BiEncoderCache
 import ai.nixiesearch.index
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder}

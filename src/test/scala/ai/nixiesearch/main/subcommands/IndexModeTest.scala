@@ -1,5 +1,6 @@
 package ai.nixiesearch.main.subcommands
 
+import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -34,7 +35,8 @@ class IndexModeTest extends AnyFlatSpec with Matchers {
             index = "movies"
           )
         ),
-        "movies"
+        cacheConfig = CacheConfig(),
+        index = "movies"
       )
       .unsafeRunSync()
   }
