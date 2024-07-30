@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.SearchRoute
-import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponseFrame}
 import ai.nixiesearch.config.mapping.RAGConfig
 import ai.nixiesearch.config.mapping.RAGConfig.PromptTemplate.Qwen2Template
 import ai.nixiesearch.config.mapping.RAGConfig.RAGModelConfig
@@ -44,9 +44,17 @@ class RAGTest extends SearchTest with Matchers {
           )
         )
       )
-      val api      = SearchRoute(index.searcher)
-      val response = api.searchStreaming(request).compile.toList.unsafeRunSync()
-      val br       = 1
+      val api = SearchRoute(index.searcher)
+      val response = api
+        .searchStreaming(request)
+        .collect { case SearchResponseFrame.RAGResponseFrame(value) =>
+          value
+        }
+        .compile
+        .toList
+        .unsafeRunSync()
+      val text = response.map(_.token).mkString("")
+      text shouldBe "The search query \"dress\" refers to a type of dress, specifically a red dress."
     }
   }
 }

@@ -31,7 +31,7 @@ For such a search request, Nixiesearch will reply with a JSON response with top-
 }
 ```
 
-`_id` and `_score` are built-in fields always present in the payload. 
+`_id` and `_score` are built-in fields always present in the document payload. 
 
 > Compared to Elasticsearch/Opensearch, Nixiesearch has no built-in `_source` field as it is frequently mis-used. You need to explicitly mark fields you want to be present in response payload as `store: true` in the [index mapping](../reference/config/mapping.md).
 

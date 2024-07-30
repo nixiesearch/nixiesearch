@@ -1,6 +1,13 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{
+  RAGRequest,
+  RAGResponse,
+  SearchRequest,
+  SearchResponse,
+  SuggestRequest,
+  SuggestResponse
+}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
@@ -34,6 +41,7 @@ import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
+import ai.nixiesearch.util.{DurationStream, StreamMark}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
@@ -116,26 +124,35 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     SearchResponse(
       took = end - start,
       hits = collected,
-      aggs = aggs
+      aggs = aggs,
+      id = request.id,
+      ts = end
     )
   }
 
-  def rag(docs: List[Document], request: RAGRequest): Stream[IO, String] = for {
-    prompt <- Stream.eval(IO(s"${request.prompt}\n\n${docs
-        .take(request.topDocs)
-        .map(doc =>
-          doc.fields
-            .collect {
-              case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
-                s"$name: $value"
-            }
-            .mkString(" ")
-        )
-        .mkString("\n\n")}"))
-    _     <- Stream.eval(debug(s"prompt: ${prompt}"))
-    token <- index.models.generative.generate(ModelId(request.model), prompt, request.maxResponseLength)
-  } yield {
-    token
+  def rag(docs: List[Document], request: RAGRequest, id: Option[String]): Stream[IO, RAGResponse] = {
+    val stream = for {
+      prompt <- Stream.eval(IO(s"${request.prompt}\n\n${docs
+          .take(request.topDocs)
+          .map(doc =>
+            doc.fields
+              .collect {
+                case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
+                  s"$name: $value"
+              }
+              .mkString(" ")
+          )
+          .mkString("\n\n")}"))
+      _     <- Stream.eval(debug(s"prompt: ${prompt}"))
+      start <- Stream.eval(IO(System.currentTimeMillis()))
+      (token, took) <- index.models.generative
+        .generate(ModelId(request.model), prompt, request.maxResponseLength)
+        .through(DurationStream.pipe(start))
+      now <- Stream.eval(IO(System.currentTimeMillis()))
+    } yield {
+      RAGResponse(id = id, token = token, ts = now, took = took, last = false)
+    }
+    stream.through(StreamMark.pipe[RAGResponse](tail = tok => tok.copy(last = true)))
   }
 
   def fieldQuery(
