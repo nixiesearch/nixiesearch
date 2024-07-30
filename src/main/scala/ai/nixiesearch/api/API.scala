@@ -29,7 +29,6 @@ object API extends Logging {
       ErrorAction.httpRoutes(routes, (req, err) => error(err.toString, err))
     )
     Router("/" -> withMiddleware).orNotFound
-      .map(resp => resp.copy(headers = Headers(Header.Raw(CIString("Access-Control-Allow-Origin"), "*"))))
   }
 
   def start(
