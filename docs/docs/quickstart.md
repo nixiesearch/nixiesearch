@@ -207,7 +207,7 @@ If you want to continue learning about Nixiesearch, these sections of documentat
 
 * [An overview of Nixiesearch design](concepts/difference.md) to understand how it differs from existing search engines.
 * Using [Filters](concepts/search.md#filters) and [Facets](concepts/search.md#facets) while searching.
-* [How it should be deployed](concepts/deploy.md) in a production environment.
+* [How it should be deployed](deployment/index) in a production environment.
 * Building [semantic autocomplete](concepts/autocomplete.md) index for search-as-you-type support.
 
 If you have a question not covered in these docs and want to chat with the team behind Nixiesearch, you're welcome to join our [Community Slack](https://communityinviter.com/apps/nixiesearch/nixiesearch)

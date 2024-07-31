@@ -55,7 +55,7 @@ Primary offline indexing use-case is batch and full-reindex jobs:
 * when you changed index mapping by adding/altering a field and need to re-process the whole document corpus.
 * when performing major non-backwards compatible Nixiesearch upgrades.
 
-Nixiesearch can load a [JSONL document format](../api/index/document-format.md) from a [local, HTTP or S3 hosted file or directory](../config/url.md).
+Nixiesearch can load a [JSONL document format](../../features/indexing/format) from a [local, HTTP or S3 hosted file or directory](../config/url.md).
 
 > Make sure that field names in your source documents and in index mapping match! Nixiesearch will normally ignore non-mapped fields, but incompatible field formats (e.g. in JSON it's string, but in mapping it's an integer) will result in an error. 
 

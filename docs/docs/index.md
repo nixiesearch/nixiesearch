@@ -10,9 +10,9 @@
 
 Nixiesearch is a **hybrid search engine** that fine-tunes to your data. 
 
-* Designed to be cloud-native with [S3-compatible index persistence](reference/config/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
-* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/config/languages.md), [facets](reference/api/search/facet.md), [advanced filters](reference/api/search/filter.md), [autocomplete suggestions](reference/api/suggest.md) and [sorting](TODO) out of the box.
-* Batteries included: fully local [RAG queries](concepts/search.md) and [vector search](reference/config/models.md) within a [single app](install.md). 
+* Designed to be cloud-native with [S3-compatible index persistence](deployment/distributed/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
+* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/languages.md), [facets](features/search/facet.md), [advanced filters](features/search/filter.md), [autocomplete suggestions](features/autocomplete/index.md) and [sorting](features/search/sort.md) out of the box.
+* Batteries included: fully local [RAG queries](features/search/rag.md) and [vector search](reference/models.md) within a [single app](deployment/standalone.md). 
 * Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
 > Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
 
@@ -20,13 +20,13 @@ Nixiesearch is a **hybrid search engine** that fine-tunes to your data.
 
 Unlike Elastic/SOLR:
 
-* Can run over [S3-compatible block storage](TODO): Rapid auto-scaling (even down to zero!) and much easier operations (your index is just a directory in S3 bucket!)
-* [RAG](TODO),  [text](TODO) and [image](TODO) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
+* Can run over [S3-compatible block storage](deployment/distributed/persistence/s3.md): Rapid auto-scaling (even down to zero!) and much easier operations (your index is just a directory in S3 bucket!)
+* [RAG](features/search/rag.md),  [text](features/search/query.md) and [image](TODO) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
 * All LLM inference [can be run fully locally](TODO), no need to send all your queries and private documents to OpenAI API. But [you can](TODO), if you wish.
 
 Unlike other vector search engines:
 
-* **Supports [facets](reference/api/search/facet.md), [rich filtering](reference/api/search/filter.md), sorting and [autocomplete](reference/api/suggest.md)**: things you got used to in traditional search engines.
+* **Supports [facets](features/search/facet.md), [rich filtering](features/search/filter.md), sorting and [autocomplete](features/autocomplete/index.md)**: things you got used to in traditional search engines.
 * **Text in, text out**: [text embedding](TODO) is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 

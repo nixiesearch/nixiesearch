@@ -117,53 +117,52 @@ nav:
       - index.md
       - Quickstart: quickstart.md
     - Features:
-        - Building index: concepts/indexing.md
-        - Search: concepts/search.md
-        - Autocomplete: concepts/autocomplete.md
-        - Deployment: concepts/deploy.md
-    - Deployment:
-        - Overview: deployment/overview.md
-        - Standalone: deployment/standalone.md
-        - Distributed: deployment/distributed.md
-        - Kafka pull-based indexing: deployment/kafka.md
+      - Indexing:
+          - features/indexing/index.md
+          - Index mapping: features/indexing/mapping.md
+          - Document format: features/indexing/format.md
+          - Field types: features/indexing/field-types.md
+          - REST API: features/indexing/api.md
+      - Search:
+          - features/search/index.md
+          - Query DSL: features/search/query.md
+          - Filters: features/search/filter.md
+          - Facets: features/search/facet.md
+          - Sorting: features/search/sort.md
+          - RAG: features/search/rag.md
+          - REST API: features/search/request.md
+      - Autocomplete:
+          - features/autocomplete/index.md
+      - Deployment:
+          - deployment/index.md
+          - Standalone: deployment/standalone.md
+          - Distributed:
+              - deployment/distributed/index.md
+              - Persistence:
+                  - deployment/distributed/persistence/index.md
+                  - S3: deployment/distributed/persistence/s3.md
+                  - Local directory: deployment/distributed/persistence/local.md
+                  - In-memory: deployment/distributed/persistence/inmem.md
+              - Indexing:
+                  - deployment/distributed/indexing/index.md
+                  - Apache Kafka: deployment/distributed/indexing/kafka.md
+                  - File: deployment/distributed/indexing/file.md
     - Reference:
-        - API:
-            - reference/api/index.md
-            - Index:
-                - Field types: reference/api/index/field-types.md
-                - Document format: reference/api/index/document-format.md
-                - REST Endpoint: reference/api/index/ingestion.md
-            - Search:
-                - Request JSON format: reference/api/search/request.md
-                - Query DSL: reference/api/search/query.md
-                - Filters: reference/api/search/filter.md
-                - Facets: reference/api/search/facet.md
-            - Suggest: reference/api/suggest.md
-            - System endpoints:
-              - Metrics: reference/api/admin/metrics.md
-              - Config: reference/api/admin/config.md
-              - Indices: reference/api/admin/list-indices.md
-              - Stats: reference/api/admin/stats.md
-        - Configuration:
-            - Overview: reference/config/overview.md
-            - API: reference/config/api.md
-            - Persistence:
-                - Overview: reference/config/persistence/overview.md
-                - In-memory: reference/config/persistence/inmemory.md
-                - Local file: reference/config/persistence/file.md
-                - S3: reference/config/persistence/s3.md
-            - Autocomplete index: reference/config/autocomplete.md
-            - Index mapping:
-                - Overview: reference/config/mapping.md
-                - URL formats: reference/config/url.md
-            - Caching: reference/config/cache.md
-            - Supported embedding models: reference/config/models.md
-            - Language support: reference/config/languages.md
-        - Command-line interface:
+        - CLI options:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md
             - nixiesearch search: reference/cli/search.md
-#            - nixiesearch finetune: reference/cli/finetune.md
+        - System API:
+            - Metrics: reference/api/admin/metrics.md
+            - Config: reference/api/admin/config.md
+            - Indices: reference/api/admin/list-indices.md
+            - Stats: reference/api/admin/stats.md
+        - Caching: reference/cache.md
+        - ML models:
+            - reference/models/index.md
+            - Generative: reference/models/generative.md
+            - Embedding: reference/models/embedding.md
+        - Language support: reference/languages.md
   - Blog: https://medium.com/nixiesearch/
   - Slack: https://communityinviter.com/apps/nixiesearch/nixiesearch
   - Contact us: https://communityinviter.com/apps/nixiesearch/nixiesearch
