@@ -93,8 +93,9 @@ schema:
         facet: true
 ```
 
-!!! note
-Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](TODO) field types are currently supported.
+!!! note 
+
+    Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](TODO) field types are currently supported.
 
 See a full [index mapping reference](TODO) for more details on defining indexes.
 
@@ -127,7 +128,8 @@ Options breakdown:
 * `-c /data/config.yml`: use a config file with `movies` index mapping
 
 !!! note
-Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](todo) over S3-compatible block storage.
+
+    Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](todo) over S3-compatible block storage.
 
 ## Indexing data
 
@@ -146,7 +148,8 @@ curl -XPUT -d @movies.jsonl http://localhost:8080/movies/_index
 As Nixiesearch is running an LLM embedding model inference inside, indexing large document corpus on CPU may take a while.
 
 !!! note
-Nixiesearch can also index documents directly from a [local file](todo), [S3 bucket](todo) or [Kafka topic](todo) in a pull-based scenario. Both in realtime and offline. Check [Building index](concepts/indexing.md) reference for more information about indexing your data.
+
+    Nixiesearch can also index documents directly from a [local file](todo), [S3 bucket](todo) or [Kafka topic](todo) in a pull-based scenario. Both in realtime and offline. Check [Building index](concepts/indexing.md) reference for more information about indexing your data.
 
 ## Sending search requests
 
