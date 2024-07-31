@@ -1,4 +1,4 @@
-# Nixiesearch: neural search engine for the rest of us
+# Nixiesearch: batteries included search engine
 
 [![CI Status](https://github.com/nixiesearch/nixiesearch/workflows/Tests/badge.svg)](https://github.com/nixiesearch/nixiesearch/actions)
 [![License: Apache 2](https://img.shields.io/badge/License-Apache2-green.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -8,7 +8,7 @@
 
 ## What is Nixiesearch?
 
-Nixiesearch is a hybrid search engine that fine-tunes to your data. 
+Nixiesearch is a **hybrid search engine** that fine-tunes to your data. 
 
 * Designed to be cloud-native with [S3-compatible index persistence](reference/config/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
 * Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/config/languages.md), [facets](reference/api/search/facet.md), [advanced filters](reference/api/search/filter.md), [autocomplete suggestions](reference/api/suggest.md) and [sorting](TODO) out of the box.
@@ -18,10 +18,16 @@ Nixiesearch is a hybrid search engine that fine-tunes to your data.
 
 ### Why Nixiesearch?
 
-Unlike some of the other vector search engines:
+Unlike Elastic/SOLR:
+
+* Can run over **[S3-compatible block storage](TODO)**: Auto-scaling (even down to zero) and no more cluster rebalance.   
+* **[RAG](TODO),  [text](TODO) and image embeddings** are first class search methods: no need for special hand-written indexing pipelines.
+* 
+
+Unlike other vector search engines:
 
 * **Supports [facets](reference/api/search/facet.md), [rich filtering](reference/api/search/filter.md), sorting and [autocomplete](reference/api/suggest.md)**: things you got used to in traditional search engines.
-* **Text in, text out**: LLM embedding is handled by the search engine, not by you.
+* **Text in, text out**: [text embedding](TODO) is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 
 The project is in active development and does not yet have backwards compatibility for configuration and data. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
