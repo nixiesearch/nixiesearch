@@ -1,6 +1,10 @@
 # Quickstart
 
-This guide shows how to install Nixiesearch on a single machine using Docker. We will run the service in a [standalone](reference/cli/standalone.md) mode, [index](concepts/indexing.md) a corpus of documents and run a couple of [search](concepts/search.md) queries.
+This guide will show you how to run Nixiesearch in a [standalone](TODO) mode on your local machine using Docker. We will:
+
+* start Nixiesearch in [standalone](TODO) mode using Docker
+* [index](TODO) a demo set of documents using [REST API](todo)
+* run a couple of [search queries](TODO)
 
 ## Prerequisites
 
@@ -8,34 +12,67 @@ This guide assumes that you already have the following available:
 
 * Docker: [Docker Desktop](https://docs.docker.com/engine/install/) for Mac/Windows, or Docker for Linux.
 * Operating system: Linux, macOS, Windows with [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install).
-* Architecture: x86_64. On Mac M1+, you need to turn on [Rosetta](https://docs.docker.com/desktop/settings/mac/#general) for x86_64 emulation.
+* Architecture: x86_64 or AArch64.
 * Memory: 2Gb dedicated to Docker.
 
 ## Getting the dataset
 
-For this quickstart we will use a sample of the [MSMARCO](https://microsoft.github.io/msmarco/) dataset, which contains text documents from the [Bing](https://www.bing.com/) search engine. The following command will fetch the sample data to your current directory:
-```shell
-curl -L -O http://nixiesearch.ai/data/msmarco.json
-```
-
-```text
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   162  100   162    0     0   3636      0 --:--:-- --:--:-- --:--:--  3681
-100 32085  100 32085    0     0   226k      0 --:--:-- --:--:-- --:--:--  226k
-
-```
-
-Data format is JSONL, where each line is a separate json object - and there are only two fields inside:
-
-* `_id` - an optional document identifier.
-* `text` - the textual payload we're going to search through.
+For this guide we'll use a [MSRD: Movie Search Ranking Dataset](TODO), which contains textual, categorical and numerical information for each document. Dataset is hosted on Huggingface at [nixiesearch/demo-datasets](https://huggingface.co/datasets/nixiesearch/demo-datasets), each document contains following fields:
 
 ```json
-{"_id":"2637788","text":"2 things, one is ethyol alcohol, and the other is CO2."}
-{"_id":"2815157","text":"Things I wish I had known before I became an academic."}
-{"_id":"2947247","text":"Not to be confused with Auburn Township, Pennsylvania."}
+{
+  "_id": "27205",
+  "title": "Inception",
+  "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: inception, the implantation of another person's idea into a target's subconscious.",
+  "tags": [
+    "alternate reality",
+    "thought-provoking",
+    "visually appealing"
+  ],
+  "genres": [
+    "action",
+    "crime",
+    "drama"
+  ],
+  "director": "Christopher Nolan",
+  "actors": [
+    "Tom Hardy",
+    "Cillian Murphy",
+    "Leonardo DiCaprio"
+  ],
+  "characters": [
+    "Eames",
+    "Robert Fischer",
+  ],
+  "year": 2010,
+  "votes": 32606,
+  "rating": 8.359,
+  "popularity": 91.834,
+  "budget": 160000000,
+  "img_url": "https://image.tmdb.org/t/p/w154/8IB2e4r4oVhHnANbnm7O3Tj6tF8.jpg"
+}
+
 ```
+
+You can download the dataset and unpack it with the following command:
+
+```shell
+$> curl -fLo movies.jsonl.gz https://huggingface.co/datasets/nixiesearch/demo-datasets/resolve/main/data/movies.jsonl.gz
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  1206  100  1206    0     0   4576      0 --:--:-- --:--:-- --:--:--  4585
+100  317k  100  317k    0     0   783k      0 --:--:-- --:--:-- --:--:--  783k
+
+$> gzip -d movies.jsonl.gz
+
+$> ls -l movies.jsonl 
+-rw-r--r-- 1 user user 838910 Jul 31 14:55 movies.jsonl
+```
+
+## Index schema
+
+Unlike other search engines, Nixiesearch requires a strongly-typed description of all the fields of documents you plan to index. As we know that our movie documents from the demo dataset have title and description fields
 
 ## Starting the service
 
