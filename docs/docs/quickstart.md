@@ -2,7 +2,7 @@
 
 This guide will show you how to run Nixiesearch in a [standalone](TODO) mode on your local machine using Docker. We will:
 
-* start Nixiesearch in [standalone](TODO) mode using Docker
+* start Nixiesearch in a [standalone](TODO) mode using Docker
 * [index](TODO) a demo set of documents using [REST API](todo)
 * run a couple of [search queries](TODO)
 
@@ -57,69 +57,86 @@ For this guide we'll use a [MSRD: Movie Search Ranking Dataset](TODO), which con
 You can download the dataset and unpack it with the following command:
 
 ```shell
-$> curl -fLo movies.jsonl.gz https://huggingface.co/datasets/nixiesearch/demo-datasets/resolve/main/data/movies.jsonl.gz
+$> curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
 
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100  1206  100  1206    0     0   4576      0 --:--:-- --:--:-- --:--:--  4585
 100  317k  100  317k    0     0   783k      0 --:--:-- --:--:-- --:--:--  783k
 
-$> gzip -d movies.jsonl.gz
-
-$> ls -l movies.jsonl 
--rw-r--r-- 1 user user 838910 Jul 31 14:55 movies.jsonl
 ```
 
 ## Index schema
 
-Unlike other search engines, Nixiesearch requires a strongly-typed description of all the fields of documents you plan to index. As we know that our movie documents from the demo dataset have title and description fields
+Unlike other search engines, Nixiesearch requires a strongly-typed description of all the fields of documents you plan to index. As we know that our movie documents from the demo dataset have `title`, `description` and some other fields, let's define a `movies` index in a file `config.yml`:
+
+```yaml
+schema:
+  movies: # index name
+    fields:
+      title: # field name
+        type: text
+        search: hybrid
+        language: en # language is needed for lexical search
+        suggest: true
+      overview:
+        type: text
+        search: hybrid
+        language: en
+      genres:
+        type: text[]
+        filter: true
+        facet: true
+      year:
+        type: int
+        filter: true
+        facet: true
+```
+
+!!! note
+Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](TODO) field types are currently supported.
+
+See a full [index mapping reference](TODO) for more details on defining indexes.
 
 ## Starting the service
 
 Nixiesearch is distributed as a Docker container, which can be run with the following command:
 ```shell
-docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
+docker run -itp 8080:8080 -v .:/data nixiesearch/nixiesearch:latest standalone -c /data/config.yml
 ```
 
 ```text
-12:40:47.325 INFO  ai.nixiesearch.main.Main$ - Staring Nixiesearch
-12:40:47.460 INFO  ai.nixiesearch.config.Config$ - No config file given, using defaults
-12:40:47.466 INFO  ai.nixiesearch.config.Config$ - Store: LocalStoreConfig(LocalStoreUrl(/))
-12:40:47.557 INFO  ai.nixiesearch.index.IndexRegistry$ - Index registry initialized: 0 indices, config: LocalStoreConfig(LocalStoreUrl(/))
-12:40:48.253 INFO  o.h.blaze.server.BlazeServerBuilder - 
-███╗   ██╗██╗██╗  ██╗██╗███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
-████╗  ██║██║╚██╗██╔╝██║██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
-██╔██╗ ██║██║ ╚███╔╝ ██║█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
-██║╚██╗██║██║ ██╔██╗ ██║██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
-██║ ╚████║██║██╔╝ ██╗██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
-╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
-                                                                               
-12:40:48.267 INFO  o.h.blaze.server.BlazeServerBuilder - http4s v1.0.0-M38 on blaze v1.0.0-M38 started at http://0.0.0.0:8080/
+a.nixiesearch.index.sync.LocalIndex$ - Local index movies opened
+ai.nixiesearch.index.Searcher$ - opening index movies
+a.n.main.subcommands.StandaloneMode$ - ███╗   ██╗██╗██╗  ██╗██╗███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
+a.n.main.subcommands.StandaloneMode$ - ████╗  ██║██║╚██╗██╔╝██║██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
+a.n.main.subcommands.StandaloneMode$ - ██╔██╗ ██║██║ ╚███╔╝ ██║█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
+a.n.main.subcommands.StandaloneMode$ - ██║╚██╗██║██║ ██╔██╗ ██║██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
+a.n.main.subcommands.StandaloneMode$ - ██║ ╚████║██║██╔╝ ██╗██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
+a.n.main.subcommands.StandaloneMode$ - ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+a.n.main.subcommands.StandaloneMode$ -                                                                                
+o.h.ember.server.EmberServerBuilder - Ember-Server service bound to address: [::]:8080
 ```
 
 Options breakdown:
 
 * `-i` and `-t`: interactive docker mode with allocated TTY. Useful when you want to be able to press Ctrl-C to stop the application.
 * `-p 8080:8080`: expose the port 8080.
+* `-v .:/data`: mount current dir (with a `config.yml` file!) as a `/data` inside the container 
 * `standalone`: a Nixiesearch running mode, with colocated indexer and searcher processes.
+* `-c /data/config.yml`: use a config file with `movies` index mapping
 
-> **Note**: Standalone mode in Nixiesearch is made for testing and does not need a config file. But this mode has its own trade-offs:
-> 
-> * When started from Docker, there is **no persistence**: all your indexed documents are stored in RAM and will be lost after restart. See the [Persistence](reference/config/persistence/overview.md) chapter on setting it up.
-> * **Dynamic mapping** is enabled: Nixiesearch will try to deduce index schema based on documents it indexes. As it cannot know upfront which fields are you going to use for search, filtering and faceting, it marks every field as searchable, filterable and facetable - which wastes a lot of disk space. See the [Index mapping](reference/config/mapping.md) section for details.
+!!! note
+Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](todo) over S3-compatible block storage.
 
 ## Indexing data
 
-After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs!
-
-> **Note**: Nixiesearch does not require you to have an explicitly defined index schema and can generate it on the fly. 
->
-> In this quickstart guide we will skip creating explicit index mapping, but it is always a good idea to have it prior to indexing. See [Mapping](reference/config/mapping.md) section for more details. 
+After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs with [REST API](todo)!
 
 Nixiesearch uses a similar API semantics as Elasticsearch, so to upload docs for indexing, you need to make a HTTP PUT request to the `/<index-name>/_index` endpoint:
 
 ```shell
-curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
+curl -XPUT -d @movies.jsonl http://localhost:8080/movies/_index
 ```
 
 ```json
@@ -128,110 +145,56 @@ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 
 As Nixiesearch is running an LLM embedding model inference inside, indexing large document corpus on CPU may take a while.
 
-> Check [Building index](concepts/indexing.md) for more information about indexing your data.
+!!! note
+Nixiesearch can also index documents directly from a [local file](todo), [S3 bucket](todo) or [Kafka topic](todo) in a pull-based scenario. Both in realtime and offline. Check [Building index](concepts/indexing.md) reference for more information about indexing your data.
 
-## Index mapping
-
-As we used dynamic mapping generation based on indexed documents, you may be curious how the resulting mapping looks. You can see it with the following API call:
-```shell
-curl http://localhost:8080/msmarco/_mapping
-```
-
-```json
-{
-  "name": "msmarco",
-  "alias": [],
-  "config": {
-    "mapping": {
-      "dynamic": true
-    }
-  },
-  "fields": {
-    "_id": {
-      "type": "text",
-      "name": "_id",
-      "search": {
-        "type": "disabled"
-      },
-      "store": true,
-      "sort": false,
-      "facet": false,
-      "filter": true
-    },
-    "text": {
-      "type": "text",
-      "name": "text",
-      "search": {
-        "type": "hybrid",
-        "model": "nixiesearch/e5-small-v2-onnx",
-        "prefix": {
-          "query": "query: ",
-          "document": "passage: "
-        },
-        "language": "english"
-      },
-      "store": true,
-      "sort": true,
-      "facet": true,
-      "filter": true
-    }
-  }
-}
-```
-
-As you can see, Nixiesearch made some indexing decisions, which may be not optimal for production use. 
-
-The `text` type field is by default:
-
-* marked as `sort: true`. Building a sorted field requires constructing a separate Lucene `DocValues` field, which is usually kept in RAM while searching.
-* used for full-text search with `search.type: hybrid`. Using hybrid/semantic search fields requires running a LLM inference on indexing, which may take a lot of CPU resources.
-
-In production deployments we highly advise using the explicit index mapping. For more details, see [Index mapping](reference/config/mapping.md) section of documentation.
-
-## Sending requests
+## Sending search requests
 
 Query DSL in Nixiesearch is inspired but not compatible with the JSON syntax used in [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html)/[OpenSearch](https://opensearch.org/docs/latest/query-dsl/index/) Query DSL. 
 
-To perform a single-field hybrid search over our newly-created `msmarco` index, run the following cURL command:
+To perform a single-field hybrid search over our newly-created `movies` index, run the following cURL command:
 
 ```shell
-curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
-    http://localhost:8080/msmarco/_search
+curl -XPOST -d '{"query": {"match": {"title":"matrix"}},"fields": ["title"], "size":3}'\
+   http://localhost:8080/movies/_search
 ```
 
 ```json    
 {
-  "took": 13,
+  "took": 1,
   "hits": [
     {
-      "_id": "8035959",
-      "text": "Climate & Weather Averages in New York, New York, USA.",
+      "_id": "605",
+      "title": "The Matrix Revolutions",
       "_score": 0.016666668
     },
     {
-      "_id": "2384898",
-      "text": "Consulate General of the Republic of Korea in New York.",
+      "_id": "604",
+      "title": "The Matrix Reloaded",
       "_score": 0.016393442
     },
     {
-      "_id": "2241745",
-      "text": "This is a list of the tallest buildings in New York City.",
+      "_id": "624860",
+      "title": "The Matrix Resurrections",
       "_score": 0.016129032
     }
+  ],
+  "aggs": {},
+  "ts": 1722441735886
 }
 ```
 
 This query performed a hybrid search:
 
-* for lexical search, it built and executed a Lucene query of `text:new text:york`
-* for semantic search, it computed an LLM embedding of the query `new york` and performed a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
+* for lexical search, it built and executed a Lucene query of `title:matrix`
+* for semantic search, it computed an LLM embedding of the query `matrix` and performed a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
 * combined results of both searches into a single ranking with the [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
 
 > Learn more about searching in the [Search](concepts/search.md) section.
 
 ## Web UI
 
-Nixiesearch has a basic search web UI available as `http://localhost:8080/_ui` URL.
+Nixiesearch has a basic search web UI available as `http://localhost:8080/movies/_ui` URL.
 
 ![web ui](https://www.nixiesearch.ai/img/webui.png)
 

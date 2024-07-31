@@ -20,9 +20,9 @@ Nixiesearch is a **hybrid search engine** that fine-tunes to your data.
 
 Unlike Elastic/SOLR:
 
-* Can run over **[S3-compatible block storage](TODO)**: Auto-scaling (even down to zero) and no more cluster rebalance.   
-* **[RAG](TODO),  [text](TODO) and image embeddings** are first class search methods: no need for special hand-written indexing pipelines.
-* 
+* Can run over [S3-compatible block storage](TODO): Rapid auto-scaling (even down to zero!) and much easier operations (your index is just a directory in S3 bucket!)
+* [RAG](TODO),  [text](TODO) and [image](TODO) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
+* All LLM inference [can be run fully locally](TODO), no need to send all your queries and private documents to OpenAI API. But [you can](TODO), if you wish.
 
 Unlike other vector search engines:
 
@@ -41,10 +41,10 @@ Nixiesearch has the following design limitations:
 
 ## Usage
 
-Get the sample [MS MARCO](https://microsoft.github.io/msmarco/) dataset:
+Get the sample [MSRD: Movie Search Ranking Dataset](TODO) dataset:
 
 ```shell
-curl -L -O http://nixiesearch.ai/data/msmarco.json
+curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
 ```
 
 ```text
@@ -54,32 +54,46 @@ curl -L -O http://nixiesearch.ai/data/msmarco.json
 100 32085  100 32085    0     0   226k      0 --:--:-- --:--:-- --:--:--  226k
 ```
 
+Create an index mapping for `movies` index in a file `config.yml`:
+
+```yaml
+schema:
+  movies: # index name
+    fields:
+      title: # field name
+        type: text
+        search: hybrid
+        language: en # language is needed for lexical search
+        suggest: true
+      overview:
+        type: text
+        search: hybrid
+        language: en
+```
+
 Run the Nixiesearch [docker container](https://hub.docker.com/r/nixiesearch/nixiesearch):
 
 ```shell
-docker run -i -t -p 8080:8080 nixiesearch/nixiesearch:latest standalone
+docker run -itp 8080:8080 -v .:/data nixiesearch/nixiesearch:latest standalone -c /data/config.yml
 ```
 
 ```text
-12:40:47.325 INFO  ai.nixiesearch.main.Main$ - Staring Nixiesearch
-12:40:47.460 INFO  ai.nixiesearch.config.Config$ - No config file given, using defaults
-12:40:47.466 INFO  ai.nixiesearch.config.Config$ - Store: LocalStoreConfig(LocalStoreUrl(/))
-12:40:47.557 INFO  ai.nixiesearch.index.IndexRegistry$ - Index registry initialized: 0 indices, config: LocalStoreConfig(LocalStoreUrl(/))
-12:40:48.253 INFO  o.h.blaze.server.BlazeServerBuilder - 
-███╗   ██╗██╗██╗  ██╗██╗███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
-████╗  ██║██║╚██╗██╔╝██║██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
-██╔██╗ ██║██║ ╚███╔╝ ██║█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
-██║╚██╗██║██║ ██╔██╗ ██║██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
-██║ ╚████║██║██╔╝ ██╗██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
-╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
-                                                                               
-12:40:48.267 INFO  o.h.blaze.server.BlazeServerBuilder - http4s v1.0.0-M38 on blaze v1.0.0-M38 started at http://0.0.0.0:8080/
+a.nixiesearch.index.sync.LocalIndex$ - Local index movies opened
+ai.nixiesearch.index.Searcher$ - opening index movies
+a.n.main.subcommands.StandaloneMode$ - ███╗   ██╗██╗██╗  ██╗██╗███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
+a.n.main.subcommands.StandaloneMode$ - ████╗  ██║██║╚██╗██╔╝██║██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
+a.n.main.subcommands.StandaloneMode$ - ██╔██╗ ██║██║ ╚███╔╝ ██║█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
+a.n.main.subcommands.StandaloneMode$ - ██║╚██╗██║██║ ██╔██╗ ██║██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
+a.n.main.subcommands.StandaloneMode$ - ██║ ╚████║██║██╔╝ ██╗██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
+a.n.main.subcommands.StandaloneMode$ - ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+a.n.main.subcommands.StandaloneMode$ -                                                                                
+o.h.ember.server.EmberServerBuilder - Ember-Server service bound to address: [::]:8080
 ```
 
 Build an index for a hybrid search:
 
 ```shell
-curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
+curl -XPUT -d @movies.jsonl http://localhost:8080/movies/_index
 ```
 
 ```json
@@ -89,33 +103,36 @@ curl -XPUT -d @msmarco.json http://localhost:8080/msmarco/_index
 Send the search query:
 
 ```shell
-curl -XPOST -d '{"query": {"match": {"text":"new york"}},"fields": ["text"]}'\
-    http://localhost:8080/msmarco/_search
+curl -XPOST -d '{"query": {"match": {"title":"matrix"}},"fields": ["title"], "size":3}'\
+   http://localhost:8080/movies/_search
 ```
 
-```json
+```json    
 {
-  "took": 13,
+  "took": 1,
   "hits": [
     {
-      "_id": "8035959",
-      "text": "Climate & Weather Averages in New York, New York, USA.",
+      "_id": "605",
+      "title": "The Matrix Revolutions",
       "_score": 0.016666668
     },
     {
-      "_id": "2384898",
-      "text": "Consulate General of the Republic of Korea in New York.",
+      "_id": "604",
+      "title": "The Matrix Reloaded",
       "_score": 0.016393442
     },
     {
-      "_id": "2241745",
-      "text": "This is a list of the tallest buildings in New York City.",
+      "_id": "624860",
+      "title": "The Matrix Resurrections",
       "_score": 0.016129032
     }
+  ],
+  "aggs": {},
+  "ts": 1722441735886
 }
 ```
 
-You can also open `http://localhost:8080/_ui` in your web browser for a basic web UI:
+You can also open `http://localhost:8080/movies/_ui` in your web browser for a basic web UI:
 
 ![web ui](https://www.nixiesearch.ai/img/webui.png)
 
