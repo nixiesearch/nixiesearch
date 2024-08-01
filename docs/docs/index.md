@@ -12,7 +12,7 @@ Nixiesearch is a **hybrid search engine** that fine-tunes to your data.
 
 * Designed to be cloud-native with [S3-compatible index persistence](deployment/distributed/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
 * Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/languages.md), [facets](features/search/facet.md), [advanced filters](features/search/filter.md), [autocomplete suggestions](features/autocomplete/index.md) and [sorting](features/search/sort.md) out of the box.
-* Batteries included: fully local [RAG queries](features/search/rag.md) and [vector search](reference/models.md) within a [single app](deployment/standalone.md). 
+* Batteries included: fully local [RAG queries](features/search/rag.md) and [vector search](reference/models/index.md) within a [single app](deployment/standalone.md). 
 * Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
 > Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
 
@@ -21,13 +21,13 @@ Nixiesearch is a **hybrid search engine** that fine-tunes to your data.
 Unlike Elastic/SOLR:
 
 * Can run over [S3-compatible block storage](deployment/distributed/persistence/s3.md): Rapid auto-scaling (even down to zero!) and much easier operations (your index is just a directory in S3 bucket!)
-* [RAG](features/search/rag.md),  [text](features/search/query.md) and [image](TODO) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
-* All LLM inference [can be run fully locally](TODO), no need to send all your queries and private documents to OpenAI API. But [you can](TODO), if you wish.
+* [RAG](features/search/rag.md),  [text](features/search/query.md) and [image](features/indexing/types/images.md) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
+* All LLM inference [can be run fully locally](reference/models/index.md), no need to send all your queries and private documents to OpenAI API. But [you can](reference/models/index.md), if you wish.
 
 Unlike other vector search engines:
 
 * **Supports [facets](features/search/facet.md), [rich filtering](features/search/filter.md), sorting and [autocomplete](features/autocomplete/index.md)**: things you got used to in traditional search engines.
-* **Text in, text out**: [text embedding](TODO) is handled by the search engine, not by you.
+* **Text in, text out**: [text embedding](reference/models/embedding.md) is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 
 The project is in active development and does not yet have backwards compatibility for configuration and data. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
@@ -37,11 +37,11 @@ The project is in active development and does not yet have backwards compatibili
 Nixiesearch has the following design limitations:
 
 * **Does not support sharding**: sharding requires multi-node coordination and consensus, and we would like to avoid having any distributed state in the cluster - at least in the v1. If you plan to use Nixiesearch for searching 1TB of logs, please don't: consider [ELK](https://www.elastic.co/elastic-stack) or [Quickwit](https://github.com/quickwit-oss/quickwit) as better alternatives.
-* **Query language is simple**: supporting analytical queries over deeply-nested documents is out of scope for the project. Nixiesearch is about consumer-facing search, and for analytical cases consider using [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
+* **Query language is [simple](features/search/query.md)**: supporting analytical queries over deeply-nested documents is out of scope for the project. Nixiesearch is about consumer-facing search, and for analytical cases consider using [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
 
 ## Usage
 
-Get the sample [MSRD: Movie Search Ranking Dataset](TODO) dataset:
+Get the sample [MSRD: Movie Search Ranking Dataset](https://github.com/metarank/msrd) dataset:
 
 ```shell
 curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
@@ -136,7 +136,7 @@ You can also open `http://localhost:8080/movies/_ui` in your web browser for a b
 
 ![web ui](https://www.nixiesearch.ai/img/webui.png)
 
-For more details, see a complete [Quickstart guide](https://www.nixiesearch.ai/quickstart).
+For more details, see a complete [Quickstart guide](quickstart.md).
 
 ## Design
 
@@ -147,32 +147,32 @@ Nixiesearch is inspired by an Amazon search engine design described in a talk
 
 Compared to traditional search engines like Elasticsearch/Solr:
 
-* **Independent stateful indexer and stateless search backends**: with index sync happening via S3-compatible block storage.
+* **Independent stateful indexer and stateless search backends**: with index sync happening via [S3-compatible block storage](deployment/distributed/persistence/s3.md).
   No more red index status and cluster split-brains due to indexer overload.
-* **Pull-based indexing**: pull updated documents right from [Kafka](https://kafka.apache.org/) in real-time, no need for separate indexing ETL jobs with limited throughput.
+* **Pull-based indexing**: [pull updated documents](deployment/distributed/indexing/kafka.md) right from [Kafka](https://kafka.apache.org/) in real-time, no need for separate indexing ETL jobs with limited throughput.
 
 Nixiesearch uses [RRF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) for combining text and neural search results.
 
 ### Hybrid search
 
-Nixiesearch transparently uses two Lucene-powered search indices for both lexical and semantic search, combining search results into a single list with [Reciprocal Rank Fusion](../reference/api/search/query.md#rrf-reciprocal-rank-fusion):
+Nixiesearch transparently uses two Lucene-powered search indices for both lexical and semantic search, combining search results into a single list with [Reciprocal Rank Fusion](features/search/index.md#hybrid-search-with-reciprocal-rank-fusion):
 
 ![RRF](img/hybridsearch.png)
 
 Compared to just a single lexical or semantic search approach:
 
-* hybrid search allows combining best of two worlds: being able to [perform exact match searches](../reference/api/search/query.md#hybrid-semantic-and-lexical-search) over keywords, but at the same time retrieving documents with similar context.
-* [RRF ranking](../reference/api/search/query.md#rrf-reciprocal-rank-fusion) requires almost zero configuration for reasonably good results while mixing search results from different indices.
+* hybrid search allows combining best of two worlds: being able to [perform exact match searches](features/search/index.md#search) over keywords, but at the same time retrieving documents with similar context.
+* [RRF ranking](features/search/index.md#hybrid-search-with-reciprocal-rank-fusion) requires almost zero configuration for reasonably good results while mixing search results from different indices.
 
 ### LLM fine-tuning
 
 !!! note
 
-    This feature is in development and planned for the v0.2 release.
+    This feature is in development and planned for the v0.3 release.
 
 Embedding-based semantic search is a great way to increase search recall: it will match all the similar documents based on the search query even when there are no keyword matches. But in practice a customer expects good enough precision of top-N results, and a good balance between precision and recall is important.
 
-Nixiesearch can incorporate explicit customer feedback about search relevance directly into the embedding LLM by [fine-tuning it](../reference/cli/finetune.md):
+Nixiesearch can incorporate explicit customer feedback about search relevance directly into the embedding LLM by [fine-tuning it](https://github.com/nixiesearch/nixietune):
 
 ![fine-tuning](img/fine-tuned.png)
 
@@ -194,15 +194,15 @@ Architecturally, your app pushes documents to the search engine and maintains th
 
 ![pull-push indexing](img/pullpush.png)
 
-In comparison, Nixiesearch is a [pull-based system](../reference/cli/index.md):
+In comparison, Nixiesearch is a [pull-based system](deployment/distributed/indexing/index.md):
 
 * it pulls the next document batch immediately when indexing resources become available. This approach allows to have a perfect resource utilization and the most optimal indexing throughput.
 * it does not have an internal indexing queue, so there is no way to overflow it.
-* no need for a specialized indexing app with complicated back-pressure logic. You can use Kafka topic or a set of files on S3 block storage as a source of documents.
+* no need for a specialized indexing app with complicated back-pressure logic. You can use Kafka topic or a set of files on S3 block storage as a source of documents. 
 
 !!! note
 
-    Nixiesearch can emulate a push-based indexing behavior using a traditional [indexing API](../reference/api/index/ingestion.md), but a pull-based approach is recommended.
+    Nixiesearch can emulate a push-based indexing behavior using a traditional [indexing API](features/indexing/api.md), but a pull-based approach is recommended.
 
 ### S3 index storage and auto-scaling
 
@@ -242,4 +242,4 @@ In practice, CPU fine-tuning is 30x-50x slower than GPU one and can take multipl
 
 # License
 
-This project is released under the Apache 2.0 license, as specified in the [License](LICENSE) file.
+This project is released under the Apache 2.0 license, as specified in the [License](https://github.com/nixiesearch/nixiesearch/blob/master/LICENSE) file.

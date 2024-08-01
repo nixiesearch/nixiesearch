@@ -2,7 +2,7 @@
 
 ## Suggestion index configuration
 
-You need to explicitly define a *suggest* flag for a field in [index mapping](todo) to be able to query for suggestions. Nixie supports two flavors of syntax definitions for suggestions:
+You need to explicitly define a *suggest* flag for a field in [index mapping](../indexing/mapping.md) to be able to query for suggestions. Nixie supports two flavors of syntax definitions for suggestions:
 
 * short one: only `suggest: true` using all default settings,
 * long syntax: more verbose, but all settings are exposed.

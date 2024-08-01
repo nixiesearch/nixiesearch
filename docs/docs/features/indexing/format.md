@@ -1,6 +1,6 @@
 # Nixiesearch JSON document format
 
-Nixiesearch does not have a strict incoming JSON document schema: any format is probably OK while it can be processed using the existing [index mapping](../../reference/config/mapping.md).
+Nixiesearch does not have a strict incoming JSON document schema: any format is probably OK while it can be processed using the existing [index mapping](mapping.md).
 
 ## Document identifier
 
@@ -34,7 +34,7 @@ Flat documents without any nesting are mapped 1-to-1 to underlying index fields.
 }
 ```
 
-will match (or [dynamically generate when missing](../../concepts/indexing.md#dynamic-index-mapping)) the following index mapping:
+will match the following index mapping:
 
 ```yaml
 schema:
@@ -53,7 +53,7 @@ Compared to Elasticsearch/Solr, Nixiesearch has a distinction between repeated a
 * based on a field type, more specific and optimized data structures can be used.
 * when returning a stored field, a JSON response field types can follow the index mapping. In other words, not all returned fields are arrays (like in Elasticsearch), and only the ones being defined as repeated.
 
-As for version `0.0.3` Nixiesearch only supports repeated [textual fields](field-types.md#text-fields).
+As for version `0.0.3` Nixiesearch only supports repeated [textual fields](types/basic.md).
 
 For example, the following document:
 
@@ -61,7 +61,7 @@ For example, the following document:
 {"_id": 1, "tags": ["a", "b", "c"]}
 ```
 
-should match (or [dynamically generate when missing](../../concepts/indexing.md#dynamic-index-mapping)) the following index mapping:
+should match the following index mapping:
 
 ```yaml
 schema:

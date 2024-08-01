@@ -1,6 +1,6 @@
 # Pull-based document ingestion with Apache Kafka
 
-When run in a [distributed mode](../../distributed.md), Nixiesearch can pull documents for indexing from an [Apache Kafka](https://kafka.apache.org/) topic:
+When run in a [distributed mode](../../index.md), Nixiesearch can pull documents for indexing from an [Apache Kafka](https://kafka.apache.org/) topic:
 
 * Kafka can be used as a journal for [CDC-style](https://www.confluent.io/learn/change-data-capture/) events: every time a document changes in your master database, an event is emitted with an updated document.
 * To preserve infinitely-growing topics, you can use [Compacted Topics](https://docs.confluent.io/kafka/design/log_compaction.html) to prune stale document records.

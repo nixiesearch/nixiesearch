@@ -1,10 +1,10 @@
 # Quickstart
 
-This guide will show you how to run Nixiesearch in a [standalone](TODO) mode on your local machine using Docker. We will:
+This guide will show you how to run Nixiesearch in a [standalone](deployment/standalone.md) mode on your local machine using Docker. We will:
 
-* start Nixiesearch in a [standalone](TODO) mode using Docker
-* [index](TODO) a demo set of documents using [REST API](todo)
-* run a couple of [search queries](TODO)
+* start Nixiesearch in a [standalone](deployment/standalone.md) mode using Docker
+* [index](features/indexing/index.md) a demo set of documents using [REST API](features/indexing/api.md)
+* run a couple of [search queries](features/search/query.md)
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ This guide assumes that you already have the following available:
 
 ## Getting the dataset
 
-For this guide we'll use a [MSRD: Movie Search Ranking Dataset](TODO), which contains textual, categorical and numerical information for each document. Dataset is hosted on Huggingface at [nixiesearch/demo-datasets](https://huggingface.co/datasets/nixiesearch/demo-datasets), each document contains following fields:
+For this guide we'll use a [MSRD: Movie Search Ranking Dataset](https://github.com/metarank/msrd), which contains textual, categorical and numerical information for each document. Dataset is hosted on Huggingface at [nixiesearch/demo-datasets](https://huggingface.co/datasets/nixiesearch/demo-datasets), each document contains following fields:
 
 ```json
 {
@@ -95,9 +95,9 @@ schema:
 
 !!! note 
 
-    Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](TODO) field types are currently supported.
+    Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](features/indexing/types/index.md) field types are currently supported.
 
-See a full [index mapping reference](TODO) for more details on defining indexes.
+See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes.
 
 ## Starting the service
 
@@ -129,11 +129,11 @@ Options breakdown:
 
 !!! note
 
-    Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](todo) over S3-compatible block storage.
+    Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](deployment/distributed/index.md) over S3-compatible block storage.
 
 ## Indexing data
 
-After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs with [REST API](todo)!
+After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs with [REST API](features/indexing/api.md)!
 
 Nixiesearch uses a similar API semantics as Elasticsearch, so to upload docs for indexing, you need to make a HTTP PUT request to the `/<index-name>/_index` endpoint:
 
@@ -149,7 +149,7 @@ As Nixiesearch is running an LLM embedding model inference inside, indexing larg
 
 !!! note
 
-    Nixiesearch can also index documents directly from a [local file](todo), [S3 bucket](todo) or [Kafka topic](todo) in a pull-based scenario. Both in realtime and offline. Check [Building index](concepts/indexing.md) reference for more information about indexing your data.
+    Nixiesearch can also index documents directly from a [local file](deployment/distributed/indexing/file.md), [S3 bucket](deployment/distributed/indexing/file.md) or [Kafka topic](deployment/distributed/indexing/kafka.md) in a pull-based scenario. Both in realtime and offline. Check [Building index](features/indexing/index.md) reference for more information about indexing your data.
 
 ## Sending search requests
 
@@ -193,7 +193,9 @@ This query performed a hybrid search:
 * for semantic search, it computed an LLM embedding of the query `matrix` and performed a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
 * combined results of both searches into a single ranking with the [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
 
-> Learn more about searching in the [Search](concepts/search.md) section.
+!!! note
+
+    Learn more about searching in the [Search](features/search/index.md) section.
 
 ## Web UI
 
@@ -205,9 +207,9 @@ Nixiesearch has a basic search web UI available as `http://localhost:8080/movies
 
 If you want to continue learning about Nixiesearch, these sections of documentation are great next steps:
 
-* [An overview of Nixiesearch design](concepts/difference.md) to understand how it differs from existing search engines.
-* Using [Filters](concepts/search.md#filters) and [Facets](concepts/search.md#facets) while searching.
-* [How it should be deployed](deployment/index) in a production environment.
-* Building [semantic autocomplete](concepts/autocomplete.md) index for search-as-you-type support.
+* [An overview of Nixiesearch design](index.md#design) to understand how it differs from existing search engines.
+* Using [Filters](features/search/index.md#filters) and [Facets](features/search/index.md#facets) while searching.
+* [How it should be deployed](deployment/index.md) in a production environment.
+* Building [semantic autocomplete](features/autocomplete/index.md) index for search-as-you-type support.
 
 If you have a question not covered in these docs and want to chat with the team behind Nixiesearch, you're welcome to join our [Community Slack](https://communityinviter.com/apps/nixiesearch/nixiesearch)

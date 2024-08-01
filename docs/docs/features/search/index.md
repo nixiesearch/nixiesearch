@@ -1,6 +1,6 @@
 # Search
 
-To search for documents indexed in Nixiesearch, you can use the following [request JSON format](../reference/api/search/request.md):
+To search for documents indexed in Nixiesearch, you can use the following [request JSON format](request.md):
 
 ```json
 {
@@ -15,9 +15,9 @@ To search for documents indexed in Nixiesearch, you can use the following [reque
 
 Where:
 
-* `<search-field-name>`: a text field marked as [searchable in the index mapping](../reference/config/mapping.md)
+* `<search-field-name>`: a text field marked as [searchable in the index mapping](../indexing/mapping.md)
 * `<query-string>`: a string to search for.
-* `multi_match`: one of the matching DSL rules. Check more examples of [Query DSL](../reference/api/search/query.md) in the reference.
+* `multi_match`: one of the matching DSL rules. Check more examples of [Query DSL](query.md) in the reference.
 
 For such a search request, Nixiesearch will reply with a JSON response with top-N matching documents:
 
@@ -33,15 +33,17 @@ For such a search request, Nixiesearch will reply with a JSON response with top-
 
 `_id` and `_score` are built-in fields always present in the document payload.
 
-> Compared to Elasticsearch/Opensearch, Nixiesearch has no built-in `_source` field as it is frequently mis-used. You need to explicitly mark fields you want to be present in response payload as `store: true` in the [index mapping](../reference/config/mapping.md).
+!!! note
+
+    Compared to Elasticsearch/Opensearch, Nixiesearch has no built-in `_source` field as it is frequently mis-used. You need to explicitly mark fields you want to be present in response payload as `store: true` in the [index mapping](../indexing/mapping.md).
 
 ## RAG: Retrieval Augmented Generation
 
 Instead of just getting search results for your query, you can use a [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation) approach to get a natural language answer to your query, built with locally-running LLM.
 
-![RAG](../img/rag.png)
+![RAG](../../img/rag.png)
 
-Nixiesearch supports any GGUF-compatible LLM [llamacpp](https://github.com/ggerganov/llama.cpp) supports. To use RAG, you need to [list Huggingface handles of models](../reference/api/search/rag.md) you'd like to use in config:
+Nixiesearch supports any GGUF-compatible LLM [llamacpp](https://github.com/ggerganov/llama.cpp) supports. To use RAG, you need to [list Huggingface handles of models](rag.md) you'd like to use in config:
 
 ```yaml
 schema:
@@ -110,17 +112,17 @@ Summarize search results for a query 'what is pizza':
 }
 ```
 
-As LLM inference is a costly operation, Nixiesearch supports a WebSocket response streaming: you immediately get search result documents in a first frame, and LLM-generated tokens are streamed while being generated. See [RAG reference](../reference/api/search/rag.md) for more details.
+As LLM inference is a costly operation, Nixiesearch supports a WebSocket response streaming: you immediately get search result documents in a first frame, and LLM-generated tokens are streamed while being generated. See [RAG reference](rag.md) for more details.
 
 
 ## Hybrid search with Reciprocal Rank Fusion
 
-When you search over multiple fields marked a [hybrid](../../config/mapping.md) field, Nixiesearch does the following:
+When you search over multiple fields marked a [hybrid](../indexing/mapping.md) field, Nixiesearch does the following:
 
 1. Collects a separate per-field search result list for semantic and lexical retrieval methods.
 2. Merges N search results with RRF - [Reciprocal Rank Fusion](https://dl.acm.org/doi/10.1145/1571941.1572114).
 
-![RRF](../img/hybridsearch.png)
+![RRF](../../img/hybridsearch.png)
 
 RRF merging approach:
 
@@ -132,7 +134,7 @@ Compared to traditional methods of combining multiple BM25 and cosine scores tog
 
 ## Filters
 
-To select a sub-set of documents for search, add `filters` directive to the [request JSON payload](../reference/api/search/request.md):
+To select a sub-set of documents for search, add `filters` directive to the [request JSON payload](request.md):
 
 ```json
 {
@@ -151,17 +153,17 @@ To select a sub-set of documents for search, add `filters` directive to the [req
 ```
 Nixiesearch supports the following set of filter types:
 
-* [Term filters](../reference/api/search/filter.md#term-filters) - to match over text fields.
-* [Range filters](../reference/api/search/filter.md#range-filters) - to select over numeric `int`/`long`/`float`/`double` fields.
-* [Compound boolean filters](../reference/api/search/filter.md#boolean-filters) - to combine multiple filter types within a single filter predicate.
+* [Term filters](filter.md#term-filters) - to match over text fields.
+* [Range filters](filter.md#range-filters) - to select over numeric `int`/`long`/`float`/`double` fields.
+* [Compound boolean filters](filter.md#boolean-filters) - to combine multiple filter types within a single filter predicate.
 
-See [Filters DSL](../reference/api/search/filter.md) reference for more examples and details.
+See [Filters DSL](filter.md) reference for more examples and details.
 
 ## Facets
 
 Facet count aggregation is useful for building a [faceted search](https://en.wikipedia.org/wiki/Faceted_search): for a search query apart from documents, response contains also a set of possible filter values (sorted by a number of documents this filter value will match).
 
-A [JSON search request](../reference/api/search/request.md) payload can be extended with the `aggs` parameter:
+A [JSON search request](request.md) payload can be extended with the `aggs` parameter:
 
 ```json
 {
@@ -201,4 +203,4 @@ Each facet aggregation adds an extra named section in the search response payloa
 }
 ```
 
-See a [Facet Aggregation DSL](../reference/api/search/facet.md) section in reference for more details.
+See a [Facet Aggregation DSL](facet.md) section in reference for more details.

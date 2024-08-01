@@ -121,7 +121,10 @@ nav:
           - features/indexing/index.md
           - Index mapping: features/indexing/mapping.md
           - Document format: features/indexing/format.md
-          - Field types: features/indexing/field-types.md
+          - Field types:
+              - features/indexing/types/index.md
+              - Text and numbers: features/indexing/types/basic.md
+              - Images: features/indexing/types/images.md
           - REST API: features/indexing/api.md
       - Search:
           - features/search/index.md
@@ -148,6 +151,7 @@ nav:
                   - Apache Kafka: deployment/distributed/indexing/kafka.md
                   - File: deployment/distributed/indexing/file.md
     - Reference:
+        - Config file: reference/config.md
         - CLI options:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md

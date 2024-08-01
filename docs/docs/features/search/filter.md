@@ -22,7 +22,7 @@ Filters allow you to search over a subset of documents based on a set of predica
 * [`range`](#range-filters) for numerical ranges: match documents with `price>100`
 * `and`/`or`/`not` for combining multiple filters into a single boolean expression.
 
-> To perform filtered queries over a field, you should define the field as `filter: true` in [index mapping](../../reference/config/mapping.md).
+> To perform filtered queries over a field, you should define the field as `filter: true` in [index mapping](../../features/indexing/mapping.md).
 > Nixiesearch will emit a warning if you relentlessly try to filter over a non-filterable field.
 
 ## Term filters
@@ -41,8 +41,9 @@ Term predicate can be defined as a simple JSON key-value pair, where key is a fi
   }
 }
 ```
+!!! note 
 
-> A simple term filter works only with a single field and a single value. If you want to filter over multiple fields and multiple values, use a [boolean filter](#boolean-filters) to combine them together in a single expression.
+    A simple term filter works only with a single field and a single value. If you want to filter over multiple fields and multiple values, use a [boolean filter](#boolean-filters) to combine them together in a single expression.
  
 Term filters currently support the following field types: `int`, `long`, `string`, `boolean`. For example, filtering over a boolean field called `active` can be done with the following query:
 

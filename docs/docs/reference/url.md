@@ -1,8 +1,8 @@
 # Supported URL formats 
 
-Nixiesearch [configuration](overview.md), [index mapping](mapping.md) and [command-line options](../cli/index.md) support passing URLs as locations.
+Nixiesearch [configuration](config.md), [index mapping](../features/indexing/mapping.md) and [command-line options](cli/index.md) support passing URLs as locations.
 
-For example, [offline pull-based indexing](../cli/index.md#offline-indexing) from a local file has an `--url` parameter:
+For example, [offline pull-based indexing](cli/index.md#offline-indexing) from a local file has an `--url` parameter:
 
 ```shell
 docker run -i -t -v <your-local-dir>:/data nixiesearch/nixiesearch:latest \
@@ -14,7 +14,7 @@ Nixiesearch supports following URL schemas:
 
 * [Local files](#local-files): `file:///path/to/file`
 * [HTTP locations](#http-locations): `http://server.com/file.json`
-* [S3-compatible locations](#s3-compatible-locations) like [AWS S3](todo), [Google Cloud Store](todo), [MinIO](https://min.io/) and others: `s3://bucket/prefix/file.json`
+* [S3-compatible locations](#s3-compatible-locations) like [AWS S3](https://aws.amazon.com/s3/), [Google Cloud Store](https://cloud.google.com/storage?hl=en), [MinIO](https://min.io/) and others: `s3://bucket/prefix/file.json`
 
 ## Local files
 
@@ -43,7 +43,7 @@ $ export AWS_DEFAULT_REGION=us-west-2
 
 ## URLs in a config file
 
-For a [configuration file](overview.md) URL usage, you can also unfold the S3 URL into a YAML object, which has all the internal settings exposed:
+For a [configuration file](config.md) URL usage, you can also unfold the S3 URL into a YAML object, which has all the internal settings exposed:
 
 ```yaml
 schema:
@@ -61,7 +61,7 @@ schema:
 
 ## URLs in command-line options
 
-Also the [nixiesearch CLI](../cli/index.md) has an `--endpoint` parameter, so you can pass custom endpoint for all S3 URLs passed as cmdline parameters.
+Also the [nixiesearch CLI](cli/index.md) has an `--endpoint` parameter, so you can pass custom endpoint for all S3 URLs passed as cmdline parameters.
 
 ## Decompression support
 

@@ -46,11 +46,11 @@ And multilingual ones:
 
 Check out the article in the blog on embedding performance and quantization for more details: [How to compute LLM embeddings 3X faster with model quantization](https://medium.com/nixiesearch/how-to-compute-llm-embeddings-3x-faster-with-model-quantization-25523d9b4ce5). The main executive summary is that quantized models are up to 3x faster than regular ones:
 
-![quantized perf](../img/quan.png)
+![quantized perf](../../img/quan.png)
 
 You should expect a small drop in ranking quality:
 
-![mteb scores](../img/mteb.png)
+![mteb scores](../../img/mteb.png)
 
 ## Converting your own model
 

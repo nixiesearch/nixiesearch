@@ -52,7 +52,7 @@ Nixiesearch currently supports the following types of facet aggregations:
 
 ## Term aggregations
 
-A term facet aggregation scans over all values of a specific [text](../indexing/field-types.md#text-fields) field of matching documents, and builds a list of top-N values:
+A term facet aggregation scans over all values of a specific [text](../indexing/types/basic.md) field of matching documents, and builds a list of top-N values:
 
 ```json
 {
@@ -69,7 +69,7 @@ A term facet aggregation scans over all values of a specific [text](../indexing/
 
 Term aggregation has the following parameters:
 
-* `field`: ***required***, *string*, over which field to aggregate over. The field must be marked as `facet: true` in the [index mapping](../../reference/config/mapping.md).
+* `field`: ***required***, *string*, over which field to aggregate over. The field must be marked as `facet: true` in the [index mapping](../../features/indexing/mapping.md).
 * `size`: ***optional***, *integer* or `"all"`, how many top values to collect, default: *10*. A special `"all"` value is a substitute for `Integer.MAX_VALUE` - useful when you need to receive all values.
 
 Term aggregation response has a list of N buckets and counters, sorted from most to least popular:
@@ -88,8 +88,9 @@ Term aggregation response has a list of N buckets and counters, sorted from most
   }
 }
 ```
-
-> Computing term facet aggregations requires creating an internal [Lucene DocValues](https://lucene.apache.org/core/9_0_0/core/org/apache/lucene/index/DocValues.html) field, which has to be kept in RAM for the best performance. Try to minimize the amount of faceted fields to keep RAM usage low.
+!!! note 
+    
+    Computing term facet aggregations requires creating an internal [Lucene DocValues](https://lucene.apache.org/core/9_0_0/core/org/apache/lucene/index/DocValues.html) field, which has to be kept in RAM for the best performance. Try to minimize the amount of faceted fields to keep RAM usage low.
 
 ## Range aggregations
 
@@ -114,7 +115,7 @@ Range aggregation scans over all values of a specific numerical field for matchi
 
 Range facet aggregation has the following parameters:
 
-* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../reference/config/mapping.md) and had the type of `int`/`float`/`double`/`long`
+* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../features/indexing/mapping.md) and had the type of `int`/`float`/`double`/`long`
 * `ranges`, ***required***, non-empty list.
 * `ranges.lt`, ***optional***, *number*. **L**ess **T**han. An end of the range, not inclusive.
 * `ranges.lte`, ***optional***, *number*. **L**ess **T**han or **E**quals. An end of the range, inclusive.

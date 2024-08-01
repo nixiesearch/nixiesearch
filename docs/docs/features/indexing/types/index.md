@@ -10,7 +10,7 @@ Other field types like `int[]`, `float[]`, `date` and `datetime` are not yet sup
 
 ## Text fields
 
-Unlike other Lucene-based search engines, Nixiesearch has [a distinction between singular and repeated](../../../features/indexing/format#repeated-fields) fields on a [schema](../../reference/config/mapping.md) level - so choose your field type wisely.
+Unlike other Lucene-based search engines, Nixiesearch has [a distinction between singular and repeated](../format.md#repeated-fields) fields on a [schema](../mapping.md) level - so choose your field type wisely.
 
 ## Numeric fields
 

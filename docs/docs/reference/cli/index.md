@@ -5,7 +5,7 @@ Nixiesearch supports two ways of running indexing:
 * **Push-based**: a traditional REST API endpoint where you post documents to, like done in Elastic and Solr. Easy to start with, hard to scale due to backpressure and consistency issues.
 * **Pull-based**: when Nixie pulls data from remote endpoint, maintaining the position and ingestion throughput.
 
-Pull-based indexing can be done over both local, HTTP and S3-hosted files, see [Supported URL locations](../config/url.md) for more details.
+Pull-based indexing can be done over both local, HTTP and S3-hosted files, see [Supported URL locations](../url.md) for more details.
 
 Nixie index CLI subcommand has the following options:
 
@@ -55,9 +55,11 @@ Primary offline indexing use-case is batch and full-reindex jobs:
 * when you changed index mapping by adding/altering a field and need to re-process the whole document corpus.
 * when performing major non-backwards compatible Nixiesearch upgrades.
 
-Nixiesearch can load a [JSONL document format](../../features/indexing/format) from a [local, HTTP or S3 hosted file or directory](../config/url.md).
+Nixiesearch can load a [JSONL document format](../../features/indexing/format.md) from a [local, HTTP or S3 hosted file or directory](../url.md).
 
-> Make sure that field names in your source documents and in index mapping match! Nixiesearch will normally ignore non-mapped fields, but incompatible field formats (e.g. in JSON it's string, but in mapping it's an integer) will result in an error. 
+!!! note 
+
+    Make sure that field names in your source documents and in index mapping match! Nixiesearch will normally ignore non-mapped fields, but incompatible field formats (e.g. in JSON it's string, but in mapping it's an integer) will result in an error. 
 
 To run an offline indexing job, use the `index file` subcommand:
 
@@ -153,7 +155,7 @@ docker run -i -t nixiesearch/nixiesearch:latest -v <dir>:/data search --config /
 
 Online indexing with a REST API is mainly meant for experimentation and for small-scale document ingestion jobs.
 
-REST API for indexing can be used in both [distributed](../../deployment/distributed.md) (e.g. when you have separate deployments for Searcher and Indexer) and [standalone](../../deployment/standalone.md) (e.g. when Searcher and Indexer are colocated in a single node and single process) modes.
+REST API for indexing can be used in both [distributed](../../deployment/distributed/index.md) (e.g. when you have separate deployments for Searcher and Indexer) and [standalone](../../deployment/standalone.md) (e.g. when Searcher and Indexer are colocated in a single node and single process) modes.
 
 To run Nixiesearch in [a standalone mode](../../deployment/standalone.md), use the `standalone` CLI subcommand:
 
@@ -175,7 +177,7 @@ You will see in the logs that Indexer HTTP service is listening on a port 8080:
 14:11:50.787 INFO  o.h.ember.server.EmberServerBuilder - Ember-Server service bound to address: [::]:8080
 ```
 
-After that you can HTTP POST the documents file to the `_index` [indexing endpoint](../api/index/ingestion.md):
+After that you can HTTP POST the documents file to the `_index` [indexing endpoint](../../features/indexing/api.md):
 
 ```shell
 $ curl -XPOST -d @movies.jsonl http://localhost:8080/movies/_index

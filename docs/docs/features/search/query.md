@@ -2,15 +2,15 @@
 
 Nixiesearch has a Lucene-inspired query DSL with multiple search operators.
 
-> To search over a field, make sure that this field is marked as searchable in [index mapping](../../reference/config/mapping.md).
+> To search over a field, make sure that this field is marked as searchable in [index mapping](../../features/indexing/mapping.md).
 
 ## Search operators
 
 Currently three search operators are supported:
 
 * [match](#match): search over a single field
-* [multi_match](#multimatch): search over multiple fields
-* [match_all](#matchall): match all documents
+* [multi_match](#multi_match): search over multiple fields
+* [match_all](#match_all): match all documents
 
 > All search operators can be combined with [filters](filter.md) to search over a subset of documents.
 
@@ -45,7 +45,7 @@ Or a shorter version:
 
 Where:
 
-* `<field-name>`: is an existing field [marked as searchable](../../reference/config/mapping.md).
+* `<field-name>`: is an existing field [marked as searchable](../../features/indexing/mapping.md).
 * `<search-query>`: a search query string.
 * `operator`: optional, possible values: `"and"`, `"or"`. Default is "or". For lexical search, should documents contain all or some of the terms from the search query. For semantic search this parameter is ignored.
 * `threshold`: optional, a cosine similarity threshold
@@ -68,11 +68,11 @@ An operator similar to [match](#match) but able to search multiple fields at onc
 
 Where:
 
-* `<field-name>`: is an existing field [marked as searchable](../../reference/config/mapping.md).
+* `<field-name>`: is an existing field [marked as searchable](../../features/indexing/mapping.md).
 * `<search-query>`: a search query string.
 * `operator`: optional, possible values: `"and"`, `"or"`. For lexical search, should documents contain all or some of terms from the search query. For semantic search this parameter is ignored.
 
-Compared to Lucene-based search engines, Nixiesearch does a [RRF](../../concepts/search.md#rrf-reciprocal-rank-fusion) mixing of documents matched over different fields:
+Compared to Lucene-based search engines, Nixiesearch does a [RRF](../../features/search/index.md#hybrid-search-with-reciprocal-rank-fusion) mixing of documents matched over different fields:
 
 1. At first pass, documents matching each separate field are collected.
 2. At next step N separate per-field search results are merged together into a single ranking.
