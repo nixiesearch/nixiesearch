@@ -111,7 +111,6 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   } yield {
     ok
   }
-
 }
 
 object SearchRoute {

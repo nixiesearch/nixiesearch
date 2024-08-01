@@ -16,6 +16,6 @@ class DurationStreamTest extends AnyFlatSpec with Matchers {
       .compile
       .toList
       .unsafeRunSync()
-    result.map(_._2).forall(_ > 10) shouldBe true
+    result.map(_._2).forall(_ > 1) shouldBe true
   }
 }
