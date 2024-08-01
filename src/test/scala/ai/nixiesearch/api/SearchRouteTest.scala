@@ -64,4 +64,20 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     }
   }
 
+  it should "fail on non-text field with 4xx code" in withIndex { index =>
+    {
+      val route   = SearchRoute(index.searcher)
+      val request = SearchRequest(MatchQuery("price", "10"))
+
+      a[UserError] should be thrownBy {
+        sendRaw[SearchRequest](
+          route.routes,
+          "http://localhost/test/_search",
+          Some(request),
+          Method.POST
+        )
+      }
+    }
+  }
+
 }
