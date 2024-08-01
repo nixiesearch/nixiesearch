@@ -52,8 +52,11 @@ object SearchMode extends Logging {
             searchers.map(s => SearchRoute(s).wsroutes(wsb)).reduce(_ <+> _)
           )
           health <- IO(HealthRoute())
+          errors <- IO(TypicalErrorsRoute(searchers.map(_.index.name.value)))
           routes <- IO(
-            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(searchers.map(_.index)).routes
+            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(
+              searchers.map(_.index)
+            ).routes <+> errors.routes
           )
           server <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
           _      <- Logo.lines.map(line => info(line)).sequence
