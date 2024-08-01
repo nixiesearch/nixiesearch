@@ -16,7 +16,7 @@ trait EmbeddingCache {
     case other => IO.raiseError(BackendError(s"cache impl expected to return single element, but got $other"))
   }
   def get(keys: List[CacheKey]): IO[Array[Option[Array[Float]]]]
-  
+
   def getOrEmbedAndCache(keys: List[CacheKey], embedder: EmbedModel): IO[Array[Array[Float]]] = for {
     cached                            <- get(keys)
     (nonCachedIndices, nonCachedDocs) <- selectUncached(cached, keys.toArray)
