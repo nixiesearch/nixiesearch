@@ -136,20 +136,21 @@ nav:
           - REST API: features/search/request.md
       - Autocomplete:
           - features/autocomplete/index.md
-      - Deployment:
-          - deployment/index.md
-          - Standalone: deployment/standalone.md
-          - Distributed:
-              - deployment/distributed/index.md
-              - Persistence:
-                  - deployment/distributed/persistence/index.md
-                  - S3: deployment/distributed/persistence/s3.md
-                  - Local directory: deployment/distributed/persistence/local.md
-                  - In-memory: deployment/distributed/persistence/inmem.md
-              - Indexing:
-                  - deployment/distributed/indexing/index.md
-                  - Apache Kafka: deployment/distributed/indexing/kafka.md
-                  - File: deployment/distributed/indexing/file.md
+    - Deployment:
+        - Overview: deployment/overview.md
+        - Standalone: deployment/standalone.md
+        - Distributed:
+            - deployment/distributed/index.md
+            - Persistence:
+                - deployment/distributed/persistence/index.md
+                - S3: deployment/distributed/persistence/s3.md
+                - Local directory: deployment/distributed/persistence/local.md
+                - In-memory: deployment/distributed/persistence/inmem.md
+            - Indexing:
+                - deployment/distributed/indexing/index.md
+                - Apache Kafka: deployment/distributed/indexing/kafka.md
+                - File: deployment/distributed/indexing/file.md
+            - Kubernetes: deployment/distributed/kubernetes.md
     - Reference:
         - Config file: reference/config.md
         - CLI options:

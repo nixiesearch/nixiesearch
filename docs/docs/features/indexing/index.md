@@ -4,12 +4,12 @@ Nixiesearch index is a searchable group of documents sharing the same structure.
 
 To add a set of documents to an index, you need to perform two steps:
 
-* define an [index mapping](#index-mapping) [statically in a config file](mapping.md). Nixiesearch is a strongly-typed document storage system, so dynamic mapping is not supported.
+* define an [index mapping](#index-mapping) [in a config file](mapping.md). Nixiesearch is a strongly-typed document storage system, so [dynamic mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-mapping.html) is not supported.
 * write documents to the index, either with push-based REST API or with pull-based stream ingestion.
 
 !!! note 
 
-    Dynamic mapping in most search engines is considered an anti-pattern: the engine cannot correctly guess how are you going to query documents, so by default all fields are marked as searchable, facetable, filterable and suggestable. This results in slow ingestion throughput and huge index size.
+    [Dynamic mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-mapping.html) in most search engines is considered an anti-pattern: the engine cannot correctly guess how are you going to query documents, so by default all fields are marked as searchable, facetable, filterable and suggestable. This results in slow ingestion throughput and huge index size.
 
 ## Index mapping
 
@@ -39,7 +39,7 @@ Go to [the mapping reference](mapping.md) section for more details on all parame
 
 ## Writing documents to an index
 
-Internally Nixiesearch implements a pull-based indexing - the service itself asks for a next chunk of documents from an upstream system.
+Internally Nixiesearch implements a pull-based indexing - the service itself asks for a next chunk of documents from an upstream source.
 
 ![push pull](../../img/pullpush.png)
 
@@ -52,11 +52,15 @@ Nixiesearch has multiple ways of running indexing:
 * [Offline indexing](../../reference/cli/index.md#offline-indexing). Useful when performing full reindexing from static document source, like from a set of files, or from Kafka topic.
 * [Online indexing](../../reference/cli/index.md#online-indexing). For folks who got used to Elasticsearch with REST API.
 
-For the sake of simplicity we can start Nixiesearch in a `standalone` mode, which bundles both searcher and indexer in a single process with a shared [REST API](api.md).
+For the sake of simplicity we can start Nixiesearch in a [standalone](../../deployment/standalone.md) mode, which bundles both searcher and indexer in a single process with a shared [REST API](api.md).
 
 ```shell
 docker run -it nixiesearch/nixiesearch:latest standalone --config /path/to/conf.yml
 ```
+
+!!! note
+
+    Standalone mode is intended for small-scale local deployments and developer environments, not for a production use. If you plan to use Nixiesearch with real customer traffic, consider using a [distributed](../../deployment/distributed/index.md) deployment with [S3-based storage](../../deployment/distributed/persistence/s3.md).
 
 ### Indexing REST API
 
