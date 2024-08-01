@@ -1,19 +1,15 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.args.URLConverter
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import cats.implicits.*
 import io.circe.generic.semiauto.*
-import org.apache.commons.io.IOUtils
 
-import java.io.{File, FileInputStream}
-import java.nio.charset.StandardCharsets
+import java.io.File
 import io.circe.yaml.parser.*
 
 case class Config(

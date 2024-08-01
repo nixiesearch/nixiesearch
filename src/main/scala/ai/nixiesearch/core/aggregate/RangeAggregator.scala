@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.aggregate
 
-import ai.nixiesearch.api.aggregation.Aggregation.{AggRange, RangeAggregation, TermAggregation}
+import ai.nixiesearch.api.aggregation.Aggregation.{AggRange, RangeAggregation}
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema}
 import ai.nixiesearch.core.Error.UserError

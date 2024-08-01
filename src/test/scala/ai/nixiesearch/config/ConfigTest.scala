@@ -6,7 +6,6 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.URL.LocalURL
-import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
 import ai.nixiesearch.config.mapping.SuggestSchema.Lemmatize
@@ -27,6 +26,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     parsed shouldBe Right(
       Config(
         indexer = IndexerConfig(),
+        core = CoreConfig(
+          cache = CacheConfig(
+            dir = "/cache"
+          )
+        ),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(

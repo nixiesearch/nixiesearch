@@ -1,23 +1,27 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{
+  RAGRequest,
+  RAGResponse,
+  SearchRequest,
+  SearchResponse,
+  SuggestRequest,
+  SuggestResponse
+}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
-import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.{Document, Logging}
+import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import cats.effect.{IO, Ref, Resource}
-import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter, Term}
+import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.search.{
   IndexSearcher,
-  MultiCollector,
   MultiCollectorManager,
   ScoreDoc,
   TopDocs,
-  TopScoreDocCollector,
   TopScoreDocCollectorManager,
   TotalHits,
   Query as LuceneQuery
@@ -27,20 +31,18 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.{DocumentVisitor, TextFieldWriter}
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict.ModelId
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
-import ai.nixiesearch.index.manifest.IndexManifest
-import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
+import ai.nixiesearch.index.sync.Index
+import ai.nixiesearch.util.{DurationStream, StreamMark}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
-import org.apache.lucene.search.suggest.document.{FuzzyCompletionQuery, PrefixCompletionQuery, SuggestIndexSearcher}
+import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
-import org.apache.lucene.store.Directory
-
-import scala.concurrent.duration.*
 import scala.collection.mutable
 
 case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends Logging {
@@ -88,11 +90,19 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     queries <- request.query match {
       case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
       case MatchQuery(field, query, operator) =>
-        fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
+        fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.models.embedding)
       case MultiMatchQuery(query, fields, operator) =>
         fields
           .traverse(field =>
-            fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.encoders)
+            fieldQuery(
+              index.mapping,
+              request.filters,
+              field,
+              query,
+              operator.occur,
+              request.size,
+              index.models.embedding
+            )
           )
           .map(_.flatten)
     }
@@ -107,18 +117,45 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     SearchResponse(
       took = end - start,
       hits = collected,
-      aggs = aggs
+      aggs = aggs,
+      id = request.id,
+      ts = end
     )
+  }
+
+  def rag(docs: List[Document], request: RAGRequest, id: Option[String]): Stream[IO, RAGResponse] = {
+    val stream = for {
+      prompt <- Stream.eval(IO(s"${request.prompt}\n\n${docs
+          .take(request.topDocs)
+          .map(doc =>
+            doc.fields
+              .collect {
+                case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
+                  s"$name: $value"
+              }
+              .mkString(" ")
+          )
+          .mkString("\n\n")}"))
+      _     <- Stream.eval(debug(s"prompt: ${prompt}"))
+      start <- Stream.eval(IO(System.currentTimeMillis()))
+      (token, took) <- index.models.generative
+        .generate(ModelId(request.model), prompt, request.maxResponseLength)
+        .through(DurationStream.pipe(start))
+      now <- Stream.eval(IO(System.currentTimeMillis()))
+    } yield {
+      RAGResponse(id = id, token = token, ts = now, took = took, last = false)
+    }
+    stream.through(StreamMark.pipe[RAGResponse](tail = tok => tok.copy(last = true)))
   }
 
   def fieldQuery(
       mapping: IndexMapping,
-      filter: Filters,
+      filter: Option[Filters],
       field: String,
       query: String,
       operator: Occur,
       size: Int,
-      encoders: BiEncoderCache
+      encoders: EmbedModelDict
   ): IO[List[LuceneQuery]] =
     mapping.fields.get(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
@@ -198,25 +235,30 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   def aggregate(
       mapping: IndexMapping,
       collector: FacetsCollector,
-      aggs: Aggs
+      aggs: Option[Aggs]
   ): IO[Map[String, AggregationResult]] = for {
     reader <- getReadersOrFail().map(_.reader)
-    result <- aggs.aggs.toList
-      .traverse { case (name, agg) =>
-        mapping.fields.get(agg.field) match {
-          case Some(field) if !field.facet =>
-            IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
-          case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
-          case Some(schema) =>
-            agg match {
-              case a @ Aggregation.TermAggregation(field, size) =>
-                TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
-              case a @ Aggregation.RangeAggregation(field, ranges) =>
-                RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+
+    result <- aggs match {
+      case None => IO(Map.empty)
+      case Some(a) =>
+        a.aggs.toList
+          .traverse { case (name, agg) =>
+            mapping.fields.get(agg.field) match {
+              case Some(field) if !field.facet =>
+                IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
+              case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
+              case Some(schema) =>
+                agg match {
+                  case a @ Aggregation.TermAggregation(field, size) =>
+                    TermAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+                  case a @ Aggregation.RangeAggregation(field, ranges) =>
+                    RangeAggregator.aggregate(reader, a, collector, schema).map(result => name -> result)
+                }
             }
-        }
-      }
-      .map(_.toMap)
+          }
+          .map(_.toMap)
+    }
   } yield {
     result
   }

@@ -1,31 +1,17 @@
 package ai.nixiesearch.api.suggest
 
 import ai.nixiesearch.api.SearchRoute.SuggestRequest
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.Language.Generic
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch}
+import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
-import org.apache.lucene.codecs.{FilterCodec, PostingsFormat}
-import org.apache.lucene.codecs.lucene99.Lucene99Codec
-import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat
-import org.apache.lucene.index.{DirectoryReader, IndexWriter, IndexWriterConfig, Term}
-import org.apache.lucene.search.suggest.document.{
-  Completion99PostingsFormat,
-  CompletionPostingsFormat,
-  PrefixCompletionQuery,
-  SuggestField,
-  SuggestIndexSearcher
-}
-import org.apache.lucene.store.ByteBuffersDirectory
-import org.checkerframework.checker.units.qual.Prefix
 
 class SuggestSingleFieldTest extends SearchTest with Matchers {
   val mapping = IndexMapping(

@@ -9,14 +9,11 @@ import ai.nixiesearch.config.FieldSchema.{
 }
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
-import io.circe.syntax.*
-import cats.effect.unsafe.implicits.global
 
 class DocumentJsonTest extends AnyFlatSpec with Matchers {
   it should "decode flat json documents" in {

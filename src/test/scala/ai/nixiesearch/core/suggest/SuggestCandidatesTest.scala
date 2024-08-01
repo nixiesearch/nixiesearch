@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.suggest
 
-import ai.nixiesearch.config.mapping.{Language, SuggestSchema}
+import ai.nixiesearch.config.mapping.SuggestSchema
 import ai.nixiesearch.config.mapping.SuggestSchema.Expand
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

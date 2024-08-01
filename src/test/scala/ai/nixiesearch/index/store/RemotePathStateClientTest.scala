@@ -1,7 +1,6 @@
 package ai.nixiesearch.index.store
 
 import ai.nixiesearch.config.mapping.IndexName
-import ai.nixiesearch.util.TestIndexMapping
 
 import java.nio.file.Files
 

@@ -10,12 +10,10 @@ import cats.effect.{IO, Resource}
 import org.apache.lucene.store.{Directory, IOContext, IndexInput}
 import fs2.{Chunk, Stream}
 import io.circe.parser.*
-import cats.implicits.*
 import org.apache.lucene.index.{DirectoryReader, SegmentInfos}
 
 import java.nio.ByteBuffer
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
-import java.time.Instant
 import scala.jdk.CollectionConverters.*
 
 case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends StateClient with Logging {
@@ -46,6 +44,9 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
       case false => IO.none
       case true =>
         for {
+          _ <- info(
+            s"existing ${IndexManifest.MANIFEST_FILE_NAME} file found for Lucene directory $dir for index ${indexName.value}"
+          )
           manifestBytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
           manifest <- IO(decode[IndexManifest](new String(manifestBytes))).flatMap {
             case Left(err)    => IO.raiseError(err)

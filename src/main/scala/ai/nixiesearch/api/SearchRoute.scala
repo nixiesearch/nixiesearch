@@ -1,33 +1,71 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{
+  RAGResponseFrame,
+  SearchResultsFrame,
+  searchResponseFrameEncoder
+}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
-import ai.nixiesearch.api.SearchRoute.SearchRequest
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponseFrame, SuggestRequest}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
-import ai.nixiesearch.api.SearchRoute.{ErrorResponse, SearchRequest, SearchResponse, SuggestRequest}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
-import io.circe.{Codec, Decoder, Encoder}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
-import ai.nixiesearch.index.sync.Index
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
+import org.http4s.server.websocket.WebSocketBuilder
+import fs2.Stream
+import org.http4s.websocket.WebSocketFrame
+import org.http4s.websocket.WebSocketFrame.Text
+import io.circe.parser.*
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
-  val emptyRequest = SearchRequest(query = MatchAllQuery())
-  val routes = HttpRoutes.of[IO] {
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name.value =>
-      search(request)
+      searchBlocking(request)
     case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name.value =>
       suggest(request)
+  }
+
+  override def wsroutes(wsb: WebSocketBuilder[IO]): HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / indexName / "_ping" if indexName == searcher.index.name.value =>
+      wsb.build((stream: Stream[IO, WebSocketFrame]) =>
+        for {
+          text  <- stream.collect { case t: Text => t }
+          _     <- Stream.eval(debug(s"ws message: ${text}"))
+          frame <- Stream.eval(IO(Text("pong", last = true)))
+        } yield {
+          frame
+        }
+      )
+    case GET -> Root / indexName / "_search" if indexName == searcher.index.name.value =>
+      wsb.build((stream: Stream[IO, WebSocketFrame]) =>
+        for {
+          text <- stream.collect { case t: Text => t }
+          _    <- Stream.eval(debug(s"ws message: ${text}"))
+          request <- Stream.eval(IO(decode[SearchRequest](text.str)).flatMap {
+            case Left(value)  => IO.raiseError(value)
+            case Right(value) => IO.pure(value)
+          })
+          frame <- searchStreaming(request).map {
+            case s: SearchResultsFrame => Text(searchResponseFrameEncoder(s).noSpaces)
+            case c: RAGResponseFrame =>
+              Text(searchResponseFrameEncoder(c).noSpaces)
+          }
+          // _ <- Stream.eval(info(s"frame $frame"))
+        } yield {
+          frame
+        }
+      )
+
   }
 
   def suggest(request: Request[IO]): IO[Response[IO]] = for {
@@ -38,28 +76,82 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
     response
   }
 
-  def search(request: Request[IO]): IO[Response[IO]] = for {
+  def searchStreaming(request: SearchRequest): Stream[IO, SearchResponseFrame] = for {
+    response <- Stream.eval(searcher.search(request))
+    frame <- request.rag match {
+      case Some(ragRequest) =>
+        Stream.emit(SearchResultsFrame(response)) ++ searcher
+          .rag(response.hits, ragRequest, request.id)
+          .map(resp => RAGResponseFrame(resp))
+      case None => Stream.emit(SearchResultsFrame(response))
+    }
+  } yield {
+    frame
+  }
+
+  def searchBlocking(request: Request[IO]): IO[Response[IO]] = for {
     query <- IO(request.entity.length).flatMap {
       case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(_) => request.as[SearchRequest]
     }
-    _        <- info(s"search index='${searcher.index.name}' query=$query")
-    response <- searcher.search(query).flatMap(docs => Ok(docs))
+    _    <- info(s"search index='${searcher.index.name}' query=$query")
+    docs <- searcher.search(query)
+    response <- query.rag match {
+      case None => IO.pure(docs)
+      case Some(ragRequest) =>
+        searcher
+          .rag(docs.hits, ragRequest, query.id)
+          .map(_.token)
+          .compile
+          .fold("")(_ + _)
+          .map(resp => docs.copy(response = Some(resp)))
+    }
+    ok <- Ok(response)
   } yield {
-    response
+    ok
   }
-
 }
 
 object SearchRoute {
-
+  case class RAGRequest(
+      prompt: String,
+      model: String,
+      topDocs: Int = 10,
+      maxDocLength: Int = 128,
+      maxResponseLength: Int = 64,
+      fields: List[String] = Nil
+  )
+  object RAGRequest {
+    given ragRequestEncoder: Encoder[RAGRequest] = deriveEncoder
+    given ragRequestDecoder: Decoder[RAGRequest] = Decoder.instance(c =>
+      for {
+        prompt            <- c.downField("prompt").as[String]
+        model             <- c.downField("model").as[String]
+        topDocs           <- c.downField("topDocs").as[Option[Int]]
+        maxDocLength      <- c.downField("maxDocLength").as[Option[Int]]
+        maxResponseLength <- c.downField("maxResponseLength").as[Option[Int]]
+        fields            <- c.downField("fields").as[Option[List[String]]]
+      } yield {
+        RAGRequest(
+          prompt,
+          model,
+          topDocs.getOrElse(10),
+          maxDocLength.getOrElse(128),
+          fields = fields.getOrElse(Nil),
+          maxResponseLength = maxResponseLength.getOrElse(64)
+        )
+      }
+    )
+  }
   case class SearchRequest(
       query: Query,
-      filters: Filters = Filters(),
+      filters: Option[Filters] = None,
       size: Int = 10,
       fields: List[String] = Nil,
-      aggs: Aggs = Aggs()
+      aggs: Option[Aggs] = None,
+      rag: Option[RAGRequest] = None,
+      id: Option[String] = None
   )
   object SearchRequest {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
@@ -67,24 +159,45 @@ object SearchRoute {
       for {
         query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
-        filters <- c.downField("filters").as[Option[Filters]].map(_.getOrElse(Filters()))
+        filters <- c.downField("filters").as[Option[Filters]]
         fields <- c.downField("fields").as[Option[List[String]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil
         }
-        aggs <- c.downField("aggs").as[Option[Aggs]].map(_.getOrElse(Aggs()))
+        aggs <- c.downField("aggs").as[Option[Aggs]]
+        rag  <- c.downField("rag").as[Option[RAGRequest]]
+        id   <- c.downField("id").as[Option[String]]
       } yield {
-        SearchRequest(query, filters, size, fields, aggs)
+        SearchRequest(query, filters, size, fields, aggs, rag, id)
       }
     )
   }
 
-  case class SearchResponse(took: Long, hits: List[Document], aggs: Map[String, AggregationResult]) {}
+  sealed trait SearchResponseFrame
+  object SearchResponseFrame {
+    case class SearchResultsFrame(value: SearchResponse) extends SearchResponseFrame
+    case class RAGResponseFrame(value: RAGResponse)      extends SearchResponseFrame
+
+    given searchResponseFrameEncoder: Encoder[SearchResponseFrame] = Encoder.instance {
+      case s: SearchResultsFrame => Json.obj("results" -> SearchResponse.searchResponseEncoder(s.value))
+      case r: RAGResponseFrame   => Json.obj("rag" -> RAGResponse.ragResponseEncoder(r.value))
+    }
+  }
+
+  case class SearchResponse(
+      took: Long,
+      hits: List[Document],
+      aggs: Map[String, AggregationResult],
+      response: Option[String] = None,
+      id: Option[String] = None,
+      ts: Long
+  ) {}
   object SearchResponse {
-    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder
+    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
     given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
   }
+
   import SearchRequest.given
 
   given searchRequestDecJson: EntityDecoder[IO, SearchRequest]   = jsonOf
@@ -92,10 +205,23 @@ object SearchRoute {
   given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
   given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
-  case class ErrorResponse(error: String)
+  case class ErrorResponse(error: String, cause: Option[String] = None)
   object ErrorResponse {
-    given errorResponseCodec: Codec[ErrorResponse]            = deriveCodec
+    given errorResponseEncoder: Encoder[ErrorResponse]        = deriveEncoder[ErrorResponse].mapJson(_.dropNullValues)
+    given errorResponseDecoder: Decoder[ErrorResponse]        = deriveDecoder
     given errorResponseJson: EntityEncoder[IO, ErrorResponse] = jsonEncoderOf
+    given errorResponseDecoderJson: EntityDecoder[IO, ErrorResponse] = jsonOf
+
+    def apply(e: Throwable) = Option(e.getCause) match {
+      case None        => new ErrorResponse(e.getMessage)
+      case Some(cause) => new ErrorResponse(e.getMessage, Some(cause.getMessage))
+    }
+  }
+
+  case class RAGResponse(id: Option[String], token: String, ts: Long, took: Long, last: Boolean)
+  object RAGResponse {
+    given ragResponseEncoder: Encoder[RAGResponse] = deriveEncoder[RAGResponse].mapJson(_.dropNullValues)
+    given ragResponseDecoder: Decoder[RAGResponse] = deriveDecoder
   }
 
   case class SuggestRequest(

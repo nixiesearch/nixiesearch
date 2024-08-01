@@ -1,6 +1,5 @@
 package ai.nixiesearch.api.query.aggregation.json
 
-import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.core.FiniteRange.Higher.Lte
 import ai.nixiesearch.core.FiniteRange.Lower.Gte
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}

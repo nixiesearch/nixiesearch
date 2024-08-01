@@ -1,7 +1,6 @@
 package ai.nixiesearch.main.args
 
 import ai.nixiesearch.main.CliConfig.Loglevel
-import org.rogach.scallop.{ArgType, ValueConverter}
 
 object LoglevelConverter extends ArgConverter[Loglevel] {
   override def convert(value: String): Either[String, Loglevel] = value.toLowerCase() match {

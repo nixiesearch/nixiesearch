@@ -28,7 +28,7 @@ class BoolTermFilterTest extends SearchTest with Matchers {
 
   it should "select terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("color", true))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("color", true)))))
       results shouldBe List("1")
     }
   }

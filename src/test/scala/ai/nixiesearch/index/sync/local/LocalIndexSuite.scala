@@ -16,7 +16,7 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
 
   it should "start with empty index" in {
     val (localIndex, localShutdown) = LocalIndex
-      .create(TestIndexMapping(), config)
+      .create(TestIndexMapping(), config, CacheConfig())
       .allocated
       .unsafeRunSync()
 
@@ -31,7 +31,7 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
 
   it should "write docs and search over them" in {
     val (localIndex, localShutdown) = LocalIndex
-      .create(TestIndexMapping(), config)
+      .create(TestIndexMapping(), config, CacheConfig())
       .allocated
       .unsafeRunSync()
 

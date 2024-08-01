@@ -2,10 +2,10 @@ package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, LongFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{BooleanField, IntField, LongField, TextField}
+import ai.nixiesearch.core.Field.{IntField, LongField, TextField}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
@@ -29,14 +29,14 @@ class NumTermFilterTest extends SearchTest with Matchers {
 
   it should "select by int terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("int", 2))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("int", 2)))))
       results shouldBe List("2")
     }
   }
 
   it should "select by long terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("long", 2))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("long", 2)))))
       results shouldBe List("2")
     }
   }

@@ -3,8 +3,7 @@ package ai.nixiesearch.config.mapping
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
-import ai.nixiesearch.core.Document
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.core.Field.TextField
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

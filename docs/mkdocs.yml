@@ -1,5 +1,5 @@
 # Project information
-site_name: nixiesearch
+site_name: Nixiesearch
 site_url: https://nixiesearch.ai
 site_description: >-
   Nixiesearch is an open-source hybrid search engine, which can fine-tune to your documents.
@@ -10,7 +10,7 @@ repo_name: nixiesearch/nixiesearch
 edit_uri: edit/master/docs/
 
 #Copyright
-copyright: © 2023 nixiesearch
+copyright: © 2024 nixiesearch
 
 # Configuration
 theme:
@@ -38,7 +38,8 @@ theme:
     #    - navigation.instant
     #    - toc.integrate
     - navigation.sections
-    #    - navigation.expand
+    - navigation.expand
+    - navigation.indexes
     - navigation.top
     - announce.dismiss
     - navigation.tracking
@@ -60,8 +61,8 @@ plugins:
 # Extensions
 markdown_extensions:
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
       options:
         custom_icons:
           - overrides/.icons
@@ -75,7 +76,6 @@ markdown_extensions:
   - admonition
   - pymdownx.highlight
   - pymdownx.details
-  - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -113,59 +113,60 @@ extra:
 # Page tree
 nav:
   - Docs:
-    - What is Nixiesearch: index.md
-    - Getting started:
-        - Quickstart: quickstart.md
-        - Installation: install.md
-    - Concepts:
-        - How is Nixie different?: concepts/difference.md
-        - Building index: concepts/indexing.md
-        - Search: concepts/search.md
-        - Autocomplete: concepts/autocomplete.md
-        - Deployment: concepts/deploy.md
-    - Deployment:
-        - Overview: deployment/overview.md
-        - Standalone: deployment/standalone.md
-        - Distributed: deployment/distributed.md
-        - Kafka pull-based indexing: deployment/kafka.md
+    - Introduction:
+      - index.md
+      - Quickstart: quickstart.md
+    - Features:
+      - Indexing:
+          - features/indexing/index.md
+          - Index mapping: features/indexing/mapping.md
+          - Document format: features/indexing/format.md
+          - Field types:
+              - features/indexing/types/index.md
+              - Text and numbers: features/indexing/types/basic.md
+              - Images: features/indexing/types/images.md
+          - REST API: features/indexing/api.md
+      - Search:
+          - features/search/index.md
+          - Query DSL: features/search/query.md
+          - Filters: features/search/filter.md
+          - Facets: features/search/facet.md
+          - Sorting: features/search/sort.md
+          - RAG: features/search/rag.md
+          - REST API: features/search/request.md
+      - Autocomplete:
+          - features/autocomplete/index.md
+      - Deployment:
+          - deployment/index.md
+          - Standalone: deployment/standalone.md
+          - Distributed:
+              - deployment/distributed/index.md
+              - Persistence:
+                  - deployment/distributed/persistence/index.md
+                  - S3: deployment/distributed/persistence/s3.md
+                  - Local directory: deployment/distributed/persistence/local.md
+                  - In-memory: deployment/distributed/persistence/inmem.md
+              - Indexing:
+                  - deployment/distributed/indexing/index.md
+                  - Apache Kafka: deployment/distributed/indexing/kafka.md
+                  - File: deployment/distributed/indexing/file.md
     - Reference:
-        - API:
-            - Overview: reference/api/overview.md
-            - Index:
-                - Field types: reference/api/index/field-types.md
-                - Document format: reference/api/index/document-format.md
-                - REST Endpoint: reference/api/index/ingestion.md
-            - Search:
-                - Request JSON format: reference/api/search/request.md
-                - Query DSL: reference/api/search/query.md
-                - Filters: reference/api/search/filter.md
-                - Facets: reference/api/search/facet.md
-            - Suggest: reference/api/suggest.md
-            - System endpoints:
-              - Metrics: reference/api/admin/metrics.md
-              - Config: reference/api/admin/config.md
-              - Indices: reference/api/admin/list-indices.md
-              - Stats: reference/api/admin/stats.md
-        - Configuration:
-            - Overview: reference/config/overview.md
-            - API: reference/config/api.md
-            - Persistence:
-                - Overview: reference/config/persistence/overview.md
-                - In-memory: reference/config/persistence/inmemory.md
-                - Local file: reference/config/persistence/file.md
-                - S3: reference/config/persistence/s3.md
-            - Autocomplete index: reference/config/autocomplete.md
-            - Index mapping:
-                - Overview: reference/config/mapping.md
-                - URL formats: reference/config/url.md
-            - Caching: reference/config/cache.md
-            - Supported embedding models: reference/config/models.md
-            - Language support: reference/config/languages.md
-        - Command-line interface:
+        - Config file: reference/config.md
+        - CLI options:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md
             - nixiesearch search: reference/cli/search.md
-#            - nixiesearch finetune: reference/cli/finetune.md
+        - System API:
+            - Metrics: reference/api/admin/metrics.md
+            - Config: reference/api/admin/config.md
+            - Indices: reference/api/admin/list-indices.md
+            - Stats: reference/api/admin/stats.md
+        - Caching: reference/cache.md
+        - ML models:
+            - reference/models/index.md
+            - Generative: reference/models/generative.md
+            - Embedding: reference/models/embedding.md
+        - Language support: reference/languages.md
   - Blog: https://medium.com/nixiesearch/
   - Slack: https://communityinviter.com/apps/nixiesearch/nixiesearch
   - Contact us: https://communityinviter.com/apps/nixiesearch/nixiesearch

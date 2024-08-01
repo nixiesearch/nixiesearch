@@ -3,8 +3,7 @@ package ai.nixiesearch.config
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.http4s.Uri
 import io.circe.generic.semiauto.*
-import java.nio.file.{Files, Path, Paths}
-import scala.util.{Failure, Success}
+import java.nio.file.{Path, Paths}
 
 enum URL {
   case LocalURL(path: Path)                                                                                  extends URL

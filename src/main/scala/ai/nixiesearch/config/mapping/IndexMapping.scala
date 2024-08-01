@@ -1,24 +1,18 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.{CacheConfig, FieldSchema, StoreConfig}
-import ai.nixiesearch.core.{Document, Field, Logging}
+import ai.nixiesearch.config.{IndexCacheConfig, FieldSchema, StoreConfig}
+import ai.nixiesearch.core.{Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
-import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
-import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.nn.ModelHandle
-import cats.effect.kernel.Resource
-import cats.effect.{IO, Ref}
-import org.apache.lucene.store.{Directory, IOContext}
-import io.circe.parser.*
+import cats.effect.IO
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
@@ -29,8 +23,9 @@ case class IndexMapping(
     name: IndexName,
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
+    rag: RAGConfig = RAGConfig(),
     store: StoreConfig = StoreConfig(),
-    cache: CacheConfig = CacheConfig(),
+    cache: IndexCacheConfig = IndexCacheConfig(),
     fields: Map[String, FieldSchema[? <: Field]]
 ) extends Logging {
   val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
@@ -139,7 +134,8 @@ object IndexMapping extends Logging {
         }
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
-        cache  <- c.downField("cache").as[Option[CacheConfig]].map(_.getOrElse(CacheConfig()))
+        cache  <- c.downField("cache").as[Option[IndexCacheConfig]].map(_.getOrElse(IndexCacheConfig()))
+        rag    <- c.downField("rag").as[Option[RAGConfig]].map(_.getOrElse(RAGConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
         val extendedFields = fieldsMap.get("_id") match {
@@ -150,7 +146,15 @@ object IndexMapping extends Logging {
           case None =>
             fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
         }
-        IndexMapping(name, alias = alias, fields = extendedFields, config = config, store = store, cache = cache)
+        IndexMapping(
+          name,
+          alias = alias,
+          fields = extendedFields,
+          config = config,
+          store = store,
+          cache = cache,
+          rag = rag
+        )
 
       }
     )
@@ -166,8 +170,6 @@ object IndexMapping extends Logging {
 
   object json {
     import FieldSchema.json.given
-    import SearchType.json.given
-    import ai.nixiesearch.util.PathJson.given
     import ai.nixiesearch.config.StoreConfig.json.given
     given indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
     given indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder

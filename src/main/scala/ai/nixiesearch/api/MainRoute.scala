@@ -11,8 +11,10 @@ import org.http4s.circe.*
 
 import scala.util.Random
 
-case class MainRoute(indexes: List[Index]) {
-  val routes = HttpRoutes.of[IO] { case GET -> Root => Ok(MainResponse(indexes = indexes.map(_.name.value))) }
+case class MainRoute(indexes: List[Index]) extends Route {
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] { case GET -> Root =>
+    Ok(MainResponse(indexes = indexes.map(_.name.value)))
+  }
 }
 
 object MainRoute {

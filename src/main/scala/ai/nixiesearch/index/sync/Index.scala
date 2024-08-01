@@ -4,14 +4,14 @@ import ai.nixiesearch.config
 import ai.nixiesearch.config.{CacheConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.BiEncoderCache
+import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.store.StateClient
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.store.Directory
 
 trait Index extends Logging {
   def mapping: IndexMapping
-  def encoders: BiEncoderCache
+  def models: Models
   def master: StateClient
   def replica: StateClient
   def local: StateClient
@@ -24,20 +24,20 @@ trait Index extends Logging {
 }
 
 object Index {
-  def local(mapping: IndexMapping): Resource[IO, LocalIndex] = mapping.store match {
-    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local)
+  def local(mapping: IndexMapping, cacheConfig: CacheConfig): Resource[IO, LocalIndex] = mapping.store match {
+    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, cacheConfig)
     case dist: config.StoreConfig.DistributedStoreConfig =>
       Resource.raiseError[IO, LocalIndex, Throwable](
         new UnsupportedOperationException("cannot open distributed index in local standalone mode")
       )
   }
-  def forSearch(mapping: IndexMapping): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local)
-    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist)
+  def forSearch(mapping: IndexMapping, cacheConfig: CacheConfig): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig)
+    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist, cacheConfig)
   }
 
-  def forIndexing(mapping: IndexMapping): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local)
-    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist)
+  def forIndexing(mapping: IndexMapping, cacheConfig: CacheConfig): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig)
+    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist, cacheConfig)
   }
 }

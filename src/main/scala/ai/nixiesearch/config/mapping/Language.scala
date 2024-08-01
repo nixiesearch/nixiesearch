@@ -1,8 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
-import cats.effect.IO
 
 import scala.util.{Failure, Success}
 import io.circe.{Decoder, Encoder}
@@ -14,8 +12,7 @@ import org.apache.lucene.analysis.br.BrazilianAnalyzer
 import org.apache.lucene.analysis.ca.CatalanAnalyzer
 import org.apache.lucene.analysis.ckb.SoraniAnalyzer
 import org.apache.lucene.analysis.cn.smart.SmartChineseAnalyzer
-import org.apache.lucene.analysis.{Analyzer, CharArraySet, Tokenizer}
-import org.apache.lucene.analysis.core.KeywordAnalyzer
+import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.cz.CzechAnalyzer
 import org.apache.lucene.analysis.da.DanishAnalyzer
 import org.apache.lucene.analysis.de.GermanAnalyzer
@@ -32,7 +29,6 @@ import org.apache.lucene.analysis.gl.GalicianAnalyzer
 import org.apache.lucene.analysis.hi.HindiAnalyzer
 import org.apache.lucene.analysis.hu.HungarianAnalyzer
 import org.apache.lucene.analysis.hy.ArmenianAnalyzer
-import org.apache.lucene.analysis.icu.segmentation.ICUTokenizer
 import org.apache.lucene.analysis.id.IndonesianAnalyzer
 import org.apache.lucene.analysis.it.ItalianAnalyzer
 import org.apache.lucene.analysis.ja.JapaneseAnalyzer
@@ -50,12 +46,8 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.analysis.sv.SwedishAnalyzer
 import org.apache.lucene.analysis.ta.TamilAnalyzer
 import org.apache.lucene.analysis.th.ThaiAnalyzer
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.apache.lucene.analysis.tr.TurkishAnalyzer
 import org.apache.lucene.analysis.uk.UkrainianMorfologikAnalyzer
-
-import java.util.Locale
-import scala.collection.mutable.ArrayBuffer
 
 enum Language(val code: String, makeAnalyzer: => Analyzer) extends Logging {
   lazy val analyzer = {

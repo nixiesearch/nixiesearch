@@ -2,7 +2,7 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.index.IndexStats.{LeafStats, SegmentStats}
 import cats.effect.IO
-import org.apache.lucene.index.{FieldInfo, IndexReader, LeafReaderContext, SegmentCommitInfo, SegmentInfo, SegmentInfos}
+import org.apache.lucene.index.{FieldInfo, IndexReader, LeafReaderContext, SegmentCommitInfo, SegmentInfos}
 import org.apache.lucene.store.Directory
 import io.circe.generic.semiauto.*
 import io.circe.Codec

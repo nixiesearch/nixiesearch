@@ -3,9 +3,9 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.API.info
 import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{CacheConfig, Config, IndexerConfig}
+import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.{JsonDocumentStream, Logging, PrintProgress}
+import ai.nixiesearch.core.{Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
@@ -17,12 +17,10 @@ import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
-import ai.nixiesearch.util.source.URLReader
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import cats.implicits.*
 import fs2.Stream
-
-import scala.concurrent.duration.*
+import org.http4s.HttpRoutes
 
 object IndexMode extends Logging {
   def run(args: IndexArgs): IO[Unit] = for {
@@ -30,18 +28,25 @@ object IndexMode extends Logging {
     config  <- Config.load(args.config)
     indexes <- IO(config.schema.values.toList)
     _ <- args.source match {
-      case apiConfig: ApiIndexSourceArgs     => runApi(indexes, apiConfig, config)
-      case fileConfig: FileIndexSourceArgs   => runOffline(indexes, FileSource(fileConfig), fileConfig.index)
-      case kafkaConfig: KafkaIndexSourceArgs => runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index)
+      case apiConfig: ApiIndexSourceArgs => runApi(indexes, apiConfig, config)
+      case fileConfig: FileIndexSourceArgs =>
+        runOffline(indexes, FileSource(fileConfig), fileConfig.index, config.core.cache)
+      case kafkaConfig: KafkaIndexSourceArgs =>
+        runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index, config.core.cache)
     }
   } yield {}
 
-  def runOffline(indexes: List[IndexMapping], source: DocumentSource, index: String): IO[Unit] = for {
+  def runOffline(
+      indexes: List[IndexMapping],
+      source: DocumentSource,
+      index: String,
+      cacheConfig: CacheConfig
+  ): IO[Unit] = for {
     indexMapping <- IO
       .fromOption(indexes.find(_.name.value == index))(UserError(s"index '${index} not found in mapping'"))
     _ <- debug(s"found index mapping for index '${indexMapping.name}'")
     _ <- Index
-      .forIndexing(indexMapping)
+      .forIndexing(indexMapping, cacheConfig)
       .use(index =>
         Indexer
           .open(index)
@@ -68,7 +73,7 @@ object IndexMode extends Logging {
     _ <- indexes
       .map(im =>
         for {
-          index   <- Index.forIndexing(im)
+          index   <- Index.forIndexing(im, config.core.cache)
           indexer <- Indexer.open(index)
           _       <- PeriodicFlushStream.run(index, indexer)
         } yield { indexer }
@@ -83,7 +88,7 @@ object IndexMode extends Logging {
           routes <- IO(
             indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes <+> MainRoute(indexers.map(_.index)).routes
           )
-          server <- API.start(routes, source.host, source.port)
+          server <- API.start(routes, _ => HttpRoutes.empty[IO], source.host, source.port)
           _      <- server.use(_ => IO.never)
 
         } yield {}

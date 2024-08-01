@@ -1,13 +1,11 @@
 package ai.nixiesearch.api.query
 
-import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchQuery.Operator
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
-import cats.effect.unsafe.implicits.global
-import io.circe.parser.*
+
 class MatchQueryTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping()
   val docs = List(

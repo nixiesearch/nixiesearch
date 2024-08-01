@@ -1,6 +1,5 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}

@@ -4,7 +4,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
 import cats.effect.IO
-import io.circe.{Codec, Encoder, Json}
+import io.circe.{Codec, Encoder}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
@@ -14,7 +14,7 @@ import fs2.Stream
 case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
-  val routes = HttpRoutes.of[IO] {
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value => flush()
     case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
       index(request)

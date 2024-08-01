@@ -6,8 +6,8 @@ import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import cats.effect.IO
-import org.apache.lucene.index.{DocValues, IndexReader}
-import org.apache.lucene.facet.{FacetsCollector, FacetsConfig, StringDocValuesReaderState, StringValueFacetCounts}
+import org.apache.lucene.index.IndexReader
+import org.apache.lucene.facet.{FacetsCollector, StringDocValuesReaderState, StringValueFacetCounts}
 
 object TermAggregator {
   def aggregate(

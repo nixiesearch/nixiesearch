@@ -8,10 +8,9 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import cats.effect.unsafe.implicits.global
 
 class StringTermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
@@ -31,14 +30,14 @@ class StringTermFilterTest extends SearchTest with Matchers {
 
   it should "select terms" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("color", "white"))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("color", "white")))))
       results shouldBe List("2")
     }
   }
 
   it should "select terms with space" in withIndex { index =>
     {
-      val results = index.search(filters = Filters(include = Some(TermPredicate("color2", "light white"))))
+      val results = index.search(filters = Some(Filters(include = Some(TermPredicate("color2", "light white")))))
       results shouldBe List("2")
     }
   }

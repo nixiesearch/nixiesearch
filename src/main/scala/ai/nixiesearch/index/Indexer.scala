@@ -8,15 +8,14 @@ import ai.nixiesearch.config.FieldSchema.{
   TextFieldSchema,
   TextLikeFieldSchema
 }
-import ai.nixiesearch.config.{FieldSchema, StoreConfig}
+import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.SearchType.{SemanticSearch, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.{
   BooleanFieldWriter,
   DoubleFieldWriter,
-  FieldWriter,
   FloatFieldWriter,
   IntFieldWriter,
   LongFieldWriter,
@@ -24,24 +23,16 @@ import ai.nixiesearch.core.codec.{
   TextFieldWriter,
   TextListFieldWriter
 }
-import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.model.BiEncoderCache
-import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
-import cats.effect.{IO, Ref, Resource}
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.index.sync.Index
+import cats.effect.{IO, Resource}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, Term}
-import org.apache.lucene.store.{Directory, MMapDirectory}
+import org.apache.lucene.store.Directory
 import org.apache.lucene.document.Document as LuceneDocument
 
-import scala.concurrent.duration.*
 import java.util
 import cats.implicits.*
-import org.apache.lucene.search.BooleanClause.Occur
-import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery}
-import fs2.Stream
-import org.apache.lucene.codecs.FilterCodec
-import org.apache.lucene.codecs.lucene99.Lucene99Codec
-import org.apache.lucene.search.suggest.document.Completion99PostingsFormat
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -60,7 +51,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       _               <- debug(s"adding ${docs.size} docs to index '${index.name.value}'")
       handles         <- IO(index.mapping.modelHandles())
       fieldStrings    <- IO(strings(index.mapping, docs))
-      embeddedStrings <- embed(fieldStrings, index.encoders)
+      embeddedStrings <- embed(fieldStrings, index.models.embedding)
     } yield {
       val all = new util.ArrayList[LuceneDocument]()
       val ids = new ArrayBuffer[String]()
@@ -119,7 +110,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       writer.addDocuments(all)
     }
   }
-  
+
   def strings(mapping: IndexMapping, docs: List[Document]): Map[SemanticSearchLikeType, List[String]] = {
     val candidates = for {
       doc   <- docs
@@ -143,7 +134,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
 
   def embed(
       targets: Map[SemanticSearchLikeType, List[String]],
-      encoders: BiEncoderCache
+      encoders: EmbedModelDict
   ): IO[Map[SemanticSearchLikeType, Map[String, Array[Float]]]] = {
     targets.toList
       .traverse { case (tpe, strings) =>

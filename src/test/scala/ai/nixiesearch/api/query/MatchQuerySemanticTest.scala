@@ -1,6 +1,5 @@
 package ai.nixiesearch.api.query
 
-import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
@@ -10,9 +9,8 @@ import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{TextField, TextListField}
-import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
-import cats.effect.unsafe.implicits.global
 
 class MatchQuerySemanticTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
@@ -33,14 +31,17 @@ class MatchQuerySemanticTest extends SearchTest with Matchers {
   it should "search for similar docs" in withIndex { index =>
     {
       val response = index.search(MatchQuery("title", "white pajama"))
-      response shouldBe List("2", "3", "1")
+      response shouldBe List("3", "2", "1")
     }
   }
 
   it should "search and filter" in withIndex { index =>
     {
       val response =
-        index.search(MatchQuery("title", "white pajama"), filters = Filters(include = Some(TermPredicate("cat", "b"))))
+        index.search(
+          MatchQuery("title", "white pajama"),
+          filters = Some(Filters(include = Some(TermPredicate("cat", "b"))))
+        )
       response shouldBe List("2", "1")
     }
   }

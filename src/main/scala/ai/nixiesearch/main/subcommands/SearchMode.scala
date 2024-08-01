@@ -2,17 +2,17 @@ package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.*
 import ai.nixiesearch.api.API.info
-import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{CacheConfig, Config}
+import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Searcher
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.SearchArgs
 import ai.nixiesearch.main.Logo
 import cats.data.Kleisli
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import cats.implicits.*
 import fs2.Stream
+import org.http4s.server.websocket.WebSocketBuilder
 
 import scala.concurrent.duration.*
 
@@ -23,7 +23,7 @@ object SearchMode extends Logging {
     _ <- config.schema.values.toList
       .map(im =>
         for {
-          index    <- Index.forSearch(im)
+          index    <- Index.forSearch(im, config.core.cache)
           searcher <- Searcher.open(index)
           _ <- Stream
             .repeatEval(index.sync().flatMap {
@@ -48,11 +48,17 @@ object SearchMode extends Logging {
               )
               .reduce(_ <+> _)
           )
-          health <- IO(HealthRoute())
-          routes <- IO(
-            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(searchers.map(_.index)).routes
+          searchRoutesWss <- IO((wsb: WebSocketBuilder[IO]) =>
+            searchers.map(s => SearchRoute(s).wsroutes(wsb)).reduce(_ <+> _)
           )
-          server <- API.start(routes, config.searcher.host, config.searcher.port)
+          health <- IO(HealthRoute())
+          errors <- IO(TypicalErrorsRoute(searchers.map(_.index.name.value)))
+          routes <- IO(
+            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(
+              searchers.map(_.index)
+            ).routes <+> errors.routes
+          )
+          server <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
           _      <- Logo.lines.map(line => info(line)).sequence
           _      <- server.use(_ => IO.never)
         } yield {}
