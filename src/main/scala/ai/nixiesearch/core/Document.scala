@@ -3,9 +3,7 @@ package ai.nixiesearch.core
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
-import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 

@@ -11,20 +11,17 @@ import ai.nixiesearch.api.SearchRoute.{
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
-import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import cats.effect.{IO, Ref, Resource}
-import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter, Term}
+import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.search.{
   IndexSearcher,
-  MultiCollector,
   MultiCollectorManager,
   ScoreDoc,
   TopDocs,
-  TopScoreDocCollector,
   TopScoreDocCollectorManager,
   TotalHits,
   Query as LuceneQuery
@@ -34,22 +31,18 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.{DocumentVisitor, TextFieldWriter}
+import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict.ModelId
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
-import ai.nixiesearch.index.manifest.IndexManifest
-import ai.nixiesearch.index.sync.{Index, ReplicatedIndex}
+import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.{DurationStream, StreamMark}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
-import org.apache.lucene.search.suggest.document.{FuzzyCompletionQuery, PrefixCompletionQuery, SuggestIndexSearcher}
+import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
-import org.apache.lucene.store.Directory
-
-import scala.concurrent.duration.*
 import scala.collection.mutable
 
 case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends Logging {

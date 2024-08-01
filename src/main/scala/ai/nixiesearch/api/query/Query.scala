@@ -1,17 +1,7 @@
 package ai.nixiesearch.api.query
 
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
-import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
-import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.DocumentVisitor
-import cats.data.NonEmptyList
-import cats.effect.IO
+import ai.nixiesearch.core.Logging
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import org.apache.lucene.facet.FacetsCollector
-import org.apache.lucene.search.{IndexSearcher, TopDocs, Query as LuceneQuery}
-import cats.implicits.*
 
 trait Query extends Logging
 

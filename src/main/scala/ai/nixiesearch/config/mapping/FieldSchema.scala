@@ -1,8 +1,7 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, NoSearch}
+import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.yaml.searchTypeDecoder
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
 import io.circe.{Decoder, DecodingFailure, Encoder}

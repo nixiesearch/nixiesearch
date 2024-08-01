@@ -1,7 +1,5 @@
 package ai.nixiesearch.core.codec
 
-import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.mapping.IndexMapping
 import org.apache.lucene.codecs.lucene99.Lucene99Codec
 import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat
 import org.apache.lucene.codecs.{Codec, FilterCodec, PostingsFormat}

@@ -3,8 +3,6 @@ package ai.nixiesearch.util
 import cats.effect.IO
 import fs2.{Pipe, Pull, Stream}
 
-import scala.annotation.tailrec
-
 object DurationStream {
   def pipe[T](start: Long): Pipe[IO, T, (T, Long)] = in => pipeRec(in, start).stream
 

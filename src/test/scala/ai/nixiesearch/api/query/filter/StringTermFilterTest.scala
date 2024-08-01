@@ -8,10 +8,9 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import cats.effect.unsafe.implicits.global
 
 class StringTermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(

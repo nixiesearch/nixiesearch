@@ -8,7 +8,6 @@ import org.http4s.{EntityEncoder, HttpRoutes}
 import org.http4s.dsl.io.*
 import io.circe.generic.semiauto.*
 import org.http4s.circe.*
-import org.http4s.server.websocket.WebSocketBuilder
 
 import scala.util.Random
 

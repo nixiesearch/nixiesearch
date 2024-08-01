@@ -3,15 +3,9 @@ package ai.nixiesearch.index.manifest
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest.{ChangedFileOp, IndexFile}
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder}
-import io.circe.syntax.*
-import io.circe.parser.*
-import org.apache.lucene.store.{Directory, IOContext}
-import fs2.Stream
-
-import java.time.Instant
 
 case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: Long) extends Logging {
   def syncFiles(): List[String] = files.map(_.name) :+ IndexManifest.MANIFEST_FILE_NAME

@@ -7,13 +7,7 @@ import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{
 }
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
-import ai.nixiesearch.api.SearchRoute.{
-  ErrorResponse,
-  SearchRequest,
-  SearchResponse,
-  SearchResponseFrame,
-  SuggestRequest
-}
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponseFrame, SuggestRequest}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
@@ -21,25 +15,17 @@ import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
-import io.circe.{Codec, Decoder, Encoder}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
-import ai.nixiesearch.index.sync.Index
-import ai.nixiesearch.util.StreamMark
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import org.http4s.{Entity, EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
+import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.http4s.server.websocket.WebSocketBuilder
-import fs2.{Pull, Stream}
+import fs2.Stream
 import org.http4s.websocket.WebSocketFrame
-import org.http4s.websocket.WebSocketFrame.{Continuation, Text}
+import org.http4s.websocket.WebSocketFrame.Text
 import io.circe.parser.*
-import io.circe.syntax.*
-import scodec.bits.ByteVector
-
-import java.util.UUID
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {

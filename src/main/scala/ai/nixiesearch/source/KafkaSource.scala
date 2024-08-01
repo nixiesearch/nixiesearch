@@ -15,11 +15,10 @@ import org.apache.kafka.clients.consumer.{
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.TopicPartition
 
-import java.time.temporal.{ChronoUnit, TemporalUnit}
+import java.time.temporal.ChronoUnit
 import scala.jdk.CollectionConverters.*
-import java.time.{Duration, Instant, Period}
+import java.time.{Duration, Instant}
 import java.util
-import java.util.concurrent.TimeUnit
 import java.util.{Collections, Properties}
 import fs2.{Chunk, Stream}
 

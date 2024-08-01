@@ -7,7 +7,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 import fs2.Stream
-import org.apache.commons.io.IOUtils
 
 import java.nio.file.{Files, Paths}
 import scala.util.Random

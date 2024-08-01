@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.nn.model.generative
 
-import ai.nixiesearch.config.mapping.RAGConfig.PromptTemplate.{Llama3Template, Qwen2Template}
+import ai.nixiesearch.config.mapping.RAGConfig.PromptTemplate.Qwen2Template
 import ai.nixiesearch.config.mapping.RAGConfig.RAGModelConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.ModelFileCache

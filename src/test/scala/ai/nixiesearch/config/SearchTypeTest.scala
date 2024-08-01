@@ -1,7 +1,6 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, ModelPrefix, NoSearch, SemanticSearch}
 import ai.nixiesearch.core.Field
 import io.circe.Decoder

@@ -3,9 +3,9 @@ package ai.nixiesearch.main.subcommands
 import ai.nixiesearch.api.API.info
 import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{CacheConfig, Config, IndexCacheConfig, IndexerConfig}
+import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.{JsonDocumentStream, Logging, PrintProgress}
+import ai.nixiesearch.core.{Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
@@ -17,13 +17,10 @@ import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
-import ai.nixiesearch.util.source.URLReader
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import cats.implicits.*
 import fs2.Stream
 import org.http4s.HttpRoutes
-
-import scala.concurrent.duration.*
 
 object IndexMode extends Logging {
   def run(args: IndexArgs): IO[Unit] = for {

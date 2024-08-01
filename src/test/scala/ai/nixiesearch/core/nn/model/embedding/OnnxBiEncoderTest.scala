@@ -1,16 +1,12 @@
 package ai.nixiesearch.core.nn.model.embedding
 
-import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
 import ai.nixiesearch.core.nn.model.ModelFileCache
-import ai.nixiesearch.core.nn.model.embedding.EmbedModel.OnnxEmbedModel
-import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.unsafe.implicits.global
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
 
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {

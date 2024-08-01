@@ -5,12 +5,12 @@ import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.util.S3Client
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import de.lhns.fs2.compress.{Bzip2Decompressor, GzipDecompressor, ZstdDecompressor}
 import fs2.Stream
 import fs2.io.file.{Files, Path as FPath}
 import fs2.io.readInputStream
-import org.http4s.ember.client.{EmberClient, EmberClientBuilder}
+import org.http4s.ember.client.EmberClientBuilder
 
 import java.io.FileInputStream
 

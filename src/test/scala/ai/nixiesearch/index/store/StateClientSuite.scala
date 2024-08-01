@@ -3,7 +3,7 @@ package ai.nixiesearch.index.store
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
-import ai.nixiesearch.index.store.StateClient.StateError.{FileExistsError, FileMissingError}
+import ai.nixiesearch.index.store.StateClient.StateError.FileMissingError
 import ai.nixiesearch.util.TestIndexMapping
 import cats.effect.{IO, Resource}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -12,15 +12,12 @@ import cats.effect.unsafe.implicits.global
 import org.apache.lucene.store.ByteBuffersDirectory
 import io.circe.syntax.*
 
-import java.nio.file.NoSuchFileException
 import fs2.{Chunk, Collector, Stream}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{Document, StringField}
 import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, SegmentInfos}
-import org.apache.lucene.util.IOUtils
 
 import java.nio.ByteBuffer
-import java.time.Instant
 import scala.util.Random
 import scala.jdk.CollectionConverters.*
 

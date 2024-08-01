@@ -1,22 +1,18 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.SearchRoute.{ErrorResponse, SearchRequest}
+import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.{MatchAllQuery, MultiMatchQuery, Query}
 import ai.nixiesearch.api.ui.WebuiTemplate
-import ai.nixiesearch.config.Config
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
+import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Searcher
-import cats.effect.{IO, Ref}
-import io.circe.{Codec, Decoder, Encoder, Json}
-import org.http4s.{Entity, EntityDecoder, EntityEncoder, Headers, HttpRoutes, MediaType, Request, Response, Status}
+import cats.effect.IO
+import org.http4s.{Entity, Headers, HttpRoutes, MediaType, Request, Response, Status}
 import org.http4s.dsl.io.*
-import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import org.apache.commons.io.{FilenameUtils, IOUtils}
 import org.http4s.headers.`Content-Type`
-import org.http4s.server.websocket.WebSocketBuilder
 import scodec.bits.ByteVector
 
 case class WebuiRoute(

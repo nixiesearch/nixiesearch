@@ -2,7 +2,6 @@ package ai.nixiesearch.core.nn.model.generative
 
 import ai.nixiesearch.config.mapping.RAGConfig.{PromptTemplate, RAGModelConfig}
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.ModelHandle
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import de.kherud.llama.{InferenceParameters, LlamaModel, ModelParameters}

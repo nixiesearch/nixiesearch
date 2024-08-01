@@ -5,7 +5,7 @@ import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.index.{Indexer, Searcher}
-import ai.nixiesearch.index.sync.{Index, MasterIndex}
+import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.DatasetLoader
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

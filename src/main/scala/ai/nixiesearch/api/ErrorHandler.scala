@@ -2,7 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.api.SearchRoute.ErrorResponse
 import ai.nixiesearch.core.Error.UserError
-import cats.data.{Kleisli, OptionT}
+import cats.data.Kleisli
 import cats.effect.IO
 import org.http4s.Entity.Strict
 import org.http4s.{Request, Response, Status}

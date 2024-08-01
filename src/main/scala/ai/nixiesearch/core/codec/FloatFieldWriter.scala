@@ -1,14 +1,9 @@
 package ai.nixiesearch.core.codec
 
-import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, IntFieldSchema}
-import ai.nixiesearch.core.Field.{FloatField, IntField}
+import ai.nixiesearch.config.FieldSchema.FloatFieldSchema
+import ai.nixiesearch.core.Field.FloatField
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{
-  NumericDocValuesField,
-  SortedNumericDocValuesField,
-  StoredField,
-  Document as LuceneDocument
-}
+import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.util.NumericUtils
 
 class FloatFieldWriter extends FieldWriter[FloatField, FloatFieldSchema] {

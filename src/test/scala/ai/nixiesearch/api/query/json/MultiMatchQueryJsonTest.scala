@@ -3,7 +3,6 @@ package ai.nixiesearch.api.query.json
 import ai.nixiesearch.api.query.MatchQuery.Operator
 import ai.nixiesearch.api.query.MultiMatchQuery
 import io.circe.parser.*
-import io.circe.syntax.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

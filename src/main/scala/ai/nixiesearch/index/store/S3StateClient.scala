@@ -5,38 +5,13 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError
-import ai.nixiesearch.index.store.StateClient.StateError.FileExistsError
 import ai.nixiesearch.util.S3Client
 import cats.effect.{IO, Resource}
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.s3.S3AsyncClient
-import fs2.{Chunk, Stream}
-import software.amazon.awssdk.services.s3.model.{
-  CompleteMultipartUploadRequest,
-  CompletedMultipartUpload,
-  CompletedPart,
-  CreateMultipartUploadRequest,
-  DeleteObjectRequest,
-  GetObjectRequest,
-  GetObjectResponse,
-  HeadObjectRequest,
-  HeadObjectResponse,
-  ListObjectsV2Request,
-  NoSuchKeyException,
-  PutObjectRequest,
-  UploadPartRequest
-}
-import fs2.interop.reactivestreams.*
-import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
+import fs2.Stream
+import software.amazon.awssdk.services.s3.model.{DeleteObjectRequest, NoSuchKeyException}
 import io.circe.parser.*
 
 import scala.jdk.CollectionConverters.*
-import java.net.URI
-import java.nio.ByteBuffer
-import java.time.Instant
-import java.util.concurrent.CompletableFuture
-import scala.compiletime.uninitialized
 
 case class S3StateClient(s3: S3Client, conf: S3Location, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 5 * 1024 * 1024

@@ -1,7 +1,5 @@
 package ai.nixiesearch.source
 
-import cats.effect.IO
-
 import scala.concurrent.duration.FiniteDuration
 
 enum SourceOffset {

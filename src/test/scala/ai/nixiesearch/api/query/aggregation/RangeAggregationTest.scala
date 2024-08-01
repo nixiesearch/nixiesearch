@@ -12,8 +12,7 @@ import ai.nixiesearch.config.FieldSchema.{
   FloatFieldSchema,
   IntFieldSchema,
   LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
+  TextFieldSchema
 }
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation

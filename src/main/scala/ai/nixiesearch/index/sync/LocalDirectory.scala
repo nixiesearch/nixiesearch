@@ -1,18 +1,15 @@
 package ai.nixiesearch.index.sync
 
 import ai.nixiesearch.config.StoreConfig
-import ai.nixiesearch.config.StoreConfig.{LocalStoreConfig, LocalStoreLocation}
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
+import ai.nixiesearch.config.StoreConfig.LocalStoreLocation
+import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.index.Indexer
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
 import cats.effect.{IO, Resource}
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory}
 import fs2.Stream
-import org.apache.lucene.analysis.standard.StandardAnalyzer
-import org.apache.lucene.index.{DirectoryReader, IndexWriter}
 
 import java.nio.file.{Files, Path}
 

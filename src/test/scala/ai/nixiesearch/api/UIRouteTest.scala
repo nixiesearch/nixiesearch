@@ -9,9 +9,6 @@ import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 
 class UIRouteTest extends AnyFlatSpec with Matchers with SearchTest {
-  import ai.nixiesearch.util.HttpTest.*
-  import SearchRoute.*
-
   val mapping = TestIndexMapping()
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),

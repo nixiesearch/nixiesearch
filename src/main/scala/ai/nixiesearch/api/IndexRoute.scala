@@ -4,13 +4,12 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
 import cats.effect.IO
-import io.circe.{Codec, Encoder, Json}
+import io.circe.{Codec, Encoder}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import fs2.Stream
-import org.http4s.server.websocket.WebSocketBuilder
 
 case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}

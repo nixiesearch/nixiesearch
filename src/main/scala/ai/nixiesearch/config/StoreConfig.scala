@@ -7,7 +7,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import ai.nixiesearch.util.PathJson.given
 import io.circe.derivation.Configuration
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Path, Paths}
 
 enum StoreConfig {
   case LocalStoreConfig(local: StoreConfig.LocalStoreLocation = DiskLocation(StoreConfig.DEFAULT_WORKDIR))

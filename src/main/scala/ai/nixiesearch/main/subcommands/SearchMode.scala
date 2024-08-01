@@ -2,15 +2,14 @@ package ai.nixiesearch.main.subcommands
 
 import ai.nixiesearch.api.*
 import ai.nixiesearch.api.API.info
-import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.{Config, IndexCacheConfig}
+import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Searcher
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.SearchArgs
 import ai.nixiesearch.main.Logo
 import cats.data.Kleisli
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import cats.implicits.*
 import fs2.Stream
 import org.http4s.server.websocket.WebSocketBuilder

@@ -1,11 +1,10 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig}
+import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
@@ -13,8 +12,6 @@ import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
 import cats.effect.{IO, Ref, Resource}
 import fs2.Stream
 import org.apache.lucene.store.Directory
-
-import scala.concurrent.duration.*
 
 case class SlaveIndex(
     mapping: IndexMapping,

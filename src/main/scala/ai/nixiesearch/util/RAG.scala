@@ -1,6 +1,6 @@
 package ai.nixiesearch.util
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.IO
 import de.kherud.llama.{InferenceParameters, LlamaModel, ModelParameters}
 import fs2.Stream
 import scala.jdk.CollectionConverters.*

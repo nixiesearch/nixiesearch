@@ -5,7 +5,6 @@ import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import io.circe.generic.semiauto.*
 import ai.nixiesearch.core.suggest.GeneratedSuggestions
 import cats.effect.IO
-import io.circe.{Decoder, Encoder}
 
 import scala.collection.mutable
 

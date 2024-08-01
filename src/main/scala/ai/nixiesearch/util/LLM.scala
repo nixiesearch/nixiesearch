@@ -1,10 +1,9 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.core.nn.ModelHandle
-import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import de.kherud.llama.{InferenceParameters, LlamaModel, LlamaOutput}
+import de.kherud.llama.{InferenceParameters, LlamaModel}
 import fs2.Stream
 
 import scala.jdk.CollectionConverters.*
