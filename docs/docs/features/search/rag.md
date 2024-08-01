@@ -63,6 +63,7 @@ schema:
 ## Sending requests
 
 For RAG requests, Nixiesearch supports REST and WebSocket protocols:
+
 * REST: much simpler to implement, but blocks till full RAG response is generated.
 * WebSocket: can stream each generated response toke, but more complex.
 
@@ -85,6 +86,7 @@ Request format is the same for both protocols:
 ```
 
 The `rag` field has the following options:
+
 * `prompt` (string, required): A main instruction for the LLM.
 * `model` (string, required): Model name from the `rag.models` [index mapping section](#rag-retrieval-augmented-generation).
 * `fields` (string[], optional): A list of fields from the search results documents to embed to the LLM prompt. By default, use all stored fields from the response.
@@ -248,6 +250,7 @@ So a series of `results` and `rag` frames can be combined into a single stream i
 {"rag":{"id":"test1","token":" the","ts":1722355042833,"took":18,"last":false}}
 {"rag":{"id":"test1","token":"","ts":1722355042834,"took":1,"last":true}}```
 ```
+
 * The `results` frame with search results is always the first one
 * If there was a `request.rag` field present in the search request, server will start streaming RAG response tokens
 * When server finishes generating RAG response, it will set `last: true` flag to communicate that.
