@@ -1,7 +1,7 @@
 package ai.nixiesearch.index.sync.master
 import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
-import ai.nixiesearch.config.{CacheConfig, IndexCacheConfig, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, StoreConfig}
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.RemoteDiskLocation
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation

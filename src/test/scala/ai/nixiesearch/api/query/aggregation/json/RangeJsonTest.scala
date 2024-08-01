@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.query.aggregation.json
 
 import ai.nixiesearch.api.aggregation.Aggregation.AggRange.RangeFromTo
-import ai.nixiesearch.api.aggregation.Aggregation.{AggRange, RangeAggregation}
+import ai.nixiesearch.api.aggregation.Aggregation.AggRange
 import ai.nixiesearch.core.FiniteRange.Higher.Lt
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import org.scalatest.flatspec.AnyFlatSpec

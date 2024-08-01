@@ -3,7 +3,6 @@ package ai.nixiesearch.core.nn.model.embedding
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.ModelHandle
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
 import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}

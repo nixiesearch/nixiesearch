@@ -3,7 +3,6 @@ package ai.nixiesearch.util
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.util.S3Client.{S3File, S3GetObjectResponseStream}
 import cats.effect.{IO, Resource}
-import cats.effect.kernel.Resource
 import software.amazon.awssdk.auth.credentials.{
   AnonymousCredentialsProvider,
   AwsCredentialsProvider,

@@ -1,7 +1,6 @@
 package ai.nixiesearch.e2e
 
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
-import ai.nixiesearch.api.query.MatchQuery
+import ai.nixiesearch.api.SearchRoute.{SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.mapping.IndexName

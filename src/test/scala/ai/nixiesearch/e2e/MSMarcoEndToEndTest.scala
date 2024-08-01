@@ -4,7 +4,6 @@ import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.Config
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.util.{DatasetLoader, SearchTest}
@@ -12,13 +11,7 @@ import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
-import com.github.luben.zstd.ZstdInputStream
-
-import java.io.{File, FileInputStream}
-import java.nio.file.Files
-import fs2.Stream
-import fs2.io.readInputStream
-import io.circe.parser.*
+import java.io.File
 import io.circe.syntax.*
 import org.http4s.{Entity, Method, Request, Uri}
 import scodec.bits.ByteVector

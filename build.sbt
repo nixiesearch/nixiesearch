@@ -65,6 +65,7 @@ scalacOptions ++= Seq(
   "-feature",
   "-deprecation",
   "-Xfatal-warnings",
+//  "-Wunused:imports",
 //  "-release:20",
   "-no-indent"
 )

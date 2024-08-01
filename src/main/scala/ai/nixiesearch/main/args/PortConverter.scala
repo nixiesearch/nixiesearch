@@ -1,7 +1,6 @@
 package ai.nixiesearch.main.args
 
 import ai.nixiesearch.config.ApiConfig.Port
-import org.rogach.scallop.ValueConverter
 
 object PortConverter extends ArgConverter[Port] {
   val MAX_PORT = 1024 * 64

@@ -8,9 +8,8 @@ import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
-import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
-import cats.effect.unsafe.implicits.global
 
 class MultiMatchQueryTest extends SearchTest with Matchers {
   val mapping = IndexMapping(

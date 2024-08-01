@@ -1,24 +1,18 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.{IndexCacheConfig, FieldSchema, StoreConfig}
-import ai.nixiesearch.core.{Document, Field, Logging}
+import ai.nixiesearch.core.{Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
-import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
-import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.nn.ModelHandle
-import cats.effect.kernel.Resource
-import cats.effect.{IO, Ref}
-import org.apache.lucene.store.{Directory, IOContext}
-import io.circe.parser.*
+import cats.effect.IO
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
@@ -176,8 +170,6 @@ object IndexMapping extends Logging {
 
   object json {
     import FieldSchema.json.given
-    import SearchType.json.given
-    import ai.nixiesearch.util.PathJson.given
     import ai.nixiesearch.config.StoreConfig.json.given
     given indexMappingDecoder: Decoder[IndexMapping] = deriveDecoder
     given indexMappingEncoder: Encoder[IndexMapping] = deriveEncoder

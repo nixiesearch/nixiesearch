@@ -1,11 +1,10 @@
 package ai.nixiesearch.util
 
-import ai.nixiesearch.util.StreamMarkTest.Item
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import fs2.{Pipe, Stream}
 import cats.effect.unsafe.implicits.global
+import fs2.Stream
 
 class StreamMarkTest extends AnyFlatSpec with Matchers {
   it should "mark last" in {

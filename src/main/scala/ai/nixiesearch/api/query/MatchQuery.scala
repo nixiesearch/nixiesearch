@@ -1,29 +1,12 @@
 package ai.nixiesearch.api.query
 
-import ai.nixiesearch.api.SearchRoute
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.api.query.MatchQuery.Operator
 import ai.nixiesearch.api.query.MatchQuery.Operator.OR
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
-import ai.nixiesearch.config.mapping.{IndexMapping, Language}
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, ModelPrefix, SemanticSearch}
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.ModelHandle
-import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import org.apache.lucene.search.{
-  BooleanClause,
-  BooleanQuery,
-  IndexSearcher,
-  KnnFloatVectorQuery,
-  MultiCollector,
-  TermQuery,
-  TopScoreDocCollector,
-  Query as LuceneQuery
-}
+import org.apache.lucene.search.BooleanClause
+
 import io.circe.generic.semiauto.*
-import org.apache.lucene.facet.FacetsCollector
-import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur
 
 import scala.util.{Failure, Success}

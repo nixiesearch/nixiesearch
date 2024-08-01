@@ -1,7 +1,6 @@
 package ai.nixiesearch.api.filter
 
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, NotPredicate, OrPredicate}
-import ai.nixiesearch.api.filter.Predicate.FilterTerm
 import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, NumTerm, StringTerm}
 import ai.nixiesearch.config.FieldSchema.{
   BooleanFieldSchema,
@@ -9,24 +8,20 @@ import ai.nixiesearch.config.FieldSchema.{
   FloatFieldSchema,
   IntFieldSchema,
   LongFieldSchema,
-  TextFieldSchema,
-  TextLikeFieldSchema,
-  TextListFieldSchema
+  TextLikeFieldSchema
 }
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.Field.TextListField
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
 import ai.nixiesearch.core.{FiniteRange, Logging}
 import ai.nixiesearch.core.codec.TextFieldWriter
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import io.circe.generic.semiauto.*
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
 import cats.implicits.*
-import org.apache.lucene.document.{IntField, LongField, NumericDocValuesField}
+import org.apache.lucene.document.{IntField, LongField}
 
 sealed trait Predicate {
   def compile(mapping: IndexMapping): IO[LuceneQuery]

@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
-import io.circe.{Decoder, DecodingFailure, Encoder}
+import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 
 case class SearcherConfig(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080))

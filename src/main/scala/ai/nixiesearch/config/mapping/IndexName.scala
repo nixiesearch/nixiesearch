@@ -1,9 +1,7 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.core.Error.UserError
-import io.circe.{Decoder, Encoder, Json, KeyDecoder, KeyEncoder}
-
-import scala.util.{Failure, Success}
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 
 case class IndexName(value: String) {
   override def equals(obj: Any): Boolean = obj match {
@@ -32,6 +30,6 @@ object IndexName {
     override def apply(key: IndexName): String = key.value
   }
 
-  //given eqNameString: CanEqual[IndexName, String]  = CanEqual.derived
-  //given eqStringName: CanEqual[String, IndexName]  = CanEqual.derived
+  // given eqNameString: CanEqual[IndexName, String]  = CanEqual.derived
+  // given eqStringName: CanEqual[String, IndexName]  = CanEqual.derived
 }

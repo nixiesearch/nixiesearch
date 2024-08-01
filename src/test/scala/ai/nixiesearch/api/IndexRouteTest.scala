@@ -1,20 +1,11 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.IndexRoute.IndexResponse
-import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
-import ai.nixiesearch.util.{LocalNixie, SearchTest, TestIndexMapping}
-import org.http4s.{Entity, EntityDecoder, Method, Request, Response, Uri}
+import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import cats.effect.unsafe.implicits.global
-import scodec.bits.ByteVector
-import io.circe.syntax.*
-import cats.effect.IO
-import io.circe.{Decoder, Encoder}
-
-import java.nio.file.Files
 
 class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import IndexRoute.*

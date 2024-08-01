@@ -1,17 +1,15 @@
 package ai.nixiesearch.api.ui
 
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
-import ai.nixiesearch.api.query.{MatchAllQuery, MatchQuery, MultiMatchQuery}
+import ai.nixiesearch.api.query.{MatchQuery, MultiMatchQuery}
 import ai.nixiesearch.api.ui.WebuiTemplate.WebuiDoc
 import ai.nixiesearch.core.Field.{FloatField, TextField}
 import ai.nixiesearch.core.{Document, Field}
 import com.hubspot.jinjava.Jinjava
 import cats.effect.IO
-import com.google.common.collect.Lists
 import org.apache.commons.io.IOUtils
 
 import java.nio.charset.StandardCharsets
-import scala.io.Source
 import scala.jdk.CollectionConverters.*
 import java.util.Map as JMap
 import java.util.List as JList

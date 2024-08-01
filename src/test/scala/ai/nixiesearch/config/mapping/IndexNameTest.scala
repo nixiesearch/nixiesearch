@@ -1,8 +1,7 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.mapping.IndexNameTest.{IndexNameWrapper, indexNameWrapperDecoder}
-import ai.nixiesearch.config.mapping.IndexName
-import io.circe.{Decoder, Encoder}
+import io.circe.Decoder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*

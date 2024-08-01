@@ -1,7 +1,6 @@
 package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
-import ai.nixiesearch.core.Field.TextListField
 import ai.nixiesearch.config.mapping.SearchType
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch}
 import ai.nixiesearch.core.Field.*

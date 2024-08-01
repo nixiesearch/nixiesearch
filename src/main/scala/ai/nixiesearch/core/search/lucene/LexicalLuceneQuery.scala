@@ -4,7 +4,6 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.mapping.{IndexMapping, Language}
 import ai.nixiesearch.core.suggest.AnalyzedIterator
 import cats.effect.IO
-import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, TermQuery, Query as LuceneQuery}

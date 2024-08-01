@@ -6,19 +6,18 @@ import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
 import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
-import org.apache.lucene.search.BooleanClause.Occur
-import org.apache.lucene.search.{BooleanClause, BooleanQuery, KnnFloatVectorQuery, TermQuery, Query as LuceneQuery}
+import org.apache.lucene.search.{KnnFloatVectorQuery, Query as LuceneQuery}
 
 object SemanticLuceneQuery {
   def create(
-              encoders: EmbedModelDict,
-              model: ModelHandle,
-              prefix: ModelPrefix,
-              query: String,
-              field: String,
-              size: Int,
-              filter: Option[Filters],
-              mapping: IndexMapping
+      encoders: EmbedModelDict,
+      model: ModelHandle,
+      prefix: ModelPrefix,
+      query: String,
+      field: String,
+      size: Int,
+      filter: Option[Filters],
+      mapping: IndexMapping
   ): IO[List[LuceneQuery]] = for {
     queryEmbed <- encoders.encode(model, prefix.query + query)
     filterOption <- filter match {

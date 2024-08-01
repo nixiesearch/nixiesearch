@@ -1,7 +1,5 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.IndexRoute.IndexResponse
-import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError

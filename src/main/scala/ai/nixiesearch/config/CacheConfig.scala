@@ -5,7 +5,6 @@ import ai.nixiesearch.config.CacheConfig.EmbeddingCacheConfig.HeapCache
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 
-import java.io.File
 import java.nio.file.Paths
 
 case class CacheConfig(dir: String = CacheConfig.defaultCacheDir(), embeddings: EmbeddingCacheConfig = HeapCache())

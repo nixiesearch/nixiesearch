@@ -5,7 +5,7 @@ import cats.effect.IO
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 import org.apache.lucene.search.BooleanClause.Occur
-import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
+import org.apache.lucene.search.{BooleanClause, BooleanQuery, Query as LuceneQuery}
 
 case class Filters(include: Option[Predicate] = None, exclude: Option[Predicate] = None) {
   def toLuceneQuery(mapping: IndexMapping): IO[Option[LuceneQuery]] = {

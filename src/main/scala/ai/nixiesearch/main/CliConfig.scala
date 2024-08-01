@@ -13,7 +13,6 @@ import cats.effect.IO
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version as ScallopVersion}
 import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, throwError, given}
 
-import java.io.File
 import scala.util.{Failure, Success, Try}
 
 case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) with Logging {

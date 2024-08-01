@@ -1,6 +1,5 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 

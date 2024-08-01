@@ -13,11 +13,8 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
-import io.circe.Json
-import io.circe.JsonObject
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.*
-import cats.effect.IO
 
 case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: DocumentFields = DocumentFields())
     extends StoredFieldVisitor

@@ -10,12 +10,10 @@ import cats.effect.{IO, Resource}
 import org.apache.lucene.store.{Directory, IOContext, IndexInput}
 import fs2.{Chunk, Stream}
 import io.circe.parser.*
-import cats.implicits.*
 import org.apache.lucene.index.{DirectoryReader, SegmentInfos}
 
 import java.nio.ByteBuffer
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
-import java.time.Instant
 import scala.jdk.CollectionConverters.*
 
 case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends StateClient with Logging {
