@@ -36,7 +36,7 @@ jobs:
         java-version: ${{ matrix.jvm }}
 
     - name:  Run docker-compose
-      run: docker-compose -f .github/compose.yaml up -d
+      run: docker compose -f .github/compose.yaml up -d
 
     - name: Run tests
       run: sbt -mem 3000 test
