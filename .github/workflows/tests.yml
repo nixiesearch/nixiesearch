@@ -42,7 +42,7 @@ jobs:
       run: sbt -mem 3000 test
 
     - name:  Stop docker-compose
-      run: docker-compose -f .github/compose.yaml down
+      run: docker compose -f .github/compose.yaml down
 
     - name: Make assembly
       run: sbt -mem 5000 assembly
