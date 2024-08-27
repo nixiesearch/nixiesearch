@@ -25,7 +25,7 @@ class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
     val short  = cache.generate(ModelId("qwen"), "knock knock! who is there?", 10).compile.toList.unsafeRunSync()
     shutdownHandle.unsafeRunSync()
     val expected =
-      "I'm an AI, so I don't have a physical body and can't make knock knock. But you can reach out and I'll do my best to answer your questions!"
+      "I'm an AI, so I don't have a physical body or a mind. I exist in the universe, so I can answer any questions you have."
     result.mkString("") shouldBe expected
     short.mkString("") shouldBe "I'm an AI, so I don't have"
   }
