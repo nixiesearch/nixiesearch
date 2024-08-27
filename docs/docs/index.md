@@ -5,11 +5,7 @@
 ![Last commit](https://img.shields.io/github/last-commit/nixiesearch/nixiesearch)
 ![Last release](https://img.shields.io/github/release/nixiesearch/nixiesearch)
 [![Join our slack](https://img.shields.io/badge/Slack-join%20the%20community-blue?logo=slack&style=social)](https://communityinviter.com/apps/nixiesearch/nixiesearch)
-<<<<<<< HEAD
 [![Visit demo](https://img.shields.io/badge/visit-demo-blue)](https://demo.nixiesearch.ai)
-=======
-![Visit demo](https://img.shields.io/badge/visit-demo-blue)
->>>>>>> refs/remotes/origin/master
 
 ## What is Nixiesearch?
 
