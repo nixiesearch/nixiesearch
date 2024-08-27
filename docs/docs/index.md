@@ -5,7 +5,11 @@
 ![Last commit](https://img.shields.io/github/last-commit/nixiesearch/nixiesearch)
 ![Last release](https://img.shields.io/github/release/nixiesearch/nixiesearch)
 [![Join our slack](https://img.shields.io/badge/Slack-join%20the%20community-blue?logo=slack&style=social)](https://communityinviter.com/apps/nixiesearch/nixiesearch)
+<<<<<<< HEAD
 [![Visit demo](https://img.shields.io/badge/visit-demo-blue)](https://demo.nixiesearch.ai)
+=======
+![Visit demo](https://img.shields.io/badge/visit-demo-blue)
+>>>>>>> refs/remotes/origin/master
 
 ## What is Nixiesearch?
 
@@ -15,7 +19,7 @@ Nixiesearch is a **hybrid search engine** that fine-tunes to your data.
 * Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/languages.md), [facets](features/search/facet.md), [advanced filters](features/search/filter.md), [autocomplete suggestions](features/autocomplete/index.md) and [sorting](features/search/sort.md) out of the box.
 * Batteries included: fully local [RAG queries](features/search/rag.md) and [vector search](reference/models/index.md) within a [single app](deployment/standalone.md). 
 * Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
-> Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/). 
+> Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/) and check out [the live demo](https://demo.nixiesearch.ai). 
 
 ### Why Nixiesearch?
 
