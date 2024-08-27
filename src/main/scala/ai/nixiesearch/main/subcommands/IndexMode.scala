@@ -86,7 +86,7 @@ object IndexMode extends Logging {
           )
           healthRoute <- IO(HealthRoute())
           routes <- IO(
-            indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes <+> MainRoute(indexers.map(_.index)).routes
+            indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes <+> MainRoute().routes
           )
           server <- API.start(routes, _ => HttpRoutes.empty[IO], source.host, source.port)
           _      <- server.use(_ => IO.never)

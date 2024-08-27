@@ -43,9 +43,7 @@ object SearchMode extends Logging {
         for {
           searchRoutes <- IO(
             searchers
-              .map(s =>
-                SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(s).routes
-              )
+              .map(s => SearchRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(s).routes)
               .reduce(_ <+> _)
           )
           searchRoutesWss <- IO((wsb: WebSocketBuilder[IO]) =>
@@ -54,9 +52,7 @@ object SearchMode extends Logging {
           health <- IO(HealthRoute())
           errors <- IO(TypicalErrorsRoute(searchers.map(_.index.name.value)))
           routes <- IO(
-            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(
-              searchers.map(_.index)
-            ).routes <+> errors.routes
+            searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute().routes <+> errors.routes
           )
           server <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
           _      <- Logo.lines.map(line => info(line)).sequence

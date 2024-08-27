@@ -41,7 +41,7 @@ object StandaloneMode extends Logging {
                   searchRoutes <- IO(
                     searchers
                       .map(s =>
-                        SearchRoute(s).routes <+> WebuiRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(
+                        SearchRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(
                           s
                         ).routes
                       )
@@ -53,9 +53,9 @@ object StandaloneMode extends Logging {
                   health <- IO(HealthRoute())
                   errors <- IO(TypicalErrorsRoute(searchers.map(_.index.name.value)))
                   routes <- IO(
-                    indexRoutes <+> searchRoutes <+> health.routes <+> AdminRoute(config).routes <+> MainRoute(
-                      searchers.map(_.index)
-                    ).routes <+> errors.routes
+                    indexRoutes <+> searchRoutes <+> health.routes <+> AdminRoute(
+                      config
+                    ).routes <+> MainRoute().routes <+> errors.routes
                   )
                   server <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
                   _      <- Logo.lines.map(line => info(line)).sequence
