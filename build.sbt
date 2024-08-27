@@ -3,7 +3,7 @@ import sbt.Package.ManifestAttributes
 
 version := "0.1.4"
 
-scalaVersion := "3.4.3"
+scalaVersion := "3.5.0"
 
 name := "nixiesearch"
 
