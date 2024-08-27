@@ -1,7 +1,7 @@
 import Deps._
 import sbt.Package.ManifestAttributes
 
-version := "0.1.4"
+version := "0.2.0"
 
 scalaVersion := "3.5.0"
 
