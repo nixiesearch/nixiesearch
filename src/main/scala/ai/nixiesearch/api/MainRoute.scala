@@ -1,20 +1,41 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.MainRoute.MainResponse
+import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.sync.Index
 import cats.effect.IO
 import io.circe.{Encoder, Printer}
-import org.http4s.{EntityEncoder, HttpRoutes}
+import org.http4s.{Entity, EntityEncoder, Headers, HttpRoutes, MediaType, Response}
 import org.http4s.dsl.io.*
 import io.circe.generic.semiauto.*
+import org.apache.commons.io.{FilenameUtils, IOUtils}
 import org.http4s.circe.*
+import org.http4s.headers.`Content-Type`
+import scodec.bits.ByteVector
 
 import scala.util.Random
 
-case class MainRoute(indexes: List[Index]) extends Route {
-  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] { case GET -> Root =>
-    Ok(MainResponse(indexes = indexes.map(_.name.value)))
+case class MainRoute() extends Route with Logging {
+  override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "assets" / fileName => staticAsset(s"/ui/assets/$fileName")
+    case GET -> Root                       => staticAsset("/ui/index.html")
+    case GET -> Root / "index.html"        => staticAsset("/ui/index.html")
+    case GET -> Root / "index.htm"         => staticAsset("/ui/index.html")
+
   }
+
+  def staticAsset(path: String): IO[Response[IO]] = for {
+    bytes <- IO(IOUtils.resourceToByteArray(path))
+    _     <- info(s"GET $path")
+  } yield {
+    val mediaType =
+      MediaType.forExtension(FilenameUtils.getExtension(path)).getOrElse(MediaType.application.`octet-stream`)
+    Response[IO](
+      headers = Headers(`Content-Type`(mediaType)),
+      entity = Entity.strict(ByteVector(bytes))
+    )
+  }
+
 }
 
 object MainRoute {

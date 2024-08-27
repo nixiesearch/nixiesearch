@@ -18,9 +18,9 @@ class UIRouteTest extends AnyFlatSpec with Matchers with SearchTest {
 
   it should "return index mapping" in withIndex { index =>
     {
-      val route = WebuiRoute(index.searcher)
+      val route = MainRoute()
       val response =
-        route.routes(Request(uri = Uri.unsafeFromString("http://localhost/test/_ui"))).value.unsafeRunSync()
+        route.routes(Request(uri = Uri.unsafeFromString("http://localhost/"))).value.unsafeRunSync()
       response.map(_.status.code) shouldBe Some(200)
     }
   }
