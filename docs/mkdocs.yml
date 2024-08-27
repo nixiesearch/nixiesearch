@@ -168,6 +168,7 @@ nav:
             - Generative: reference/models/generative.md
             - Embedding: reference/models/embedding.md
         - Language support: reference/languages.md
+  - Demo: https://demo.nixiesearch.ai/
   - Blog: https://medium.com/nixiesearch/
   - Slack: https://communityinviter.com/apps/nixiesearch/nixiesearch
   - Contact us: https://communityinviter.com/apps/nixiesearch/nixiesearch
