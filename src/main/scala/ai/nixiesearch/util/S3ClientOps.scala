@@ -1,7 +1,7 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.util.S3Client.{S3File, S3GetObjectResponseStream}
+import ai.nixiesearch.util.S3ClientOps.{S3File, S3GetObjectResponseStream}
 import cats.effect.{IO, Resource}
 import software.amazon.awssdk.auth.credentials.{
   AnonymousCredentialsProvider,
@@ -34,7 +34,7 @@ import java.util.concurrent.CompletableFuture
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
-case class S3Client(client: S3AsyncClient) {
+case class S3ClientOps(client: S3AsyncClient) {
   val IO_BUFFER_SIZE = 5 * 1024 * 1024
 
   def head(bucket: String, path: String): IO[HeadObjectResponse] = for {
@@ -118,7 +118,7 @@ case class S3Client(client: S3AsyncClient) {
 
 }
 
-object S3Client {
+object S3ClientOps {
   case class S3File(name: String, lastModified: Long, size: Long)
 
   class S3GetObjectResponseStream[T]()
@@ -155,7 +155,7 @@ object S3Client {
     LazyAwsCredentialsProvider.create(() => chain)
   }
 
-  def create(region: String, endpoint: Option[String]): Resource[IO, S3Client] = for {
+  def create(region: String, endpoint: Option[String]): Resource[IO, S3ClientOps] = for {
     creds <- Resource.eval(IO(createCredentialsProvider()))
     clientBuilder <- Resource.eval(
       IO(
@@ -173,6 +173,6 @@ object S3Client {
     }
 
   } yield {
-    S3Client(client)
+    S3ClientOps(client)
   }
 }

@@ -1,5 +1,6 @@
-package ai.nixiesearch.core.codec
+package ai.nixiesearch.core.lucene
 
+import ai.nixiesearch.core.codec.TextFieldWriter
 import org.apache.lucene.codecs.lucene99.Lucene99Codec
 import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat
 import org.apache.lucene.codecs.{Codec, FilterCodec, PostingsFormat}

@@ -4,7 +4,7 @@ import ai.nixiesearch.config.URL
 import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.util.S3Client
+import ai.nixiesearch.util.S3ClientOps
 import cats.effect.IO
 import de.lhns.fs2.compress.{Bzip2Decompressor, GzipDecompressor, ZstdDecompressor}
 import fs2.Stream
@@ -57,7 +57,7 @@ object URLReader extends SourceReader with Logging {
   object S3Reader {
     def bytesRecursive(url: S3URL): Stream[IO, Byte] = for {
       _      <- Stream.eval(info(s"recursively reading S3 directory ${url}"))
-      client <- Stream.resource(S3Client.create(url.region.getOrElse("us-east-1"), url.endpoint))
+      client <- Stream.resource(S3ClientOps.create(url.region.getOrElse("us-east-1"), url.endpoint))
       file   <- client.listObjects(url.bucket, url.prefix)
       _      <- Stream.eval(info(s"reading S3 file ${file}"))
       stream <- Stream.eval(client.getObject(url.bucket, url.prefix + file.name))
@@ -68,7 +68,7 @@ object URLReader extends SourceReader with Logging {
 
     def bytes(url: S3URL): Stream[IO, Byte] = for {
       _      <- Stream.eval(info(s"reading S3 file ${url}"))
-      client <- Stream.resource(S3Client.create(url.region.getOrElse("us-east-1"), url.endpoint))
+      client <- Stream.resource(S3ClientOps.create(url.region.getOrElse("us-east-1"), url.endpoint))
       stream <- Stream.eval(client.getObject(url.bucket, url.prefix))
       byte   <- maybeDecompress(stream, url.prefix)
     } yield {
