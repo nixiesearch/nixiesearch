@@ -41,6 +41,8 @@ object GenerativeModel {
       val params = new ModelParameters()
         .setModelFilePath(path.toString)
         .setNThreads(threads)
+        .setContinuousBatching(true)
+        .setNParallel(4)
       val model = new LlamaModel(params)
       LlamacppGenerativeModel(model, prompt)
     }

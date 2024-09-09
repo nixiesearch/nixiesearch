@@ -10,4 +10,5 @@ object Deps {
   lazy val luceneVersion      = "9.11.1"
   lazy val djlVersion         = "0.29.0"
   lazy val awsVersion         = "2.26.25"
+  lazy val onnxRuntimeVersion = "1.19.2"
 }

@@ -5,9 +5,11 @@ import ai.nixiesearch.config.mapping.RAGConfig.RAGModelConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.ModelFileCache
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict.ModelId
+import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
+import fs2.Stream
 
 import java.nio.file.Paths
 
@@ -21,6 +23,7 @@ class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
         .create(List(RAGModelConfig(handle, Qwen2Template, "qwen")), fileCache)
         .allocated
         .unsafeRunSync()
+
     val result = cache.generate(ModelId("qwen"), "knock knock! who is there?", 256).compile.toList.unsafeRunSync()
     val short  = cache.generate(ModelId("qwen"), "knock knock! who is there?", 10).compile.toList.unsafeRunSync()
     shutdownHandle.unsafeRunSync()

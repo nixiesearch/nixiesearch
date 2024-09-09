@@ -1,0 +1,11 @@
+Model:           NVIDIA GeForce RTX 4090
+IRQ:             166
+GPU UUID:        GPU-c40777c4-d8bc-15bf-5ad2-e207a8297895
+Video BIOS:      95.02.3c.40.b8
+Bus Type:        PCIe
+DMA Size:        47 bits
+DMA Mask:        0x7fffffffffff
+Bus Location:    0000:c1:00.0
+Device Minor:    1
+GPU Firmware:    560.35.03
+GPU Excluded:    No
