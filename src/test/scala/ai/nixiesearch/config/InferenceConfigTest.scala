@@ -41,7 +41,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
     val text =
       """generative:
         |  qwen2:
-        |    handle: Qwen/Qwen2-0.5B-Instruct-GGUF
+        |    model: Qwen/Qwen2-0.5B-Instruct-GGUF
         |    file: qwen2-0_5b-instruct-q4_0.gguf
         |    prompt: qwen2
         |    gpu: true

@@ -21,9 +21,11 @@ schema:
     fields:
       title:
         type: text
-        search: lexical
+        search:
+          type: lexical
         suggest: true
       overview:
         type: text
-        search: lexical
+        search:
+          type: lexical
         suggest: true

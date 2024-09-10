@@ -126,13 +126,13 @@ object InferenceConfig {
 
     given genInferenceModelConfigDecoder: Decoder[GenInferenceModelConfig] = Decoder.instance(c =>
       for {
-        handle <- c.downField("handle").as[ModelHandle]
+        model  <- c.downField("model").as[ModelHandle]
         file   <- c.downField("file").as[Option[String]]
         gpu    <- c.downField("gpu").as[Option[Boolean]]
         prompt <- c.downField("prompt").as[LLMPromptTemplate]
         system <- c.downField("system").as[Option[String]]
       } yield {
-        GenInferenceModelConfig(handle, prompt, system, file, gpu.getOrElse(false))
+        GenInferenceModelConfig(model, prompt, system, file, gpu.getOrElse(false))
       }
     )
   }
