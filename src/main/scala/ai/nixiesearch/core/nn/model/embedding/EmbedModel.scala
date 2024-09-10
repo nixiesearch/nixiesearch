@@ -116,8 +116,9 @@ object EmbedModel {
     ) = {
       val tokenizer = HuggingFaceTokenizer.newInstance(
         dic,
-        Map("padding" -> "true", "truncation" -> "true", "max_length" -> seqlen.toString).asJava
+        Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> seqlen.toString).asJava
       )
+
       val env  = OrtEnvironment.getEnvironment("sbert")
       val opts = new SessionOptions()
       opts.setIntraOpNumThreads(threads)

@@ -74,22 +74,32 @@ object SearchType {
     given lexicalSearchDecoder: Decoder[LexicalSearch] = Decoder.const(LexicalSearch())
 
     given searchTypeDecoder: Decoder[SearchType] = Decoder.instance(c =>
-      c.downField("type").as[String] match {
-        case Left(value) =>
-          Left(
-            DecodingFailure(
-              s"cannot decode search field type: ${value}",
-              c.history
-            )
-          )
-        case Right("false" | "off" | "disabled") => Right(NoSearch)
-        case Right("semantic")                   => semanticSearchDecoder.tryDecode(c)
-        case Right("lexical")                    => lexicalSearchDecoder.tryDecode(c)
-        case Right("hybrid")                     => hybridSearchDecoder.tryDecode(c)
-        case Right(other) =>
-          Left(
-            DecodingFailure(s"Search type $other is not supported. Try disabled|semantic|lexical", c.history)
-          )
+      c.as[String] match {
+        case Right("false" | "disabled") => Right(NoSearch)
+        case Right(other)                => Left(DecodingFailure(s"Search type $other not supported", c.history))
+        case Left(_) =>
+          c.as[Boolean] match {
+            case Right(false) => Right(NoSearch)
+            case Right(other) => Left(DecodingFailure(s"Search type $other not supported", c.history))
+            case Left(_) =>
+              c.downField("type").as[String] match {
+                case Left(value) =>
+                  Left(
+                    DecodingFailure(
+                      s"cannot decode search field type: ${value}",
+                      c.history
+                    )
+                  )
+                case Right("false" | "off" | "disabled") => Right(NoSearch)
+                case Right("semantic")                   => semanticSearchDecoder.tryDecode(c)
+                case Right("lexical")                    => lexicalSearchDecoder.tryDecode(c)
+                case Right("hybrid")                     => hybridSearchDecoder.tryDecode(c)
+                case Right(other) =>
+                  Left(
+                    DecodingFailure(s"Search type $other is not supported. Try disabled|semantic|lexical", c.history)
+                  )
+              }
+          }
       }
     )
   }

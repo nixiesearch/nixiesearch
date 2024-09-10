@@ -2,17 +2,19 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponseFrame}
+import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
-import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 
 class RAGTest extends SearchTest with Matchers {
 
-  val mapping = TestIndexMapping()
+  val mapping            = TestIndexMapping()
+  override val inference = TestInferenceConfig.full()
 
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),

@@ -23,6 +23,7 @@ schema:
         type: text
         search:
           type: semantic
+          model: text
       desc:
         type: text
         search: # more advanced setup

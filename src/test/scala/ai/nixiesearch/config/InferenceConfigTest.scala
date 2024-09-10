@@ -14,7 +14,8 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
     val text =
       """embedding:
         |  small:
-        |    handle: nixiesearch/e5-small-v2-onnx
+        |    provider: onnx
+        |    model: nixiesearch/e5-small-v2-onnx
         |    prompt:
         |      doc: "passage: {doc}"
         |      query: "query: {query}"

@@ -2,7 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IntField, TextField}
-import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
+import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -10,8 +10,9 @@ import org.scalatest.matchers.should.Matchers
 class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import IndexRoute.*
   import ai.nixiesearch.util.HttpTest.*
-  val docs    = Nil
-  val mapping = TestIndexMapping()
+  val docs      = Nil
+  val mapping   = TestIndexMapping()
+  override val inference = TestInferenceConfig.empty()
 
   it should "accept docs for existing indices" in withIndex { store =>
     {

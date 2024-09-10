@@ -19,12 +19,12 @@ class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
   it should "load, generate text, unload" in {
     val (cache, shutdownHandle) =
       GenerativeModelDict
-        .create(TestInferenceConfig().generative, fileCache)
+        .create(TestInferenceConfig.full().generative, fileCache)
         .allocated
         .unsafeRunSync()
 
-    val result = cache.generate(ModelRef("qwen"), "knock knock! who is there?", 256).compile.toList.unsafeRunSync()
-    val short  = cache.generate(ModelRef("qwen"), "knock knock! who is there?", 10).compile.toList.unsafeRunSync()
+    val result = cache.generate(ModelRef("qwen2"), "knock knock! who is there?", 256).compile.toList.unsafeRunSync()
+    val short  = cache.generate(ModelRef("qwen2"), "knock knock! who is there?", 10).compile.toList.unsafeRunSync()
     shutdownHandle.unsafeRunSync()
     val expected =
       "I'm an AI, so I don't have a physical body or a mind. I exist in the universe, so I can answer any questions you have."

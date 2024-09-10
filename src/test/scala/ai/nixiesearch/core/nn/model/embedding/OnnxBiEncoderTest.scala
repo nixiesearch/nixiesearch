@@ -12,7 +12,7 @@ import cats.effect.unsafe.implicits.global
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {
@@ -25,7 +25,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     )
     val handle = HuggingFaceHandle("nixiesearch", "all-MiniLM-L6-v2-onnx")
     val (embedder, shutdownHandle) = EmbedModelDict
-      .createHuggingface(handle, inference, ModelFileCache(Files.createTempDirectory("onnx-cache")))
+      .createHuggingface(handle, inference, ModelFileCache(Paths.get("/tmp/")))
       .allocated
       .unsafeRunSync()
     val result = embedder
@@ -38,9 +38,9 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       )
       .unsafeRunSync()
     val d1 = CosineDistance.dist(result(0), result(1))
-    d1 shouldBe 0.54f +- 0.02
+    d1 shouldBe 0.62f +- 0.02
     val d2 = CosineDistance.dist(result(0), result(2))
-    d2 shouldBe 0.74f +- 0.02
+    d2 shouldBe 0.77f +- 0.02
     shutdownHandle.unsafeRunSync()
   }
 }
