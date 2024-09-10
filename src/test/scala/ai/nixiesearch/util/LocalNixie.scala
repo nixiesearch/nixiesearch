@@ -5,7 +5,7 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
-import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
@@ -45,8 +45,8 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 }
 
 object LocalNixie {
-  def create(mapping: IndexMapping): Resource[IO, LocalNixie] = for {
-    index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), CacheConfig())
+  def create(mapping: IndexMapping, inference: InferenceConfig): Resource[IO, LocalNixie] = for {
+    index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), CacheConfig(), inference)
     indexer  <- Indexer.open(index)
     searcher <- Searcher.open(index)
   } yield {

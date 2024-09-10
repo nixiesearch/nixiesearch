@@ -1,7 +1,7 @@
 package ai.nixiesearch.index.sync
 
 import ai.nixiesearch.config
-import ai.nixiesearch.config.{CacheConfig, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, InferenceConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Models
@@ -24,20 +24,20 @@ trait Index extends Logging {
 }
 
 object Index {
-  def local(mapping: IndexMapping, cacheConfig: CacheConfig): Resource[IO, LocalIndex] = mapping.store match {
-    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, cacheConfig)
+  def local(mapping: IndexMapping, cacheConfig: CacheConfig, inference: InferenceConfig): Resource[IO, LocalIndex] = mapping.store match {
+    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, cacheConfig, inference)
     case dist: config.StoreConfig.DistributedStoreConfig =>
       Resource.raiseError[IO, LocalIndex, Throwable](
         new UnsupportedOperationException("cannot open distributed index in local standalone mode")
       )
   }
-  def forSearch(mapping: IndexMapping, cacheConfig: CacheConfig): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig)
-    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist, cacheConfig)
+  def forSearch(mapping: IndexMapping, cacheConfig: CacheConfig, inference: InferenceConfig): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig, inference)
+    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist, cacheConfig, inference)
   }
 
-  def forIndexing(mapping: IndexMapping, cacheConfig: CacheConfig): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig)
-    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist, cacheConfig)
+  def forIndexing(mapping: IndexMapping, cacheConfig: CacheConfig, inference: InferenceConfig): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig, inference)
+    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist, cacheConfig, inference)
   }
 }

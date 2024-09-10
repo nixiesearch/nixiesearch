@@ -18,7 +18,7 @@ object StandaloneMode extends Logging {
     _      <- info("Starting in 'standalone' mode with indexer+searcher colocated within a single process")
     config <- Config.load(args.config)
     _ <- config.schema.values.toList
-      .map(im => Index.local(im, config.core.cache))
+      .map(im => Index.local(im, config.core.cache, config.inference))
       .sequence
       .use(indexes =>
         indexes

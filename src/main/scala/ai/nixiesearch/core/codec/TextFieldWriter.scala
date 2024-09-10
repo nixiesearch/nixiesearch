@@ -46,7 +46,7 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
       case _ => //
     }
     spec.search match {
-      case SemanticSearchLikeType(model, prefix) =>
+      case SemanticSearchLikeType(model) =>
         embeddings.get(field.value) match {
           case Some(encoded) =>
             buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))

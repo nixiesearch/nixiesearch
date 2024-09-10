@@ -9,6 +9,7 @@ import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
 import ai.nixiesearch.source.FileSource
+import ai.nixiesearch.util.TestInferenceConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -36,7 +37,8 @@ class IndexModeTest extends AnyFlatSpec with Matchers {
           )
         ),
         cacheConfig = CacheConfig(),
-        index = "movies"
+        index = "movies",
+        inference = TestInferenceConfig.empty()
       )
       .unsafeRunSync()
   }

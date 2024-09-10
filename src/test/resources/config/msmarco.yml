@@ -1,3 +1,12 @@
+inference:
+  embedding:
+    text:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
+
 store:
   url: file:///tmp/msmarco/
 
@@ -11,5 +20,5 @@ schema:
         type: text
         search:
           type: hybrid
-          model: nixiesearch/e5-small-v2-onnx
+          model: text
           language: en

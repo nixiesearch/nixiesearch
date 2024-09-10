@@ -9,6 +9,7 @@ import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{TextField, TextListField}
+import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 
@@ -17,7 +18,7 @@ class MatchQuerySemanticTest extends SearchTest with Matchers {
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = HybridSearch()),
+      TextFieldSchema(name = "title", search = HybridSearch(ModelRef("text"))),
       TextListFieldSchema(name = "cat", search = NoSearch, filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())

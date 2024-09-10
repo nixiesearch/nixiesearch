@@ -1,6 +1,6 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.{CacheConfig, StoreConfig}
+import ai.nixiesearch.config.{CacheConfig, InferenceConfig, StoreConfig}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.Models
@@ -11,6 +11,7 @@ import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.store.Directory
 import fs2.{Chunk, Stream}
 import io.circe.syntax.*
+
 import java.nio.ByteBuffer
 
 case class LocalIndex(
@@ -40,14 +41,14 @@ object LocalIndex extends Logging {
   def create(
       configMapping: IndexMapping,
       config: StoreConfig.LocalStoreConfig,
-      cacheConfig: CacheConfig
+      cacheConfig: CacheConfig,
+      inference: InferenceConfig
   ): Resource[IO, LocalIndex] = {
     for {
       directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
-      handles   <- Resource.pure(manifest.mapping.modelHandles())
-      models    <- Models.create(handles, configMapping.rag.models, cacheConfig)
+      models    <- Models.create(inference, cacheConfig)
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(

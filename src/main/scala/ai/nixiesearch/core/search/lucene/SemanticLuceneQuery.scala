@@ -1,9 +1,10 @@
 package ai.nixiesearch.core.search.lucene
 
 import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
-import ai.nixiesearch.core.nn.ModelHandle
+import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
 import org.apache.lucene.search.{KnnFloatVectorQuery, Query as LuceneQuery}
@@ -11,15 +12,14 @@ import org.apache.lucene.search.{KnnFloatVectorQuery, Query as LuceneQuery}
 object SemanticLuceneQuery {
   def create(
       encoders: EmbedModelDict,
-      model: ModelHandle,
-      prefix: ModelPrefix,
+      model: ModelRef,
       query: String,
       field: String,
       size: Int,
       filter: Option[Filters],
       mapping: IndexMapping
   ): IO[List[LuceneQuery]] = for {
-    queryEmbed <- encoders.encode(model, prefix.query + query)
+    queryEmbed <- encoders.encodeQuery(model, query)
     filterOption <- filter match {
       case Some(f) => f.toLuceneQuery(mapping)
       case None    => IO.none

@@ -1,6 +1,6 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
@@ -25,7 +25,8 @@ object MasterIndex extends Logging {
   def create(
       configMapping: IndexMapping,
       conf: DistributedStoreConfig,
-      cacheConfig: CacheConfig
+      cacheConfig: CacheConfig,
+      inference: InferenceConfig
   ): Resource[IO, MasterIndex] =
     for {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
@@ -33,8 +34,7 @@ object MasterIndex extends Logging {
       masterState  <- DirectoryStateClient.create(directory, configMapping.name)
 
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
-      handles  <- Resource.pure(manifest.mapping.modelHandles())
-      models   <- Models.create(handles, configMapping.rag.models, cacheConfig)
+      models   <- Models.create(inference, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

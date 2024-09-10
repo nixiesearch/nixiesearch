@@ -1,3 +1,12 @@
+inference:
+  embedding:
+    text:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
+
 api:
   host: localhost
   port: 8080
@@ -20,4 +29,6 @@ schema:
     fields:
       title:
         type: text
-        search: semantic
+        search:
+          type: semantic
+          model: text

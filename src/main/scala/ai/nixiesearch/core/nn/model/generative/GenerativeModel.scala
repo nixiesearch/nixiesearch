@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.nn.model.generative
 
-import ai.nixiesearch.config.mapping.RAGConfig.{PromptTemplate, RAGModelConfig}
+import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig.LLMPromptTemplate
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -15,7 +16,7 @@ trait GenerativeModel {
 }
 
 object GenerativeModel {
-  case class LlamacppGenerativeModel(model: LlamaModel, promptTemplate: PromptTemplate)
+  case class LlamacppGenerativeModel(model: LlamaModel, promptTemplate: LLMPromptTemplate)
       extends GenerativeModel
       with Logging {
     override def generate(input: String, maxTokens: Int): Stream[IO, String] = for {
@@ -32,12 +33,12 @@ object GenerativeModel {
     val LLAMACPP_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
         path: Path,
-        prompt: PromptTemplate,
+        prompt: LLMPromptTemplate,
         threads: Int = LLAMACPP_THREADS_DEFAULT
     ): Resource[IO, LlamacppGenerativeModel] =
       Resource.make(IO(createUnsafe(path, prompt, threads)))(_.close())
 
-    def createUnsafe(path: Path, prompt: PromptTemplate, threads: Int = LLAMACPP_THREADS_DEFAULT) = {
+    def createUnsafe(path: Path, prompt: LLMPromptTemplate, threads: Int = LLAMACPP_THREADS_DEFAULT) = {
       val params = new ModelParameters()
         .setModelFilePath(path.toString)
         .setNThreads(threads)
@@ -48,5 +49,4 @@ object GenerativeModel {
     }
   }
 
-  def create(config: RAGModelConfig): Resource[IO, GenerativeModel] = ???
 }

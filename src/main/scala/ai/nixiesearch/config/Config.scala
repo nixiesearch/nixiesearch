@@ -13,6 +13,7 @@ import java.io.File
 import io.circe.yaml.parser.*
 
 case class Config(
+    inference: InferenceConfig = InferenceConfig(),
     searcher: SearcherConfig = SearcherConfig(),
     indexer: IndexerConfig = IndexerConfig(),
     core: CoreConfig = CoreConfig(),
@@ -25,6 +26,7 @@ object Config extends Logging {
   given configEncoder: Encoder[Config] = deriveEncoder
   given configDecoder: Decoder[Config] = Decoder.instance(c =>
     for {
+      inference <- c.downField("inference").as[Option[InferenceConfig]].map(_.getOrElse(InferenceConfig()))
       searcher <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
       indexer  <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
       core     <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
@@ -37,6 +39,7 @@ object Config extends Logging {
       }
     } yield {
       Config(
+        inference = inference,
         searcher = searcher,
         indexer = indexer,
         core = core,

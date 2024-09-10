@@ -30,4 +30,8 @@ class GPUUtilsTest extends AnyFlatSpec with Matchers {
     val hasCuda  = GPUUtils.hasCUDA(System.getProperty("java.library.path") + ":" + testPath).unsafeRunSync()
     hasCuda shouldBe true
   }
+
+  it should "detect GPU build" in {
+    GPUUtils.isGPUBuild().unsafeRunSync() shouldBe false
+  }
 }

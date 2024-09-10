@@ -2,17 +2,24 @@ package ai.nixiesearch.util
 
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
+import ai.onnxruntime.OrtEnvironment
 import cats.effect.IO
 
 import java.nio.file.Paths
 import fs2.{Collector, Stream}
 import fs2.io.file.{Files, Path}
 import fs2.io.readInputStream
-
+import scala.jdk.CollectionConverters._
 import java.io.FileInputStream
 
 object GPUUtils extends Logging {
   case class GPUDevice(id: Int, model: String)
+
+  def isGPUBuild(): IO[Boolean] = {
+    IO(OrtEnvironment.getAvailableProviders.iterator().asScala.toList.map(_.name()))
+      .flatTap(list => info(s"ONNX Execution providers: ${list}"))
+      .map(_.exists(_ == "CUDA"))
+  }
 
   val CUDART_NAME = "libcudart.so.12"
 

@@ -23,7 +23,7 @@ object SearchMode extends Logging {
     _ <- config.schema.values.toList
       .map(im =>
         for {
-          index    <- Index.forSearch(im, config.core.cache)
+          index    <- Index.forSearch(im, config.core.cache , config.inference)
           searcher <- Searcher.open(index)
           _ <- Stream
             .repeatEval(index.sync().flatMap {
