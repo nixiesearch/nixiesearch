@@ -4,9 +4,17 @@ Nixiesearch uses [ONNXRuntime](https://onnxruntime.ai/) to support the vast majo
 
 ## Huggingface model handles
 
-You can reference any HF model handle in the text field index mapping block, for example:
+You can reference any HF model handle in the inference block, for example:
 
 ```yaml
+inference:
+  embedding:
+    # Used for semantic retrieval
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
 schema:
   <index-name>:
     fields:
@@ -14,20 +22,29 @@ schema:
         type: text
         search: 
           type: semantic
-          model: nixiesearch/e5-small-v2-onnx
+          model: e5-small
 ```
 
 Optionally you can define which particular ONNX file to load, for example the QInt8 quantized one:
 
 ```yaml
+inference:
+  embedding:
+    # Used for semantic retrieval
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      file: model_opt2_QInt8.onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
 schema:
   <index-name>:
     fields:
       desc:
         type: text
-        search: 
+        search:
           type: semantic
-          model: nixiesearch/e5-small-v2-onnx?file=model_opt2_QInt8.onnx
+          model: e5-small
 ```
 
 ## Converted models

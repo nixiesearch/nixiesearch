@@ -33,7 +33,6 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
-import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict.ModelId
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
 import ai.nixiesearch.index.sync.Index
@@ -139,7 +138,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       _     <- Stream.eval(debug(s"prompt: ${prompt}"))
       start <- Stream.eval(IO(System.currentTimeMillis()))
       (token, took) <- index.models.generative
-        .generate(ModelId(request.model), prompt, request.maxResponseLength)
+        .generate(request.model, prompt, request.maxResponseLength)
         .through(DurationStream.pipe(start))
       now <- Stream.eval(IO(System.currentTimeMillis()))
     } yield {
@@ -161,26 +160,25 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
       case Some(TextLikeFieldSchema(_, LexicalSearch(), _, _, _, _, language, _)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-      case Some(TextLikeFieldSchema(_, SemanticSearch(model, prefix), _, _, _, _, _, _)) =>
+      case Some(TextLikeFieldSchema(_, SemanticSearch(modelRef), _, _, _, _, _, _)) =>
         SemanticLuceneQuery
           .create(
             encoders = encoders,
-            model = model,
-            prefix = prefix,
+            model = modelRef,
             query = query,
             field = field,
             size = size,
             filter = filter,
             mapping = mapping
           )
-      case Some(TextLikeFieldSchema(_, HybridSearch(model, prefix), _, _, _, _, language, _)) =>
+
+      case Some(TextLikeFieldSchema(_, HybridSearch(modelRef), _, _, _, _, language, _)) =>
         for {
           x1 <- LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
           x2 <- SemanticLuceneQuery
             .create(
               encoders = encoders,
-              model = model,
-              prefix = prefix,
+              model = modelRef,
               query = query,
               field = field,
               size = size,

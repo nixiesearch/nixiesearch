@@ -23,7 +23,6 @@ case class IndexMapping(
     name: IndexName,
     alias: List[Alias] = Nil,
     config: IndexConfig = IndexConfig(),
-    rag: RAGConfig = RAGConfig(),
     store: StoreConfig = StoreConfig(),
     cache: IndexCacheConfig = IndexCacheConfig(),
     fields: Map[String, FieldSchema[? <: Field]]
@@ -68,10 +67,6 @@ case class IndexMapping(
           )
         )
     }
-  def modelHandles(): List[ModelHandle] =
-    fields.values.toList.collect { case TextLikeFieldSchema(_, SemanticSearchLikeType(model, _), _, _, _, _, _, _) =>
-      model
-    }.distinct
 
   def suggestFields(): List[String] =
     fields.values.toList.collect { case TextLikeFieldSchema(name, _, _, _, _, _, _, Some(_)) =>
@@ -135,7 +130,6 @@ object IndexMapping extends Logging {
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
         cache  <- c.downField("cache").as[Option[IndexCacheConfig]].map(_.getOrElse(IndexCacheConfig()))
-        rag    <- c.downField("rag").as[Option[RAGConfig]].map(_.getOrElse(RAGConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
         val extendedFields = fieldsMap.get("_id") match {
@@ -152,8 +146,7 @@ object IndexMapping extends Logging {
           fields = extendedFields,
           config = config,
           store = store,
-          cache = cache,
-          rag = rag
+          cache = cache
         )
 
       }

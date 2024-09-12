@@ -5,6 +5,7 @@ import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.nn.ModelRef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -42,7 +43,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
       alias = List(Alias("bar")),
       config = IndexConfig(mapping = MappingConfig(dynamic = true)),
       fields = Map(
-        "text" -> TextFieldSchema("text", search = SemanticSearch()),
+        "text" -> TextFieldSchema("text", search = SemanticSearch(ModelRef("text"))),
         "int"  -> IntFieldSchema("int", facet = true)
       )
     )
@@ -50,18 +51,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val decoded = decode[IndexMapping](json)
     decoded shouldBe Right(mapping)
   }
-
-  it should "deduplicate same model handles" in {
-    val mapping = IndexMapping(
-      name = IndexName("foo"),
-      fields = Map(
-        "text1" -> TextFieldSchema("text1", search = SemanticSearch()),
-        "text2" -> TextFieldSchema("text2", search = SemanticSearch()),
-        "text3" -> TextFieldSchema("text3", search = SemanticSearch())
-      )
-    )
-    mapping.modelHandles().size shouldBe 1
-  }
+  
 
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =

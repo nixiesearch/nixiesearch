@@ -49,7 +49,6 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
       _               <- debug(s"adding ${docs.size} docs to index '${index.name.value}'")
-      handles         <- IO(index.mapping.modelHandles())
       fieldStrings    <- IO(strings(index.mapping, docs))
       embeddedStrings <- embed(fieldStrings, index.models.embedding)
     } yield {
@@ -137,7 +136,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       encoders: EmbedModelDict
   ): IO[Map[SemanticSearchLikeType, Map[String, Array[Float]]]] = {
     targets.toList
-      .traverse { case (tpe, strings) =>
+      .traverse { case (field, strings) =>
         for {
           encoded <- strings.distinct
             .sortBy(-_.length)
@@ -145,11 +144,11 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
             .toList
             .flatTraverse(batch =>
               encoders
-                .encode(tpe.model, batch.map(s => tpe.prefix.document + s))
+                .encodeDocuments(field.model, batch)
                 .flatMap(embeddings => IO(batch.zip(embeddings)))
             )
         } yield {
-          tpe -> encoded.toMap
+          field -> encoded.toMap
         }
       }
       .map(_.toMap)

@@ -109,7 +109,7 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
   addSubcommand(index)
   addSubcommand(search)
   version("Nixiesearch v:" + Version().getOrElse("unknown"))
-  banner("""Usage: metarank <subcommand> <options>
+  banner("""Usage: nixiesearch <subcommand> <options>
            |Options:
            |""".stripMargin)
   footer("\nFor all other tricks, consult the docs on https://nixiesearch.ai")
@@ -133,6 +133,7 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 
 object CliConfig extends Logging {
   sealed trait CliArgs {
+    def config: URL
     def loglevel: Loglevel
   }
   object CliArgs {

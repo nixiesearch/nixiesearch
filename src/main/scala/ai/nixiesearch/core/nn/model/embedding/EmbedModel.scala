@@ -1,8 +1,10 @@
 package ai.nixiesearch.core.nn.model.embedding
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
+import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.util.GPUUtils
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
 import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}
@@ -17,16 +19,21 @@ import java.nio.LongBuffer
 import fs2.{Chunk, Stream}
 
 sealed trait EmbedModel extends Logging {
+  def prompt: PromptConfig
   def batchSize: Int
   // a helper function to simplify query embedding
-  def encode(doc: String): IO[Array[Float]] = encode(List(doc)).flatMap {
+  def encodeQuery(queries: List[String]): IO[Array[Array[Float]]] = encodeBatch(
+    queries.map(query => prompt.query + query)
+  )
+  def encodeQuery(query: String): IO[Array[Float]] = encodeBatch(List(prompt.query + query)).flatMap {
     case x if x.length == 1 => IO(x(0))
-    case _                  => IO.raiseError(BackendError(s"got empty embedding for doc '$doc'"))
+    case _                  => IO.raiseError(BackendError(s"got empty embedding for doc '$query'"))
   }
 
-  def encode(docs: List[String]): IO[Array[Array[Float]]] =
+  def encodeDocuments(docs: List[String]): IO[Array[Array[Float]]] =
     Stream
       .emits(docs)
+      .map(doc => prompt.doc + doc)
       .chunkN(batchSize)
       .evalMap(batch => encodeBatch(batch.toList).map(batch => Chunk.array(batch)))
       .unchunks
@@ -34,7 +41,7 @@ sealed trait EmbedModel extends Logging {
       .toList
       .map(_.toArray)
 
-  def encodeBatch(batch: List[String]): IO[Array[Array[Float]]]
+  protected def encodeBatch(batch: List[String]): IO[Array[Array[Float]]]
   def close(): IO[Unit]
 }
 
@@ -44,7 +51,8 @@ object EmbedModel {
       session: OrtSession,
       tokenizer: HuggingFaceTokenizer,
       dim: Int,
-      ttidNeeded: Boolean
+      ttidNeeded: Boolean,
+      prompt: PromptConfig
   ) extends EmbedModel {
     override val batchSize = 16
     override def encodeBatch(batch: List[String]): IO[Array[Array[Float]]] = IO {
@@ -89,23 +97,37 @@ object EmbedModel {
         model: InputStream,
         dic: InputStream,
         dim: Int,
+        prompt: PromptConfig,
         ttidNeeded: Boolean = true,
-        gpu: Boolean = false,
-        threads: Int = ONNX_THREADS_DEFAULT
-    ): Resource[IO, OnnxEmbedModel] =
-      Resource.make(IO(createUnsafe(model, dic, dim, ttidNeeded, gpu, threads)))(e => e.close())
+        threads: Int = ONNX_THREADS_DEFAULT,
+        seqlen: Int = 512
+    ): Resource[IO, OnnxEmbedModel] = for {
+      isGPUBuild <- Resource.eval(GPUUtils.isGPUBuild())
+      _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
+      model <- Resource.make(
+        IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen))
+      )(e => e.close())
+    } yield {
+      model
+    }
 
     def createUnsafe(
         model: InputStream,
         dic: InputStream,
         dim: Int,
+        prompt: PromptConfig,
         ttidNeeded: Boolean = true,
         gpu: Boolean = false,
-        threads: Int = ONNX_THREADS_DEFAULT
+        threads: Int = ONNX_THREADS_DEFAULT,
+        seqlen: Int = 512
     ) = {
-      val tokenizer = HuggingFaceTokenizer.newInstance(dic, Map("padding" -> "true", "truncation" -> "true").asJava)
-      val env       = OrtEnvironment.getEnvironment("sbert")
-      val opts      = new SessionOptions()
+      val tokenizer = HuggingFaceTokenizer.newInstance(
+        dic,
+        Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> seqlen.toString).asJava
+      )
+
+      val env  = OrtEnvironment.getEnvironment("sbert")
+      val opts = new SessionOptions()
       opts.setIntraOpNumThreads(threads)
       opts.setOptimizationLevel(OptLevel.ALL_OPT)
       if (gpu) opts.addCUDA(0)
@@ -117,11 +139,11 @@ object EmbedModel {
       logger.info(s"Loaded ONNX model (size=$size inputs=$inputs outputs=$outputs dim=$dim)")
       model.close()
       dic.close()
-      OnnxEmbedModel(env, session, tokenizer, dim, ttidNeeded)
+      OnnxEmbedModel(env, session, tokenizer, dim, ttidNeeded, prompt)
     }
   }
 
-  case class OpenAIEmbedModel() extends EmbedModel {
+  case class OpenAIEmbedModel(prompt: PromptConfig) extends EmbedModel {
     override def encodeBatch(docs: List[String]): IO[Array[Array[Float]]] = ???
     override def close(): IO[Unit]                                        = ???
     override def batchSize: Int                                           = 32

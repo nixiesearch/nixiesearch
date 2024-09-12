@@ -14,7 +14,8 @@ my-index:
   fields:
     title:
       type: text
-      search: lexical
+      search: 
+        type: lexical
       suggest: true
 ```
 
@@ -25,7 +26,8 @@ my-index:
   fields:
     title:
       type: text
-      search: lexical
+      search: 
+        type: lexical
       suggest:
         lowercase: false # should we down-case all suggestions?
         expand:

@@ -17,20 +17,8 @@ class ModelHandleTest extends AnyFlatSpec with Matchers {
     parse("hf://nixiesearch/foo") shouldBe Right(HuggingFaceHandle("nixiesearch", "foo"))
   }
 
-  it should "decode HF handle with schema and modelFile" in {
-    parse("hf://nixiesearch/foo?file=foo.onnx") shouldBe Right(
-      HuggingFaceHandle("nixiesearch", "foo", Some("foo.onnx"))
-    )
-  }
-
   it should "decode local handle with single slash" in {
     parse("file://tmp/file") shouldBe Right(LocalModelHandle("/tmp/file"))
-  }
-
-  it should "decode local handle with single slash and modelFile" in {
-    val lhs = parse("file://tmp/file?file=mf.onnx")
-    val rhs = Right(LocalModelHandle("/tmp/file", Some("mf.onnx")))
-    lhs shouldBe rhs
   }
 
   it should "decode local handle with double slash" in {

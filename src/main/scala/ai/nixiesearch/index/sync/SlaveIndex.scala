@@ -1,6 +1,6 @@
 package ai.nixiesearch.index.sync
 
-import ai.nixiesearch.config.CacheConfig
+import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.BackendError
@@ -64,7 +64,8 @@ object SlaveIndex extends Logging {
   def create(
       configMapping: IndexMapping,
       conf: DistributedStoreConfig,
-      cacheConfig: CacheConfig
+      cacheConfig: CacheConfig,
+      inference: InferenceConfig
   ): Resource[IO, SlaveIndex] =
     for {
       _              <- Resource.eval(debug(s"creating SlaveIndex for index=${configMapping.name} conf=$conf"))
@@ -73,8 +74,7 @@ object SlaveIndex extends Logging {
       replicaState   <- DirectoryStateClient.create(directory, configMapping.name)
       manifestOption <- Resource.eval(replicaState.readManifest())
       manifest <- Resource.eval(IO.fromOption(manifestOption)(BackendError("index.json file not found in the index")))
-      handles  <- Resource.pure(manifest.mapping.modelHandles())
-      models   <- Models.create(handles, configMapping.rag.models, cacheConfig)
+      models   <- Models.create(inference, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

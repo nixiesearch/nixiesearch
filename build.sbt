@@ -1,6 +1,9 @@
 import Deps._
 import sbt.Package.ManifestAttributes
 
+lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
+lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
+
 version := "0.2.0"
 
 scalaVersion := "3.5.0"
@@ -53,9 +56,20 @@ libraryDependencies ++= Seq(
   "de.lhns"                  %% "fs2-compress-gzip"          % fs2CompressVersion,
   "de.lhns"                  %% "fs2-compress-bzip2"         % fs2CompressVersion,
   "de.lhns"                  %% "fs2-compress-zstd"          % fs2CompressVersion,
-  "org.apache.kafka"          % "kafka-clients"              % "3.8.0",
-  "de.kherud"                 % "llama"                      % "3.3.0"
+  "org.apache.kafka"          % "kafka-clients"              % "3.8.0"
 )
+
+if (GPU) {
+  libraryDependencies ++= Seq(
+    "com.microsoft.onnxruntime" % "onnxruntime_gpu" % onnxRuntimeVersion,
+    "de.kherud"                 % "llama"           % llamacppVersion classifier "cuda12-linux-x86-64"
+  )
+} else {
+  libraryDependencies ++= Seq(
+    "com.microsoft.onnxruntime" % "onnxruntime" % onnxRuntimeVersion,
+    "de.kherud"                 % "llama"       % llamacppVersion
+  )
+}
 
 libraryDependencySchemes ++= Seq(
   "com.github.luben" % "zstd-jni" % VersionScheme.Always // due to fs2-compress having exact version dep
@@ -76,8 +90,6 @@ Compile / mainClass := Some("ai.nixiesearch.main.Main")
 
 Compile / discoveredMainClasses := Seq()
 
-lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
-
 enablePlugins(DockerPlugin)
 
 docker / dockerfile := {
@@ -89,19 +101,24 @@ docker / dockerfile := {
     runRaw(
       List(
         "apt-get update",
-        "apt-get install -y --no-install-recommends openjdk-21-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
-        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
-        "rm -rf /var/lib/apt/lists/*"
+        "apt-get install -y --no-install-recommends openjdk-21-jdk-headless htop procps curl inetutils-ping libgomp1 locales wget",
+        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen"
+        // "rm -rf /var/lib/apt/lists/*"
       ).mkString(" && ")
     )
-    runRaw(
-      List(
-        "mkdir -p /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/",
-        "curl -L https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/model.onnx -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/model.onnx",
-        "curl -L https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/config.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/config.json",
-        "curl -L https://huggingface.co/nixiesearch/e5-small-v2-onnx/resolve/main/tokenizer.json -o /tmp/nixiesearch/nixiesearch/e5-small-v2-onnx/tokenizer.json"
-      ).mkString(" && ")
-    )
+    if (GPU) {
+      runRaw(
+        List(
+          "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb",
+          "dpkg -i cuda-keyring_1.1-1_all.deb",
+          "apt-get update",
+          "apt-get install -y --no-install-recommends cuda-toolkit-12-6 nvidia-headless-560-open cudnn9-cuda-12-6",
+          "rm -rf /usr/lib/x86_64-linux-gnu/lib*static_v9.a",
+          "rm -rf /usr/local/cuda-12.6/targets/x86_64-linux/lib/lib*.a",
+          "rm -rf /opt/nvidia"
+        ).mkString(" && ")
+      )
+    }
     env(
       Map(
         "LANG"     -> "en_US.UTF-8",
@@ -116,10 +133,17 @@ docker / dockerfile := {
   }
 }
 
-docker / imageNames := Seq(
-  ImageName(s"nixiesearch/nixiesearch:${version.value}-$PLATFORM"),
-  ImageName(s"nixiesearch/nixiesearch:latest")
-)
+if (GPU) {
+  docker / imageNames := Seq(
+    ImageName(s"nixiesearch/nixiesearch:${version.value}-$PLATFORM-gpu"),
+    ImageName(s"nixiesearch/nixiesearch:latest-gpu")
+  )
+} else {
+  docker / imageNames := Seq(
+    ImageName(s"nixiesearch/nixiesearch:${version.value}-$PLATFORM"),
+    ImageName(s"nixiesearch/nixiesearch:latest")
+  )
+}
 
 docker / buildOptions := BuildOptions(
   removeIntermediateContainers = BuildOptions.Remove.Always,
@@ -137,6 +161,7 @@ ThisBuild / assemblyMergeStrategy := {
   case "META-INF/okio.kotlin_module"                                         => MergeStrategy.first
   case "findbugsExclude.xml"                                                 => MergeStrategy.discard
   case "log4j2-test.properties"                                              => MergeStrategy.discard
+  case x if x.startsWith("ai/onnxruntime/native/")                           => MergeStrategy.first
   case x if x.endsWith("/module-info.class")                                 => MergeStrategy.discard
   case x if x.startsWith("/META-INF/versions/9/org/yaml/snakeyaml/internal/") =>
     MergeStrategy.discard // pulsar client bundling snakeyaml
@@ -147,4 +172,5 @@ ThisBuild / assemblyMergeStrategy := {
 
 assembly / assemblyJarName          := "nixiesearch.jar"
 ThisBuild / assemblyRepeatableBuild := false
+ThisBuild / usePipelining           := true
 packageOptions                      := Seq(ManifestAttributes(("Multi-Release", "true")))

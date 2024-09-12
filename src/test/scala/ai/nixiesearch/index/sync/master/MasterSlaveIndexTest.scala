@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.index.{Indexer, Searcher}
 import ai.nixiesearch.index.sync.{MasterIndex, SlaveIndex}
-import ai.nixiesearch.util.TestIndexMapping
+import ai.nixiesearch.util.{TestIndexMapping, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -25,7 +25,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
 
   it should "start from empty" ignore {
     val (emptyIndex, indexClose) =
-      MasterIndex.create(TestIndexMapping(), config(), CacheConfig()).allocated.unsafeRunSync()
+      MasterIndex.create(TestIndexMapping(), config(), CacheConfig(), TestInferenceConfig()).allocated.unsafeRunSync()
     emptyIndex.sync().unsafeRunSync()
     val mf = emptyIndex.replica.readManifest().unsafeRunSync()
     mf.isDefined shouldBe true
@@ -34,7 +34,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
 
   it should "start, write, stop" in {
     val (masterIndex, masterClose) =
-      MasterIndex.create(TestIndexMapping(), config(), CacheConfig()).allocated.unsafeRunSync()
+      MasterIndex.create(TestIndexMapping(), config(), CacheConfig(), TestInferenceConfig()).allocated.unsafeRunSync()
     val (writer, writerClose) = Indexer.open(masterIndex).allocated.unsafeRunSync()
     writer.addDocuments(List(Document(List(TextField("title", "yolo"))))).unsafeRunSync()
     writer.flush().unsafeRunSync()
@@ -46,13 +46,13 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
   it should "start, write, search, stop" in {
     val conf = config()
     val (masterIndex, masterClose) =
-      MasterIndex.create(TestIndexMapping(), conf, CacheConfig()).allocated.unsafeRunSync()
+      MasterIndex.create(TestIndexMapping(), conf, CacheConfig(), TestInferenceConfig()).allocated.unsafeRunSync()
     val (writer, writerClose) = Indexer.open(masterIndex).allocated.unsafeRunSync()
     writer.addDocuments(List(Document(List(TextField("title", "yolo"))))).unsafeRunSync()
     writer.flush().unsafeRunSync()
     masterIndex.sync().unsafeRunSync()
     val (slaveIndex, slaveClose) =
-      SlaveIndex.create(TestIndexMapping(), conf, CacheConfig()).allocated.unsafeRunSync()
+      SlaveIndex.create(TestIndexMapping(), conf, CacheConfig(), TestInferenceConfig()).allocated.unsafeRunSync()
     val (searcher, searcherClose) = Searcher.open(slaveIndex).allocated.unsafeRunSync()
     val response                  = searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
     response.hits.size shouldBe 1
@@ -66,7 +66,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
   it should "start, write, stop, search" in {
     val conf = config()
     val (masterIndex, masterClose) =
-      MasterIndex.create(TestIndexMapping(), conf, CacheConfig()).allocated.unsafeRunSync()
+      MasterIndex.create(TestIndexMapping(), conf, CacheConfig(), TestInferenceConfig()).allocated.unsafeRunSync()
     val (writer, writerClose) = Indexer.open(masterIndex).allocated.unsafeRunSync()
     writer.addDocuments(List(Document(List(TextField("title", "yolo"))))).unsafeRunSync()
     writer.flush().unsafeRunSync()
@@ -75,7 +75,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
     masterClose.unsafeRunSync()
 
     val (slaveIndex, slaveClose) =
-      SlaveIndex.create(TestIndexMapping(), conf, CacheConfig()).allocated.unsafeRunSync()
+      SlaveIndex.create(TestIndexMapping(), conf, CacheConfig(), TestInferenceConfig()).allocated.unsafeRunSync()
     val (searcher, searcherClose) = Searcher.open(slaveIndex).allocated.unsafeRunSync()
     val response                  = searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
     response.hits.size shouldBe 1

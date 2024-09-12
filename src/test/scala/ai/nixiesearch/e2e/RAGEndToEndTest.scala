@@ -5,6 +5,7 @@ import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.mapping.IndexName
+import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{DatasetLoader, SearchTest}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
@@ -21,6 +22,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-rag.yaml")).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
   lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz")
+  override def inference = conf.inference
 
   it should "search" in withIndex { nixie =>
     {
@@ -39,7 +41,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
                   topDocs = 3,
                   prompt =
                     "Based on following search resul documents, please summarize the answer for a user search query 'matrix'",
-                  model = "qwen2",
+                  model = ModelRef("qwen2"),
                   fields = List("title", "overview")
                 )
               )

@@ -10,12 +10,14 @@ schema:
     fields:
       title:
         type: text
-        search: lexical
+        search: 
+          type: lexical
   songs:
     fields:
       author:
         type: text
-        search: semantic
+        search: 
+          type: lexical
 ```
 
 In the index mapping above we defined two indexes `movies` and `songs` with a single text field.
@@ -81,16 +83,23 @@ schema:
   movies:
     fields:
       title:
-        search: lexical # a short syntax
+        search: 
+          type: lexical
         language: en
         suggest: false
       overview:
-        search: # a detailed syntax
+        search: # now semantic search!
           type: semantic
-          model: nixiesearch/e5-small-v2-onnx
-          prefix:
-            query: "query: "
-            document: "passage: " 
+          model: e5-small # a name of the model in the inference section
+inference:
+  embedding:
+    # the model used to embed documents
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
+
 ```
 
 ### Lexical search
@@ -102,33 +111,39 @@ schema:
   movies:
     fields:
       title:
-        search: lexical # a short syntax
-        language: en    # optional, default: generic
-      title2:
         search: 
-          type: lexical # a longer syntax
+          type: lexical # a short syntax
         language: en    # optional, default: generic
 ```
 
-For a better search quality, it's advised for lexical search to define the language of the field: this way Nixiesearch will use a Lucene language-specific analyzer. By default, the `StandardAnalyzer` is used.
+For a better search quality, it's advised for lexical search to define the `language` of the field: this way Nixiesearch will use a Lucene language-specific analyzer. By default, the `StandardAnalyzer` is used.
 
 ### Semantic search
 
-To use an embedding-based semantic search, mark a text field as `search: semantic` and optionally define [an embedding model](../../reference/models/embedding.md) to use:
+To use an embedding-based semantic search, mark a text field as `search.type: semantic` and define [an embedding model](../../reference/models/embedding.md) to use:
 
 ```yaml
 schema:
   movies:
     fields:
       title:
-        search: semantic # a short syntax, all default params
-      title2:
         search: 
-          type: semantic          # a longer syntax
-          model: nixiesearch/e5-small-v2-onnx # HF model handle
+          type: semantic          
+          model: e5-small # a model name from the inference section
           prefix:                 # optional prompt prefix
             query: "query: "      # query prefix
             document: "passage: " # document prefix
+
+# each model you plan to use for embedding
+# should be explicitly defined
+inference:
+  embedding:
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
+
 ```
 
 Nixiesearch supports both [self-hosted ONNX embedding models](../../reference/models/embedding.md) and [external embedding APIs](../../reference/models/embedding.md).
@@ -142,16 +157,21 @@ schema:
   movies:
     fields:
       title:
-        search: hybrid  # a short syntax, all default params
-        language: en    # optional, default: generic
-      title2:
         language: en              # optional, default: generic
         search: 
           type: hybrid            # a longer syntax
-          model: nixiesearch/e5-small-v2-onnx # HF model handle
+          model: e5-small         # a ref to the inference model name
           prefix:                 # optional prompt prefix
             query: "query: "      # query prefix
             document: "passage: " # document prefix
+
+inference:
+  embedding:
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
 ```
 
 For hybrid retrieval, Nixiesearch performs two search queries in parallel for both methods, and then mixes search results with [Reciprocal Rank Fusion](../search/index.md#hybrid-search-with-reciprocal-rank-fusion).
@@ -227,30 +247,45 @@ So your end customers won't need to change their REST endpoint address and alway
 
 ### RAG settings
 
-To use RAG queries, you need to explcitly define in the config file which LLMs you plan to use query-time:
+To use RAG queries, you need to explicitly define in the config file which LLMs you plan to use query-time:
 
 ```yaml
+inference:
+  embedding:
+    # Used for semantic retrieval
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
+  generative:
+    # Used for summarization
+    qwen2:
+      model: Qwen/Qwen2-0.5B-Instruct-GGUF
+      file: qwen2-0_5b-instruct-q4_0.gguf
+      prompt: qwen2
+    
 schema:
   movies:
-    rag:
-      models:
-        - handle: Qwen/Qwen2-0.5B-Instruct-GGUF?file=qwen2-0_5b-instruct-q4_0.gguf
-          prompt: qwen2
-          name: qwen2
     fields:
       title:
         type: text
-        search: semantic
+        search: 
+          type: semantic
+          model: e5-small
         suggest: true
       overview:
         type: text
-        search: semantic
+        search: 
+          type: semantic
+          model: e5-small
         suggest: true
 ```
 
 Where:
 
-* `handle`: a Huggingface model handle in a format of `namespace`/`model-name`. Optionally may include a `?file=` specifier in a case when model repo contains multiple GGUF files. By default Nixiesearch will pick the lexicographically first file.
+* `model`: a Huggingface model handle in a format of `namespace`/`model-name`.
+* `file`: an optional model file name if there are multiple. By default Nixiesearch will pick the lexicographically first GGUF/ONNX file. 
 * `prompt`: a prompt format, either one of pre-defined ones like `qwen2` and `llama3`, or a raw prompt with `{user}` and `{system}` placeholders.
 * `name`: name of this model you will reference in RAG search requests
 * `system` (optional): A system prompt for the model.

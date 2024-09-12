@@ -14,11 +14,10 @@ import cats.implicits.*
 import org.http4s.server.websocket.WebSocketBuilder
 
 object StandaloneMode extends Logging {
-  def run(args: StandaloneArgs): IO[Unit] = for {
-    _      <- info("Starting in 'standalone' mode with indexer+searcher colocated within a single process")
-    config <- Config.load(args.config)
+  def run(args: StandaloneArgs, config: Config): IO[Unit] = for {
+    _ <- info("Starting in 'standalone' mode with indexer+searcher colocated within a single process")
     _ <- config.schema.values.toList
-      .map(im => Index.local(im, config.core.cache))
+      .map(im => Index.local(im, config.core.cache, config.inference))
       .sequence
       .use(indexes =>
         indexes

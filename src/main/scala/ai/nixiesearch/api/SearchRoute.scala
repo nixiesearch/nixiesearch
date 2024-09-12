@@ -13,6 +13,7 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.core.aggregate.AggregationResult
+import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
@@ -116,7 +117,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
 object SearchRoute {
   case class RAGRequest(
       prompt: String,
-      model: String,
+      model: ModelRef,
       topDocs: Int = 10,
       maxDocLength: Int = 128,
       maxResponseLength: Int = 64,
@@ -127,7 +128,7 @@ object SearchRoute {
     given ragRequestDecoder: Decoder[RAGRequest] = Decoder.instance(c =>
       for {
         prompt            <- c.downField("prompt").as[String]
-        model             <- c.downField("model").as[String]
+        model             <- c.downField("model").as[ModelRef]
         topDocs           <- c.downField("topDocs").as[Option[Int]]
         maxDocLength      <- c.downField("maxDocLength").as[Option[Int]]
         maxResponseLength <- c.downField("maxResponseLength").as[Option[Int]]

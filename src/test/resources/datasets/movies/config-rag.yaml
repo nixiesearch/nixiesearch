@@ -1,3 +1,17 @@
+inference:
+  embedding:
+    text:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
+  generative:
+    qwen2:
+      model: Qwen/Qwen2-0.5B-Instruct-GGUF
+      file: qwen2-0_5b-instruct-q4_0.gguf
+      prompt: qwen2
+
 searcher:
   api:
     host: localhost
@@ -5,17 +19,16 @@ searcher:
 
 schema:
   movies:
-    rag:
-      models:
-        - handle: Qwen/Qwen2-0.5B-Instruct-GGUF?file=qwen2-0_5b-instruct-q4_0.gguf
-          prompt: qwen2
-          name: qwen2
     fields:
       title:
         type: text
-        search: semantic
+        search:
+          type: semantic
+          model: text
         suggest: true
       overview:
         type: text
-        search: semantic
+        search:
+          type: semantic
+          model: text
         suggest: true

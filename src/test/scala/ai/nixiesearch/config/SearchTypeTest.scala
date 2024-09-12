@@ -3,26 +3,13 @@ package ai.nixiesearch.config
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, ModelPrefix, NoSearch, SemanticSearch}
 import ai.nixiesearch.core.Field
+import ai.nixiesearch.core.nn.ModelRef
 import io.circe.Decoder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 
 class SearchTypeTest extends AnyFlatSpec with Matchers {
-  it should "decode non-searchable fields" in {
-    val result = decodeYaml("type: text\nsearch: false")
-    result shouldBe Right(TextFieldSchema(name = "field", search = NoSearch))
-  }
-
-  it should "decode lexical as string" in {
-    val result = decodeYaml("type: text\nsearch: lexical")
-    result shouldBe Right(TextFieldSchema(name = "field", search = LexicalSearch()))
-  }
-
-  it should "decode hybrid as string" in {
-    val result = decodeYaml("type: text\nsearch: hybrid")
-    result shouldBe Right(TextFieldSchema(name = "field", search = HybridSearch()))
-  }
 
   it should "decode lexical as object" in {
     val yaml =
@@ -37,9 +24,10 @@ class SearchTypeTest extends AnyFlatSpec with Matchers {
     val yaml =
       """type: text
         |search:
-        |  type: hybrid""".stripMargin
+        |  type: hybrid
+        |  model: text""".stripMargin
     val result = decodeYaml(yaml)
-    result shouldBe Right(TextFieldSchema(name = "field", search = HybridSearch()))
+    result shouldBe Right(TextFieldSchema(name = "field", search = HybridSearch(ModelRef("text"))))
   }
 
   it should "decode semantic with options" in {
@@ -47,11 +35,10 @@ class SearchTypeTest extends AnyFlatSpec with Matchers {
       """type: text
         |search:
         |  type: semantic
-        |  language: english""".stripMargin
+        |  language: english
+        |  model: text""".stripMargin
     val result = decodeYaml(yaml)
-    result shouldBe Right(
-      TextFieldSchema(name = "field", search = SemanticSearch(prefix = ModelPrefix("query: ", "passage: ")))
-    )
+    result shouldBe Right(TextFieldSchema(name = "field", search = SemanticSearch(ModelRef("text"))))
   }
 
   def decodeYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {

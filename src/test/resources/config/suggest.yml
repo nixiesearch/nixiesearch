@@ -1,3 +1,12 @@
+inference:
+  embedding:
+    text:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
+
 api:
   host: localhost
   port: 8080
@@ -7,11 +16,15 @@ schema:
     fields:
       title1:
         type: text
-        search: semantic
+        search:
+          type: semantic
+          model: text
         suggest: true
       title2:
         type: text
-        search: semantic
+        search:
+          type: semantic
+          model: text
         language: en
         suggest:
           lowercase: false
@@ -24,8 +37,7 @@ schema:
         type: text
         search: # more advanced setup
           type: semantic
-          model: nixiesearch/e5-small-v2-onnx
-          threshold: 0.666
+          model: text
       price:
         type: int # can be also float/long/double
         filter: true # all numeric fields are filterable

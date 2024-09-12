@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.nn.model.embedding.cache
 
 import ai.nixiesearch.core.Error.BackendError
-import ai.nixiesearch.core.nn.ModelHandle
+import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel
 import ai.nixiesearch.core.nn.model.embedding.cache.EmbeddingCache.CacheKey
 import cats.effect.IO
@@ -17,15 +17,19 @@ trait EmbeddingCache {
   }
   def get(keys: List[CacheKey]): IO[Array[Option[Array[Float]]]]
 
-  def getOrEmbedAndCache(keys: List[CacheKey], embedder: EmbedModel): IO[Array[Array[Float]]] = for {
-    cached                            <- get(keys)
-    (nonCachedIndices, nonCachedDocs) <- selectUncached(cached, keys.toArray)
-    nonCachedEmbeddings               <- embedder.encode(nonCachedDocs.toList.map(_.string))
-    _                                 <- put(nonCachedDocs.toList, nonCachedEmbeddings)
-    merged                            <- mergeCachedUncached(cached, nonCachedIndices, nonCachedEmbeddings)
-  } yield {
-    merged
-  }
+  def getOrEmbedAndCache(
+      keys: List[CacheKey],
+      embed: List[String] => IO[Array[Array[Float]]]
+  ): IO[Array[Array[Float]]] =
+    for {
+      cached                            <- get(keys)
+      (nonCachedIndices, nonCachedDocs) <- selectUncached(cached, keys.toArray)
+      nonCachedEmbeddings               <- embed(nonCachedDocs.toList.map(_.string))
+      _                                 <- put(nonCachedDocs.toList, nonCachedEmbeddings)
+      merged                            <- mergeCachedUncached(cached, nonCachedIndices, nonCachedEmbeddings)
+    } yield {
+      merged
+    }
 
   private def selectUncached(
       cached: Array[Option[Array[Float]]],
@@ -67,5 +71,5 @@ trait EmbeddingCache {
 }
 
 object EmbeddingCache {
-  case class CacheKey(handle: ModelHandle, string: String)
+  case class CacheKey(handle: ModelRef, string: String)
 }

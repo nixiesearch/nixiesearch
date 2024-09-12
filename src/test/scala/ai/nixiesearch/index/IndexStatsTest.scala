@@ -7,6 +7,7 @@ import ai.nixiesearch.config.mapping.SearchType.HybridSearch
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.index.IndexStats.{FieldStats, LeafStats, SegmentStats}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
@@ -18,7 +19,7 @@ class IndexStatsTest extends SearchTest with Matchers {
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = HybridSearch(), suggest = Some(SuggestSchema()))
+      TextFieldSchema(name = "title", search = HybridSearch(ModelRef("text")), suggest = Some(SuggestSchema()))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

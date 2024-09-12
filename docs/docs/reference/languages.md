@@ -12,7 +12,8 @@ schema:
     fields:
       title:
         type: text
-        search: semantic
+        search: 
+          type: lexical
         language: en # use an ISO-639-1 language code
 ```
 

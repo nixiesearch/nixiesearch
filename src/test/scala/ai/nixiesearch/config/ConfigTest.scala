@@ -2,6 +2,8 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
@@ -11,6 +13,7 @@ import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
 import ai.nixiesearch.config.mapping.SuggestSchema.Lemmatize
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
+import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
@@ -25,6 +28,17 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
+        inference = InferenceConfig(
+          embedding = Map(
+            ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
+              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+              prompt = PromptConfig(
+                doc = "passage: ",
+                query = "query: "
+              )
+            )
+          )
+        ),
         indexer = IndexerConfig(),
         core = CoreConfig(
           cache = CacheConfig(
@@ -40,13 +54,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               "_id" -> TextFieldSchema(name = "_id", filter = true),
               "title" -> TextFieldSchema(
                 name = "title",
-                search =
-                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5)
+                search = SemanticSearch(model = ModelRef("text"))
               ),
               "desc" -> TextFieldSchema(
                 name = "desc",
-                search =
-                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5)
+                search = SemanticSearch(model = ModelRef("text"))
               ),
               "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
             )
@@ -61,6 +73,17 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
+        inference = InferenceConfig(
+          embedding = Map(
+            ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
+              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+              prompt = PromptConfig(
+                doc = "passage: ",
+                query = "query: "
+              )
+            )
+          )
+        ),
         indexer = IndexerConfig(),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
@@ -71,8 +94,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               "_id" -> TextFieldSchema(name = "_id", filter = true),
               "title" -> TextFieldSchema(
                 name = "title",
-                search =
-                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5)
+                search = SemanticSearch(model = ModelRef("text"))
               )
             ),
             store = DistributedStoreConfig(
@@ -129,6 +151,17 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
+        inference = InferenceConfig(
+          embedding = Map(
+            ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
+              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+              prompt = PromptConfig(
+                doc = "passage: ",
+                query = "query: "
+              )
+            )
+          )
+        ),
         indexer = IndexerConfig(),
         searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
@@ -139,15 +172,13 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               "_id" -> TextFieldSchema(name = "_id", filter = true),
               "title1" -> TextFieldSchema(
                 name = "title1",
-                search =
-                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5),
+                search = SemanticSearch(model = ModelRef("text")),
                 suggest = Some(SuggestSchema())
               ),
               "title2" -> TextFieldSchema(
                 name = "title2",
                 language = English,
-                search =
-                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5),
+                search = SemanticSearch(model = ModelRef("text")),
                 suggest = Some(
                   SuggestSchema(
                     lemmatize = Some(Lemmatize(LocalURL(Paths.get("/path/to/lemmas.csv"))))
@@ -156,8 +187,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               ),
               "desc" -> TextFieldSchema(
                 name = "desc",
-                search =
-                  SemanticSearch(model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"), prefix = ModelPrefix.e5)
+                search = SemanticSearch(model = ModelRef("text"))
               ),
               "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
             )
