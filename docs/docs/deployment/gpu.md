@@ -2,8 +2,8 @@
 
 Nixiesearch supports both CPU and GPU inference for embeddings and generative models:
 
-* for embedding inference the [ONNXRuntime]() is used with CPU and CUDA Execution Providers.
-* for GenAI inference the [llamacpp]() backend is used with both CUDA and CPU support built-in.
+* for embedding inference the [ONNXRuntime](https://onnxruntime.ai/docs/get-started/with-java.html) is used with CPU and CUDA Execution Providers.
+* for GenAI inference the [llamacpp](https://github.com/kherud/java-llama.cpp) backend is used with both CUDA and CPU support built-in.
 
 All official Nixiesearch Docker containers on [hub.docker.com/u/nixiesearch](https://hub.docker.com/u/nixiesearch) starting from a `0.3.0` version are published in two flavours:
 
@@ -83,5 +83,32 @@ llama_new_context_with_model: graph splits = 3
 [INFO] new slot id_slot=2 n_ctx_slot=8192
 [INFO] new slot id_slot=3 n_ctx_slot=8192
 [INFO] model loaded
+```
+
+After the successful startup you can see the Nixiesearch process in the `nvidia-smi`:
 
 ```
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        Off |   00000000:41:00.0 Off |                  Off |
+|  0%   56C    P0             67W /  450W |    2064MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA GeForce RTX 4090        Off |   00000000:C1:00.0 Off |                  Off |
+|  0%   56C    P0             72W /  450W |    1984MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A    324023      C   java                                         2054MiB |
+|    1   N/A  N/A    324023      C   java                                         1974MiB |
++-----------------------------------------------------------------------------------------+```
