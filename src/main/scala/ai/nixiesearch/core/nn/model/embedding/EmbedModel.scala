@@ -7,7 +7,8 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.util.GPUUtils
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
-import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}
+import ai.onnxruntime.providers.OrtCUDAProviderOptions
+import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtLoggingLevel, OrtSession}
 import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -130,6 +131,7 @@ object EmbedModel {
       val opts = new SessionOptions()
       opts.setIntraOpNumThreads(threads)
       opts.setOptimizationLevel(OptLevel.ALL_OPT)
+      // opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
       val modelBytes = IOUtils.toByteArray(model)
       val session    = env.createSession(modelBytes, opts)
