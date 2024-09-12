@@ -5,7 +5,8 @@ import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig.LLMPromptTe
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import de.kherud.llama.{InferenceParameters, LlamaModel, ModelParameters}
+import de.kherud.llama.args.LogFormat
+import de.kherud.llama.{InferenceParameters, LlamaModel, LogLevel, ModelParameters}
 import fs2.Stream
 
 import scala.jdk.CollectionConverters.*
@@ -29,23 +30,42 @@ object GenerativeModel {
     def close(): IO[Unit] = info("Closing Llamacpp model") *> IO(model.close())
   }
 
-  object LlamacppGenerativeModel {
+  object LlamacppGenerativeModel extends Logging {
+    val GPU_LAYERS_ALL           = 40
     val LLAMACPP_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
         path: Path,
         prompt: LLMPromptTemplate,
+        gpuLayers: Int,
         threads: Int = LLAMACPP_THREADS_DEFAULT
     ): Resource[IO, LlamacppGenerativeModel] =
-      Resource.make(IO(createUnsafe(path, prompt, threads)))(_.close())
+      Resource.make(IO(createUnsafe(path, prompt, gpuLayers, threads)))(_.close())
 
-    def createUnsafe(path: Path, prompt: LLMPromptTemplate, threads: Int = LLAMACPP_THREADS_DEFAULT) = {
+    def createUnsafe(
+        path: Path,
+        prompt: LLMPromptTemplate,
+        gpuLayers: Int,
+        threads: Int = LLAMACPP_THREADS_DEFAULT
+    ): LlamacppGenerativeModel = {
+      LlamaModel.setLogger(LogFormat.TEXT, loggerCallback)
       val params = new ModelParameters()
         .setModelFilePath(path.toString)
         .setNThreads(threads)
+        .setNGpuLayers(gpuLayers)
         .setContinuousBatching(true)
         .setNParallel(4)
       val model = new LlamaModel(params)
       LlamacppGenerativeModel(model, prompt)
+    }
+
+    def loggerCallback(level: LogLevel, message: String): Unit = {
+      val noNewline = message.replaceAll("\n", "")
+      level match {
+        case LogLevel.DEBUG => logger.debug(noNewline)
+        case LogLevel.INFO  => logger.info(noNewline)
+        case LogLevel.WARN  => logger.warn(noNewline)
+        case LogLevel.ERROR => logger.error(noNewline)
+      }
     }
   }
 
