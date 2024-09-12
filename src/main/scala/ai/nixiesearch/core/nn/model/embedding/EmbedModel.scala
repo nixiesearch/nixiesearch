@@ -4,6 +4,7 @@ import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.util.GPUUtils
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
 import ai.onnxruntime.{OnnxTensor, OrtEnvironment, OrtSession}
@@ -98,11 +99,17 @@ object EmbedModel {
         dim: Int,
         prompt: PromptConfig,
         ttidNeeded: Boolean = true,
-        gpu: Boolean = false,
         threads: Int = ONNX_THREADS_DEFAULT,
         seqlen: Int = 512
-    ): Resource[IO, OnnxEmbedModel] =
-      Resource.make(IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, gpu, threads, seqlen)))(e => e.close())
+    ): Resource[IO, OnnxEmbedModel] = for {
+      isGPUBuild <- Resource.eval(GPUUtils.isGPUBuild())
+      _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
+      model <- Resource.make(
+        IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen))
+      )(e => e.close())
+    } yield {
+      model
+    }
 
     def createUnsafe(
         model: InputStream,

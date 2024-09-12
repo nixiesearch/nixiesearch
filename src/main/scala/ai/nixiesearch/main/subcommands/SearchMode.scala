@@ -17,9 +17,8 @@ import org.http4s.server.websocket.WebSocketBuilder
 import scala.concurrent.duration.*
 
 object SearchMode extends Logging {
-  def run(args: SearchArgs): IO[Unit] = for {
+  def run(args: SearchArgs, config: Config): IO[Unit] = for {
     _      <- info("Starting in 'search' mode with only searcher")
-    config <- Config.load(args.config)
     _ <- config.schema.values.toList
       .map(im =>
         for {

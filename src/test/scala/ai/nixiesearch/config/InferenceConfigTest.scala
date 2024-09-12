@@ -44,7 +44,6 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         |    model: Qwen/Qwen2-0.5B-Instruct-GGUF
         |    file: qwen2-0_5b-instruct-q4_0.gguf
         |    prompt: qwen2
-        |    gpu: true
         |""".stripMargin
     val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
     decoded shouldBe Right(
@@ -53,8 +52,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
           ModelRef("qwen2") -> GenInferenceModelConfig(
             model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
             file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
-            prompt = Qwen2Template,
-            gpu = true
+            prompt = Qwen2Template
           )
         )
       )

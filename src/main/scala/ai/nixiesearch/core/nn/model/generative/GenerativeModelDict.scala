@@ -27,9 +27,9 @@ object GenerativeModelDict extends Logging {
   def create(models: Map[ModelRef, GenInferenceModelConfig], cache: ModelFileCache): Resource[IO, GenerativeModelDict] =
     for {
       generativeModels <- models.toList.map {
-        case (name: ModelRef, conf @ GenInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _)) =>
+        case (name: ModelRef, conf @ GenInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
           createHuggingface(handle, conf, cache).map(model => name -> model)
-        case (name: ModelRef, conf @ GenInferenceModelConfig(handle: LocalModelHandle, _, _, _, _)) =>
+        case (name: ModelRef, conf @ GenInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
           createLocal(handle, conf).map(model => name -> model)
       }.sequence
     } yield {

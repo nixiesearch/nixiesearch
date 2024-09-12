@@ -32,7 +32,6 @@ object InferenceConfig {
         model: ModelHandle,
         file: Option[String] = None,
         prompt: PromptConfig = PromptConfig(),
-        gpu: Boolean = false,
         seqlen: Int = 512
     ) extends EmbeddingInferenceModelConfig
 
@@ -43,7 +42,6 @@ object InferenceConfig {
       for {
         model  <- c.downField("model").as[ModelHandle]
         file   <- c.downField("file").as[Option[String]]
-        gpu    <- c.downField("gpu").as[Option[Boolean]]
         seqlen <- c.downField("seqlen").as[Option[Int]]
         prompt <- c.downField("prompt").as[Option[PromptConfig]]
       } yield {
@@ -51,7 +49,6 @@ object InferenceConfig {
           model,
           file,
           prompt.getOrElse(PromptConfig()),
-          gpu.getOrElse(false),
           seqlen.getOrElse(512)
         )
       }
@@ -82,8 +79,7 @@ object InferenceConfig {
       model: ModelHandle,
       prompt: LLMPromptTemplate,
       system: Option[String] = None,
-      file: Option[String] = None,
-      gpu: Boolean = false
+      file: Option[String] = None
   )
   object GenInferenceModelConfig {
 
@@ -128,11 +124,10 @@ object InferenceConfig {
       for {
         model  <- c.downField("model").as[ModelHandle]
         file   <- c.downField("file").as[Option[String]]
-        gpu    <- c.downField("gpu").as[Option[Boolean]]
         prompt <- c.downField("prompt").as[LLMPromptTemplate]
         system <- c.downField("system").as[Option[String]]
       } yield {
-        GenInferenceModelConfig(model, prompt, system, file, gpu.getOrElse(false))
+        GenInferenceModelConfig(model, prompt, system, file)
       }
     )
   }

@@ -15,10 +15,9 @@ import java.io.FileInputStream
 object GPUUtils extends Logging {
   case class GPUDevice(id: Int, model: String)
 
+  val ONNX_CUDA_EP_PATH = "/ai/onnxruntime/native/linux-x64/libonnxruntime_providers_cuda.so"
   def isGPUBuild(): IO[Boolean] = {
-    IO(OrtEnvironment.getAvailableProviders.iterator().asScala.toList.map(_.name()))
-      .flatTap(list => info(s"ONNX Execution providers: ${list}"))
-      .map(_.exists(_ == "CUDA"))
+    IO(this.getClass.getResource(ONNX_CUDA_EP_PATH)).map(Option.apply).map(_.isDefined)
   }
 
   val CUDART_NAME = "libcudart.so.12"

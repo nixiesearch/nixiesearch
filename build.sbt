@@ -101,11 +101,24 @@ docker / dockerfile := {
     runRaw(
       List(
         "apt-get update",
-        "apt-get install -y --no-install-recommends openjdk-21-jdk-headless htop procps curl inetutils-ping libgomp1 locales",
-        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen",
-        "rm -rf /var/lib/apt/lists/*"
+        "apt-get install -y --no-install-recommends openjdk-21-jdk-headless htop procps curl inetutils-ping libgomp1 locales wget",
+        "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen"
+        // "rm -rf /var/lib/apt/lists/*"
       ).mkString(" && ")
     )
+    if (GPU) {
+      runRaw(
+        List(
+          "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb",
+          "dpkg -i cuda-keyring_1.1-1_all.deb",
+          "apt-get update",
+          "apt-get install -y --no-install-recommends cuda-toolkit-12-6 nvidia-headless-560-open cudnn9-cuda-12-6",
+          "rm -rf /usr/lib/x86_64-linux-gnu/lib*static_v9.a",
+          "rm -rf /usr/local/cuda-12.6/targets/x86_64-linux/lib/lib*.a",
+          "rm -rf /opt/nvidia"
+        ).mkString(" && ")
+      )
+    }
     env(
       Map(
         "LANG"     -> "en_US.UTF-8",
@@ -148,6 +161,7 @@ ThisBuild / assemblyMergeStrategy := {
   case "META-INF/okio.kotlin_module"                                         => MergeStrategy.first
   case "findbugsExclude.xml"                                                 => MergeStrategy.discard
   case "log4j2-test.properties"                                              => MergeStrategy.discard
+  case x if x.startsWith("ai/onnxruntime/native/")                           => MergeStrategy.first
   case x if x.endsWith("/module-info.class")                                 => MergeStrategy.discard
   case x if x.startsWith("/META-INF/versions/9/org/yaml/snakeyaml/internal/") =>
     MergeStrategy.discard // pulsar client bundling snakeyaml

@@ -23,9 +23,8 @@ import fs2.Stream
 import org.http4s.HttpRoutes
 
 object IndexMode extends Logging {
-  def run(args: IndexArgs): IO[Unit] = for {
+  def run(args: IndexArgs, config: Config): IO[Unit] = for {
     _       <- info("Starting in 'index' mode with indexer only ")
-    config  <- Config.load(args.config)
     indexes <- IO(config.schema.values.toList)
     _ <- args.source match {
       case apiConfig: ApiIndexSourceArgs => runApi(indexes, apiConfig, config)

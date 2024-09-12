@@ -57,9 +57,9 @@ object EmbedModelDict extends Logging {
   ): Resource[IO, EmbedModelDict] =
     for {
       encoders <- models.toList.map {
-        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _)) =>
+        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
           createHuggingface(handle, conf, cache).map(embedder => name -> embedder)
-        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: LocalModelHandle, _, _, _, _)) =>
+        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
           createLocal(handle, conf).map(embedder => name -> embedder)
         case (name: ModelRef, conf @ OpenAIEmbeddingInferenceModelConfig(model)) =>
           Resource.raiseError[IO, (ModelRef, EmbedModel), Throwable](BackendError("not yet implemented"))
@@ -95,7 +95,6 @@ object EmbedModelDict extends Logging {
       dic = new FileInputStream(vocab.toFile),
       dim = config.hidden_size,
       prompt = conf.prompt,
-      gpu = conf.gpu,
       seqlen = conf.seqlen
     )
   } yield {
@@ -120,7 +119,6 @@ object EmbedModelDict extends Logging {
         dic = new FileInputStream(vocab.toFile),
         dim = config.hidden_size,
         prompt = conf.prompt,
-        gpu = conf.gpu,
         seqlen = conf.seqlen
       )
     } yield {
