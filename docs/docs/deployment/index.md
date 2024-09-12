@@ -1,6 +1,6 @@
 # Deployment
 
-Nixiesearch is distributed as a [single Docker container](../quickstart.md#prerequisites) and can be deployed as a regular dockerized app:
+Nixiesearch is distributed as a [single Docker container](../quickstart.md#prerequisites) (with a special flavors for CPU and [GPU inference](gpu.md)) and can be deployed as a regular dockerized app:
 
 * **[Standalone](#standalone)**: simple single-node install with [Docker](https://hub.docker.com/r/nixiesearch/nixiesearch/tags), with search and index API colocated within a single process. Recommended for dev environments and installs with no need for fault tolerance.
 * **[Distributed](#distributed)**: distributed setup with separate indexer and searcher services, backed by S3-compatible block storage. Recommended for large and fault-tolerant installs.

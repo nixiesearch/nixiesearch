@@ -137,7 +137,9 @@ nav:
       - Autocomplete:
           - features/autocomplete/index.md
     - Deployment:
-        - Overview: deployment/overview.md
+        - Overview:
+            - deployment/index.md
+            - GPU support: deployment/gpu.md
         - Standalone: deployment/standalone.md
         - Distributed:
             - deployment/distributed/index.md
