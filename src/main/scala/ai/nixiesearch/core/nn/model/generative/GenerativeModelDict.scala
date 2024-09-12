@@ -7,6 +7,7 @@ import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel
 import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
+import ai.nixiesearch.util.GPUUtils
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.io.file.Path as Fs2Path
@@ -47,10 +48,16 @@ object GenerativeModelDict extends Logging {
       modelFile <- chooseModelFile(card.siblings.map(_.rfilename), config.file)
       _         <- info(s"Fetching $handle from HF: model=$modelFile")
       modelPath <- hf.getCached(handle, modelFile)
+
     } yield {
       modelPath
     })
-    genModel <- LlamacppGenerativeModel.create(modelFile, config.prompt)
+    isGPU <- Resource.eval(GPUUtils.isGPUBuild())
+    genModel <- LlamacppGenerativeModel.create(
+      path = modelFile,
+      prompt = config.prompt,
+      gpuLayers = if (isGPU) LlamacppGenerativeModel.GPU_LAYERS_ALL else 0
+    )
   } yield {
     genModel
   }
@@ -65,7 +72,12 @@ object GenerativeModelDict extends Logging {
       } yield {
         path.toNioPath.resolve(modelFile)
       })
-      genModel <- LlamacppGenerativeModel.create(modelFile, config.prompt)
+      isGPU <- Resource.eval(GPUUtils.isGPUBuild())
+      genModel <- LlamacppGenerativeModel.create(
+        path = modelFile,
+        prompt = config.prompt,
+        gpuLayers = if (isGPU) LlamacppGenerativeModel.GPU_LAYERS_ALL else 0
+      )
     } yield {
       genModel
     }
