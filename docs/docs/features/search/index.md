@@ -46,21 +46,35 @@ Instead of just getting search results for your query, you can use a [RAG](https
 Nixiesearch supports any GGUF-compatible LLM [llamacpp](https://github.com/ggerganov/llama.cpp) supports. To use RAG, you need to [list Huggingface handles of models](rag.md) you'd like to use in config:
 
 ```yaml
+inference:
+  embedding:
+    # Used for semantic retrieval
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
+  generative:
+    # Used for summarization
+    qwen2:
+      model: Qwen/Qwen2-0.5B-Instruct-GGUF
+      file: qwen2-0_5b-instruct-q4_0.gguf
+      prompt: qwen2
+
 schema:
   movies:
-    rag:
-      models:
-        - handle: Qwen/Qwen2-0.5B-Instruct-GGUF?file=qwen2-0_5b-instruct-q4_0.gguf
-          prompt: qwen2
-          name: qwen2
     fields:
       title:
         type: text
-        search: semantic
+        search: 
+          type: semantic
+          model: e5-small
         suggest: true
       overview:
         type: text
-        search: semantic
+        search: 
+          type: semantic
+          model: e5-small
         suggest: true
 ```
 

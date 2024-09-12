@@ -7,27 +7,42 @@ Nixiesearch supports [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_gen
 To use RAG queries, you need to explcitly define in the config file which LLMs you plan to use query-time:
 
 ```yaml
+inference:
+  embedding:
+    # Used for semantic retrieval
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        doc: "passage: "
+        query: "query: "
+  generative:
+    # Used for summarization
+    qwen2:
+      model: Qwen/Qwen2-0.5B-Instruct-GGUF
+      file: qwen2-0_5b-instruct-q4_0.gguf
+      prompt: qwen2
+
+
 schema:
   movies:
-    rag:
-      models:
-        - handle: Qwen/Qwen2-0.5B-Instruct-GGUF?file=qwen2-0_5b-instruct-q4_0.gguf
-          prompt: qwen2
-          name: qwen2
     fields:
       title:
         type: text
-        search: semantic
+        search: 
+          type: semantic
+          model: e5-small
         suggest: true
       overview:
         type: text
-        search: semantic
+        search:
+          type: semantic
+          model: e5-small
         suggest: true
 ```
 
 Where:
 
-* `handle`: a Huggingface model handle in a format of `namespace`/`model-name`. Optionally may include a `?file=` specifier in a case when model repo contains multiple GGUF files. By default Nixiesearch will pick the lexicographically first file.
+* `model`: a Huggingface model handle in a format of `namespace`/`model-name`. 
 * `prompt`: a prompt format, either one of pre-defined ones like `qwen2` and `llama3`, or a raw prompt with `{user}` and `{system}` placeholders.
 * `name`: name of this model you will reference in RAG search requests
 * `system` (optional): A system prompt for the model.
@@ -51,13 +66,13 @@ A more extended `llama3` prompt is an alias to the next raw one:
 
 You can always define your own prompt:
 ```yaml
-schema:
-  movies:
-    rag:
-      models:
-        - handle: TheBloke/Mistral-7B-Instruct-v0.2-GGUF
-          prompt: "[INST] {user} [/INST]"
-          name: mistral7b
+inference:
+  generative:
+    # Used for summarization
+    mistral7b:
+      model: TheBloke/Mistral-7B-Instruct-v0.2-GGUF
+      prompt: "[INST] {user} [/INST]"
+      name: mistral7b
 ```
 
 ## Sending requests

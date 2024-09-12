@@ -21,7 +21,8 @@ schema:
     fields:
       title:
         type: text
-        search: lexical
+        search: 
+          type: lexical
         language: en
       price:
         type: float
