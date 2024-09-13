@@ -117,12 +117,11 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       took = end - start,
       hits = collected,
       aggs = aggs,
-      id = request.id,
       ts = end
     )
   }
 
-  def rag(docs: List[Document], request: RAGRequest, id: Option[String]): Stream[IO, RAGResponse] = {
+  def rag(docs: List[Document], request: RAGRequest): Stream[IO, RAGResponse] = {
     val stream = for {
       prompt <- Stream.eval(IO(s"${request.prompt}\n\n${docs
           .take(request.topDocs)
@@ -142,7 +141,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
         .through(DurationStream.pipe(start))
       now <- Stream.eval(IO(System.currentTimeMillis()))
     } yield {
-      RAGResponse(id = id, token = token, ts = now, took = took, last = false)
+      RAGResponse(token = token, ts = now, took = took, last = false)
     }
     stream.through(StreamMark.pipe[RAGResponse](tail = tok => tok.copy(last = true)))
   }

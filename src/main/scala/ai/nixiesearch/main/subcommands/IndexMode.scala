@@ -90,7 +90,7 @@ object IndexMode extends Logging {
         AdminRoute(config).routes,
         MainRoute().routes
       ).reduce(_ <+> _)
-      api <- API.start(routes, _ => HttpRoutes.empty[IO], source.host, source.port)
+      api <- API.start(routes, source.host, source.port)
       _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
     } yield {
       api

@@ -25,7 +25,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     }
   }
 
-  it should "generate completions" in withIndex { index =>
+  it should "generate completions blocking" in withIndex { index =>
     {
       val response =
         send[CompletionRequest, CompletionResponse](
@@ -35,6 +35,23 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
           Method.POST
         )
       response.output shouldBe "Chicken was cross the road because it was hungry."
+    }
+  }
+
+  it should "generate completions streaming" in withIndex { index =>
+    {
+      val response =
+        send[CompletionRequest, String](
+          InferenceRoute(index.indexer.index.models).routes,
+          "http://localhost/inference/completion/qwen2",
+          Some(
+            CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10, stream = true)
+          ),
+          Method.POST
+        )
+      val events = response.split("\n\n")
+      events.size shouldBe 11
+
     }
   }
 }

@@ -7,7 +7,8 @@ import ai.nixiesearch.api.InferenceRoute.{
   EmbeddingInferenceRequest,
   EmbeddingInferenceResponse,
   EmbeddingOutput,
-  PromptType
+  PromptType,
+  requestJson
 }
 import ai.nixiesearch.api.InferenceRoute.PromptType.{Document, Query, Raw}
 import ai.nixiesearch.core.Error.UserError
@@ -17,11 +18,14 @@ import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{DurationStream, StreamMark}
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Response}
+import org.http4s.{Entity, EntityDecoder, EntityEncoder, Headers, HttpRoutes, MediaType, Response, Status}
 import org.http4s.dsl.io.*
 import io.circe.generic.semiauto.*
 import org.http4s.circe.*
 import fs2.Stream
+import scodec.bits.ByteVector
+import io.circe.syntax.*
+import org.http4s.headers.`Content-Type`
 
 import scala.util.{Failure, Success}
 
@@ -37,11 +41,31 @@ class InferenceRoute(models: Models) extends Route with Logging {
       }
     case req @ POST -> Root / "inference" / "completion" / modelName =>
       for {
-        request  <- req.as[CompletionRequest]
-        response <- generateBlocking(request, ModelRef(modelName))
-        ok       <- Ok(response)
+        request <- req.as[CompletionRequest]
+        response <- request.stream match {
+          case false =>
+            generateBlocking(request, ModelRef(modelName)).map(response =>
+              Response[IO](
+                status = Status.Ok,
+                entity = Entity.strict(ByteVector.view(response.asJson.noSpaces.getBytes)),
+                headers = Headers(`Content-Type`(new MediaType("application", "json")))
+              )
+            )
+          case true =>
+            IO(
+              Response[IO](
+                status = Status.Ok,
+                headers = Headers(`Content-Type`(MediaType.`text/event-stream`)),
+                entity = Entity.stream[IO](
+                  generateStreaming(request, ModelRef(modelName)).flatMap(e =>
+                    Stream.emits(e.asServerSideEvent.getBytes)
+                  )
+                )
+              )
+            )
+        }
       } yield {
-        ok
+        response
       }
   }
 
@@ -135,5 +159,10 @@ object InferenceRoute {
   given completionResponseJson: EntityDecoder[IO, CompletionResponse]        = jsonOf
   given completionResponseJsonEncoder: EntityEncoder[IO, CompletionResponse] = jsonEncoderOf
 
-  case class CompletionFrame(token: String, took: Long, last: Boolean)
+  case class CompletionFrame(token: String, took: Long, last: Boolean) {
+    def asServerSideEvent: String =
+      s"event: generate\ndata: ${this.asJson.noSpaces}\n\n"
+  }
+
+  given completionFrameEncoder: Encoder[CompletionFrame] = deriveEncoder
 }
