@@ -74,7 +74,7 @@ class InferenceRoute(models: Models) extends Route with Logging {
 
   def generateStreaming(request: CompletionRequest, modelRef: ModelRef): Stream[IO, CompletionFrame] = {
     models.generative
-      .generate(modelRef, request.prompt, request.maxTokens)
+      .generate(modelRef, request.prompt, request.max_tokens)
       .through(DurationStream.pipe(System.currentTimeMillis()))
       .map { case (token, took) =>
         CompletionFrame(token, took, false)
@@ -117,7 +117,7 @@ object InferenceRoute {
   given responseJsonEncoder: EntityEncoder[IO, EmbeddingInferenceResponse] = jsonEncoderOf
   given responseJson: EntityDecoder[IO, EmbeddingInferenceResponse]        = jsonOf
 
-  case class CompletionRequest(prompt: String, maxTokens: Int, stream: Boolean = false)
+  case class CompletionRequest(prompt: String, max_tokens: Int, stream: Boolean = false)
   given completionRequestEncoder: Encoder[CompletionRequest] = deriveEncoder
   given completionRequestDecoder: Decoder[CompletionRequest] = Decoder.instance(c =>
     for {

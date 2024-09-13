@@ -1,7 +1,5 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
@@ -33,7 +31,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
         send[CompletionRequest, CompletionResponse](
           InferenceRoute(index.indexer.index.models).routes,
           "http://localhost/inference/completion/qwen2",
-          Some(CompletionRequest(prompt = "why did chicken cross the road? answer short.", maxTokens = 10)),
+          Some(CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10)),
           Method.POST
         )
       response.output shouldBe "Chicken was cross the road because it was hungry."
