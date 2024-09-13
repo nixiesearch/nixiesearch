@@ -71,6 +71,14 @@ $> curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
 Unlike other search engines, Nixiesearch requires a strongly-typed description of all the fields of documents you plan to index. As we know that our movie documents from the demo dataset have `title`, `description` and some other fields, let's define a `movies` index in a file `config.yml`:
 
 ```yaml
+inference:
+  embedding:
+    e5-small:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
 schema:
   movies: # index name
     fields:
@@ -78,12 +86,14 @@ schema:
         type: text
         search: 
           type: hybrid
+          model: e5-small
         language: en # language is needed for lexical search
         suggest: true
       overview:
         type: text
         search:
           type: hybrid
+          model: e5-small
         language: en
       genres:
         type: text[]
@@ -99,7 +109,7 @@ schema:
 
     Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](features/indexing/types/index.md) field types are currently supported.
 
-See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes.
+See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes, and [ML inference](features/inference/index.md) on configuring ML models inside Nixiesearch for CPU and [GPU](deployment/gpu.md). 
 
 ## Starting the service
 
