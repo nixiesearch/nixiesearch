@@ -11,7 +11,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.index.sync.LocalIndex
-import ai.nixiesearch.index.{Indexer, Searcher}
+import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import cats.effect.{IO, Resource}
 import cats.effect.unsafe.implicits.global
 
@@ -46,7 +46,8 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 
 object LocalNixie {
   def create(mapping: IndexMapping, inference: InferenceConfig): Resource[IO, LocalNixie] = for {
-    index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), CacheConfig(), inference)
+    models   <- Models.create(inference, CacheConfig())
+    index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), models)
     indexer  <- Indexer.open(index)
     searcher <- Searcher.open(index)
   } yield {

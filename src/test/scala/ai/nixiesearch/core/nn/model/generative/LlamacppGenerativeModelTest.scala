@@ -19,7 +19,7 @@ class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
   it should "load, generate text, unload" in {
     val (cache, shutdownHandle) =
       GenerativeModelDict
-        .create(TestInferenceConfig.full().generative, fileCache)
+        .create(TestInferenceConfig.full().completion, fileCache)
         .allocated
         .unsafeRunSync()
 

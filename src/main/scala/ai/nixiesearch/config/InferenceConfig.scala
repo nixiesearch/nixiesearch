@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig.LLMPromptTemplate
-import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, GenInferenceModelConfig}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate
+import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, CompletionInferenceModelConfig}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -10,7 +10,7 @@ import scala.util.Success
 
 case class InferenceConfig(
     embedding: Map[ModelRef, EmbeddingInferenceModelConfig] = Map.empty,
-    generative: Map[ModelRef, GenInferenceModelConfig] = Map.empty
+    completion: Map[ModelRef, CompletionInferenceModelConfig] = Map.empty
 )
 
 object InferenceConfig {
@@ -32,7 +32,8 @@ object InferenceConfig {
         model: ModelHandle,
         file: Option[String] = None,
         prompt: PromptConfig = PromptConfig(),
-        seqlen: Int = 512
+        maxTokens: Int = 512,
+        batchSize: Int = 32
     ) extends EmbeddingInferenceModelConfig
 
     case class OpenAIEmbeddingInferenceModelConfig(model: String) extends EmbeddingInferenceModelConfig
@@ -40,16 +41,18 @@ object InferenceConfig {
     given onnxEmbeddingConfigEncoder: Encoder[OnnxEmbeddingInferenceModelConfig] = deriveEncoder
     given onnxEmbeddingConfigDecoder: Decoder[OnnxEmbeddingInferenceModelConfig] = Decoder.instance(c =>
       for {
-        model  <- c.downField("model").as[ModelHandle]
-        file   <- c.downField("file").as[Option[String]]
-        seqlen <- c.downField("seqlen").as[Option[Int]]
-        prompt <- c.downField("prompt").as[Option[PromptConfig]]
+        model     <- c.downField("model").as[ModelHandle]
+        file      <- c.downField("file").as[Option[String]]
+        seqlen    <- c.downField("max_tokens").as[Option[Int]]
+        prompt    <- c.downField("prompt").as[Option[PromptConfig]]
+        batchSize <- c.downField("batch_size").as[Option[Int]]
       } yield {
         OnnxEmbeddingInferenceModelConfig(
           model,
           file,
           prompt.getOrElse(PromptConfig()),
-          seqlen.getOrElse(512)
+          maxTokens = seqlen.getOrElse(512),
+          batchSize = batchSize.getOrElse(32)
         )
       }
     )
@@ -75,13 +78,15 @@ object InferenceConfig {
 
   }
 
-  case class GenInferenceModelConfig(
-      model: ModelHandle,
-      prompt: LLMPromptTemplate,
-      system: Option[String] = None,
-      file: Option[String] = None
-  )
-  object GenInferenceModelConfig {
+  sealed trait CompletionInferenceModelConfig
+
+  object CompletionInferenceModelConfig {
+    case class LlamacppInferenceModelConfig(
+        model: ModelHandle,
+        prompt: LLMPromptTemplate,
+        system: Option[String] = None,
+        file: Option[String] = None
+    ) extends CompletionInferenceModelConfig
 
     sealed trait LLMPromptTemplate {
       def template: String
@@ -118,16 +123,30 @@ object InferenceConfig {
       }
     }
 
-    given genInferenceModelConfigEncoder: Encoder[GenInferenceModelConfig] = deriveEncoder
+    given llamacppInferenceModelConfigEncoder: Encoder[LlamacppInferenceModelConfig] = deriveEncoder
 
-    given genInferenceModelConfigDecoder: Decoder[GenInferenceModelConfig] = Decoder.instance(c =>
+    given llamacppInferenceModelConfigDecoder: Decoder[LlamacppInferenceModelConfig] = Decoder.instance(c =>
       for {
         model  <- c.downField("model").as[ModelHandle]
         file   <- c.downField("file").as[Option[String]]
         prompt <- c.downField("prompt").as[LLMPromptTemplate]
         system <- c.downField("system").as[Option[String]]
       } yield {
-        GenInferenceModelConfig(model, prompt, system, file)
+        LlamacppInferenceModelConfig(model, prompt, system, file)
+      }
+    )
+
+    given completionInferenceModelConfigEncoder: Encoder[CompletionInferenceModelConfig] = Encoder.instance {
+      case llama: LlamacppInferenceModelConfig =>
+        Json.obj("provider" -> Json.fromString("llamacpp")).deepMerge(llamacppInferenceModelConfigEncoder(llama))
+    }
+
+    given completionInferenceModelConfigDecoder: Decoder[CompletionInferenceModelConfig] = Decoder.instance(c =>
+      c.downField("provider").as[String] match {
+        case Left(err)         => Left(err)
+        case Right("llamacpp") => llamacppInferenceModelConfigDecoder.tryDecode(c)
+        case Right(other) =>
+          Left(DecodingFailure(s"completion provider '$other' not supported yet. Maybe try 'llamacpp'?", c.history))
       }
     )
   }
@@ -136,9 +155,9 @@ object InferenceConfig {
   given inferenceConfigDecoder: Decoder[InferenceConfig] = Decoder.instance(c =>
     for {
       embed <- c.downField("embedding").as[Option[Map[ModelRef, EmbeddingInferenceModelConfig]]]
-      gen   <- c.downField("generative").as[Option[Map[ModelRef, GenInferenceModelConfig]]]
+      gen   <- c.downField("completion").as[Option[Map[ModelRef, CompletionInferenceModelConfig]]]
     } yield {
-      InferenceConfig(embedding = embed.getOrElse(Map.empty), generative = gen.getOrElse(Map.empty))
+      InferenceConfig(embedding = embed.getOrElse(Map.empty), completion = gen.getOrElse(Map.empty))
     }
   )
 }

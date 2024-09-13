@@ -4,7 +4,7 @@ Nixiesearch supports [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_gen
 
 ![RAG](../../img/rag.png)
 
-To use RAG queries, you need to explcitly define in the config file which LLMs you plan to use query-time:
+To use RAG queries, you need to explicitly define in [the `inference` section of the config file](../../reference/config.md#ml-inference) which LLMs you plan to use query-time:
 
 ```yaml
 inference:
@@ -15,9 +15,10 @@ inference:
       prompt:
         doc: "passage: "
         query: "query: "
-  generative:
+  completion:
     # Used for summarization
     qwen2:
+      provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
       prompt: qwen2
@@ -67,7 +68,7 @@ A more extended `llama3` prompt is an alias to the next raw one:
 You can always define your own prompt:
 ```yaml
 inference:
-  generative:
+  completion:
     # Used for summarization
     mistral7b:
       model: TheBloke/Mistral-7B-Instruct-v0.2-GGUF

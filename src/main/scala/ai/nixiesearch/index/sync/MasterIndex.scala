@@ -25,16 +25,13 @@ object MasterIndex extends Logging {
   def create(
       configMapping: IndexMapping,
       conf: DistributedStoreConfig,
-      cacheConfig: CacheConfig,
-      inference: InferenceConfig
+      models: Models
   ): Resource[IO, MasterIndex] =
     for {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
       directory    <- LocalDirectory.fromRemote(conf.indexer, replicaState, configMapping.name)
       masterState  <- DirectoryStateClient.create(directory, configMapping.name)
-
       manifest <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
-      models   <- Models.create(inference, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

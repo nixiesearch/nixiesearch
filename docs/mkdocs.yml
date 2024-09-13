@@ -136,6 +136,10 @@ nav:
           - REST API: features/search/request.md
       - Autocomplete:
           - features/autocomplete/index.md
+      - Inference:
+          - features/inference/index.md
+          - Embeddings: features/inference/embeddings.md
+          - Completions: features/inference/completions.md
     - Deployment:
         - Overview:
             - deployment/index.md
@@ -167,7 +171,7 @@ nav:
         - Caching: reference/cache.md
         - ML models:
             - reference/models/index.md
-            - Generative: reference/models/generative.md
+            - LLM Completion: reference/models/completion.md
             - Embedding: reference/models/embedding.md
         - Language support: reference/languages.md
   - Demo: https://demo.nixiesearch.ai/

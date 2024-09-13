@@ -31,16 +31,18 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel], cache: Embedding
   def encodeQuery(handle: ModelRef, query: String): IO[Array[Float]] = IO(embedders.get(handle)).flatMap {
     case None => IO.raiseError(new Exception(s"cannot get embedding model $handle"))
     case Some(embedder) =>
-      cache.getOrEmbedAndCache(List(CacheKey(handle, query)), embedder.encodeQuery).flatMap {
+      val formattedQuery = embedder.prompt.query + query
+      cache.getOrEmbedAndCache(handle, List(formattedQuery), embedder.encode).flatMap {
         case x if x.length == 1 => IO.pure(x(0))
-        case other              => IO.raiseError(BackendError(s"embedder expected to return 1 result, but got $other"))
+        case other => IO.raiseError(BackendError(s"embedder expected to return 1 result, but got ${other.length}"))
       }
   }
   def encodeDocuments(handle: ModelRef, docs: List[String]): IO[Array[Array[Float]]] =
     IO(embedders.get(handle)).flatMap {
       case None => IO.raiseError(new Exception(s"cannot get embedding model $handle"))
       case Some(embedder) =>
-        cache.getOrEmbedAndCache(docs.map(doc => CacheKey(handle, doc)), embedder.encodeDocuments)
+        val formattedDocs = docs.map(doc => embedder.prompt.doc + doc)
+        cache.getOrEmbedAndCache(handle, formattedDocs, embedder.encode)
     }
 
 }
@@ -57,9 +59,9 @@ object EmbedModelDict extends Logging {
   ): Resource[IO, EmbedModelDict] =
     for {
       encoders <- models.toList.map {
-        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
+        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _)) =>
           createHuggingface(handle, conf, cache).map(embedder => name -> embedder)
-        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
+        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: LocalModelHandle, _, _, _, _)) =>
           createLocal(handle, conf).map(embedder => name -> embedder)
         case (name: ModelRef, conf @ OpenAIEmbeddingInferenceModelConfig(model)) =>
           Resource.raiseError[IO, (ModelRef, EmbedModel), Throwable](BackendError("not yet implemented"))
@@ -95,7 +97,7 @@ object EmbedModelDict extends Logging {
       dic = new FileInputStream(vocab.toFile),
       dim = config.hidden_size,
       prompt = conf.prompt,
-      seqlen = conf.seqlen
+      seqlen = conf.maxTokens
     )
   } yield {
     onnxEmbedder
@@ -119,7 +121,7 @@ object EmbedModelDict extends Logging {
         dic = new FileInputStream(vocab.toFile),
         dim = config.hidden_size,
         prompt = conf.prompt,
-        seqlen = conf.seqlen
+        seqlen = conf.maxTokens
       )
     } yield {
       onnxEmbedder

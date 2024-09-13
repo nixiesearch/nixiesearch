@@ -247,7 +247,7 @@ So your end customers won't need to change their REST endpoint address and alway
 
 ### RAG settings
 
-To use RAG queries, you need to explicitly define in the config file which LLMs you plan to use query-time:
+To use RAG queries, you need to explicitly define in the [config file](../../reference/config.md#ml-inference) which LLMs you plan to use query-time:
 
 ```yaml
 inference:
@@ -258,9 +258,10 @@ inference:
       prompt:
         doc: "passage: "
         query: "query: "
-  generative:
+  completion:
     # Used for summarization
     qwen2:
+      provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
       prompt: qwen2
@@ -290,7 +291,7 @@ Where:
 * `name`: name of this model you will reference in RAG search requests
 * `system` (optional): A system prompt for the model.
 
-See [RAG reference](../search/rag.md) for more details.
+See [RAG reference](../search/rag.md) and [ML model inference](../inference/index.md) sections for more details.
 
 ### Store settings
 

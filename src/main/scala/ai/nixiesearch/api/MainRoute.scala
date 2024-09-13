@@ -1,8 +1,6 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.MainRoute.MainResponse
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.index.sync.Index
 import cats.effect.IO
 import io.circe.{Encoder, Printer}
 import org.http4s.{Entity, EntityEncoder, Headers, HttpRoutes, MediaType, Response}
