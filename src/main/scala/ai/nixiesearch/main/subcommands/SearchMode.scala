@@ -12,7 +12,6 @@ import cats.data.Kleisli
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
-import org.http4s.server.websocket.WebSocketBuilder
 
 import scala.concurrent.duration.*
 
@@ -43,7 +42,6 @@ object SearchMode extends Logging {
       searchRoutes = searchers
         .map(s => SearchRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(s).routes)
         .reduce(_ <+> _)
-      searchRoutesWss = (wsb: WebSocketBuilder[IO]) => searchers.map(s => SearchRoute(s).wsroutes(wsb)).reduce(_ <+> _)
       routes = List(
         searchRoutes,
         HealthRoute().routes,
@@ -53,7 +51,7 @@ object SearchMode extends Logging {
         InferenceRoute(models).routes
       )
         .reduce(_ <+> _)
-      api <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
+      api <- API.start(routes, config.searcher.host, config.searcher.port)
       _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
     } yield {
       api

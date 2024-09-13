@@ -47,7 +47,7 @@ Fields:
 
 * `text`: *required*, *string*. A prompt to process. Before doing the actual inference, the prompt text will be pre-processed using the prompt template for a particular model.
 * `max_tokens`: *required*, *string*. Number of tokens to generate. Consider that as a safety net if model cannot stop generating.
-* `stream`: *optional*, *boolean*, default `false`. Should the response be in a streaming format?
+* `stream`: *optional*, *boolean*, default `false`. Should the response be in a streaming format? If yes, the server will respond with a sequence of [Server Side Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events). See [Streaming responses](#streaming-responses) section for more details.
 
 ## Non-streaming responses
 
@@ -67,4 +67,67 @@ Response fields:
 
 ## Streaming responses
 
-todo
+When a completion request has a `"streaming": true` flag, then Nixiesearch will generate a sequence of [Server Side Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) for each generated token. This can be used to create a nice ChatGPT interfaces when you see the response being generated in real-time.
+
+So for a search request:
+
+```json
+{
+  "prompt":"what is 2+2? answer short", 
+  "max_tokens": 32, 
+  "stream": true
+}
+```
+
+The server will generate a SSE payload, having a special `Content-Type: text/event-stream` header:
+
+```shell
+curl -v -d '{"prompt":"what is 2+2? answer short", "max_tokens": 32, "stream": true}'\
+   http://localhost:8080/inference/completion/qwen2
+
+< HTTP/1.1 200 OK
+< Date: Fri, 13 Sep 2024 16:29:11 GMT
+< Connection: keep-alive
+< Content-Type: text/event-stream
+< Transfer-Encoding: chunked
+< 
+event: generate
+data: {"token":"2","took":34,"last":false}
+
+event: generate
+data: {"token":"+","took":11,"last":false}
+
+event: generate
+data: {"token":"2","took":11,"last":false}
+
+event: generate
+data: {"token":" =","took":14,"last":false}
+
+event: generate
+data: {"token":" ","took":16,"last":false}
+
+event: generate
+data: {"token":"4","took":14,"last":false}
+
+event: generate
+data: {"token":"","took":13,"last":false}
+
+event: generate
+data: {"token":"","took":1,"last":true}
+```
+
+The SSE frame has the following syntax:
+
+```json
+{
+  "token": "wow",
+  "took": 10,
+  "last": false
+}
+```
+
+Fields:
+
+* `token`: *required*, *string*. A next generated tokens. To get a full string, you need to concatenate all tokens together.
+* `took`: *required*, *int*. How many milliseconds spent generating this token. A first generated token also accounts for prompt processing time, so expect it to always be bigger.
+* `last`: *required*, *boolean*. Is this the last token? SSE has no notation of stream end, so you can use this field to assume that the stream is finished.

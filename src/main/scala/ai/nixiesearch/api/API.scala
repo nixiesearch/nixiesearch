@@ -12,7 +12,6 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.{ErrorAction, Logger}
 import cats.implicits.*
-import org.http4s.server.websocket.WebSocketBuilder
 import org.typelevel.ci.CIString
 
 import scala.concurrent.duration.Duration
@@ -28,7 +27,6 @@ object API extends Logging {
 
   def start(
       routes: HttpRoutes[IO],
-      wss: WebSocketBuilder[IO] => HttpRoutes[IO],
       host: Hostname,
       port: Port
   ): Resource[IO, org.http4s.server.Server] = {
@@ -43,12 +41,12 @@ object API extends Logging {
           new Exception(s"cannot parse port '${port.value}'")
         )
       )
-      http = wss.andThen(wsr => wrapMiddleware(wsr <+> routes))
+      http = wrapMiddleware(routes)
       api <- EmberServerBuilder
         .default[IO]
         .withHost(host)
         .withPort(port)
-        .withHttpWebSocketApp(http)
+        .withHttpApp(http)
         .withIdleTimeout(Duration.Inf)
         .build
     } yield {

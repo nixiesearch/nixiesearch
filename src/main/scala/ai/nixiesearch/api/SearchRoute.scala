@@ -1,10 +1,6 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{
-  RAGResponseFrame,
-  SearchResultsFrame,
-  searchResponseFrameEncoder
-}
+import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGResponseFrame, SearchResultsFrame}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponseFrame, SuggestRequest}
@@ -18,15 +14,24 @@ import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
+import org.http4s.{
+  Charset,
+  Entity,
+  EntityDecoder,
+  EntityEncoder,
+  Headers,
+  HttpRoutes,
+  MediaType,
+  Request,
+  Response,
+  Status
+}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
-import org.http4s.server.websocket.WebSocketBuilder
 import fs2.Stream
-import org.http4s.websocket.WebSocketFrame
-import org.http4s.websocket.WebSocketFrame.Text
-import io.circe.parser.*
+import io.circe.syntax.*
+import org.http4s.headers.`Content-Type`
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -34,39 +39,6 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
       searchBlocking(request)
     case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name.value =>
       suggest(request)
-  }
-
-  override def wsroutes(wsb: WebSocketBuilder[IO]): HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case GET -> Root / indexName / "_ping" if indexName == searcher.index.name.value =>
-      wsb.build((stream: Stream[IO, WebSocketFrame]) =>
-        for {
-          text  <- stream.collect { case t: Text => t }
-          _     <- Stream.eval(debug(s"ws message: ${text}"))
-          frame <- Stream.eval(IO(Text("pong", last = true)))
-        } yield {
-          frame
-        }
-      )
-    case GET -> Root / indexName / "_search" if indexName == searcher.index.name.value =>
-      wsb.build((stream: Stream[IO, WebSocketFrame]) =>
-        for {
-          text <- stream.collect { case t: Text => t }
-          _    <- Stream.eval(debug(s"ws message: ${text}"))
-          request <- Stream.eval(IO(decode[SearchRequest](text.str)).flatMap {
-            case Left(value)  => IO.raiseError(value)
-            case Right(value) => IO.pure(value)
-          })
-          frame <- searchStreaming(request).map {
-            case s: SearchResultsFrame => Text(searchResponseFrameEncoder(s).noSpaces)
-            case c: RAGResponseFrame =>
-              Text(searchResponseFrameEncoder(c).noSpaces)
-          }
-          // _ <- Stream.eval(info(s"frame $frame"))
-        } yield {
-          frame
-        }
-      )
-
   }
 
   def suggest(request: Request[IO]): IO[Response[IO]] = for {
@@ -82,7 +54,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
     frame <- request.rag match {
       case Some(ragRequest) =>
         Stream.emit(SearchResultsFrame(response)) ++ searcher
-          .rag(response.hits, ragRequest, request.id)
+          .rag(response.hits, ragRequest)
           .map(resp => RAGResponseFrame(resp))
       case None => Stream.emit(SearchResultsFrame(response))
     }
@@ -99,18 +71,47 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
     _    <- info(s"search index='${searcher.index.name}' query=$query")
     docs <- searcher.search(query)
     response <- query.rag match {
-      case None => IO.pure(docs)
+      case None =>
+        IO.pure(
+          Response[IO](
+            status = Status.Ok,
+            headers = Headers(`Content-Type`(new MediaType("application", "json"))),
+            entity = Entity.string(docs.asJson.noSpaces, Charset.`UTF-8`)
+          )
+        )
       case Some(ragRequest) =>
-        searcher
-          .rag(docs.hits, ragRequest, query.id)
-          .map(_.token)
-          .compile
-          .fold("")(_ + _)
-          .map(resp => docs.copy(response = Some(resp)))
+        ragRequest.stream match {
+          case true =>
+            IO.pure(
+              Response[IO](
+                status = Status.Ok,
+                headers = Headers(`Content-Type`(MediaType.`text/event-stream`)),
+                entity = Entity.stream(
+                  searchStreaming(query).flatMap(e => Stream.emits(e.asServerSideEvent.getBytes))
+                )
+              )
+            )
+          case false =>
+            searcher
+              .rag(docs.hits, ragRequest)
+              .map(_.token)
+              .compile
+              .fold("")(_ + _)
+              .map(resp => docs.copy(response = Some(resp)))
+              .map(resp =>
+                Response[IO](
+                  status = Status.Ok,
+                  headers = Headers(`Content-Type`(new MediaType("application", "json"))),
+                  entity = Entity.string(resp.asJson.noSpaces, Charset.`UTF-8`)
+                )
+              )
+
+        }
+
     }
-    ok <- Ok(response)
+
   } yield {
-    ok
+    response
   }
 }
 
@@ -121,7 +122,8 @@ object SearchRoute {
       topDocs: Int = 10,
       maxDocLength: Int = 128,
       maxResponseLength: Int = 64,
-      fields: List[String] = Nil
+      fields: List[String] = Nil,
+      stream: Boolean = false
   )
   object RAGRequest {
     given ragRequestEncoder: Encoder[RAGRequest] = deriveEncoder
@@ -133,6 +135,7 @@ object SearchRoute {
         maxDocLength      <- c.downField("maxDocLength").as[Option[Int]]
         maxResponseLength <- c.downField("maxResponseLength").as[Option[Int]]
         fields            <- c.downField("fields").as[Option[List[String]]]
+        stream            <- c.downField("stream").as[Option[Boolean]]
       } yield {
         RAGRequest(
           prompt,
@@ -140,7 +143,8 @@ object SearchRoute {
           topDocs.getOrElse(10),
           maxDocLength.getOrElse(128),
           fields = fields.getOrElse(Nil),
-          maxResponseLength = maxResponseLength.getOrElse(64)
+          maxResponseLength = maxResponseLength.getOrElse(64),
+          stream = stream.getOrElse(false)
         )
       }
     )
@@ -151,8 +155,7 @@ object SearchRoute {
       size: Int = 10,
       fields: List[String] = Nil,
       aggs: Option[Aggs] = None,
-      rag: Option[RAGRequest] = None,
-      id: Option[String] = None
+      rag: Option[RAGRequest] = None
   )
   object SearchRequest {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
@@ -168,22 +171,29 @@ object SearchRoute {
         }
         aggs <- c.downField("aggs").as[Option[Aggs]]
         rag  <- c.downField("rag").as[Option[RAGRequest]]
-        id   <- c.downField("id").as[Option[String]]
       } yield {
-        SearchRequest(query, filters, size, fields, aggs, rag, id)
+        SearchRequest(query, filters, size, fields, aggs, rag)
       }
     )
   }
 
-  sealed trait SearchResponseFrame
+  sealed trait SearchResponseFrame {
+    def asServerSideEvent: String
+  }
   object SearchResponseFrame {
-    case class SearchResultsFrame(value: SearchResponse) extends SearchResponseFrame
-    case class RAGResponseFrame(value: RAGResponse)      extends SearchResponseFrame
-
-    given searchResponseFrameEncoder: Encoder[SearchResponseFrame] = Encoder.instance {
-      case s: SearchResultsFrame => Json.obj("results" -> SearchResponse.searchResponseEncoder(s.value))
-      case r: RAGResponseFrame   => Json.obj("rag" -> RAGResponse.ragResponseEncoder(r.value))
+    case class SearchResultsFrame(value: SearchResponse) extends SearchResponseFrame {
+      override def asServerSideEvent: String =
+        s"event: results\ndata: ${value.asJson.noSpaces}\n\n"
     }
+    case class RAGResponseFrame(value: RAGResponse) extends SearchResponseFrame {
+      override def asServerSideEvent: String =
+        s"event: rag\ndata: ${value.asJson.noSpaces}\n\n"
+    }
+
+//    given searchResponseFrameEncoder: Encoder[SearchResponseFrame] = Encoder.instance {
+//      case s: SearchResultsFrame => Json.obj("results" -> SearchResponse.searchResponseEncoder(s.value))
+//      case r: RAGResponseFrame   => Json.obj("rag" -> RAGResponse.ragResponseEncoder(r.value))
+//    }
   }
 
   case class SearchResponse(
@@ -191,7 +201,6 @@ object SearchRoute {
       hits: List[Document],
       aggs: Map[String, AggregationResult],
       response: Option[String] = None,
-      id: Option[String] = None,
       ts: Long
   ) {}
   object SearchResponse {
@@ -219,7 +228,7 @@ object SearchRoute {
     }
   }
 
-  case class RAGResponse(id: Option[String], token: String, ts: Long, took: Long, last: Boolean)
+  case class RAGResponse(token: String, ts: Long, took: Long, last: Boolean)
   object RAGResponse {
     given ragResponseEncoder: Encoder[RAGResponse] = deriveEncoder[RAGResponse].mapJson(_.dropNullValues)
     given ragResponseDecoder: Decoder[RAGResponse] = deriveDecoder

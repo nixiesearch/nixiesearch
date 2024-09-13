@@ -11,7 +11,6 @@ import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import cats.effect.{IO, Resource}
 import cats.implicits.*
-import org.http4s.server.websocket.WebSocketBuilder
 
 object StandaloneMode extends Logging {
   def run(args: StandaloneArgs, config: Config): IO[Unit] = {
@@ -25,7 +24,6 @@ object StandaloneMode extends Logging {
         .map(index => Indexer.open(index).flatTap(indexer => PeriodicFlushStream.run(index, indexer)))
         .sequence
       searchers <- indexes.map(index => Searcher.open(index)).sequence
-      searchRoutesWss = (wsb: WebSocketBuilder[IO]) => searchers.map(s => SearchRoute(s).wsroutes(wsb)).reduce(_ <+> _)
       routes = List(
         searchers
           .map(s => List(SearchRoute(s).routes, MappingRoute(s.index).routes, StatsRoute(s).routes).reduce(_ <+> _))
@@ -37,7 +35,7 @@ object StandaloneMode extends Logging {
         HealthRoute().routes,
         InferenceRoute(models).routes
       ).reduce(_ <+> _)
-      server <- API.start(routes, searchRoutesWss, config.searcher.host, config.searcher.port)
+      server <- API.start(routes, config.searcher.host, config.searcher.port)
       _      <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
     } yield {
       server
