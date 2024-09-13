@@ -1,12 +1,11 @@
 package ai.nixiesearch.main.subcommands
 
-import ai.nixiesearch.api.API.info
 import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, InferenceConfig}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{Logging, PrintProgress}
-import ai.nixiesearch.index.Indexer
+import ai.nixiesearch.index.{Indexer, Models}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
@@ -17,7 +16,7 @@ import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
 import org.http4s.HttpRoutes
@@ -41,58 +40,62 @@ object IndexMode extends Logging {
       index: String,
       cacheConfig: CacheConfig,
       inference: InferenceConfig
-  ): IO[Unit] = for {
-    indexMapping <- IO
-      .fromOption(indexes.find(_.name.value == index))(UserError(s"index '${index} not found in mapping'"))
-    _ <- debug(s"found index mapping for index '${indexMapping.name}'")
-    _ <- Index
-      .forIndexing(indexMapping, cacheConfig, inference)
-      .use(index =>
-        Indexer
-          .open(index)
-          .use(indexer =>
-            for {
-              _ <- Logo.lines.map(line => info(line)).sequence
-              _ <- source
-                .stream()
-                .chunkN(1024)
-                .through(PrintProgress.tapChunk("indexed docs"))
-                .evalMap(batch => indexer.addDocuments(batch.toList) *> indexer.flush())
-                .compile
-                .drain
-              _ <- indexer.flush()
-              _ <- index.sync()
-            } yield {}
-          )
+  ): IO[Unit] = {
+    val server = for {
+      indexMapping <- Resource.eval(
+        IO
+          .fromOption(indexes.find(_.name.value == index))(UserError(s"index '${index} not found in mapping'"))
       )
-  } yield {
-    logger.info(s"indexing done")
+      _       <- Resource.eval(debug(s"found index mapping for index '${indexMapping.name}'"))
+      models  <- Models.create(inference, cacheConfig)
+      index   <- Index.forIndexing(indexMapping, models)
+      indexer <- Indexer.open(index)
+    } yield {
+      indexer
+    }
+    server.use(indexer =>
+      for {
+        _ <- Logo.lines.map(line => info(line)).sequence
+        _ <- source
+          .stream()
+          .chunkN(1024)
+          .through(PrintProgress.tapChunk("indexed docs"))
+          .evalMap(batch => indexer.addDocuments(batch.toList) *> indexer.flush())
+          .compile
+          .drain
+        _ <- indexer.flush()
+        _ <- indexer.index.sync()
+      } yield {
+        logger.info(s"indexing done")
+      }
+    )
   }
 
-  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = for {
-    _ <- indexes
-      .map(im =>
-        for {
-          index   <- Index.forIndexing(im, config.core.cache, config.inference)
-          indexer <- Indexer.open(index)
-          _       <- PeriodicFlushStream.run(index, indexer)
-        } yield { indexer }
-      )
-      .sequence
-      .use(indexers =>
-        for {
-          indexRoutes <- IO(
-            indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes).reduce(_ <+> _)
-          )
-          healthRoute <- IO(HealthRoute())
-          routes <- IO(
-            indexRoutes <+> healthRoute.routes <+> AdminRoute(config).routes <+> MainRoute().routes
-          )
-          server <- API.start(routes, _ => HttpRoutes.empty[IO], source.host, source.port)
-          _      <- server.use(_ => IO.never)
-
-        } yield {}
-      )
-  } yield {}
+  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = {
+    val server = for {
+      _      <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API"))
+      models <- Models.create(config.inference, config.core.cache)
+      indexers <- indexes
+        .map(im =>
+          for {
+            index   <- Index.forIndexing(im, models)
+            indexer <- Indexer.open(index)
+            _       <- PeriodicFlushStream.run(index, indexer)
+          } yield { indexer }
+        )
+        .sequence
+      routes = List(
+        indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes).reduce(_ <+> _),
+        HealthRoute().routes,
+        AdminRoute(config).routes,
+        MainRoute().routes
+      ).reduce(_ <+> _)
+      api <- API.start(routes, _ => HttpRoutes.empty[IO], source.host, source.port)
+      _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
+    } yield {
+      api
+    }
+    server.use(_ => IO.never)
+  }
 
 }

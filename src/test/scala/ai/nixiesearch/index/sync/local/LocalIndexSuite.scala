@@ -5,7 +5,7 @@ import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Error.BackendError
-import ai.nixiesearch.index.{Indexer, Searcher}
+import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.util.{TestDocument, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -15,8 +15,9 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
   def config: LocalStoreConfig
 
   it should "start with empty index" in {
+    val (models, modelsShutdown) = Models.create(TestInferenceConfig(), CacheConfig()).allocated.unsafeRunSync()
     val (localIndex, localShutdown) = LocalIndex
-      .create(TestIndexMapping(), config, CacheConfig(), TestInferenceConfig())
+      .create(TestIndexMapping(), config, models)
       .allocated
       .unsafeRunSync()
 
@@ -27,11 +28,13 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
     }
     searcherShutdown.unsafeRunSync()
     localShutdown.unsafeRunSync()
+    modelsShutdown.unsafeRunSync()
   }
 
   it should "write docs and search over them" in {
+    val (models, modelsShutdown) = Models.create(TestInferenceConfig(), CacheConfig()).allocated.unsafeRunSync()
     val (localIndex, localShutdown) = LocalIndex
-      .create(TestIndexMapping(), config, CacheConfig(), TestInferenceConfig())
+      .create(TestIndexMapping(), config, models)
       .allocated
       .unsafeRunSync()
 
@@ -45,6 +48,7 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
     writerShutdown.unsafeRunSync()
     searcherShutdown.unsafeRunSync()
     localShutdown.unsafeRunSync()
+    modelsShutdown.unsafeRunSync()
 
   }
 

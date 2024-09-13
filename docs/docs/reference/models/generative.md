@@ -1,3 +1,0 @@
-# Supported generative models
-
-todo

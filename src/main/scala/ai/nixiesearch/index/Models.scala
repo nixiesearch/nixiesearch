@@ -1,10 +1,11 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
-import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, GenInferenceModelConfig}
+import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, CompletionInferenceModelConfig}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.nn.model.embedding.cache.{EmbeddingCache, NoCache}
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -20,8 +21,10 @@ object Models {
   ): Resource[IO, Models] = for {
     cache      <- Resource.eval(ModelFileCache.create(Paths.get(cacheConfig.dir)))
     embeddings <- EmbedModelDict.create(inferenceConfig.embedding, cache)
-    generative <- GenerativeModelDict.create(inferenceConfig.generative, cache)
+    generative <- GenerativeModelDict.create(inferenceConfig.completion, cache)
   } yield {
     Models(embeddings, generative)
   }
+
+  
 }

@@ -31,26 +31,28 @@ object API extends Logging {
       wss: WebSocketBuilder[IO] => HttpRoutes[IO],
       host: Hostname,
       port: Port
-  ): IO[Resource[IO, org.http4s.server.Server]] = {
+  ): Resource[IO, org.http4s.server.Server] = {
     for {
-      host <- IO.fromOption(SHostname.fromString(host.value))(
-        new Exception(s"cannot parse hostname '${host.value}'")
+      host <- Resource.eval(
+        IO.fromOption(SHostname.fromString(host.value))(
+          new Exception(s"cannot parse hostname '${host.value}'")
+        )
       )
-      port <- IO.fromOption(SPort.fromInt(port.value))(
-        new Exception(s"cannot parse port '${port.value}'")
+      port <- Resource.eval(
+        IO.fromOption(SPort.fromInt(port.value))(
+          new Exception(s"cannot parse port '${port.value}'")
+        )
       )
       http = wss.andThen(wsr => wrapMiddleware(wsr <+> routes))
-      api <- IO(
-        EmberServerBuilder
-          .default[IO]
-          .withHost(host)
-          .withPort(port)
-          .withHttpWebSocketApp(http)
-          .withIdleTimeout(Duration.Inf)
-      )
-
+      api <- EmberServerBuilder
+        .default[IO]
+        .withHost(host)
+        .withPort(port)
+        .withHttpWebSocketApp(http)
+        .withIdleTimeout(Duration.Inf)
+        .build
     } yield {
-      api.build
+      api
     }
   }
 

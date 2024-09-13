@@ -43,7 +43,7 @@ Instead of just getting search results for your query, you can use a [RAG](https
 
 ![RAG](../../img/rag.png)
 
-Nixiesearch supports any GGUF-compatible LLM [llamacpp](https://github.com/ggerganov/llama.cpp) supports. To use RAG, you need to [list Huggingface handles of models](rag.md) you'd like to use in config:
+Nixiesearch supports any GGUF-compatible LLM [llamacpp](https://github.com/ggerganov/llama.cpp) supports. To use RAG, you need to [list Huggingface handles of models](rag.md) you'd like to use in the [`inference` section of the config file](../../reference/config.md#ml-inference):
 
 ```yaml
 inference:
@@ -54,9 +54,10 @@ inference:
       prompt:
         doc: "passage: "
         query: "query: "
-  generative:
+  completion:
     # Used for summarization
     qwen2:
+      provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
       prompt: qwen2

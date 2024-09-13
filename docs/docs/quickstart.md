@@ -76,12 +76,14 @@ schema:
     fields:
       title: # field name
         type: text
-        search: hybrid
+        search: 
+          type: hybrid
         language: en # language is needed for lexical search
         suggest: true
       overview:
         type: text
-        search: hybrid
+        search:
+          type: hybrid
         language: en
       genres:
         type: text[]
@@ -199,7 +201,7 @@ This query performed a hybrid search:
 
 ## Web UI
 
-Nixiesearch has a basic search web UI available as `http://localhost:8080/movies/_ui` URL.
+Nixiesearch has a basic search web UI available as `http://localhost:8080/_ui` URL.
 
 ![web ui](https://www.nixiesearch.ai/img/webui.png)
 

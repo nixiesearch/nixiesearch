@@ -6,8 +6,9 @@ inference:
       prompt:
         query: "query: "
         doc: "passage: "
-  generative:
+  completion:
     qwen2:
+      provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
       prompt: qwen2

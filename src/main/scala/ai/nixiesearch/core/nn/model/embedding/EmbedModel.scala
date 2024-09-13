@@ -23,24 +23,19 @@ sealed trait EmbedModel extends Logging {
   def prompt: PromptConfig
   def batchSize: Int
   // a helper function to simplify query embedding
-  def encodeQuery(queries: List[String]): IO[Array[Array[Float]]] = encodeBatch(
-    queries.map(query => prompt.query + query)
-  )
-  def encodeQuery(query: String): IO[Array[Float]] = encodeBatch(List(prompt.query + query)).flatMap {
-    case x if x.length == 1 => IO(x(0))
-    case _                  => IO.raiseError(BackendError(s"got empty embedding for doc '$query'"))
-  }
 
-  def encodeDocuments(docs: List[String]): IO[Array[Array[Float]]] =
-    Stream
-      .emits(docs)
-      .map(doc => prompt.doc + doc)
-      .chunkN(batchSize)
-      .evalMap(batch => encodeBatch(batch.toList).map(batch => Chunk.array(batch)))
-      .unchunks
-      .compile
-      .toList
-      .map(_.toArray)
+  def encode(doc: String): IO[Array[Float]] = encodeBatch(List(doc)).flatMap {
+    case x if x.length == 1 => IO(x(0))
+    case _                  => IO.raiseError(BackendError(s"got empty embedding for doc '$doc'"))
+  }
+  def encode(docs: List[String]): IO[Array[Array[Float]]] = Stream
+    .emits(docs)
+    .chunkN(batchSize)
+    .evalMap(batch => encodeBatch(batch.toList).map(batch => Chunk.array(batch)))
+    .unchunks
+    .compile
+    .toList
+    .map(_.toArray)
 
   protected def encodeBatch(batch: List[String]): IO[Array[Array[Float]]]
   def close(): IO[Unit]

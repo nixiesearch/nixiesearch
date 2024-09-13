@@ -24,20 +24,20 @@ trait Index extends Logging {
 }
 
 object Index {
-  def local(mapping: IndexMapping, cacheConfig: CacheConfig, inference: InferenceConfig): Resource[IO, LocalIndex] = mapping.store match {
-    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, cacheConfig, inference)
+  def local(mapping: IndexMapping, models: Models): Resource[IO, LocalIndex] = mapping.store match {
+    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, models)
     case dist: config.StoreConfig.DistributedStoreConfig =>
       Resource.raiseError[IO, LocalIndex, Throwable](
         new UnsupportedOperationException("cannot open distributed index in local standalone mode")
       )
   }
-  def forSearch(mapping: IndexMapping, cacheConfig: CacheConfig, inference: InferenceConfig): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig, inference)
-    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist, cacheConfig, inference)
+  def forSearch(mapping: IndexMapping, models: Models): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, models)
+    case dist: StoreConfig.DistributedStoreConfig => SlaveIndex.create(mapping, dist, models)
   }
 
-  def forIndexing(mapping: IndexMapping, cacheConfig: CacheConfig, inference: InferenceConfig): Resource[IO, Index] = mapping.store match {
-    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, cacheConfig, inference)
-    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist, cacheConfig, inference)
+  def forIndexing(mapping: IndexMapping, models: Models): Resource[IO, Index] = mapping.store match {
+    case local: StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, models)
+    case dist: StoreConfig.DistributedStoreConfig => MasterIndex.create(mapping, dist, models)
   }
 }

@@ -41,14 +41,12 @@ object LocalIndex extends Logging {
   def create(
       configMapping: IndexMapping,
       config: StoreConfig.LocalStoreConfig,
-      cacheConfig: CacheConfig,
-      inference: InferenceConfig
+      models: Models
   ): Resource[IO, LocalIndex] = {
     for {
       directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
-      models    <- Models.create(inference, cacheConfig)
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.pure(

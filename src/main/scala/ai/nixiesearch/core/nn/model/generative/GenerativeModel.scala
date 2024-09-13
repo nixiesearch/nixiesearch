@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.nn.model.generative
 
-import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig
-import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig.LLMPromptTemplate
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
 import cats.effect.kernel.Resource

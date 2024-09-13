@@ -1,8 +1,13 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
-import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig.LLMPromptTemplate.Qwen2Template
-import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, GenInferenceModelConfig, PromptConfig}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate.Qwen2Template
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.{
+  CompletionInferenceModelConfig,
+  EmbeddingInferenceModelConfig,
+  PromptConfig
+}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import org.scalatest.flatspec.AnyFlatSpec
@@ -39,17 +44,18 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
       * Boolean = false
       */
     val text =
-      """generative:
+      """completion:
         |  qwen2:
+        |    provider: llamacpp
         |    model: Qwen/Qwen2-0.5B-Instruct-GGUF
         |    file: qwen2-0_5b-instruct-q4_0.gguf
         |    prompt: qwen2
         |""".stripMargin
     val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
     decoded shouldBe Right(
-      InferenceConfig(generative =
+      InferenceConfig(completion =
         Map(
-          ModelRef("qwen2") -> GenInferenceModelConfig(
+          ModelRef("qwen2") -> LlamacppInferenceModelConfig(
             model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
             file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
             prompt = Qwen2Template

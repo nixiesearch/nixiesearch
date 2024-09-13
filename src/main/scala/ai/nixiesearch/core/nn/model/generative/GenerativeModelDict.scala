@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.nn.model.generative
 
-import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppInferenceModelConfig
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
@@ -25,12 +26,15 @@ case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel]) {
 
 object GenerativeModelDict extends Logging {
 
-  def create(models: Map[ModelRef, GenInferenceModelConfig], cache: ModelFileCache): Resource[IO, GenerativeModelDict] =
+  def create(
+      models: Map[ModelRef, CompletionInferenceModelConfig],
+      cache: ModelFileCache
+  ): Resource[IO, GenerativeModelDict] =
     for {
       generativeModels <- models.toList.map {
-        case (name: ModelRef, conf @ GenInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
+        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
           createHuggingface(handle, conf, cache).map(model => name -> model)
-        case (name: ModelRef, conf @ GenInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
+        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
           createLocal(handle, conf).map(model => name -> model)
       }.sequence
     } yield {
@@ -39,7 +43,7 @@ object GenerativeModelDict extends Logging {
 
   def createHuggingface(
       handle: HuggingFaceHandle,
-      config: GenInferenceModelConfig,
+      config: LlamacppInferenceModelConfig,
       cache: ModelFileCache
   ): Resource[IO, GenerativeModel] = for {
     hf <- HuggingFaceClient.create(cache)
@@ -62,7 +66,7 @@ object GenerativeModelDict extends Logging {
     genModel
   }
 
-  def createLocal(handle: LocalModelHandle, config: GenInferenceModelConfig): Resource[IO, GenerativeModel] = {
+  def createLocal(handle: LocalModelHandle, config: LlamacppInferenceModelConfig): Resource[IO, GenerativeModel] = {
     for {
       modelFile <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))

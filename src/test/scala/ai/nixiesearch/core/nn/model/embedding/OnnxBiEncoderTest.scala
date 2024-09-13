@@ -2,8 +2,8 @@ package ai.nixiesearch.core.nn.model.embedding
 
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
-import ai.nixiesearch.config.InferenceConfig.{GenInferenceModelConfig, PromptConfig}
-import ai.nixiesearch.config.InferenceConfig.GenInferenceModelConfig.LLMPromptTemplate.Qwen2Template
+import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, PromptConfig}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate.Qwen2Template
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
@@ -29,16 +29,16 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       .allocated
       .unsafeRunSync()
     val result = embedder
-      .encodeDocuments(
+      .encode(
         List(
-          "How many people live in Berlin?",
-          "Berlin is well known for its museums.",
-          "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."
+          "query: How many people live in Berlin?",
+          "passage: Berlin is well known for its museums.",
+          "passage: Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."
         )
       )
       .unsafeRunSync()
     val d1 = CosineDistance.dist(result(0), result(1))
-    d1 shouldBe 0.62f +- 0.02
+    d1 shouldBe 0.46f +- 0.02
     val d2 = CosineDistance.dist(result(0), result(2))
     d2 shouldBe 0.77f +- 0.02
     shutdownHandle.unsafeRunSync()

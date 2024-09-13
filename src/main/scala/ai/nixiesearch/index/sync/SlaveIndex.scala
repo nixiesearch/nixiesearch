@@ -64,8 +64,7 @@ object SlaveIndex extends Logging {
   def create(
       configMapping: IndexMapping,
       conf: DistributedStoreConfig,
-      cacheConfig: CacheConfig,
-      inference: InferenceConfig
+      models: Models
   ): Resource[IO, SlaveIndex] =
     for {
       _              <- Resource.eval(debug(s"creating SlaveIndex for index=${configMapping.name} conf=$conf"))
@@ -74,7 +73,6 @@ object SlaveIndex extends Logging {
       replicaState   <- DirectoryStateClient.create(directory, configMapping.name)
       manifestOption <- Resource.eval(replicaState.readManifest())
       manifest <- Resource.eval(IO.fromOption(manifestOption)(BackendError("index.json file not found in the index")))
-      models   <- Models.create(inference, cacheConfig)
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index <- Resource.make(
         IO(

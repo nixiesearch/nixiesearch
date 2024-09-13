@@ -18,10 +18,12 @@ trait EmbeddingCache {
   def get(keys: List[CacheKey]): IO[Array[Option[Array[Float]]]]
 
   def getOrEmbedAndCache(
-      keys: List[CacheKey],
+      handle: ModelRef,
+      docs: List[String],
       embed: List[String] => IO[Array[Array[Float]]]
   ): IO[Array[Array[Float]]] =
     for {
+      keys                              <- IO(docs.map(doc => CacheKey(handle = handle, string = doc)))
       cached                            <- get(keys)
       (nonCachedIndices, nonCachedDocs) <- selectUncached(cached, keys.toArray)
       nonCachedEmbeddings               <- embed(nonCachedDocs.toList.map(_.string))
