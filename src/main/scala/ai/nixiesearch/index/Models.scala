@@ -1,11 +1,8 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
-import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, CompletionInferenceModelConfig}
-import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
-import ai.nixiesearch.core.nn.model.embedding.cache.{EmbeddingCache, NoCache}
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -26,5 +23,4 @@ object Models {
     Models(embeddings, generative)
   }
 
-  
 }
