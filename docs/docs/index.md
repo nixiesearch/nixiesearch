@@ -58,17 +58,29 @@ curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
 Create an index mapping for `movies` index in a file `config.yml`:
 
 ```yaml
+inference:
+  embedding:
+    e5-small:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
 schema:
   movies: # index name
     fields:
       title: # field name
         type: text
-        search: hybrid
+        search: 
+          type: hybrid
+          model: e5-small
         language: en # language is needed for lexical search
         suggest: true
       overview:
         type: text
-        search: hybrid
+        search: 
+          type: hybrid
+          model: e5-small
         language: en
 ```
 
@@ -133,7 +145,7 @@ curl -XPOST -d '{"query": {"match": {"title":"matrix"}},"fields": ["title"], "si
 }
 ```
 
-You can also open `http://localhost:8080/movies/_ui` in your web browser for a basic web UI:
+You can also open `http://localhost:8080/_ui` in your web browser for a basic web UI:
 
 ![web ui](https://www.nixiesearch.ai/img/webui.png)
 
