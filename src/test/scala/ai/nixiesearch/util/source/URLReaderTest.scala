@@ -1,7 +1,7 @@
 package ai.nixiesearch.util.source
 
 import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
-import ai.nixiesearch.util.S3Client
+import ai.nixiesearch.util.S3ClientOps
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -59,7 +59,7 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
   it should "read s3 files" in {
     val data             = List(1, 2, 3, 4).map(_.toByte)
     val name             = Random.nextInt(1024000).toString + ".tmp"
-    val client: S3Client = S3Client.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
+    val client: S3ClientOps = S3ClientOps.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
     client.multipartUpload("bucket", name, Stream.emits(data)).unsafeRunSync()
     client.client.close()
     val out = URLReader
@@ -73,7 +73,7 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
   it should "read s3 dirs" in {
     val data             = List(1, 2, 3, 4).map(_.toByte)
     val name             = Random.nextInt(1024000).toString + "_dir"
-    val client: S3Client = S3Client.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
+    val client: S3ClientOps = S3ClientOps.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
     (0 until 4).foreach(i => {
       client.multipartUpload("bucket", s"$name/$i.tmp", Stream.emits(data)).unsafeRunSync()
     })

@@ -19,10 +19,10 @@ import ai.nixiesearch.core.codec.{
   FloatFieldWriter,
   IntFieldWriter,
   LongFieldWriter,
-  NixiesearchCodec,
   TextFieldWriter,
   TextListFieldWriter
 }
+import ai.nixiesearch.core.lucene.NixiesearchCodec
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.sync.Index
 import cats.effect.{IO, Resource}

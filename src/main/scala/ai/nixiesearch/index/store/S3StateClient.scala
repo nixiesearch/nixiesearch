@@ -5,7 +5,7 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError
-import ai.nixiesearch.util.S3Client
+import ai.nixiesearch.util.S3ClientOps
 import cats.effect.{IO, Resource}
 import fs2.Stream
 import software.amazon.awssdk.services.s3.model.{DeleteObjectRequest, NoSuchKeyException}
@@ -13,7 +13,7 @@ import io.circe.parser.*
 
 import scala.jdk.CollectionConverters.*
 
-case class S3StateClient(s3: S3Client, conf: S3Location, indexName: IndexName) extends StateClient with Logging {
+case class S3StateClient(s3: S3ClientOps, conf: S3Location, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 5 * 1024 * 1024
 
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
@@ -83,7 +83,7 @@ object S3StateClient extends Logging {
 
   def create(conf: S3Location, indexName: IndexName): Resource[IO, S3StateClient] = for {
     _      <- Resource.eval(debug(s"creating S3StateClient for conf=$conf index=${indexName.value}"))
-    client <- S3Client.create(conf.region.getOrElse("us-east-1"), conf.endpoint)
+    client <- S3ClientOps.create(conf.region.getOrElse("us-east-1"), conf.endpoint)
   } yield {
     S3StateClient(client, conf, indexName)
   }
