@@ -8,7 +8,7 @@ import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
 import cats.effect.{IO, Resource}
-import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory}
+import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory, NIOFSDirectory}
 import fs2.Stream
 
 import java.nio.file.{Files, Path}
@@ -20,7 +20,8 @@ object LocalDirectory extends Logging {
       for {
         _             <- Resource.eval(info("initialized MMapDirectory"))
         safeIndexPath <- Resource.eval(indexPath(path, indexName))
-        directory     <- Resource.make(IO(new MMapDirectory(safeIndexPath)))(dir => IO(dir.close()))
+        directory     <- Resource.make(IO(new NIOFSDirectory(safeIndexPath)))(dir => IO(dir.close()))
+
       } yield {
         directory
       }

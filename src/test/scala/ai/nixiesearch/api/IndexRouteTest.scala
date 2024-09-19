@@ -10,8 +10,8 @@ import org.scalatest.matchers.should.Matchers
 class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import IndexRoute.*
   import ai.nixiesearch.util.HttpTest.*
-  val docs      = Nil
-  val mapping   = TestIndexMapping()
+  val docs               = Nil
+  val mapping            = TestIndexMapping()
   override val inference = TestInferenceConfig.empty()
 
   it should "accept docs for existing indices" in withIndex { store =>
@@ -41,5 +41,6 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
       }
     }
   }
+
 
 }

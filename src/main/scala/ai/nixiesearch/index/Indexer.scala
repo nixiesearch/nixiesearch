@@ -9,7 +9,7 @@ import ai.nixiesearch.config.FieldSchema.{
   TextLikeFieldSchema
 }
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
@@ -19,9 +19,9 @@ import ai.nixiesearch.core.codec.{
   FloatFieldWriter,
   IntFieldWriter,
   LongFieldWriter,
-  NixiesearchCodec,
   TextFieldWriter,
-  TextListFieldWriter
+  TextListFieldWriter,
+  NixiesearchCodec
 }
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.sync.Index
@@ -173,28 +173,46 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
     }
   }
 
+  def merge(segments: Int): IO[Unit] = {
+    for {
+      _ <- info(s"Forced segment merge started, segments=$segments")
+      _ <- IO(writer.forceMerge(segments, true))
+      _ <- info("Forced merge finished")
+      _ <- IO(writer.commit()).flatMap {
+        case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+        case seqnum =>
+          for {
+            _        <- info(s"index '${index.name.value}' commit, seqnum=$seqnum")
+            manifest <- index.master.createManifest(index.mapping, seqnum)
+            _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
+            _        <- index.master.writeManifest(manifest)
+          } yield {}
+      }
+    } yield {}
+  }
+
 }
 
 object Indexer extends Logging {
   def open(index: Index): Resource[IO, Indexer] = {
     for {
-      writer <- indexWriter(index.directory, index.mapping)
+      writer <- indexWriter(index.directory, index.mapping, index.mapping.config)
       niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.flush().void)
     } yield {
       niw
     }
   }
 
-  def indexWriter(directory: Directory, mapping: IndexMapping): Resource[IO, IndexWriter] = for {
+  def indexWriter(directory: Directory, mapping: IndexMapping, config: IndexConfig): Resource[IO, IndexWriter] = for {
     analyzer <- Resource.eval(IO(IndexMapping.createAnalyzer(mapping)))
-    writer   <- Indexer.indexWriter(directory, analyzer)
+    writer   <- Indexer.indexWriter(directory, analyzer, config)
   } yield {
     writer
   }
 
-  def indexWriter(directory: Directory, analyzer: Analyzer): Resource[IO, IndexWriter] =
+  def indexWriter(directory: Directory, analyzer: Analyzer, config: IndexConfig): Resource[IO, IndexWriter] =
     for {
-      codec  <- Resource.pure(NixiesearchCodec())
+      codec  <- Resource.pure(NixiesearchCodec(config))
       config <- Resource.eval(IO(new IndexWriterConfig(analyzer).setCodec(codec)))
       _      <- Resource.eval(debug("opening IndexWriter"))
       writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()) *> debug("IndexWriter closed"))

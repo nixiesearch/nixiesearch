@@ -2,7 +2,49 @@
 
 ## Index mapping
 
-todo
+You can define each index in the `schema` block of the configuration:
+
+```yaml
+schema:
+  <your-index-name>:
+    config:
+      <index configuration>
+    store:
+      <store configuration>
+    fields:
+      <field definitions>
+```
+
+### Index configuration
+
+An example of index configuration:
+
+```yaml
+schema:
+  index-name:
+    config:
+      flush:
+        duration: 5s # how frequently new segments are created
+      hnsw:
+        m: 16 # max number of node-node links in HNSW graph
+        efc: 100 # beam width used while building the index
+        workers: 8 # how many concurrent workers used for HNSW merge ops
+```
+
+Fields:
+
+* `flush.duration`: optional, duration, default `5s`. Index writer will periodically produce flush index segments (if there are new documents) with this interval.
+* `hnsw.m`: optional, int, default 16. How many links should HNSW index have? Larger value means better recall, but higher memory usage and bigger index. Common values are within 16-128 range.
+* `hnsw.efc`: optional, int, default 100. How many neighbors in the HNSW graph are explored during indexing. Bigger the value, better the recall, but slower the indexing speed.
+* `hnsw.workers`: optional, int, default = number of CPU cores. How many concurrent workers to use for index merges.
+
+### Store configuration
+
+TODO
+
+### Fields definitions
+
+TODO
 
 ## ML Inference
 
@@ -35,7 +77,7 @@ Fields:
 * `max_tokens`: *optional*, *int*, default `512`. How many tokens from the input document to process. All tokens beyond the threshold are truncated.
 * `batch_size`: *optional*, *int*, default `32`. Computing embeddings is a highly parallel task, and doing it in big chunks is much more effective than one by one. For CPUs there are usually no gains of batch sizes beyong 32, but on GPUs you can go up to 1024.
 
-## LLM competion models
+### LLM competion models
 
 Example of a full configuration:
 

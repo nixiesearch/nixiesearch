@@ -15,7 +15,8 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value => flush()
+    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value           => flush()
+    case request @ POST -> Root / indexName / "_merge" if indexName == indexer.index.name.value => merge(request)
     case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
       index(request)
     case request @ POST -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
@@ -46,9 +47,23 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   }
 
   def flush(): IO[Response[IO]] = for {
+    start    <- IO(System.currentTimeMillis())
+    _        <- info(s"POST /${indexer.index.name.value}/_flush")
     _        <- indexer.flush()
     _        <- indexer.index.sync()
-    response <- Ok()
+    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
+  } yield response
+
+  def merge(request: Request[IO]): IO[Response[IO]] = for {
+    start <- IO(System.currentTimeMillis())
+    req <- request.entity.length match {
+      case None | Some(0) => IO(MergeRequest(1))
+      case Some(_)        => request.as[MergeRequest]
+    }
+    _        <- indexer.flush()
+    _        <- indexer.merge(req.segments)
+    _        <- indexer.index.sync()
+    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
   } yield response
 
 }
@@ -68,5 +83,14 @@ object IndexRoute extends Logging {
   given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
   given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
   given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
+
+  case class MergeRequest(segments: Int)
+  given mergeRequestCodec: Codec[MergeRequest]            = deriveCodec
+  given mergeRequestJson: EntityDecoder[IO, MergeRequest] = jsonOf
+
+  case class EmptyResponse(status: String, tool: Long)
+  given okResponseCodec: Codec[EmptyResponse]               = deriveCodec
+  given okResponseJsonEnc: EntityEncoder[IO, EmptyResponse] = jsonEncoderOf
+  given okResponseJson: EntityDecoder[IO, EmptyResponse]    = jsonOf
 
 }
