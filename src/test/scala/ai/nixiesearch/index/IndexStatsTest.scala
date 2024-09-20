@@ -48,7 +48,10 @@ class IndexStatsTest extends SearchTest with Matchers {
               0,
               false,
               "NONE",
-              Map(),
+              Map(
+                "PerFieldKnnVectorsFormat.format" -> "Lucene99HnswVectorsFormat",
+                "PerFieldKnnVectorsFormat.suffix" -> "0"
+              ),
               384,
               "FLOAT32",
               "COSINE"
