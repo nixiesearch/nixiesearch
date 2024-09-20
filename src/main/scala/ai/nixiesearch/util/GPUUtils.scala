@@ -50,6 +50,7 @@ object GPUUtils extends Logging {
               )
               .compile
               .toList
+              .map(_.sortBy(_.id))
         }
     }
   }
