@@ -57,6 +57,7 @@ inference:
         use_mmap: true
         use_mlock: true
         no_kv_offload: false
+        seed: 42
 ```
 
 Fields:

@@ -54,6 +54,7 @@ object GenerativeModel {
         .setContinuousBatching(options.cont_batching)
         .setNParallel(options.n_parallel)
         .setFlashAttention(options.flash_attn)
+        .setSeed(options.seed)
       val model = new LlamaModel(params)
       LlamacppGenerativeModel(model, prompt)
     }

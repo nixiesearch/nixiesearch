@@ -97,7 +97,8 @@ object InferenceConfig {
         flash_attn: Boolean = true,
         use_mmap: Boolean = true,
         use_mlock: Boolean = true,
-        no_kv_offload: Boolean = false
+        no_kv_offload: Boolean = false,
+        seed: Int = 42
     )
 
     object LlamacppParams {
@@ -112,6 +113,7 @@ object InferenceConfig {
           use_mmap      <- c.downField("use_mmap").as[Option[Boolean]]
           use_mlock     <- c.downField("use_mlock").as[Option[Boolean]]
           no_kv_offload <- c.downField("no_kv_offload").as[Option[Boolean]]
+          seed          <- c.downField("seed").as[Option[Int]]
         } yield {
           val d = LlamacppParams()
           LlamacppParams(
@@ -122,7 +124,8 @@ object InferenceConfig {
             flash_attn.getOrElse(d.flash_attn),
             use_mmap.getOrElse(d.use_mmap),
             use_mlock.getOrElse(d.use_mlock),
-            no_kv_offload.getOrElse(d.no_kv_offload)
+            no_kv_offload.getOrElse(d.no_kv_offload),
+            seed.getOrElse(d.seed)
           )
         }
       )
