@@ -32,9 +32,9 @@ object GenerativeModelDict extends Logging {
   ): Resource[IO, GenerativeModelDict] =
     for {
       generativeModels <- models.toList.map {
-        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
+        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _)) =>
           createHuggingface(handle, conf, cache).map(model => name -> model)
-        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
+        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: LocalModelHandle, _, _, _, _)) =>
           createLocal(handle, conf).map(model => name -> model)
       }.sequence
     } yield {
@@ -60,7 +60,7 @@ object GenerativeModelDict extends Logging {
     genModel <- LlamacppGenerativeModel.create(
       path = modelFile,
       prompt = config.prompt,
-      gpuLayers = if (isGPU) LlamacppGenerativeModel.GPU_LAYERS_ALL else 0
+      options = config.options
     )
   } yield {
     genModel
@@ -80,7 +80,7 @@ object GenerativeModelDict extends Logging {
       genModel <- LlamacppGenerativeModel.create(
         path = modelFile,
         prompt = config.prompt,
-        gpuLayers = if (isGPU) LlamacppGenerativeModel.GPU_LAYERS_ALL else 0
+        options = config.options
       )
     } yield {
       genModel

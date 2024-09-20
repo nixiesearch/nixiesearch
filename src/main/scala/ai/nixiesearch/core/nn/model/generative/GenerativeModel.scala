@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.nn.model.generative
 
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{LLMPromptTemplate, LlamacppParams}
 import ai.nixiesearch.core.Logging
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -31,29 +31,29 @@ object GenerativeModel {
   }
 
   object LlamacppGenerativeModel extends Logging {
-    val GPU_LAYERS_ALL           = 40
-    val LLAMACPP_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
         path: Path,
         prompt: LLMPromptTemplate,
-        gpuLayers: Int,
-        threads: Int = LLAMACPP_THREADS_DEFAULT
+        options: LlamacppParams
     ): Resource[IO, LlamacppGenerativeModel] =
-      Resource.make(IO(createUnsafe(path, prompt, gpuLayers, threads)))(_.close())
+      Resource.make(IO(createUnsafe(path, prompt, options)))(_.close())
 
     def createUnsafe(
         path: Path,
         prompt: LLMPromptTemplate,
-        gpuLayers: Int,
-        threads: Int = LLAMACPP_THREADS_DEFAULT
+        options: LlamacppParams
     ): LlamacppGenerativeModel = {
       LlamaModel.setLogger(LogFormat.TEXT, loggerCallback)
       val params = new ModelParameters()
         .setModelFilePath(path.toString)
-        .setNThreads(threads)
-        .setNGpuLayers(gpuLayers)
-        .setContinuousBatching(true)
-        .setNParallel(4)
+        .setNThreads(options.n_threads)
+        .setNGpuLayers(options.n_gpu_layers)
+        .setUseMmap(options.use_mmap)
+        .setUseMmap(options.use_mlock)
+        .setNoKvOffload(options.no_kv_offload)
+        .setContinuousBatching(options.cont_batching)
+        .setNParallel(options.n_parallel)
+        .setFlashAttention(options.flash_attn)
       val model = new LlamaModel(params)
       LlamacppGenerativeModel(model, prompt)
     }

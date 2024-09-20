@@ -48,6 +48,15 @@ inference:
       file: qwen2-0_5b-instruct-q4_0.gguf
       prompt: qwen2
       system: "You are a helpful assistant, answer only in haiku."
+      options:
+        n_threads: 8
+        n_gpu_layers: 100
+        n_parallel: 8
+        cont_batching: true
+        flash_attn: true
+        use_mmap: true
+        use_mlock: true
+        no_kv_offload: false
 ```
 
 Fields:
@@ -57,3 +66,4 @@ Fields:
 * `file`: *optional*, *string*. A file name for the model, if the target model has multiple. A typical case for quantized models.
 * `prompt`: *required*, *string*. A prompt format used for the LLM. See [Supported LLM prompts for more details](../features/search/rag.md#supported-prompts)
 * `system`: *optional*, *string*, default empty. An optional system prompt to be prepended to all the user prompts.
+* `options`: *optional*, *obj*. A set of llama-cpp specific options. See [llamacpp reference on options](https://github.com/ggerganov/llama.cpp/blob/master/examples/main/README.md) for more details.

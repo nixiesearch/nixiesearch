@@ -85,8 +85,48 @@ object InferenceConfig {
         model: ModelHandle,
         prompt: LLMPromptTemplate,
         system: Option[String] = None,
-        file: Option[String] = None
+        file: Option[String] = None,
+        options: LlamacppParams = LlamacppParams()
     ) extends CompletionInferenceModelConfig
+
+    case class LlamacppParams(
+        n_threads: Int = Runtime.getRuntime.availableProcessors(),
+        n_gpu_layers: Int = 100,
+        n_parallel: Int = 8,
+        cont_batching: Boolean = true,
+        flash_attn: Boolean = true,
+        use_mmap: Boolean = true,
+        use_mlock: Boolean = true,
+        no_kv_offload: Boolean = false
+    )
+
+    object LlamacppParams {
+      given llamaCppParamsEncoder: Encoder[LlamacppParams] = deriveEncoder
+      given llamaCppParamsDecoder: Decoder[LlamacppParams] = Decoder.instance(c =>
+        for {
+          n_threads     <- c.downField("n_threads").as[Option[Int]]
+          n_gpu_layers  <- c.downField("n_gpu_layers").as[Option[Int]]
+          n_parallel    <- c.downField("n_parallel").as[Option[Int]]
+          cont_batching <- c.downField("cont_batching").as[Option[Boolean]]
+          flash_attn    <- c.downField("flash_attn").as[Option[Boolean]]
+          use_mmap      <- c.downField("use_mmap").as[Option[Boolean]]
+          use_mlock     <- c.downField("use_mlock").as[Option[Boolean]]
+          no_kv_offload <- c.downField("no_kv_offload").as[Option[Boolean]]
+        } yield {
+          val d = LlamacppParams()
+          LlamacppParams(
+            n_threads.getOrElse(d.n_threads),
+            n_gpu_layers.getOrElse(d.n_gpu_layers),
+            n_parallel.getOrElse(d.n_parallel),
+            cont_batching.getOrElse(d.cont_batching),
+            flash_attn.getOrElse(d.flash_attn),
+            use_mmap.getOrElse(d.use_mmap),
+            use_mlock.getOrElse(d.use_mlock),
+            no_kv_offload.getOrElse(d.no_kv_offload)
+          )
+        }
+      )
+    }
 
     sealed trait LLMPromptTemplate {
       def template: String
@@ -127,12 +167,13 @@ object InferenceConfig {
 
     given llamacppInferenceModelConfigDecoder: Decoder[LlamacppInferenceModelConfig] = Decoder.instance(c =>
       for {
-        model  <- c.downField("model").as[ModelHandle]
-        file   <- c.downField("file").as[Option[String]]
-        prompt <- c.downField("prompt").as[LLMPromptTemplate]
-        system <- c.downField("system").as[Option[String]]
+        model   <- c.downField("model").as[ModelHandle]
+        file    <- c.downField("file").as[Option[String]]
+        prompt  <- c.downField("prompt").as[LLMPromptTemplate]
+        system  <- c.downField("system").as[Option[String]]
+        options <- c.downField("options").as[Option[LlamacppParams]]
       } yield {
-        LlamacppInferenceModelConfig(model, prompt, system, file)
+        LlamacppInferenceModelConfig(model, prompt, system, file, options = options.getOrElse(LlamacppParams()))
       }
     )
 

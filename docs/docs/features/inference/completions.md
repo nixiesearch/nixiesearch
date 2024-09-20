@@ -22,6 +22,7 @@ Fields:
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](../../reference/url.md) for more details on how to load your model.
 * `file`: *optional*, *string*. A file name for the model, if the target model has multiple. A typical case for quantized models.
 * `prompt`: *required*, *string*. A prompt format used for the LLM. See [Supported LLM prompts for more details](../search/rag.md#supported-prompts)
+* `options`: *optional*, *obj*. A dict of llamacpp-specific options.
 
 See the [`inference.completion` section in config file reference](../../reference/config.md#ml-inference) for more details on other advanced options of providers.
 
