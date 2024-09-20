@@ -2,7 +2,10 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate.Qwen2Template
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
+  LlamacppInferenceModelConfig,
+  LlamacppParams
+}
 import ai.nixiesearch.config.InferenceConfig.{
   CompletionInferenceModelConfig,
   EmbeddingInferenceModelConfig,
@@ -39,10 +42,6 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
   }
 
   it should "parse generative config" in {
-
-    /** handle: ModelHandle, prompt: LLMPromptTemplate, system: Option[String] = None, file: Option[String] = None, gpu:
-      * Boolean = false
-      */
     val text =
       """completion:
         |  qwen2:
@@ -59,6 +58,32 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
             model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
             file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
             prompt = Qwen2Template
+          )
+        )
+      )
+    )
+  }
+
+  it should "parse generative config with options" in {
+    val text =
+      """completion:
+        |  qwen2:
+        |    provider: llamacpp
+        |    model: Qwen/Qwen2-0.5B-Instruct-GGUF
+        |    file: qwen2-0_5b-instruct-q4_0.gguf
+        |    prompt: qwen2
+        |    options:
+        |      flash_attn: false
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(completion =
+        Map(
+          ModelRef("qwen2") -> LlamacppInferenceModelConfig(
+            model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
+            file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
+            prompt = Qwen2Template,
+            options = LlamacppParams(flash_attn = false)
           )
         )
       )
