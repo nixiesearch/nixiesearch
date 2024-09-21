@@ -31,14 +31,14 @@ See the [`inference.completion` section in config file reference](../../referenc
 After you configured your completion LLM model, it becomes available for inference on the `/inference/completion/<your-model-name>` REST endpoint:
 
 ```shell
-curl -d '{"text": "what is 2+2? answer as haiku", "max_tokens": 32}' http://localhost:8080/inference/completion/your-model-name
+curl -d '{"prompt": "what is 2+2? answer as haiku", "max_tokens": 32}' http://localhost:8080/inference/completion/your-model-name
 ```
 
 A full request payload looks like this:
 
 ```json
 {
-  "text": "what is 2+2? answer as haiku",
+  "prompt": "what is 2+2? answer as haiku",
   "max_tokens": 32,
   "stream": false
 }
@@ -46,7 +46,7 @@ A full request payload looks like this:
 
 Fields:
 
-* `text`: *required*, *string*. A prompt to process. Before doing the actual inference, the prompt text will be pre-processed using the prompt template for a particular model.
+* `prompt`: *required*, *string*. A prompt to process. Before doing the actual inference, the prompt text will be pre-processed using the prompt template for a particular model.
 * `max_tokens`: *required*, *string*. Number of tokens to generate. Consider that as a safety net if model cannot stop generating.
 * `stream`: *optional*, *boolean*, default `false`. Should the response be in a streaming format? If yes, the server will respond with a sequence of [Server Side Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events). See [Streaming responses](#streaming-responses) section for more details.
 
