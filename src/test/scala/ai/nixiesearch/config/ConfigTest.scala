@@ -116,10 +116,10 @@ class ConfigTest extends AnyFlatSpec with Matchers {
 
   it should "fail on parse empty config" in {
     val yaml = "a:".stripMargin
-    parse(yaml).flatMap(_.as[Config]) shouldBe a[Left[?, ?]]
+    parse(yaml).flatMap(_.as[Config]) shouldBe Right(Config())
   }
 
-  it should "fail on no schemas" in {
+  it should "not fail on no schemas" in {
     val yaml = """
                  |searcher:
                  |  api:
@@ -128,7 +128,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
                  |
                  |
                  |schema:""".stripMargin
-    parse(yaml).flatMap(_.as[Config]) shouldBe a[Left[?, ?]]
+    parse(yaml).flatMap(_.as[Config]) shouldBe Right(Config())
   }
 
   it should "fail on schema with no fields" in {
