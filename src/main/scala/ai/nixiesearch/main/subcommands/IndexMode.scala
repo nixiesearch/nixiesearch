@@ -85,11 +85,11 @@ object IndexMode extends Logging {
         )
         .sequence
       routes = List(
-        indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes).reduce(_ <+> _),
-        HealthRoute().routes,
-        AdminRoute(config).routes,
-        MainRoute().routes
-      ).reduce(_ <+> _)
+        indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes),
+        List(HealthRoute().routes),
+        List(AdminRoute(config).routes),
+        List(MainRoute().routes)
+      ).flatten.reduce(_ <+> _)
       api <- API.start(routes, source.host, source.port)
       _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
     } yield {
