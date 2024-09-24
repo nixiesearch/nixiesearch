@@ -33,10 +33,15 @@ object Config extends Logging {
         searcher  <- c.downField("searcher").as[Option[SearcherConfig]].map(_.getOrElse(SearcherConfig()))
         indexer   <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
         core      <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
-        indexJson <- c.downField("schema").as[Map[IndexName, Json]].flatMap {
-          case map if map.isEmpty =>
-            Left(DecodingFailure("There should be at least one index schema defined", c.history))
-          case map => Right(map)
+        indexJson <- c.downField("schema").as[Option[Map[IndexName, Json]]].flatMap {
+          case Some(map) => Right(map)
+          case _ =>
+            logger.info("No index schemas found in the config file.")
+            logger.info(
+              "It's OK if you use Nixiesearch as an inference endpoint, but not OK if you plan to index documents"
+            )
+            logger.info("You have to first define an index schema before indexing documents.")
+            Right(Map.empty)
         }
         index <- indexJson.toList.traverse { case (name, json) =>
           IndexMapping.yaml.indexMappingDecoder(name).decodeJson(json)
