@@ -44,7 +44,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
       case false => IO.none
       case true =>
         for {
-          _ <- info(
+          _ <- debug(
             s"existing ${IndexManifest.MANIFEST_FILE_NAME} file found for Lucene directory $dir for index ${indexName.value}"
           )
           manifestBytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
