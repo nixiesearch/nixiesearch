@@ -7,7 +7,7 @@ object Deps {
   lazy val circeYamlVersion   = "0.16.0"
   lazy val fs2Version         = "3.11.0"
   lazy val fs2CompressVersion = "2.0.0"
-  lazy val luceneVersion      = "9.11.1"
+  lazy val luceneVersion      = "9.12.0"
   lazy val djlVersion         = "0.30.0"
   lazy val awsVersion         = "2.26.31"
   lazy val onnxRuntimeVersion = "1.19.2"
