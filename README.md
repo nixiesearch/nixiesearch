@@ -12,8 +12,8 @@
 Nixiesearch is a **hybrid search engine** that fine-tunes to your data. 
 
 * Designed to be cloud-native with [S3-compatible index persistence](https://nixiesearch.ai/deployment/distributed/persistence/s3). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
-* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/languages.md), [facets](features/search/facet.md), [advanced filters](features/search/filter.md), [autocomplete suggestions](features/autocomplete/index.md) and [sorting](https://nixiesearch.ai/features/search/sort) out of the box.
-* Batteries included: [RAG queries](features/search/rag.md) and [vector search](reference/models/index.md) within a [single container](deployment/standalone.md) with a fully local CPU and [GPU inference](https://nixiesearch.ai/deployment/gpu). 
+* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](https://nixiesearch.ai/reference/languages), [facets](https://nixiesearch.ai/features/search/facet), [advanced filters](https://nixiesearch.ai/features/search/filter), [autocomplete suggestions](https://nixiesearch.ai/features/autocomplete/index) and [sorting](https://nixiesearch.ai/features/search/sort) out of the box.
+* Batteries included: [RAG queries](https://nixiesearch.ai/features/search/rag) and [vector search](https://nixiesearch.ai/reference/models/index) within a [single container](https://nixiesearch.ai/deployment/standalone) with a fully local CPU and [GPU inference](https://nixiesearch.ai/deployment/gpu). 
 * Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
 > Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/) and check out [the live demo](https://demo.nixiesearch.ai). 
 
@@ -22,12 +22,12 @@ Nixiesearch is a **hybrid search engine** that fine-tunes to your data.
 Unlike Elastic/SOLR:
 
 * Can run over [S3-compatible block storage](https://nixiesearch.ai/deployment/distributed/persistence/s3): Rapid auto-scaling (even down to zero!) and much easier operations (your index is just a directory in S3 bucket!)
-* [RAG](features/search/rag.md),  [text](features/search/query.md) and [image](https://nixiesearch.ai/features/indexing/types/images) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
-* All LLM inference [can be run fully locally](reference/models/index.md) on CPU and [GPU](deployment/gpu.md), no need to send all your queries and private documents to OpenAI API. But [you can](https://nixiesearch.ai/reference/models/index), if you wish.
+* [RAG](https://nixiesearch.ai/features/search/rag),  [text](https://nixiesearch.ai/features/search/query) and [image](https://nixiesearch.ai/features/indexing/types/images) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
+* All LLM inference [can be run fully locally](https://nixiesearch.ai/reference/models/index) on CPU and [GPU](https://nixiesearch.ai/deployment/gpu), no need to send all your queries and private documents to OpenAI API. But [you can](https://nixiesearch.ai/reference/models/index), if you wish.
 
 Unlike other vector search engines:
 
-* **Supports [facets](features/search/facet.md), [rich filtering](features/search/filter.md), sorting and [autocomplete](https://nixiesearch.ai/features/autocomplete/index)**: things you got used to in traditional search engines.
+* **Supports [facets](https://nixiesearch.ai/features/search/facet), [rich filtering](https://nixiesearch.ai/features/search/filter), sorting and [autocomplete](https://nixiesearch.ai/features/autocomplete/index)**: things you got used to in traditional search engines.
 * **Text in, text out**: [text embedding](https://nixiesearch.ai/reference/models/embedding) is handled by the search engine, not by you.
 * **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
 
@@ -256,3 +256,4 @@ In practice, CPU fine-tuning is 30x-50x slower than GPU one and can take multipl
 # License
 
 This project is released under the Apache 2.0 license, as specified in the [License](https://github.com/nixiesearch/nixiesearch/blob/master/LICENSE) file.
+
