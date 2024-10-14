@@ -3,7 +3,7 @@ package ai.nixiesearch.core.codec
 import ai.nixiesearch.config.FieldSchema.GeopointFieldSchema
 import ai.nixiesearch.core.Field.GeopointField
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
-import org.apache.lucene.document.{Document, LatLonDocValuesField, StoredField}
+import org.apache.lucene.document.{Document, LatLonDocValuesField, LatLonPoint, StoredField}
 import org.apache.lucene.util.BytesRef
 
 import java.nio.ByteBuffer
@@ -22,7 +22,7 @@ object GeopointFieldCodec extends FieldCodec[GeopointField, GeopointFieldSchema,
       buffer.add(new StoredField(field.name, new BytesRef(buf.array())))
     }
     if (spec.filter) {
-      buffer.add(new LatLonDocValuesField(field.name, field.lat, field.lon))
+      buffer.add(new LatLonPoint(field.name, field.lat, field.lon))
     }
   }
 

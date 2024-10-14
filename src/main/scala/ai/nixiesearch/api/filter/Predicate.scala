@@ -2,6 +2,8 @@ package ai.nixiesearch.api.filter
 
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, NotPredicate, OrPredicate}
 import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, NumTerm, StringTerm}
+import ai.nixiesearch.api.filter.Predicate.GeoBoundingBoxPredicate.{geoBoxDecoder, geoBoxEncoder}
+import ai.nixiesearch.api.filter.Predicate.GeoDistancePredicate.{geoDistanceDecoder, geoDistanceEncoder}
 import ai.nixiesearch.config.FieldSchema.{
   BooleanFieldSchema,
   DoubleFieldSchema,
@@ -15,13 +17,18 @@ import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
 import ai.nixiesearch.core.{FiniteRange, Logging}
 import ai.nixiesearch.core.codec.TextFieldCodec
+import ai.nixiesearch.util.Distance
 import cats.effect.IO
-import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
 import cats.implicits.*
-import org.apache.lucene.document.{IntField, LongField}
+import io.circe.generic.semiauto.{deriveCodec, deriveEncoder}
+import org.apache.lucene.document.{IntField, LatLonDocValuesField, LatLonPoint, LatLonPointDistanceQuery, LongField}
+import io.circe.syntax.*
+
+import scala.util.{Failure, Success}
 
 sealed trait Predicate {
   def compile(mapping: IndexMapping): IO[LuceneQuery]
@@ -308,6 +315,86 @@ object Predicate {
 
   }
 
+  case class LatLon(lat: Double, lon: Double)
+  object LatLon {
+    given latLonCodec: Codec[LatLon] = deriveCodec
+  }
+  case class GeoDistancePredicate(field: String, point: LatLon, distance: Distance) extends Predicate with Logging {
+    override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
+      mapping.geopointFields.get(field) match {
+        case None => IO.raiseError(UserError("cannot perform geo_distance query over non-geopoint field"))
+        case Some(schema) if !schema.filter =>
+          IO.raiseError(UserError("cannot perform geo_distance query over non-filterable geopoint field"))
+        case Some(schema) =>
+          IO.pure(LatLonPoint.newDistanceQuery(field, point.lat, point.lon, distance.meters))
+      }
+    }
+  }
+
+  object GeoDistancePredicate {
+    given geoDistanceDecoder: Decoder[GeoDistancePredicate] = Decoder.instance(c =>
+      for {
+        distance <- c.downField("distance").as[Distance]
+        field    <- c.downField("field").as[String]
+        lat      <- c.downField("lat").as[Double]
+        lon      <- c.downField("lon").as[Double]
+      } yield {
+        GeoDistancePredicate(field, LatLon(lat, lon), distance)
+      }
+    )
+
+    given geoDistanceEncoder: Encoder[GeoDistancePredicate] = Encoder.instance(c =>
+      Json.obj(
+        "distance" -> c.distance.asJson,
+        "field"    -> Json.fromString(c.field),
+        "lat"      -> Json.fromDoubleOrNull(c.point.lat),
+        "lon"      -> Json.fromDoubleOrNull(c.point.lon)
+      )
+    )
+  }
+
+  case class GeoBoundingBoxPredicate(field: String, topLeft: LatLon, bottomRight: LatLon)
+      extends Predicate
+      with Logging {
+    override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
+      mapping.geopointFields.get(field) match {
+        case None => IO.raiseError(UserError("cannot perform geo_distance query over non-geopoint field"))
+        case Some(schema) if !schema.filter =>
+          IO.raiseError(UserError("cannot perform geo_distance query over non-filterable geopoint field"))
+        case Some(schema) =>
+          IO.pure(
+            LatLonPoint.newBoxQuery(
+              field,
+              math.min(topLeft.lat, bottomRight.lat),
+              math.max(topLeft.lat, bottomRight.lat),
+              math.min(topLeft.lon, bottomRight.lon),
+              math.max(topLeft.lon, bottomRight.lon)
+            )
+          )
+      }
+    }
+  }
+
+  object GeoBoundingBoxPredicate {
+    given geoBoxDecoder: Decoder[GeoBoundingBoxPredicate] = Decoder.instance(c =>
+      for {
+        field       <- c.downField("field").as[String]
+        topLeft     <- c.downField("top_left").as[LatLon]
+        bottomRight <- c.downField("bottom_right").as[LatLon]
+      } yield {
+        GeoBoundingBoxPredicate(field, topLeft, bottomRight)
+      }
+    )
+
+    given geoBoxEncoder: Encoder[GeoBoundingBoxPredicate] = Encoder.instance(c =>
+      Json.obj(
+        "field"        -> Json.fromString(c.field),
+        "top_left"     -> c.topLeft.asJson,
+        "bottom_right" -> c.bottomRight.asJson
+      )
+    )
+  }
+
   import BoolPredicate.given
   import TermPredicate.given
   import RangePredicate.given
@@ -319,8 +406,10 @@ object Predicate {
         case or: OrPredicate   => json("or", boolPredicateEncoder(bool))
         case not: NotPredicate => json("not", boolPredicateEncoder(bool))
       }
-    case term: TermPredicate   => json("term", termPredicateEncoder(term))
-    case range: RangePredicate => json("range", rangePredicateEncoder(range))
+    case term: TermPredicate             => json("term", termPredicateEncoder(term))
+    case range: RangePredicate           => json("range", rangePredicateEncoder(range))
+    case geodist: GeoDistancePredicate   => json("geo_distance", geoDistanceEncoder(geodist))
+    case geobox: GeoBoundingBoxPredicate => json("geo_box", geoBoxEncoder(geobox))
   }
 
   given predicateDecoder: Decoder[Predicate] = Decoder.instance(c =>
@@ -329,12 +418,14 @@ object Predicate {
         obj.toList match {
           case (field, json) :: Nil =>
             field match {
-              case "and"   => json.as[List[Predicate]].map(AndPredicate.apply)
-              case "or"    => json.as[List[Predicate]].map(OrPredicate.apply)
-              case "not"   => json.as[List[Predicate]].map(NotPredicate.apply)
-              case "term"  => termPredicateDecoder.decodeJson(json)
-              case "range" => rangeDecoder.decodeJson(json)
-              case other   => Left(DecodingFailure(s"filter type '$other' is not supported", c.history))
+              case "and"          => json.as[List[Predicate]].map(AndPredicate.apply)
+              case "or"           => json.as[List[Predicate]].map(OrPredicate.apply)
+              case "not"          => json.as[List[Predicate]].map(NotPredicate.apply)
+              case "term"         => termPredicateDecoder.decodeJson(json)
+              case "range"        => rangeDecoder.decodeJson(json)
+              case "geo_distance" => geoDistanceDecoder.decodeJson(json)
+              case "geo_box"      => geoBoxDecoder.decodeJson(json)
+              case other          => Left(DecodingFailure(s"filter type '$other' is not supported", c.history))
             }
           case Nil     => Left(DecodingFailure(s"filter predicate should contain a predicate type: $obj", c.history))
           case tooMany => Left(DecodingFailure(s"filter predicate must contain only single value: $tooMany", c.history))
