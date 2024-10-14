@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.suggest
 
-import ai.nixiesearch.core.codec.TextFieldWriter
+import ai.nixiesearch.core.codec.TextFieldCodec
 import ai.nixiesearch.core.suggest.GeneratedSuggestions.SuggestDoc
 import cats.effect.IO
 import org.apache.lucene.analysis.Analyzer
@@ -43,7 +43,7 @@ object GeneratedSuggestions {
       query: String,
       count: Int
   ): IO[GeneratedSuggestions] = IO {
-    val field = fieldName + TextFieldWriter.SUGGEST_SUFFIX
+    val field = fieldName + TextFieldCodec.SUGGEST_SUFFIX
     GeneratedSuggestions(
       field = fieldName,
       prefix = SuggestDoc.fromTopSuggestDocs(

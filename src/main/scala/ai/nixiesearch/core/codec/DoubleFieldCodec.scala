@@ -6,7 +6,7 @@ import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{Document, SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.util.NumericUtils
 
-class DoubleFieldWriter extends FieldWriter[DoubleField, DoubleFieldSchema] {
+object DoubleFieldCodec extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
   override def write(
       field: DoubleField,
       spec: DoubleFieldSchema,
@@ -23,4 +23,7 @@ class DoubleFieldWriter extends FieldWriter[DoubleField, DoubleFieldSchema] {
       buffer.add(new StoredField(field.name, field.value))
     }
   }
+
+  override def read(spec: DoubleFieldSchema, value: Double): Either[FieldCodec.WireDecodingError, DoubleField] =
+    Right(DoubleField(spec.name, value))
 }

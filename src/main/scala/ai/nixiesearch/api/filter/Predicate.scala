@@ -14,7 +14,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
 import ai.nixiesearch.core.{FiniteRange, Logging}
-import ai.nixiesearch.core.codec.TextFieldWriter
+import ai.nixiesearch.core.codec.TextFieldCodec
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.apache.lucene.index.Term
@@ -101,7 +101,7 @@ object Predicate {
         case (Some(schema), _) if !schema.filter =>
           IO.raiseError(UserError(s"Cannot filter over a non-filterable field '$field'"))
         case (Some(schema: TextLikeFieldSchema[?]), FilterTerm.StringTerm(value)) if schema.filter =>
-          IO(new TermQuery(new Term(field + TextFieldWriter.RAW_SUFFIX, value)))
+          IO(new TermQuery(new Term(field + TextFieldCodec.RAW_SUFFIX, value)))
         case (Some(schema: TextLikeFieldSchema[?]), other) =>
           IO.raiseError(UserError(s"field $field expects string filter term, but got $other"))
         case (Some(schema: IntFieldSchema), FilterTerm.NumTerm(value)) if schema.filter =>

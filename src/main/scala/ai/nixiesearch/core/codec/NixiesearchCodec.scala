@@ -2,7 +2,7 @@ package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.mapping.IndexConfig
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.codec.TextFieldWriter
+import ai.nixiesearch.core.codec.TextFieldCodec
 import org.apache.lucene.codecs.lucene912.Lucene912Codec
 import org.apache.lucene.codecs.lucene99.Lucene99HnswVectorsFormat
 import org.apache.lucene.codecs.perfield.{PerFieldKnnVectorsFormat, PerFieldPostingsFormat}
@@ -14,7 +14,7 @@ class NixiesearchCodec(parent: Codec, config: IndexConfig) extends FilterCodec(p
 
   override def postingsFormat(): PostingsFormat = new PerFieldPostingsFormat {
     override def getPostingsFormatForField(field: String): PostingsFormat =
-      if (field.endsWith(TextFieldWriter.SUGGEST_SUFFIX)) {
+      if (field.endsWith(TextFieldCodec.SUGGEST_SUFFIX)) {
         suggestPostingsFormat
       } else {
         delegate.postingsFormat().asInstanceOf[PerFieldPostingsFormat].getPostingsFormatForField(field)

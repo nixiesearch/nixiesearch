@@ -6,7 +6,7 @@ import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.util.NumericUtils
 
-class FloatFieldWriter extends FieldWriter[FloatField, FloatFieldSchema] {
+object FloatFieldCodec extends FieldCodec[FloatField, FloatFieldSchema, Float] {
   override def write(
       field: FloatField,
       spec: FloatFieldSchema,
@@ -23,4 +23,7 @@ class FloatFieldWriter extends FieldWriter[FloatField, FloatFieldSchema] {
       buffer.add(new StoredField(field.name, field.value))
     }
   }
+
+  override def read(spec: FloatFieldSchema, value: Float): Either[FieldCodec.WireDecodingError, FloatField] = 
+    Right(FloatField(spec.name, value))
 }
