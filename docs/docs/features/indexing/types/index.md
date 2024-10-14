@@ -15,3 +15,5 @@ Unlike other Lucene-based search engines, Nixiesearch has [a distinction between
 ## Numeric fields
 
 Numeric fields `int`, `float`, `long`, `double`, `bool` are supported. The `bool` field is more an API syntax sugar and is built on top of an internal `int` field. 
+
+## Geo fields
