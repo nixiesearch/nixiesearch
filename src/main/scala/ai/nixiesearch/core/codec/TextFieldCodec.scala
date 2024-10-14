@@ -18,8 +18,12 @@ import org.apache.lucene.index.VectorSimilarityFunction
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
-case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] with Logging {
-  import TextFieldWriter._
+object TextFieldCodec extends FieldCodec[TextField, TextFieldSchema, String] with Logging {
+  val MAX_FACET_SIZE        = 1024
+  val MAX_FIELD_SEARCH_SIZE = 32000
+  val RAW_SUFFIX            = "$raw"
+  val SUGGEST_SUFFIX        = "$suggest"
+
   override def write(
       field: TextField,
       spec: TextFieldSchema,
@@ -65,11 +69,7 @@ case class TextFieldWriter() extends FieldWriter[TextField, TextFieldSchema] wit
     })
     val br = 1
   }
-}
 
-object TextFieldWriter {
-  val MAX_FACET_SIZE        = 1024
-  val MAX_FIELD_SEARCH_SIZE = 32000
-  val RAW_SUFFIX            = "$raw"
-  val SUGGEST_SUFFIX        = "$suggest"
+  override def read(spec: TextFieldSchema, value: String): Either[FieldCodec.WireDecodingError, TextField] =
+    Right(TextField(spec.name, value))
 }

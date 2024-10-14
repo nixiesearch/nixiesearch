@@ -3,7 +3,16 @@ package ai.nixiesearch.core
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{
+  BooleanField,
+  DoubleField,
+  FloatField,
+  IntField,
+  LongField,
+  TextField,
+  TextListField,
+  GeopointField
+}
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
@@ -50,13 +59,18 @@ object Document {
   given documentEncoder: Encoder[Document] =
     Encoder.instance(doc => {
       val fields = doc.fields.map {
-        case FloatField(name, value)          => (name, Json.fromFloatOrNull(value))
-        case DoubleField(name, value)         => (name, Json.fromDoubleOrNull(value))
-        case IntField(name, value)            => (name, Json.fromInt(value))
-        case LongField(name, value)           => (name, Json.fromLong(value))
-        case TextField(name, value)           => (name, Json.fromString(value))
-        case BooleanField(name, value)        => (name, Json.fromBoolean(value))
-        case Field.TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
+        case FloatField(name, value)    => (name, Json.fromFloatOrNull(value))
+        case DoubleField(name, value)   => (name, Json.fromDoubleOrNull(value))
+        case IntField(name, value)      => (name, Json.fromInt(value))
+        case LongField(name, value)     => (name, Json.fromLong(value))
+        case TextField(name, value)     => (name, Json.fromString(value))
+        case BooleanField(name, value)  => (name, Json.fromBoolean(value))
+        case TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
+        case GeopointField(name, lat, lon) =>
+          (
+            name,
+            Json.obj("lat" -> Json.fromDoubleOrNull(lat), "lon" -> Json.fromDoubleOrNull(lon))
+          )
       }
       Json.fromJsonObject(JsonObject.fromIterable(fields))
     })
@@ -129,13 +143,39 @@ object Document {
       jsonObject = obj => decodeNestedObject(c, obj, name)
     )
 
-  def decodeNestedObject(c: HCursor, obj: JsonObject, prefix: String): Decoder.Result[List[Field]] = obj.toList match {
-    case Nil => Right(Nil)
-    case nested =>
-      nested.foldLeft[Decoder.Result[List[Field]]](Right(Nil)) {
-        case (Left(error), _)              => Left(error)
-        case (Right(acc), (subname, json)) => decodeField(c, s"$prefix.$subname", json)
+  def decodeNestedObject(c: HCursor, obj: JsonObject, prefix: String): Decoder.Result[List[Field]] = {
+    if (obj.isEmpty) {
+      Right(Nil)
+    } else if (obj.keys.toSet == Set("lat", "lon")) {
+      decodeGeopoint(c, obj, prefix)
+    } else {
+      obj.toList.foldLeft[Decoder.Result[List[Field]]](Right(Nil)) {
+        case (Left(error), _) => Left(error)
+        case (Right(acc), (subname, json)) =>
+          decodeField(c, s"$prefix.$subname", json) match {
+            case Left(err)    => Left(err)
+            case Right(value) => Right(acc ++ value)
+          }
       }
+    }
+  }
+
+  def decodeGeopoint(c: HCursor, obj: JsonObject, name: String): Decoder.Result[List[Field]] = {
+    def getDouble(name: String, obj: JsonObject): Decoder.Result[Double] = obj(name) match {
+      case Some(value) =>
+        value.asNumber match {
+          case Some(num) => Right(num.toDouble)
+          case None      => Left(DecodingFailure(s"expected field $name is not a number", c.history))
+        }
+      case None => Left(DecodingFailure(s"expected field $name is missing", c.history))
+    }
+    for {
+      lat <- getDouble("lat", obj)
+      lon <- getDouble("lon", obj)
+    } yield {
+      List(GeopointField(name, lat, lon))
+    }
+
   }
 
   def decodeArrayNestedObject(c: HCursor, arr: Vector[Json], prefix: String): Decoder.Result[List[Field]] = {
