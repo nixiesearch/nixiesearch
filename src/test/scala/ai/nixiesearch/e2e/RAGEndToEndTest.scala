@@ -51,7 +51,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       )
       val response = searchApi.searchBlocking(searchRequest).unsafeRunSync().as[SearchResponse].unsafeRunSync()
       response.response shouldBe Some(
-        "The matrix tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers who now rule the earth."
+        "The title The Matrix tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers who now rule the earth."
       )
     }
   }
