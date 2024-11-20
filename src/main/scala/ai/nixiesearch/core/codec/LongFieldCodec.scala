@@ -5,7 +5,7 @@ import ai.nixiesearch.core.Field.LongField
 import org.apache.lucene.document.{Document, SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.document.Field.Store
 
-case class LongFieldWriter() extends FieldWriter[LongField, LongFieldSchema] {
+object LongFieldCodec extends FieldCodec[LongField, LongFieldSchema, Long] {
   override def write(
       field: LongField,
       spec: LongFieldSchema,
@@ -21,6 +21,8 @@ case class LongFieldWriter() extends FieldWriter[LongField, LongFieldSchema] {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
     }
-
   }
+
+  override def read(spec: LongFieldSchema, value: Long): Either[FieldCodec.WireDecodingError, LongField] = 
+    Right(LongField(spec.name, value))
 }
