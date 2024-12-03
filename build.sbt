@@ -39,7 +39,7 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"      % "lucene-analysis-kuromoji"   % luceneVersion,
   "org.apache.lucene"      % "lucene-analysis-stempel"    % luceneVersion,
   "org.apache.lucene"      % "lucene-analysis-morfologik" % luceneVersion,
-  "commons-io"             % "commons-io"                 % "2.17.0",
+  "commons-io"             % "commons-io"                 % "2.18.0",
   "commons-codec"          % "commons-codec"              % "1.17.1",
   "org.apache.commons"     % "commons-lang3"              % "3.17.0",
   "ai.djl"                 % "api"                        % djlVersion,
