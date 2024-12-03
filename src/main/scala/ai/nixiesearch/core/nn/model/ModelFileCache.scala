@@ -29,7 +29,8 @@ case class ModelFileCache(dir: NioPath) extends Logging {
       case true => IO.raiseError(BackendError(s"trying to write a cache file for $key, but it already exists"))
       case false =>
         for {
-          modelFilePath   <- IO(key.resolve(dir))
+          tempKey         <- IO(key.copy(fileName = key.fileName + ".tmp"))
+          modelFilePath   <- IO(tempKey.resolve(dir))
           parent          <- IO(modelFilePath.getParent)
           parentDirExists <- Files[IO].exists(Fs2Path.fromNioPath(modelFilePath.getParent))
           _               <- IO.whenA(!parentDirExists)(Files[IO].createDirectories(Fs2Path.fromNioPath(parent)))
@@ -39,6 +40,7 @@ case class ModelFileCache(dir: NioPath) extends Logging {
           )
           _ <- bytes.through(writeOutputStream[IO](IO(new FileOutputStream(modelFilePath.toFile)))).compile.drain
           _ <- debug(s"cached $key to $modelFilePath")
+          _ <- Files[IO].move(Fs2Path.fromNioPath(modelFilePath), Fs2Path.fromNioPath(key.resolve(dir)))
         } yield {}
     }
   }
