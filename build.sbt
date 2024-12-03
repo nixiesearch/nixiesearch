@@ -11,7 +11,7 @@ scalaVersion := "3.5.2"
 name := "nixiesearch"
 
 libraryDependencies ++= Seq(
-  "org.typelevel"         %% "cats-effect"                % "3.5.5",
+  "org.typelevel"         %% "cats-effect"                % "3.5.7",
   "org.scalatest"         %% "scalatest"                  % scalatestVersion % "test",
   "org.scalactic"         %% "scalactic"                  % scalatestVersion % "test",
   "org.scalatestplus"     %% "scalacheck-1-16"            % "3.2.14.0"       % "test",
@@ -39,12 +39,12 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"      % "lucene-analysis-kuromoji"   % luceneVersion,
   "org.apache.lucene"      % "lucene-analysis-stempel"    % luceneVersion,
   "org.apache.lucene"      % "lucene-analysis-morfologik" % luceneVersion,
-  "commons-io"             % "commons-io"                 % "2.17.0",
+  "commons-io"             % "commons-io"                 % "2.18.0",
   "commons-codec"          % "commons-codec"              % "1.17.1",
   "org.apache.commons"     % "commons-lang3"              % "3.17.0",
   "ai.djl"                 % "api"                        % djlVersion,
   "ai.djl.huggingface"     % "tokenizers"                 % djlVersion,
-  "com.github.luben"       % "zstd-jni"                   % "1.5.6-7",
+  "com.github.luben"       % "zstd-jni"                   % "1.5.6-8",
   "com.github.blemale"    %% "scaffeine"                  % "5.3.0",
   "com.hubspot.jinjava"    % "jinjava"                    % "2.7.3",
   "software.amazon.awssdk" % "s3"                         % awsVersion,
@@ -55,7 +55,7 @@ libraryDependencies ++= Seq(
   "de.lhns"               %% "fs2-compress-gzip"          % fs2CompressVersion,
   "de.lhns"               %% "fs2-compress-bzip2"         % fs2CompressVersion,
   "de.lhns"               %% "fs2-compress-zstd"          % fs2CompressVersion,
-  "org.apache.kafka"       % "kafka-clients"              % "3.8.1"
+  "org.apache.kafka"       % "kafka-clients"              % "3.9.0"
 )
 
 if (GPU) {
