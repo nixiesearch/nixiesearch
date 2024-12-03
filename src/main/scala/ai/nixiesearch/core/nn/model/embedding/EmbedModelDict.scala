@@ -93,8 +93,8 @@ object EmbedModelDict extends Logging {
       (modelPath, vocabPath, config)
     })
     onnxEmbedder <- OnnxEmbedModel.create(
-      model = new FileInputStream(model.toFile),
-      dic = new FileInputStream(vocab.toFile),
+      model = model,
+      dic = vocab,
       dim = config.hidden_size,
       prompt = conf.prompt,
       seqlen = conf.maxTokens
@@ -117,8 +117,8 @@ object EmbedModelDict extends Logging {
         (path.toNioPath.resolve(modelFile), path.toNioPath.resolve(tokenizerFile), config)
       })
       onnxEmbedder <- OnnxEmbedModel.create(
-        model = new FileInputStream(model.toFile),
-        dic = new FileInputStream(vocab.toFile),
+        model = model,
+        dic = vocab,
         dim = config.hidden_size,
         prompt = conf.prompt,
         seqlen = conf.maxTokens

@@ -15,9 +15,13 @@ import cats.effect.kernel.Resource
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 import scala.jdk.CollectionConverters.*
-import java.io.InputStream
+import java.io.{InputStream, RandomAccessFile}
 import java.nio.LongBuffer
 import fs2.{Chunk, Stream}
+
+import java.nio.channels.FileChannel
+import java.nio.channels.FileChannel.MapMode
+import java.nio.file.Path
 
 sealed trait EmbedModel extends Logging {
   def prompt: PromptConfig
@@ -84,8 +88,8 @@ object EmbedModel {
   object OnnxEmbedModel extends Logging {
     val ONNX_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
-        model: InputStream,
-        dic: InputStream,
+        model: Path,
+        dic: Path,
         dim: Int,
         prompt: PromptConfig,
         ttidNeeded: Boolean = true,
@@ -102,8 +106,8 @@ object EmbedModel {
     }
 
     def createUnsafe(
-        model: InputStream,
-        dic: InputStream,
+        model: Path,
+        dic: Path,
         dim: Int,
         prompt: PromptConfig,
         ttidNeeded: Boolean = true,
@@ -122,14 +126,16 @@ object EmbedModel {
       opts.setOptimizationLevel(OptLevel.ALL_OPT)
       // opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
-      val modelBytes = IOUtils.toByteArray(model)
-      val session    = env.createSession(modelBytes, opts)
-      val size       = FileUtils.byteCountToDisplaySize(modelBytes.length)
-      val inputs     = session.getInputNames.asScala.toList
-      val outputs    = session.getOutputNames.asScala.toList
+      val modelFile = new RandomAccessFile(model.toFile, "r")
+      val channel   = modelFile.getChannel
+      val buffer    = channel.map(MapMode.READ_ONLY, 0, channel.size())
+      val session   = env.createSession(buffer, opts)
+      val size      = FileUtils.byteCountToDisplaySize(channel.size())
+      val inputs    = session.getInputNames.asScala.toList
+      val outputs   = session.getOutputNames.asScala.toList
       logger.info(s"Loaded ONNX model (size=$size inputs=$inputs outputs=$outputs dim=$dim)")
-      model.close()
-      dic.close()
+      channel.close()
+      modelFile.close()
       OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt)
     }
   }
