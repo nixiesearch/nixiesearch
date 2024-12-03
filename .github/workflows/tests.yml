@@ -39,7 +39,7 @@ jobs:
       run: docker compose -f .github/compose.yaml up -d
 
     - name: Run tests
-      run: sbt -mem 3000 test
+      run: sbt -mem 5000 test
 
     - name:  Stop docker-compose
       run: docker compose -f .github/compose.yaml down

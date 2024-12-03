@@ -47,7 +47,7 @@ object EmbedModel {
       session: OrtSession,
       tokenizer: HuggingFaceTokenizer,
       dim: Int,
-      ttidNeeded: Boolean,
+      inputTensorNames: List[String],
       prompt: PromptConfig
   ) extends EmbedModel {
     override val batchSize = 16
@@ -60,19 +60,13 @@ object EmbedModel {
       val attMask      = encoded.flatMap(e => e.getAttentionMask)
 
       val tensorDim = Array(batch.length.toLong, encoded(0).getIds.length)
-      val args =
-        if (ttidNeeded)
-          Map(
-            "input_ids"      -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim),
-            "token_type_ids" -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim),
-            "attention_mask" -> OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
-          )
-        else {
-          Map(
-            "input_ids"      -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim),
-            "attention_mask" -> OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
-          )
-        }
+      val argsList = inputTensorNames.map {
+        case "input_ids"      => OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
+        case "token_type_ids" => OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
+        case "attention_mask" => OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
+        case other            => throw Exception(s"input $other not supported")
+      }
+      val args       = inputTensorNames.zip(argsList).toMap
       val result     = session.run(args.asJava)
       val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
       val normalized = EmbedPooling.mean(tensor, tokenLengths, dim)
@@ -136,7 +130,7 @@ object EmbedModel {
       logger.info(s"Loaded ONNX model (size=$size inputs=$inputs outputs=$outputs dim=$dim)")
       model.close()
       dic.close()
-      OnnxEmbedModel(env, session, tokenizer, dim, ttidNeeded, prompt)
+      OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt)
     }
   }
 
