@@ -15,11 +15,11 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value           => flush()
-    case request @ POST -> Root / indexName / "_merge" if indexName == indexer.index.name.value => merge(request)
-    case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
+    case POST -> Root / indexName / "_flush" if indexer.index.mapping.nameMatches(indexName)           => flush()
+    case request @ POST -> Root / indexName / "_merge" if indexer.index.mapping.nameMatches(indexName) => merge(request)
+    case request @ PUT -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
       index(request)
-    case request @ POST -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
+    case request @ POST -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
       index(request)
   }
 
