@@ -37,6 +37,10 @@ case class IndexMapping(
 
   val analyzer = IndexMapping.createAnalyzer(this)
 
+  def nameMatches(value: String): Boolean = {
+    (name.value == value) || alias.contains(Alias(value))
+  }
+
   def migrate(updated: IndexMapping): IO[IndexMapping] = for {
     fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
     migrations <- fieldNames.toList.traverse(field => migrateField(fields.get(field), updated.fields.get(field)))

@@ -12,7 +12,7 @@ case class MappingRoute(index: Index) extends Route with Logging {
   import MappingRoute.given
 
   val routes = HttpRoutes.of[IO] {
-    case GET -> Root / indexName / "_mapping" if indexName == index.name.value => Ok(index.mapping)
+    case GET -> Root / indexName / "_mapping" if index.mapping.nameMatches(indexName) => Ok(index.mapping)
   }
 }
 

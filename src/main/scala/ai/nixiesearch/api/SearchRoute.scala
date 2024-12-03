@@ -8,6 +8,8 @@ import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOpt
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
@@ -35,9 +37,9 @@ import org.http4s.headers.`Content-Type`
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case request @ POST -> Root / indexName / "_search" if indexName == searcher.index.name.value =>
+    case request @ POST -> Root / indexName / "_search" if searcher.index.mapping.nameMatches(indexName) =>
       searchBlocking(request)
-    case request @ POST -> Root / indexName / "_suggest" if indexName == searcher.index.name.value =>
+    case request @ POST -> Root / indexName / "_suggest" if searcher.index.mapping.nameMatches(indexName) =>
       suggest(request)
   }
 
@@ -113,6 +115,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   } yield {
     response
   }
+
 }
 
 object SearchRoute {

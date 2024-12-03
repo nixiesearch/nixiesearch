@@ -1,6 +1,7 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.query.MatchQuery
+import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.TextField
@@ -13,7 +14,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import ai.nixiesearch.util.HttpTest.*
   import SearchRoute.*
 
-  val mapping = TestIndexMapping()
+  val mapping = TestIndexMapping().copy(alias = List(Alias("test_alias")))
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
@@ -27,6 +28,20 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
         send[SearchRequest, SearchResponse](
           route.routes,
           "http://localhost/test/_search",
+          None,
+          Method.POST
+        )
+      response.hits.size shouldBe 3
+    }
+  }
+
+  it should "search over dsl with empty query and alias" in withIndex { index =>
+    {
+      val route = SearchRoute(index.searcher)
+      val response =
+        send[SearchRequest, SearchResponse](
+          route.routes,
+          "http://localhost/test_alias/_search",
           None,
           Method.POST
         )
