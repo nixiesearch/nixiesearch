@@ -10,7 +10,16 @@ import ai.nixiesearch.config.FieldSchema.{
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
+import ai.nixiesearch.core.Field.{
+  BooleanField,
+  DoubleField,
+  FloatField,
+  GeopointField,
+  IntField,
+  LongField,
+  TextField,
+  TextListField
+}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
@@ -115,6 +124,27 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     val json = """{"_id": "a", "title": "foo", "flag": true}"""
     decode[Document](json) shouldBe Right(
       Document(List(TextField("_id", "a"), TextField("title", "foo"), BooleanField("flag", true)))
+    )
+  }
+
+  it should "decode geopoints" in {
+    val json = """{"_id": "a", "point1": {"lat": 1, "lon": 2}, "point2": {"lon": 1, "lat": 2}}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), GeopointField("point1", 1, 2), GeopointField("point2", 2, 1)))
+    )
+  }
+
+  it should "handle broken geopoints" in {
+    val json = """{"_id": "a", "point1": {"lon": 2}, "point2": {"lon": 1, "salat": 2}}"""
+    decode[Document](json) shouldBe Right(
+      Document(
+        List(
+          TextField("_id", "a"),
+          FloatField("point1.lon", 2.0),
+          FloatField("point2.salat", 2),
+          FloatField("point2.lon", 1)
+        )
+      )
     )
   }
 

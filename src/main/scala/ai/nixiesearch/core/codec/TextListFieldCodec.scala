@@ -10,8 +10,9 @@ import org.apache.lucene.document.{SortedSetDocValuesField, StoredField, StringF
 import org.apache.lucene.util.BytesRef
 import org.apache.lucene.search.suggest.document.SuggestField
 
-case class TextListFieldWriter() extends FieldWriter[TextListField, TextListFieldSchema] {
-  import TextFieldWriter._
+object TextListFieldCodec extends FieldCodec[TextListField, TextListFieldSchema, List[String]] {
+  import TextFieldCodec.{MAX_FACET_SIZE, RAW_SUFFIX, MAX_FIELD_SEARCH_SIZE}
+
   override def write(
       field: TextListField,
       spec: TextListFieldSchema,
@@ -49,4 +50,10 @@ case class TextListFieldWriter() extends FieldWriter[TextListField, TextListFiel
 
     })
   }
+
+  override def read(
+      spec: TextListFieldSchema,
+      value: List[String]
+  ): Either[FieldCodec.WireDecodingError, TextListField] =
+    Right(TextListField(spec.name, value))
 }
