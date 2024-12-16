@@ -6,7 +6,7 @@ import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.Document as LuceneDocument
 
-case class IntFieldWriter() extends FieldWriter[IntField, IntFieldSchema] {
+object IntFieldCodec extends FieldCodec[IntField, IntFieldSchema, Int] {
   override def write(
       field: IntField,
       spec: IntFieldSchema,
@@ -23,4 +23,7 @@ case class IntFieldWriter() extends FieldWriter[IntField, IntFieldSchema] {
       buffer.add(new StoredField(field.name, field.value))
     }
   }
+
+  override def read(spec: IntFieldSchema, value: Int): Either[FieldCodec.WireDecodingError, IntField] = 
+    Right(IntField(spec.name, value))
 }
