@@ -12,6 +12,7 @@ import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.codec.TextFieldWriter.RAW_SUFFIX
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.{
   BooleanFieldWriter,
@@ -19,9 +20,9 @@ import ai.nixiesearch.core.codec.{
   FloatFieldWriter,
   IntFieldWriter,
   LongFieldWriter,
+  NixiesearchCodec,
   TextFieldWriter,
-  TextListFieldWriter,
-  NixiesearchCodec
+  TextListFieldWriter
 }
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.sync.Index
@@ -104,7 +105,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         }
         all.add(buffer)
       })
-      val deleteIds = ids.map(id => new Term("_id_raw", id))
+      val deleteIds = ids.map(id => new Term("_id" + RAW_SUFFIX, id))
       writer.deleteDocuments(deleteIds.toSeq*)
       writer.addDocuments(all)
     }
@@ -155,10 +156,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   }
 
   def flush(): IO[Boolean] = {
-    IO(writer.numRamDocs()).flatMap {
-      case 0 => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
-      case other =>
-        debug(s"mem docs: $other") *> IO(writer.commit()).flatMap {
+    IO((writer.numRamDocs() > 0) || writer.hasDeletions).flatMap {
+      case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
+      case true =>
+        debug(s"mem docs: ${writer.numRamDocs()} deletes=${writer.hasDeletions}") *> IO(writer.commit()).flatMap {
           case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
           case seqnum =>
             for {
@@ -189,6 +190,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
           } yield {}
       }
     } yield {}
+  }
+
+  def delete(docid: String): IO[Unit] = IO {
+    writer.deleteDocuments(new Term("_id" + RAW_SUFFIX, docid))
   }
 
 }

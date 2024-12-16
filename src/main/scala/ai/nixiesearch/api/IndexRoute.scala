@@ -21,12 +21,23 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
       index(request)
     case request @ POST -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
       index(request)
+    case request @ DELETE -> Root / indexName / "_delete" / docid if indexer.index.mapping.nameMatches(indexName) =>
+      delete(docid)
   }
 
   def index(request: Request[IO]): IO[Response[IO]] = for {
     _        <- info(s"PUT /${indexer.index.name.value}/_index")
     ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse))
     response <- Ok(ok)
+  } yield {
+    response
+  }
+
+  def delete(docid: String): IO[Response[IO]] = for {
+    start    <- IO(System.currentTimeMillis())
+    _        <- info(s"DELETE /${indexer.index.name.value}/_doc/$docid")
+    _        <- IO(indexer.delete(docid))
+    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
   } yield {
     response
   }
