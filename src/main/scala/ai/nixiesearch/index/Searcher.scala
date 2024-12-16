@@ -54,7 +54,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     _ <- IO.whenA(ondiskSeqnum > readers.seqnum)(for {
       newReaders <- Readers.reopen(readers.reader, ondiskSeqnum)
       _          <- readersRef.set(Some(newReaders))
-      _          <- debug(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
+      _          <- info(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
     } yield {})
   } yield {}
 
