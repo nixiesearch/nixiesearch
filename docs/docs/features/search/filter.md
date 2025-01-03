@@ -137,6 +137,60 @@ Nesting of boolean filters is also possible:
 }
 ```
 
+## Geolocation filters
+
+With a `geopoint` datatype, you can filter by a `geo_distance` and `geo_box` predicates.
+
+### Distance filters
+
+With a distance query, you can include/exclude documents being within a distance from a point. Query example:
+
+```json
+{
+  "query": { "match_all": {}},
+  "filters": {
+    "include": {
+      "geo_distance": {
+        "field": "<field_name>",
+        "lat": 1.0,
+        "lon": 2.0,
+        "distance": "1 km"
+      }
+    }
+  }
+}
+```
+
+Following distance units are supported: 
+
+* Millimeters: `mm`, `millimeters`, `millimeter`
+* Centimeters: `cm`, `centimeters`, `centimeter`
+* Meters: `m`, `meter`, `meters`
+* Kilometers: `km`, `kilometer`, `kilometers`
+* Inches: `in`, `inch`, `inches`
+* Feet: `ft`, `foot`, `feet`
+* Yards: `yd`, `yard`, `yards`
+* Miles: `mi`, `mile`, `miles`
+
+### Bounding box filters
+
+With a bounding box query, you can include documents laying within a specific rectangle.
+
+```json
+{
+  "query": { "match_all": {}},
+  "filters": {
+    "include": {
+      "geo_box": {
+        "field": "<field_name>",
+        "top_left": {"lat": 1.0, "lon": 2.0},
+        "bottom_right": {"lat": 3.0, "lon": 4.0}
+      }
+    }
+  }
+}
+```
+
 
 ## Filters and lexical/semantic search
 
