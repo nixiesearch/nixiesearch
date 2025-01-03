@@ -32,10 +32,10 @@ object GenerativeModelDict extends Logging {
   ): Resource[IO, GenerativeModelDict] =
     for {
       generativeModels <- models.toList.map {
-        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _)) =>
-          createHuggingface(handle, conf, cache).map(model => name -> model)
-        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: LocalModelHandle, _, _, _, _)) =>
-          createLocal(handle, conf).map(model => name -> model)
+        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
+          createHuggingface(handle, name, conf, cache).map(model => name -> model)
+        case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>
+          createLocal(handle, name, conf).map(model => name -> model)
       }.sequence
     } yield {
       GenerativeModelDict(generativeModels.toMap)
@@ -43,6 +43,7 @@ object GenerativeModelDict extends Logging {
 
   def createHuggingface(
       handle: HuggingFaceHandle,
+      name: ModelRef,
       config: LlamacppInferenceModelConfig,
       cache: ModelFileCache
   ): Resource[IO, GenerativeModel] = for {
@@ -52,21 +53,25 @@ object GenerativeModelDict extends Logging {
       modelFile <- chooseModelFile(card.siblings.map(_.rfilename), config.file)
       _         <- info(s"Fetching $handle from HF: model=$modelFile")
       modelPath <- hf.getCached(handle, modelFile)
-
     } yield {
       modelPath
     })
     isGPU <- Resource.eval(GPUUtils.isGPUBuild())
     genModel <- LlamacppGenerativeModel.create(
       path = modelFile,
-      prompt = config.prompt,
-      options = config.options
+      options = config.options,
+      useGpu = isGPU,
+      name = name
     )
   } yield {
     genModel
   }
 
-  def createLocal(handle: LocalModelHandle, config: LlamacppInferenceModelConfig): Resource[IO, GenerativeModel] = {
+  def createLocal(
+      handle: LocalModelHandle,
+      name: ModelRef,
+      config: LlamacppInferenceModelConfig
+  ): Resource[IO, GenerativeModel] = {
     for {
       modelFile <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))
@@ -79,8 +84,9 @@ object GenerativeModelDict extends Logging {
       isGPU <- Resource.eval(GPUUtils.isGPUBuild())
       genModel <- LlamacppGenerativeModel.create(
         path = modelFile,
-        prompt = config.prompt,
-        options = config.options
+        options = config.options,
+        useGpu = isGPU,
+        name = name
       )
     } yield {
       genModel

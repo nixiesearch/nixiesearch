@@ -3,7 +3,6 @@ package ai.nixiesearch.core.nn.model.embedding
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, PromptConfig}
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate.Qwen2Template
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance

@@ -60,13 +60,13 @@ libraryDependencies ++= Seq(
 
 if (GPU) {
   libraryDependencies ++= Seq(
-    "com.microsoft.onnxruntime" % "onnxruntime_gpu" % onnxRuntimeVersion,
-    "de.kherud"                 % "llama"           % llamacppVersion classifier "cuda12-linux-x86-64"
+    "com.microsoft.onnxruntime" % "onnxruntime_gpu"      % onnxRuntimeVersion,
+    "ai.nixiesearch"            % "llamacpp-server-java" % llamacppVersion classifier "cuda12-linux-x86-64"
   )
 } else {
   libraryDependencies ++= Seq(
-    "com.microsoft.onnxruntime" % "onnxruntime" % onnxRuntimeVersion,
-    "de.kherud"                 % "llama"       % llamacppVersion
+    "com.microsoft.onnxruntime" % "onnxruntime"          % onnxRuntimeVersion,
+    "ai.nixiesearch"            % "llamacpp-server-java" % llamacppVersion
   )
 }
 

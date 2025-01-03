@@ -28,7 +28,7 @@ class RAGTest extends SearchTest with Matchers {
         fields = List("title"),
         rag = Some(
           RAGRequest(
-            prompt = "summarize the following search result document for a search query 'dress':\n\n",
+            prompt = "Shortly summarize the following search result document for a search query 'dress':\n\n",
             model = ModelRef("qwen2"),
             fields = List("title")
           )
@@ -44,7 +44,7 @@ class RAGTest extends SearchTest with Matchers {
         .toList
         .unsafeRunSync()
       val text = response.map(_.token).mkString("")
-      text shouldBe "The search query \"dress\" refers to a type of dress, specifically a red dress."
+      text shouldBe "The search result document provides two options for a red or white dress: \"red dress\" and \"white dress.\""
     }
   }
 }
