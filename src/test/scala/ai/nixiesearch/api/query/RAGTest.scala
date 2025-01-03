@@ -4,7 +4,7 @@ import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponseFrame}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}

@@ -1,11 +1,15 @@
-package ai.nixiesearch.core.codec
+package ai.nixiesearch.core.field
 
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.mapping.SearchType
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, SemanticSearch, SemanticSearchLikeType}
-import ai.nixiesearch.core.Field.*
-import ai.nixiesearch.core.Logging
+import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
+import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
+import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch, SemanticSearch, SemanticSearchLikeType}
+import ai.nixiesearch.core.Field
+import ai.nixiesearch.core.Field.TextLikeField
+import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.suggest.SuggestCandidates
+import io.circe.Decoder.Result
+import io.circe.{ACursor, Json}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   KnnFloatVectorField,
@@ -18,13 +22,17 @@ import org.apache.lucene.index.VectorSimilarityFunction
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
-object TextFieldCodec extends FieldCodec[TextField, TextFieldSchema, String] with Logging {
+import java.util.UUID
+
+case class TextField(name: String, value: String) extends Field with TextLikeField
+
+object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
   val RAW_SUFFIX            = "$raw"
   val SUGGEST_SUFFIX        = "$suggest"
 
-  override def write(
+  override def writeLucene(
       field: TextField,
       spec: TextFieldSchema,
       buffer: LuceneDocument,
@@ -70,6 +78,33 @@ object TextFieldCodec extends FieldCodec[TextField, TextFieldSchema, String] wit
     val br = 1
   }
 
-  override def read(spec: TextFieldSchema, value: String): Either[FieldCodec.WireDecodingError, TextField] =
+  override def readLucene(spec: TextFieldSchema, value: String): Either[FieldCodec.WireDecodingError, TextField] =
     Right(TextField(spec.name, value))
+
+  override def encodeJson(field: TextField): Json = Json.fromString(field.value)
+
+  override def decodeJson(schema: TextFieldSchema, cursor: ACursor): Result[Option[TextField]] = {
+    val parts = schema.name.split('.').toList
+    if (schema.name == "_id") {
+      decodeRecursiveScalar[String](parts, schema, cursor, _.as[Option[String]], TextField(schema.name, _)) match {
+        case Left(_) | Right(None) =>
+          decodeRecursiveScalar[Long](
+            parts,
+            schema,
+            cursor,
+            _.as[Option[Long]],
+            (x: Long) => TextField(schema.name, x.toString)
+          ) match {
+            case Left(err)    => Left(err)
+            case Right(None)  => Right(Some(TextField("_id", UUID.randomUUID().toString)))
+            case Right(value) => Right(value)
+          }
+        case Right(value) => Right(value)
+      }
+    } else {
+      decodeRecursiveScalar[String](parts, schema, cursor, _.as[Option[String]], TextField(schema.name, _))
+    }
+
+  }
+
 }

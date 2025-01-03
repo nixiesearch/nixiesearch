@@ -4,7 +4,7 @@ import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -51,7 +51,6 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val decoded = decode[IndexMapping](json)
     decoded shouldBe Right(mapping)
   }
-  
 
   "yaml decoder" should "add an implicit id field mapping" in {
     val yaml =

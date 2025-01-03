@@ -4,19 +4,12 @@ import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, NotPredi
 import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, NumTerm, StringTerm}
 import ai.nixiesearch.api.filter.Predicate.GeoBoundingBoxPredicate.{geoBoxDecoder, geoBoxEncoder}
 import ai.nixiesearch.api.filter.Predicate.GeoDistancePredicate.{geoDistanceDecoder, geoDistanceEncoder}
-import ai.nixiesearch.config.FieldSchema.{
-  BooleanFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextLikeFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
+import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.core.{FiniteRange, Logging}
-import ai.nixiesearch.core.codec.TextFieldCodec
 import ai.nixiesearch.util.Distance
 import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
@@ -27,8 +20,10 @@ import cats.implicits.*
 import io.circe.generic.semiauto.{deriveCodec, deriveEncoder}
 import org.apache.lucene.document.{IntField, LatLonDocValuesField, LatLonPoint, LatLonPointDistanceQuery, LongField}
 import io.circe.syntax.*
+
 import scala.util.{Failure, Success}
 import org.apache.lucene.document.{IntField, LongField}
+
 import language.experimental.namedTuples
 
 sealed trait Predicate {
@@ -109,7 +104,7 @@ object Predicate {
         case (Some(schema), _) if !schema.filter =>
           IO.raiseError(UserError(s"Cannot filter over a non-filterable field '$field'"))
         case (Some(schema: TextLikeFieldSchema[?]), FilterTerm.StringTerm(value)) if schema.filter =>
-          IO(new TermQuery(new Term(field + TextFieldCodec.RAW_SUFFIX, value)))
+          IO(new TermQuery(new Term(field + TextField.RAW_SUFFIX, value)))
         case (Some(schema: TextLikeFieldSchema[?]), other) =>
           IO.raiseError(UserError(s"field $field expects string filter term, but got $other"))
         case (Some(schema: IntFieldSchema), FilterTerm.NumTerm(value)) if schema.filter =>

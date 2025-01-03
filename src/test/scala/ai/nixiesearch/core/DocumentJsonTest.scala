@@ -13,7 +13,7 @@ import ai.nixiesearch.config.FieldSchema.{
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.TestIndexMapping
 import io.circe.Decoder
 import org.scalatest.flatspec.AnyFlatSpec

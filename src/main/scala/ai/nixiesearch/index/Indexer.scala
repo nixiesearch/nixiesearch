@@ -7,7 +7,8 @@ import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.*
-import ai.nixiesearch.core.codec.TextFieldCodec.RAW_SUFFIX
+import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.field.TextField.RAW_SUFFIX
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.sync.Index
@@ -38,28 +39,28 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         doc.fields.foreach {
           case field @ TextField(name, value) =>
             if (name == "_id") ids.addOne(value)
-            writeField(field, TextFieldCodec, index.mapping.textFields, buffer, fieldEmbeds(field, embeddedStrings))
+            writeField(field, TextField, index.mapping.textFields, buffer, fieldEmbeds(field, embeddedStrings))
 
           case field @ TextListField(name, value) =>
             writeField(
               field,
-              TextListFieldCodec,
+              TextListField,
               index.mapping.textListFields,
               buffer,
               fieldEmbeds(field, embeddedStrings)
             )
           case field @ IntField(name, value) =>
-            writeField(field, IntFieldCodec, index.mapping.intFields, buffer)
+            writeField(field, IntField, index.mapping.intFields, buffer)
           case field @ LongField(name, value) =>
-            writeField(field, LongFieldCodec, index.mapping.longFields, buffer)
+            writeField(field, LongField, index.mapping.longFields, buffer)
           case field @ FloatField(name, value) =>
-            writeField(field, FloatFieldCodec, index.mapping.floatFields, buffer)
+            writeField(field, FloatField, index.mapping.floatFields, buffer)
           case field @ DoubleField(name, value) =>
-            writeField(field, DoubleFieldCodec, index.mapping.doubleFields, buffer)
+            writeField(field, DoubleField, index.mapping.doubleFields, buffer)
           case field @ BooleanField(name, value) =>
-            writeField(field, BooleanFieldCodec, index.mapping.booleanFields, buffer)
+            writeField(field, BooleanField, index.mapping.booleanFields, buffer)
           case field @ GeopointField(name, lat, lon) =>
-            writeField(field, GeopointFieldCodec, index.mapping.geopointFields, buffer)
+            writeField(field, GeopointField, index.mapping.geopointFields, buffer)
         }
         all.add(buffer)
       })
@@ -77,7 +78,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       embeds: Map[String, Array[Float]] = Map.empty
   ): Unit = mappings.get(field.name) match {
     case None          => logger.warn(s"field '${field.name}' is not defined in index mapping for ${index.name.value}")
-    case Some(mapping) => codec.write(field, mapping, buffer, embeds)
+    case Some(mapping) => codec.writeLucene(field, mapping, buffer, embeds)
   }
 
   private def fieldEmbeds[T <: TextLikeField](

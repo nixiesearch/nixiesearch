@@ -8,7 +8,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{TextField, TextListField}
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers

@@ -19,16 +19,7 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import cats.effect.unsafe.implicits.global
-import ai.nixiesearch.core.Field.{
-  BooleanField,
-  DoubleField,
-  FloatField,
-  GeopointField,
-  IntField,
-  LongField,
-  TextField,
-  TextListField
-}
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 
 class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {

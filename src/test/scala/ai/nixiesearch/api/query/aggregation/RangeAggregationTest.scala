@@ -19,7 +19,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{DoubleField, FloatField, IntField, LongField, TextField}
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}

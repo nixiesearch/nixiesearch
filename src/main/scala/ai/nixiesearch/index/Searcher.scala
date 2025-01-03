@@ -15,6 +15,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
+import ai.nixiesearch.core.field.TextField
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.search.{
@@ -129,7 +130,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
           .map(doc =>
             doc.fields
               .collect {
-                case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
+                case TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
                   s"$name: $value"
               }
               .mkString("\n")

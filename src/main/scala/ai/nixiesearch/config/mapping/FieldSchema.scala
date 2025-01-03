@@ -3,7 +3,8 @@ package ai.nixiesearch.config
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, GeopointField, IntField, LongField, TextField, TextLikeField, TextListField}
+import ai.nixiesearch.core.Field.TextLikeField
+import ai.nixiesearch.core.field.*
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
