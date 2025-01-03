@@ -18,4 +18,6 @@ object Field {
   case class BooleanField(name: String, value: Boolean) extends Field {
     def intValue: Int = if (value) 1 else 0
   }
+  // case class DateField(name: String, value: Int) extends Field with NumericField
+  // case class DateTimeField(name: String, value: Long) extends Field with NumericField
 }

@@ -1,5 +1,6 @@
 package ai.nixiesearch.util
 
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
@@ -8,9 +9,11 @@ import io.circe.parser.*
 
 import java.io.{File, FileInputStream}
 import cats.effect.unsafe.implicits.global
+import io.circe.Decoder
 
 object DatasetLoader {
-  def fromFile(path: String, limit: Int = 1000): List[Document] = {
+  def fromFile(path: String, mapping: IndexMapping, limit: Int = 1000): List[Document] = {
+    given documentDecoder: Decoder[Document] = Document.decoderFor(mapping)
     URLReader
       .maybeDecompress(
         readInputStream[IO](

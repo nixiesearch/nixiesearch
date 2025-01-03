@@ -80,7 +80,8 @@ scalacOptions ++= Seq(
   "-Xfatal-warnings",
 //  "-Wunused:imports",
 //  "-release:20",
-  "-no-indent"
+  "-no-indent",
+  "-experimental"
 )
 
 concurrentRestrictions in Global := Seq(Tags.limitAll(1))

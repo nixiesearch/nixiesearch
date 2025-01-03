@@ -27,7 +27,7 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
 
   def index(request: Request[IO]): IO[Response[IO]] = for {
     _        <- info(s"PUT /${indexer.index.name.value}/_index")
-    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse))
+    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse(indexer.index.mapping)))
     response <- Ok(ok)
   } yield {
     response
@@ -88,10 +88,8 @@ object IndexRoute extends Logging {
 
   import ai.nixiesearch.config.mapping.IndexMapping.json.given
 
-  given schemaEncoderJson: EntityEncoder[IO, IndexMapping]         = jsonEncoderOf
-  given schemaDecoderJson: EntityDecoder[IO, IndexMapping]         = jsonOf
-  given singleDocJson: EntityDecoder[IO, Document]                 = jsonOf
-  given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
+  given schemaEncoderJson: EntityEncoder[IO, IndexMapping] = jsonEncoderOf
+  given schemaDecoderJson: EntityDecoder[IO, IndexMapping] = jsonOf
   given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
   given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
 

@@ -34,7 +34,7 @@ import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
 import cats.implicits.*
-
+import language.experimental.namedTuples
 import scala.collection.mutable.ArrayBuffer
 
 case class Indexer(index: Index, writer: IndexWriter) extends Logging {
@@ -56,16 +56,15 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       val all = new util.ArrayList[LuceneDocument]()
       val ids = new ArrayBuffer[String]()
       docs.foreach(doc => {
-        val mapped = doc.cast(index.mapping)
         val buffer = new LuceneDocument()
-        mapped.fields.foreach {
+        doc.fields.foreach {
           case field @ TextField(name, value) =>
             index.mapping.textFields.get(name) match {
               case None => logger.warn(s"text field '$name' is not defined in mapping of index '${index.name.value}'")
               case Some(mapping) =>
                 if (name == "_id") ids.addOne(value)
                 mapping match {
-                  case TextFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _, _, _) =>
+                  case TextFieldSchema(search = tpe: SemanticSearchLikeType) =>
                     textFieldWriter.write(field, mapping, buffer, embeddedStrings.getOrElse(tpe, Map.empty))
                   case _ => textFieldWriter.write(field, mapping, buffer, Map.empty)
                 }
@@ -116,8 +115,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       doc   <- docs
       field <- doc.fields
       model <- mapping.fields.get(field.name).toList.flatMap {
-        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _, _, _) =>
-          Some(tpe)
+        case TextLikeFieldSchema(search=tpe: SemanticSearchLikeType) =>          Some(tpe)
         case other =>
           None
       }
