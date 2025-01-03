@@ -9,6 +9,9 @@ import io.circe.generic.semiauto.*
 import io.circe.Json
 import io.circe.JsonObject
 
+import language.experimental.namedTuples
+import scala.NamedTuple.NamedTuple
+
 sealed trait FieldSchema[T <: Field] {
   def name: String
   def store: Boolean
@@ -27,13 +30,16 @@ object FieldSchema {
   object TextLikeFieldSchema {
     def unapply(
         f: TextLikeFieldSchema[? <: Field]
-    ): Option[(String, SearchType, Boolean, Boolean, Boolean, Boolean, Language, Option[SuggestSchema])] =
-      f match {
-        case TextFieldSchema(name, search, store, sort, facet, filter, lang, suggest) =>
-          Some((name, search, store, sort, facet, filter, lang, suggest))
-        case TextListFieldSchema(name, search, store, sort, facet, filter, lang, suggest) =>
-          Some((name, search, store, sort, facet, filter, lang, suggest))
-      }
+    ): Option[
+      NamedTuple[("name", "search", "language", "suggest"), (String, SearchType, Language, Option[SuggestSchema])]
+    ] = {
+      Some(
+        NamedTuple[("name", "search", "language", "suggest"), (String, SearchType, Language, Option[SuggestSchema])](
+          (f.name, f.search, f.language, f.suggest)
+        )
+      )
+    }
+
   }
 
   case class TextFieldSchema(
@@ -135,6 +141,7 @@ object FieldSchema {
         facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         language <- c.downField("language").as[Option[Language]].map(_.getOrElse(Language.Generic))
+
         suggest <- c
           .downField("suggest")
           .as[Option[SuggestSchema]]

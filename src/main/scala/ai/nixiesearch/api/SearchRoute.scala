@@ -219,8 +219,8 @@ object SearchRoute {
 
   import SearchRequest.given
 
-  given searchRequestDecJson: EntityDecoder[IO, SearchRequest]   = jsonOf
-  given searchRequestEncJson: EntityEncoder[IO, SearchRequest]   = jsonEncoderOf
+  given searchRequestDecJson: EntityDecoder[IO, SearchRequest] = jsonOf
+  given searchRequestEncJson: EntityEncoder[IO, SearchRequest] = jsonEncoderOf
 
   case class ErrorResponse(error: String, cause: Option[String] = None)
   object ErrorResponse {

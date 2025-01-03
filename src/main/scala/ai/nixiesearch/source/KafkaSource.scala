@@ -6,7 +6,13 @@ import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.KafkaIndexSourceArg
 import ai.nixiesearch.source.KafkaSource.Consumer
 import cats.effect.IO
 import com.google.common.collect.Lists
-import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRebalanceListener, KafkaConsumer, OffsetAndMetadata, OffsetCommitCallback}
+import org.apache.kafka.clients.consumer.{
+  ConsumerConfig,
+  ConsumerRebalanceListener,
+  KafkaConsumer,
+  OffsetAndMetadata,
+  OffsetCommitCallback
+}
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.TopicPartition
 
