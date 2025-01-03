@@ -11,7 +11,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{IntField, TextField, TextListField}
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec

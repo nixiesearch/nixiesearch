@@ -51,7 +51,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       )
       val response = searchApi.searchBlocking(searchRequest).unsafeRunSync().as[SearchResponse].unsafeRunSync()
       response.response shouldBe Some(
-        "\"The Matrix\" is set in the 22nd century and tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers that now rule the earth."
+        "The Matrix is a science fiction film about a computer hacker who joins a group of underground insurgents fighting against computer rule."
       )
     }
   }

@@ -6,7 +6,7 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.RemoteDiskLocation
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.index.sync.{MasterIndex, SlaveIndex}
 import ai.nixiesearch.util.{TestIndexMapping, TestInferenceConfig}

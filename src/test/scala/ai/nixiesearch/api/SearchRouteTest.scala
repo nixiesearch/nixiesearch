@@ -4,7 +4,7 @@ import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec

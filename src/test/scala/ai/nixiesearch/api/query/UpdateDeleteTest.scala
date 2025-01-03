@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global

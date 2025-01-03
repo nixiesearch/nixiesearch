@@ -1,0 +1,50 @@
+package ai.nixiesearch.core.field
+
+import ai.nixiesearch.config.FieldSchema.BooleanFieldSchema
+import ai.nixiesearch.core.Field
+import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
+import io.circe.Decoder.Result
+import io.circe.{ACursor, Json}
+import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.Field.Store
+
+case class BooleanField(name: String, value: Boolean) extends Field {
+  def intValue: Int = if (value) 1 else 0
+}
+
+object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
+  override def writeLucene(
+      field: BooleanField,
+      spec: BooleanFieldSchema,
+      buffer: LuceneDocument,
+      embeddings: Map[String, Array[Float]] = Map.empty
+  ): Unit = {
+    if (spec.filter || spec.sort) {
+      buffer.add(new org.apache.lucene.document.IntField(field.name, toInt(field.value), Store.NO))
+    }
+    if (spec.facet) {
+      buffer.add(new SortedNumericDocValuesField(field.name, toInt(field.value)))
+    }
+    if (spec.store) {
+      buffer.add(new StoredField(field.name, toInt(field.value)))
+    }
+  }
+
+  override def readLucene(spec: BooleanFieldSchema, value: Int): Either[WireDecodingError, BooleanField] =
+    fromInt(value).map(bool => BooleanField(spec.name, bool))
+
+  private def toInt(bool: Boolean): Int = if (bool) 1 else 0
+  private def fromInt(value: Int): Either[WireDecodingError, Boolean] = value match {
+    case 0     => Right(false)
+    case 1     => Right(true)
+    case other => Left(WireDecodingError(s"cannot decode int value of ${other} as boolean"))
+  }
+
+  override def encodeJson(field: BooleanField): Json = Json.fromBoolean(field.value)
+
+  override def decodeJson(schema: BooleanFieldSchema, cursor: ACursor): Result[Option[BooleanField]] = {
+    val parts = schema.name.split('.').toList
+    decodeRecursiveScalar[Boolean](parts, schema, cursor, _.as[Option[Boolean]], BooleanField(schema.name, _))
+  }
+}

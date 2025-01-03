@@ -29,13 +29,17 @@ case class IndexMapping(
     cache: IndexCacheConfig = IndexCacheConfig(),
     fields: Map[String, FieldSchema[? <: Field]]
 ) extends Logging {
-  val intFields      = fields.collect { case (name, s: IntFieldSchema) => name -> s }
-  val longFields     = fields.collect { case (name, s: LongFieldSchema) => name -> s }
-  val floatFields    = fields.collect { case (name, s: FloatFieldSchema) => name -> s }
-  val doubleFields   = fields.collect { case (name, s: DoubleFieldSchema) => name -> s }
-  val textFields     = fields.collect { case (name, s: TextFieldSchema) => name -> s }
+  val intFields    = fields.collect { case (name, s: IntFieldSchema) => name -> s }
+  val longFields   = fields.collect { case (name, s: LongFieldSchema) => name -> s }
+  val floatFields  = fields.collect { case (name, s: FloatFieldSchema) => name -> s }
+  val doubleFields = fields.collect { case (name, s: DoubleFieldSchema) => name -> s }
+  val textFields   = fields.collect { case (name, s: TextFieldSchema) => name -> s }
+  val textLikeFields: Map[String, TextLikeFieldSchema[?]] = fields.collect { case (name, s: TextLikeFieldSchema[?]) =>
+    name -> s
+  }
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
   val booleanFields  = fields.collect { case (name, s: BooleanFieldSchema) => name -> s }
+  val geopointFields = fields.collect { case (name, s: GeopointFieldSchema) => name -> s }
 
   val analyzer = IndexMapping.createAnalyzer(this)
 

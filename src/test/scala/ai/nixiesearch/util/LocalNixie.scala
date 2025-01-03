@@ -9,7 +9,7 @@ import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.index.sync.LocalIndex
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import cats.effect.{IO, Resource}

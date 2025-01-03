@@ -1,36 +1,44 @@
 package ai.nixiesearch.core.codec
 
+import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import ai.nixiesearch.core.codec.DocumentVisitor.DocumentFields
 import org.apache.lucene.index.StoredFieldVisitor
 import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
-import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
-import ai.nixiesearch.config.FieldSchema.IntFieldSchema
+import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.field.*
 
-case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: DocumentFields = DocumentFields())
-    extends StoredFieldVisitor
+case class DocumentVisitor(
+    mapping: IndexMapping,
+    fields: Set[String],
+    collectedScalars: ArrayBuffer[Field] = ArrayBuffer.empty,
+    collectedTextList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
+    errors: ArrayBuffer[Exception] = ArrayBuffer.empty
+) extends StoredFieldVisitor
     with Logging {
   override def needsField(fieldInfo: FieldInfo): Status =
     if ((fieldInfo.name == "_id") || fields.contains(fieldInfo.name)) Status.YES else Status.NO
 
   override def stringField(fieldInfo: FieldInfo, value: String): Unit = mapping.fields.get(fieldInfo.name) match {
     case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but collected: this should not happen")
-    case Some(_: TextFieldSchema) => doc.text.addOne(fieldInfo.name -> value)
+    case Some(spec: TextFieldSchema) =>
+      TextField.readLucene(spec, value) match {
+        case Left(err)    => errors.addOne(err)
+        case Right(field) => collectedScalars.addOne(field)
+      }
     case Some(_: TextListFieldSchema) =>
-      doc.textList.get(fieldInfo.name) match {
+      collectedTextList.get(fieldInfo.name) match {
         case None =>
           val buf = new ArrayBuffer[String](4)
           buf.addOne(value)
-          doc.textList.addOne(fieldInfo.name -> buf)
+          collectedTextList.addOne(fieldInfo.name -> buf)
         case Some(buf) =>
           buf.addOne(value)
       }
@@ -38,37 +46,50 @@ case class DocumentVisitor(mapping: IndexMapping, fields: Set[String], doc: Docu
       logger.warn(s"field ${fieldInfo.name} is defined as $other, and cannot accept string value '$value'")
   }
 
-  override def intField(fieldInfo: FieldInfo, value: Int): Unit = mapping.fields.get(fieldInfo.name) match {
-    case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but visited: this should not happen")
-    case Some(_: IntFieldSchema) => doc.int.addOne(fieldInfo.name -> value)
-    case Some(other) =>
-      logger.warn(s"field ${fieldInfo.name} is defined as $other, and cannot accept int value '$value'")
+  override def intField(fieldInfo: FieldInfo, value: Int): Unit = {
+    mapping.fields.get(fieldInfo.name) match {
+      case Some(int: IntFieldSchema) => collectField(mapping.intFields, fieldInfo.name, value, IntField)
+      case Some(bool: BooleanFieldSchema) =>
+        collectField(mapping.booleanFields, fieldInfo.name, value, BooleanField)
+      case Some(other) =>
+        logger.warn(s"field ${fieldInfo.name} is int on disk, but ${other} in the mapping")
+      case None =>
+        logger.warn(s"field ${fieldInfo.name} is not defined in mapping")
+    }
   }
 
-//  def asJson(): IO[Json] = {
-//    val fields = new ArrayBuffer[(String, Json)](4)
-//    doc.int.foreach(f => fields.addOne(f._1 -> Json.fromInt(f._2)))
-//    doc.text.foreach(f => fields.addOne(f._1 -> Json.fromString(f._2)))
-//    doc.textList.foreach(f => fields.addOne(f._1 -> Json.fromValues(f._2.map(Json.fromString))))
-//    Json.fromJsonObject(JsonObject.fromIterable(fields))
-//  }
+  override def longField(fieldInfo: FieldInfo, value: Long): Unit =
+    collectField(mapping.longFields, fieldInfo.name, value, LongField)
+
+  override def floatField(fieldInfo: FieldInfo, value: Float): Unit =
+    collectField(mapping.floatFields, fieldInfo.name, value, FloatField)
+
+  override def doubleField(fieldInfo: FieldInfo, value: Double): Unit =
+    collectField(mapping.doubleFields, fieldInfo.name, value, DoubleField)
+
+  override def binaryField(fieldInfo: FieldInfo, value: Array[Byte]): Unit =
+    collectField(mapping.geopointFields, fieldInfo.name, value, GeopointField)
+
+  private def collectField[T, F <: Field, S <: FieldSchema[F]](
+      specs: Map[String, S],
+      name: String,
+      value: T,
+      codec: FieldCodec[F, S, T]
+  ): Unit = specs.get(name) match {
+    case Some(spec) =>
+      codec.readLucene(spec, value) match {
+        case Left(error)  => errors.addOne(error)
+        case Right(value) => collectedScalars.addOne(value)
+      }
+    case None => logger.warn("field ${fieldInfo.name} is not found in mapping, but visited: this should not happen")
+  }
 
   def asDocument(score: Float): Document = {
     val fields = List.concat(
-      doc.text.map(f => TextField(f._1, f._2)),
-      doc.textList.map(f => TextListField(f._1, f._2.toList)),
-      doc.int.map(f => IntField(f._1, f._2)),
+      collectedScalars.toList,
+      collectedTextList.map { case (name, values) => TextListField(name, values.toList) },
       List(FloatField("_score", score))
     )
     Document(fields)
   }
-}
-
-object DocumentVisitor {
-  case class DocumentFields(
-      text: mutable.Map[String, String] = mutable.Map.empty,
-      textList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
-      int: mutable.Map[String, Int] = mutable.Map.empty
-  )
-
 }

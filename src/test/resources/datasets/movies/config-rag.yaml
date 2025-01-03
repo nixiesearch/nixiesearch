@@ -9,8 +9,9 @@ inference:
   completion:
     qwen2:
       provider: llamacpp
-      model: Qwen/Qwen2-0.5B-Instruct-GGUF
-      file: qwen2-0_5b-instruct-q4_0.gguf
+      model: Qwen/Qwen2.5-1.5B-Instruct-GGUF
+      file: qwen2.5-1.5b-instruct-q4_0.gguf
+      seed: 0
 
 searcher:
   api:

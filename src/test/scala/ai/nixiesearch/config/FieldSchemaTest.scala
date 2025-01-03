@@ -1,6 +1,6 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.{Language, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.config.mapping.SuggestSchema.Expand
@@ -51,6 +51,22 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val yaml   = """type: int""".stripMargin
     val result = parseYaml(yaml)
     result shouldBe Right(IntFieldSchema(name = "field"))
+  }
+
+  it should "decode geopoint schema" in {
+    val yaml =
+      """type: geopoint
+        |filter: true
+        |store: true""".stripMargin
+    val result = parseYaml(yaml)
+    result shouldBe Right(
+      GeopointFieldSchema(
+        name = "field",
+        store = true,
+        filter = true
+      )
+    )
+
   }
 
   it should "decode fields with simple suggest mapping" in {

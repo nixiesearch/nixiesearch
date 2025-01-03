@@ -9,7 +9,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{FloatField, TextField}
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.FiniteRange.Lower.Gt
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers

@@ -3,7 +3,8 @@ package ai.nixiesearch.config
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
 import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
+import ai.nixiesearch.core.Field.TextLikeField
+import ai.nixiesearch.core.field.*
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
@@ -21,7 +22,7 @@ sealed trait FieldSchema[T <: Field] {
 }
 
 object FieldSchema {
-  sealed trait TextLikeFieldSchema[T <: Field] extends FieldSchema[T] {
+  sealed trait TextLikeFieldSchema[T <: TextLikeField] extends FieldSchema[T] {
     def search: SearchType
     def language: Language
     def suggest: Option[SuggestSchema]
@@ -105,6 +106,15 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false
   ) extends FieldSchema[BooleanField]
+
+  case class GeopointFieldSchema(
+      name: String,
+      store: Boolean = true,
+      filter: Boolean = false
+  ) extends FieldSchema[GeopointField] {
+    def sort  = false
+    def facet = false
+  }
 
   object yaml {
     import SearchType.yaml.given
@@ -209,6 +219,15 @@ object FieldSchema {
       }
     )
 
+    def geopointFieldSchemaDecoder(name: String): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
+      for {
+        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        GeopointFieldSchema(name, store, filter)
+      }
+    )
+
     def fieldSchemaDecoder(name: String): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
@@ -219,6 +238,7 @@ object FieldSchema {
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
         case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
         case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
+        case Right("geopoint")            => geopointFieldSchemaDecoder(name).tryDecode(c)
         case Right(other) =>
           Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
@@ -251,6 +271,9 @@ object FieldSchema {
     given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] = deriveDecoder
     given boolFieldSchemaEncoder: Encoder[BooleanFieldSchema] = deriveEncoder
 
+    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = deriveDecoder
+    given geopointFieldSchemaEncoder: Encoder[GeopointFieldSchema] = deriveEncoder
+
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
@@ -259,19 +282,21 @@ object FieldSchema {
       case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
       case f: BooleanFieldSchema  => boolFieldSchemaEncoder.apply(f).deepMerge(withType("bool"))
+      case f: GeopointFieldSchema => geopointFieldSchemaEncoder.apply(f).deepMerge(withType("geopoint"))
     }
 
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
-        case Right("int")    => intFieldSchemaDecoder.tryDecode(c)
-        case Right("long")   => longFieldSchemaDecoder.tryDecode(c)
-        case Right("float")  => floatFieldSchemaDecoder.tryDecode(c)
-        case Right("double") => doubleFieldSchemaDecoder.tryDecode(c)
-        case Right("bool")   => boolFieldSchemaDecoder.tryDecode(c)
-        case Right("text")   => textFieldSchemaDecoder.tryDecode(c)
-        case Right("text[]") => textListFieldSchemaDecoder.tryDecode(c)
-        case Right(other)    => Left(DecodingFailure(s"field type '$other' is not supported", c.history))
-        case Left(err)       => Left(err)
+        case Right("int")      => intFieldSchemaDecoder.tryDecode(c)
+        case Right("long")     => longFieldSchemaDecoder.tryDecode(c)
+        case Right("float")    => floatFieldSchemaDecoder.tryDecode(c)
+        case Right("double")   => doubleFieldSchemaDecoder.tryDecode(c)
+        case Right("bool")     => boolFieldSchemaDecoder.tryDecode(c)
+        case Right("text")     => textFieldSchemaDecoder.tryDecode(c)
+        case Right("text[]")   => textListFieldSchemaDecoder.tryDecode(c)
+        case Right("geopoint") => geopointFieldSchemaDecoder.tryDecode(c)
+        case Right(other)      => Left(DecodingFailure(s"field type '$other' is not supported", c.history))
+        case Left(err)         => Left(err)
       }
     )
 
