@@ -14,6 +14,7 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val mapping = IndexMapping(
     name = IndexName("test"),
     fields = Map(
+      "_id"  -> TextFieldSchema(name = "_id"),
       "text" -> TextFieldSchema(name = "text")
     )
   )
