@@ -1,9 +1,10 @@
 package ai.nixiesearch.core
 
+import ai.nixiesearch.config.mapping.IndexMapping
 import cats.effect.IO
 import fs2.{Pipe, Pull, Stream}
 import fs2.Chunk
-import io.circe.Json
+import io.circe.{Codec, Json}
 import org.typelevel.jawn.AsyncParser
 import org.typelevel.jawn.AsyncParser.{Mode, UnwrapArray, ValueStream}
 
@@ -11,14 +12,17 @@ object JsonDocumentStream extends Logging {
 
   import io.circe.jawn.CirceSupportParser.facade
 
-  def parse: Pipe[IO, Byte, Document] = bytes =>
-    bytes.pull.peek1.flatMap {
-      case Some(('[', tail)) => tail.through(parse(UnwrapArray)).pull.echo
-      case Some((_, tail))   => tail.through(parse(ValueStream)).pull.echo
-      case None              => Pull.done
-    }.stream
+  def parse(mapping: IndexMapping): Pipe[IO, Byte, Document] = {
+    given documentCodec: Codec[Document] = Document.codecFor(mapping)
+    bytes =>
+      bytes.pull.peek1.flatMap {
+        case Some(('[', tail)) => tail.through(parse(UnwrapArray)).pull.echo
+        case Some((_, tail))   => tail.through(parse(ValueStream)).pull.echo
+        case None              => Pull.done
+      }.stream
+  }
 
-  private def parse(mode: Mode): Pipe[IO, Byte, Document] = bytes =>
+  private def parse(mode: Mode)(using Codec[Document]): Pipe[IO, Byte, Document] = bytes =>
     bytes
       .scanChunks(AsyncParser[Json](mode))((parser, next) => {
         parser.absorb(next.toByteBuffer) match {

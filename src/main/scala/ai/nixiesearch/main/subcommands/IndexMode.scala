@@ -57,7 +57,7 @@ object IndexMode extends Logging {
       for {
         _ <- Logo.lines.map(line => info(line)).sequence
         _ <- source
-          .stream()
+          .stream(indexer.index.mapping)
           .chunkN(1024)
           .through(PrintProgress.tapChunk("indexed docs"))
           .evalMap(batch => indexer.addDocuments(batch.toList) *> indexer.flush())

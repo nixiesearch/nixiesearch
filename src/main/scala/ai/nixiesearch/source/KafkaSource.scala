@@ -1,17 +1,12 @@
 package ai.nixiesearch.source
 
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging}
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.KafkaIndexSourceArgs
 import ai.nixiesearch.source.KafkaSource.Consumer
 import cats.effect.IO
 import com.google.common.collect.Lists
-import org.apache.kafka.clients.consumer.{
-  ConsumerConfig,
-  ConsumerRebalanceListener,
-  KafkaConsumer,
-  OffsetAndMetadata,
-  OffsetCommitCallback
-}
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRebalanceListener, KafkaConsumer, OffsetAndMetadata, OffsetCommitCallback}
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.TopicPartition
 
@@ -25,7 +20,7 @@ import fs2.{Chunk, Stream}
 case class KafkaSource(config: KafkaIndexSourceArgs) extends DocumentSource {
   val POLL_FREQUENCY = Duration.ofMillis(100)
   import KafkaSource.Consumer.*
-  override def stream(): fs2.Stream[IO, Document] = Stream
+  override def stream(mapping: IndexMapping): fs2.Stream[IO, Document] = Stream
     .bracket(Consumer.create(config))(_.close())
     .flatMap(consumer =>
       Stream
@@ -40,7 +35,7 @@ case class KafkaSource(config: KafkaIndexSourceArgs) extends DocumentSource {
         .flatMap(record =>
           Stream
             .emits(record)
-            .through(JsonDocumentStream.parse)
+            .through(JsonDocumentStream.parse(mapping))
             .chunkN(32)
             .unchunks
         )

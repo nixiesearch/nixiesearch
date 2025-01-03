@@ -3,7 +3,7 @@ package ai.nixiesearch.api
 import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGResponseFrame, SearchResultsFrame}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponseFrame, SuggestRequest}
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SearchResponseFrame, SuggestRequest}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
@@ -36,6 +36,12 @@ import io.circe.syntax.*
 import org.http4s.headers.`Content-Type`
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
+  given documentCodec: Codec[Document]                 = Document.codecFor(searcher.index.mapping)
+  given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
+  given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
+  given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
+  given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
+
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" if searcher.index.mapping.nameMatches(indexName) =>
       searchBlocking(request)
@@ -181,15 +187,15 @@ object SearchRoute {
   }
 
   sealed trait SearchResponseFrame {
-    def asServerSideEvent: String
+    def asServerSideEvent(using Encoder[SearchResponse]): String
   }
   object SearchResponseFrame {
     case class SearchResultsFrame(value: SearchResponse) extends SearchResponseFrame {
-      override def asServerSideEvent: String =
+      override def asServerSideEvent(using Encoder[SearchResponse]): String =
         s"event: results\ndata: ${value.asJson.noSpaces}\n\n"
     }
     case class RAGResponseFrame(value: RAGResponse) extends SearchResponseFrame {
-      override def asServerSideEvent: String =
+      override def asServerSideEvent(using Encoder[SearchResponse]): String =
         s"event: rag\ndata: ${value.asJson.noSpaces}\n\n"
     }
 
@@ -206,17 +212,15 @@ object SearchRoute {
       response: Option[String] = None,
       ts: Long
   ) {}
-  object SearchResponse {
-    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
-    given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
-  }
+//  object SearchResponse {
+//    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
+//    given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
+//  }
 
   import SearchRequest.given
 
   given searchRequestDecJson: EntityDecoder[IO, SearchRequest]   = jsonOf
   given searchRequestEncJson: EntityEncoder[IO, SearchRequest]   = jsonEncoderOf
-  given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
-  given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
   case class ErrorResponse(error: String, cause: Option[String] = None)
   object ErrorResponse {

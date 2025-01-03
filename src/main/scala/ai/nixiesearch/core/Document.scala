@@ -4,7 +4,7 @@ import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Field.{BooleanField, DoubleField, FloatField, IntField, LongField, TextField, TextListField}
-import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject}
 import cats.implicits.*
 
 import java.util.UUID
@@ -47,30 +47,34 @@ object Document {
 
   def apply(head: Field, tail: Field*) = new Document(head +: tail.toList)
 
-  given documentEncoder: Encoder[Document] =
-    Encoder.instance(doc => {
-      val fields = doc.fields.map {
-        case FloatField(name, value)          => (name, Json.fromFloatOrNull(value))
-        case DoubleField(name, value)         => (name, Json.fromDoubleOrNull(value))
-        case IntField(name, value)            => (name, Json.fromInt(value))
-        case LongField(name, value)           => (name, Json.fromLong(value))
-        case TextField(name, value)           => (name, Json.fromString(value))
-        case BooleanField(name, value)        => (name, Json.fromBoolean(value))
-        case Field.TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
-      }
-      Json.fromJsonObject(JsonObject.fromIterable(fields))
-    })
+  def encoderFor(mapping: IndexMapping): Encoder[Document] = ???
+  def decoderFor(mapping: IndexMapping): Decoder[Document] = ???
+  def codecFor(mapping: IndexMapping): Codec[Document]     = Codec.from(decoderFor(mapping), encoderFor(mapping))
 
-  given documentDecoder: Decoder[Document] =
-    Decoder
-      .instance(c =>
-        c.value.asObject match {
-          case None => Left(DecodingFailure(s"document should be a JSON object: ${c.value}", c.history))
-          case Some(obj) =>
-            decodeObject(c, obj.toList).map(fields => Document(fields.reverse))
-        }
-      )
-      .ensure(_.fields.nonEmpty, "document cannot contain zero fields")
+//  given documentEncoder: Encoder[Document] =
+//    Encoder.instance(doc => {
+//      val fields = doc.fields.map {
+//        case FloatField(name, value)          => (name, Json.fromFloatOrNull(value))
+//        case DoubleField(name, value)         => (name, Json.fromDoubleOrNull(value))
+//        case IntField(name, value)            => (name, Json.fromInt(value))
+//        case LongField(name, value)           => (name, Json.fromLong(value))
+//        case TextField(name, value)           => (name, Json.fromString(value))
+//        case BooleanField(name, value)        => (name, Json.fromBoolean(value))
+//        case Field.TextListField(name, value) => (name, Json.fromValues(value.map(Json.fromString)))
+//      }
+//      Json.fromJsonObject(JsonObject.fromIterable(fields))
+//    })
+
+//  given documentDecoder: Decoder[Document] =
+//    Decoder
+//      .instance(c =>
+//        c.value.asObject match {
+//          case None => Left(DecodingFailure(s"document should be a JSON object: ${c.value}", c.history))
+//          case Some(obj) =>
+//            decodeObject(c, obj.toList).map(fields => Document(fields.reverse))
+//        }
+//      )
+//      .ensure(_.fields.nonEmpty, "document cannot contain zero fields")
 
   @tailrec
   def decodeObject(c: HCursor, next: List[(String, Json)], acc: List[Field] = Nil): Decoder.Result[List[Field]] =
