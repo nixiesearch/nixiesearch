@@ -19,6 +19,8 @@ import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 
 import scala.jdk.CollectionConverters.*
 
+import language.experimental.namedTuples
+
 case class IndexMapping(
     name: IndexName,
     alias: List[Alias] = Nil,
@@ -40,6 +42,10 @@ case class IndexMapping(
   val geopointFields = fields.collect { case (name, s: GeopointFieldSchema) => name -> s }
 
   val analyzer = IndexMapping.createAnalyzer(this)
+
+  def nameMatches(value: String): Boolean = {
+    (name.value == value) || alias.contains(Alias(value))
+  }
 
   def migrate(updated: IndexMapping): IO[IndexMapping] = for {
     fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
@@ -73,7 +79,7 @@ case class IndexMapping(
     }
 
   def suggestFields(): List[String] =
-    fields.values.toList.collect { case TextLikeFieldSchema(name, _, _, _, _, _, _, Some(_)) =>
+    fields.values.toList.collect { case TextLikeFieldSchema(name = name, suggest=Some(_)) =>
       name
     }
 }
@@ -104,7 +110,7 @@ object IndexMapping extends Logging {
   }
 
   def createAnalyzer(mapping: IndexMapping): Analyzer = {
-    val fieldAnalyzers = mapping.fields.values.collect { case TextLikeFieldSchema(name, _, _, _, _, _, language, _) =>
+    val fieldAnalyzers = mapping.fields.values.collect { case TextLikeFieldSchema(name=name,language=language) =>
       name -> language.analyzer
     }
     new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)

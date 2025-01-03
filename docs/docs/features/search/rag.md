@@ -23,7 +23,6 @@ inference:
       # for production uses consider using something bigger.
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
-      prompt: qwen2
 
 schema:
   movies:
@@ -45,37 +44,10 @@ schema:
 Where:
 
 * `model`: a Huggingface model handle in a format of `namespace`/`model-name`. 
-* `prompt`: a prompt format, either one of pre-defined ones like `qwen2` and `llama3`, or a raw prompt with `{user}` and `{system}` placeholders.
 * `name`: name of this model you will reference in RAG search requests
 * `system` (optional): A system prompt for the model.
 
-## Supported prompts
-
-A `qwen2` prompt, which is in fact an alias to the following raw prompt:
-```
-<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\n
-```
-
-A more extended `llama3` prompt is an alias to the next raw one:
-```
-<|start_header_id|>system<|end_header_id|>
-
-{system}<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-{user}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-```
-
-You can always define your own prompt:
-```yaml
-inference:
-  completion:
-    # Used for summarization
-    mistral7b:
-      model: TheBloke/Mistral-7B-Instruct-v0.2-GGUF
-      prompt: "[INST] {user} [/INST]"
-      name: mistral7b
-```
+Nixiesearch uses a default prompt format from the GGUF model.
 
 ## Sending requests
 

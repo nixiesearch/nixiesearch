@@ -7,8 +7,8 @@ import org.apache.commons.io.FileUtils
 object PrintProgress extends Logging {
   case class ProgressPeriod(
       start: Long = System.currentTimeMillis(),
-      total: Int = 0,
-      batchTotal: Int = 0
+      total: Long = 0L,
+      batchTotal: Long = 0L
   ) {
     def inc(events: Int) =
       copy(total = total + events, batchTotal = batchTotal + events)

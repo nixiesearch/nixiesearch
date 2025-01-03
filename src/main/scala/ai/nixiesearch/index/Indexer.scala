@@ -1,30 +1,13 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.FieldSchema.{
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextLikeFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
-import ai.nixiesearch.core.codec.{
-  BooleanFieldCodec,
-  DoubleFieldCodec,
-  FieldCodec,
-  FloatFieldCodec,
-  GeopointFieldCodec,
-  IntFieldCodec,
-  LongFieldCodec,
-  NixiesearchCodec,
-  TextFieldCodec,
-  TextListFieldCodec
-}
+import ai.nixiesearch.core.codec.*
+import ai.nixiesearch.core.codec.TextFieldCodec.RAW_SUFFIX
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.index.sync.Index
@@ -37,6 +20,7 @@ import org.apache.lucene.document.Document as LuceneDocument
 import java.util
 import cats.implicits.*
 
+import language.experimental.namedTuples
 import scala.collection.mutable.ArrayBuffer
 
 case class Indexer(index: Index, writer: IndexWriter) extends Logging {
@@ -50,12 +34,12 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       val all = new util.ArrayList[LuceneDocument]()
       val ids = new ArrayBuffer[String]()
       docs.foreach(doc => {
-        val mapped = doc.cast(index.mapping)
         val buffer = new LuceneDocument()
-        mapped.fields.foreach {
+        doc.fields.foreach {
           case field @ TextField(name, value) =>
             if (name == "_id") ids.addOne(value)
             writeField(field, TextFieldCodec, index.mapping.textFields, buffer, fieldEmbeds(field, embeddedStrings))
+
           case field @ TextListField(name, value) =>
             writeField(
               field,
@@ -79,7 +63,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         }
         all.add(buffer)
       })
-      val deleteIds = ids.map(id => new Term("_id_raw", id))
+      val deleteIds = ids.map(id => new Term("_id" + RAW_SUFFIX, id))
       writer.deleteDocuments(deleteIds.toSeq*)
       writer.addDocuments(all)
     }
@@ -102,7 +86,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   ): Map[String, Array[Float]] = field match {
     case t: TextLikeField =>
       index.mapping.textLikeFields.get(t.name) match {
-        case Some(TextLikeFieldSchema(_, tpe: SemanticSearchLikeType, _, _, _, _, _, _)) =>
+        case Some(TextLikeFieldSchema(search=tpe: SemanticSearchLikeType)) =>
           allFieldEmbeds.getOrElse(tpe.model, Map.empty)
         case _ => Map.empty
       }
@@ -113,8 +97,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       doc   <- docs
       field <- doc.fields
       model <- mapping.fields.get(field.name).toList.flatMap {
-        case TextLikeFieldSchema(name, tpe: SemanticSearchLikeType, _, _, _, _, _, _) =>
-          Some(tpe)
+        case TextLikeFieldSchema(search=tpe: SemanticSearchLikeType) =>          Some(tpe)
         case other =>
           None
       }
@@ -153,10 +136,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   }
 
   def flush(): IO[Boolean] = {
-    IO(writer.numRamDocs()).flatMap {
-      case 0 => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
-      case other =>
-        debug(s"mem docs: $other") *> IO(writer.commit()).flatMap {
+    IO((writer.numRamDocs() > 0) || writer.hasDeletions).flatMap {
+      case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
+      case true =>
+        debug(s"mem docs: ${writer.numRamDocs()} deletes=${writer.hasDeletions}") *> IO(writer.commit()).flatMap {
           case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
           case seqnum =>
             for {
@@ -187,6 +170,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
           } yield {}
       }
     } yield {}
+  }
+
+  def delete(docid: String): IO[Unit] = IO {
+    writer.deleteDocuments(new Term("_id" + RAW_SUFFIX, docid))
   }
 
 }

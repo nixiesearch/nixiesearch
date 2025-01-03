@@ -21,7 +21,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd     = System.getProperty("user.dir")
   lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-rag.yaml")).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
-  lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz")
+  lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
   override def inference = conf.inference
 
   it should "search" in withIndex { nixie =>
@@ -40,7 +40,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
                 RAGRequest(
                   topDocs = 3,
                   prompt =
-                    "Based on following search resul documents, please summarize the answer for a user search query 'matrix'",
+                    "Based on following search result documents, summarize the answer for a user search query 'matrix' in a single sentence. Do not include task or intro.",
                   model = ModelRef("qwen2"),
                   fields = List("title", "overview")
                 )
@@ -51,7 +51,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       )
       val response = searchApi.searchBlocking(searchRequest).unsafeRunSync().as[SearchResponse].unsafeRunSync()
       response.response shouldBe Some(
-        "The title The Matrix tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers who now rule the earth."
+        "\"The Matrix\" is set in the 22nd century and tells the story of a computer hacker who joins a group of underground insurgents fighting the vast and powerful computers that now rule the earth."
       )
     }
   }

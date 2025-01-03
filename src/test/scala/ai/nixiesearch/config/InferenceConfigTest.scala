@@ -1,7 +1,6 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate.Qwen2Template
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
   LlamacppInferenceModelConfig,
   LlamacppParams
@@ -56,8 +55,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         Map(
           ModelRef("qwen2") -> LlamacppInferenceModelConfig(
             model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
-            file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
-            prompt = Qwen2Template
+            file = Some("qwen2-0_5b-instruct-q4_0.gguf")
           )
         )
       )
@@ -82,7 +80,6 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
           ModelRef("qwen2") -> LlamacppInferenceModelConfig(
             model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
             file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
-            prompt = Qwen2Template,
             options = LlamacppParams(flash_attn = false)
           )
         )

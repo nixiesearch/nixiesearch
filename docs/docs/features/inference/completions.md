@@ -13,15 +13,15 @@ inference:
       provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
-      prompt: qwen2
 ```
+
+Nixiesearch uses an embedded llamacpp server to handle models, so any GGUF model should work. Also note that you should prefer `instruct` models which are tuned for instruction-following, and not the raw models.
 
 Fields:
 
 * `provider`: *required*, *string*. As for `v0.3.0`, only `llamacpp` is supported. Other SaaS providers like OpenAI, Cohere, mxb and Google are on the roadmap.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](../../reference/url.md) for more details on how to load your model.
 * `file`: *optional*, *string*. A file name for the model, if the target model has multiple. A typical case for quantized models.
-* `prompt`: *required*, *string*. A prompt format used for the LLM. See [Supported LLM prompts for more details](../search/rag.md#supported-prompts)
 * `options`: *optional*, *obj*. A dict of llamacpp-specific options.
 
 See the [`inference.completion` section in config file reference](../../reference/config.md#ml-inference) for more details on other advanced options of providers.

@@ -10,7 +10,7 @@ import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import cats.implicits.*
 import io.circe.generic.semiauto.*
-
+import language.experimental.namedTuples
 import java.io.File
 import io.circe.yaml.parser.*
 
@@ -62,7 +62,7 @@ object Config extends Logging {
     val indexRefs = config.schema.values
       .flatMap(mapping =>
         mapping.fields.values.collect {
-          case field @ TextLikeFieldSchema(_, SemanticSearchLikeType(ref), _, _, _, _, _, _) =>
+          case field @ TextLikeFieldSchema(search=SemanticSearchLikeType(ref)) =>
             field.name -> ref
         }
       )

@@ -11,7 +11,6 @@ inference:
       provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
-      prompt: qwen2
       seed: 0
 
 searcher:

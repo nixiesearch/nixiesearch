@@ -3,7 +3,6 @@ package ai.nixiesearch.core.nn.model.embedding
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, PromptConfig}
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LLMPromptTemplate.Qwen2Template
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
@@ -16,16 +15,16 @@ import java.nio.file.{Files, Paths}
 
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {
-    val inference = OnnxEmbeddingInferenceModelConfig(
-      model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+    val handle = HuggingFaceHandle("nixiesearch", "all-MiniLM-L6-v2-onnx")
+    val config = OnnxEmbeddingInferenceModelConfig(
+      model = handle,
       prompt = PromptConfig(
         query = "query: ",
         doc = "doc: "
       )
     )
-    val handle = HuggingFaceHandle("nixiesearch", "all-MiniLM-L6-v2-onnx")
     val (embedder, shutdownHandle) = EmbedModelDict
-      .createHuggingface(handle, inference, ModelFileCache(Paths.get("/tmp/")))
+      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/")))
       .allocated
       .unsafeRunSync()
     val result = embedder
@@ -42,5 +41,23 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val d2 = CosineDistance.dist(result(0), result(2))
     d2 shouldBe 0.77f +- 0.02
     shutdownHandle.unsafeRunSync()
+  }
+
+  it should "work with an XLM-based models" in {
+    val handle = HuggingFaceHandle("nixiesearch", "multilingual-e5-base-onnx")
+    val config = OnnxEmbeddingInferenceModelConfig(
+      model = handle,
+      prompt = PromptConfig(
+        query = "query: ",
+        doc = "passage: "
+      )
+    )
+    val (embedder, shutdownHandle) = EmbedModelDict
+      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/")))
+      .allocated
+      .unsafeRunSync()
+    val result = embedder.encode(List("query: test")).unsafeRunSync()
+    result.length shouldBe 1
+    result(0).length shouldBe 768
   }
 }

@@ -15,9 +15,13 @@ import cats.effect.kernel.Resource
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 import scala.jdk.CollectionConverters.*
-import java.io.InputStream
+import java.io.{InputStream, RandomAccessFile}
 import java.nio.LongBuffer
 import fs2.{Chunk, Stream}
+
+import java.nio.channels.FileChannel
+import java.nio.channels.FileChannel.MapMode
+import java.nio.file.Path
 
 sealed trait EmbedModel extends Logging {
   def prompt: PromptConfig
@@ -47,7 +51,7 @@ object EmbedModel {
       session: OrtSession,
       tokenizer: HuggingFaceTokenizer,
       dim: Int,
-      ttidNeeded: Boolean,
+      inputTensorNames: List[String],
       prompt: PromptConfig
   ) extends EmbedModel {
     override val batchSize = 16
@@ -60,19 +64,13 @@ object EmbedModel {
       val attMask      = encoded.flatMap(e => e.getAttentionMask)
 
       val tensorDim = Array(batch.length.toLong, encoded(0).getIds.length)
-      val args =
-        if (ttidNeeded)
-          Map(
-            "input_ids"      -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim),
-            "token_type_ids" -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim),
-            "attention_mask" -> OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
-          )
-        else {
-          Map(
-            "input_ids"      -> OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim),
-            "attention_mask" -> OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
-          )
-        }
+      val argsList = inputTensorNames.map {
+        case "input_ids"      => OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
+        case "token_type_ids" => OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
+        case "attention_mask" => OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
+        case other            => throw Exception(s"input $other not supported")
+      }
+      val args       = inputTensorNames.zip(argsList).toMap
       val result     = session.run(args.asJava)
       val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
       val normalized = EmbedPooling.mean(tensor, tokenLengths, dim)
@@ -90,8 +88,8 @@ object EmbedModel {
   object OnnxEmbedModel extends Logging {
     val ONNX_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
-        model: InputStream,
-        dic: InputStream,
+        model: Path,
+        dic: Path,
         dim: Int,
         prompt: PromptConfig,
         ttidNeeded: Boolean = true,
@@ -108,8 +106,8 @@ object EmbedModel {
     }
 
     def createUnsafe(
-        model: InputStream,
-        dic: InputStream,
+        model: Path,
+        dic: Path,
         dim: Int,
         prompt: PromptConfig,
         ttidNeeded: Boolean = true,
@@ -128,15 +126,17 @@ object EmbedModel {
       opts.setOptimizationLevel(OptLevel.ALL_OPT)
       // opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
-      val modelBytes = IOUtils.toByteArray(model)
-      val session    = env.createSession(modelBytes, opts)
-      val size       = FileUtils.byteCountToDisplaySize(modelBytes.length)
-      val inputs     = session.getInputNames.asScala.toList
-      val outputs    = session.getOutputNames.asScala.toList
+      val modelFile = new RandomAccessFile(model.toFile, "r")
+      val channel   = modelFile.getChannel
+      val buffer    = channel.map(MapMode.READ_ONLY, 0, channel.size())
+      val session   = env.createSession(buffer, opts)
+      val size      = FileUtils.byteCountToDisplaySize(channel.size())
+      val inputs    = session.getInputNames.asScala.toList
+      val outputs   = session.getOutputNames.asScala.toList
       logger.info(s"Loaded ONNX model (size=$size inputs=$inputs outputs=$outputs dim=$dim)")
-      model.close()
-      dic.close()
-      OnnxEmbedModel(env, session, tokenizer, dim, ttidNeeded, prompt)
+      channel.close()
+      modelFile.close()
+      OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt)
     }
   }
 

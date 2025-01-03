@@ -15,18 +15,29 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
   import IndexRoute.{given, *}
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush" if indexName == indexer.index.name.value           => flush()
-    case request @ POST -> Root / indexName / "_merge" if indexName == indexer.index.name.value => merge(request)
-    case request @ PUT -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
+    case POST -> Root / indexName / "_flush" if indexer.index.mapping.nameMatches(indexName)           => flush()
+    case request @ POST -> Root / indexName / "_merge" if indexer.index.mapping.nameMatches(indexName) => merge(request)
+    case request @ PUT -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
       index(request)
-    case request @ POST -> Root / indexName / "_index" if indexName == indexer.index.name.value =>
+    case request @ POST -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
       index(request)
+    case request @ DELETE -> Root / indexName / "_delete" / docid if indexer.index.mapping.nameMatches(indexName) =>
+      delete(docid)
   }
 
   def index(request: Request[IO]): IO[Response[IO]] = for {
     _        <- info(s"PUT /${indexer.index.name.value}/_index")
-    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse))
+    ok       <- indexDocStream(request.entity.body.through(JsonDocumentStream.parse(indexer.index.mapping)))
     response <- Ok(ok)
+  } yield {
+    response
+  }
+
+  def delete(docid: String): IO[Response[IO]] = for {
+    start    <- IO(System.currentTimeMillis())
+    _        <- info(s"DELETE /${indexer.index.name.value}/_doc/$docid")
+    _        <- IO(indexer.delete(docid))
+    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
   } yield {
     response
   }
@@ -77,10 +88,8 @@ object IndexRoute extends Logging {
 
   import ai.nixiesearch.config.mapping.IndexMapping.json.given
 
-  given schemaEncoderJson: EntityEncoder[IO, IndexMapping]         = jsonEncoderOf
-  given schemaDecoderJson: EntityDecoder[IO, IndexMapping]         = jsonOf
-  given singleDocJson: EntityDecoder[IO, Document]                 = jsonOf
-  given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
+  given schemaEncoderJson: EntityEncoder[IO, IndexMapping] = jsonEncoderOf
+  given schemaDecoderJson: EntityDecoder[IO, IndexMapping] = jsonOf
   given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
   given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
 

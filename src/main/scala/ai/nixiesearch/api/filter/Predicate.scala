@@ -27,8 +27,9 @@ import cats.implicits.*
 import io.circe.generic.semiauto.{deriveCodec, deriveEncoder}
 import org.apache.lucene.document.{IntField, LatLonDocValuesField, LatLonPoint, LatLonPointDistanceQuery, LongField}
 import io.circe.syntax.*
-
 import scala.util.{Failure, Success}
+import org.apache.lucene.document.{IntField, LongField}
+import language.experimental.namedTuples
 
 sealed trait Predicate {
   def compile(mapping: IndexMapping): IO[LuceneQuery]
@@ -178,7 +179,7 @@ object Predicate {
         smallerThan: FiniteRange.Higher
     ): IO[LuceneQuery] = {
       mapping.fields.get(field) match {
-        case Some(IntFieldSchema(_, _, _, _, true)) =>
+        case Some(IntFieldSchema(filter=true)) =>
           IO {
             val lower = greaterThan match {
               case FiniteRange.Lower.Gt(value)  => math.round(value).toInt + 1
@@ -190,7 +191,7 @@ object Predicate {
             }
             org.apache.lucene.document.IntField.newRangeQuery(field, lower, higher)
           }
-        case Some(LongFieldSchema(_, _, _, _, true)) =>
+        case Some(LongFieldSchema(filter=true)) =>
           IO {
             val lower = greaterThan match {
               case FiniteRange.Lower.Gt(value)  => math.round(value) + 1
@@ -203,11 +204,11 @@ object Predicate {
             org.apache.lucene.document.LongField.newRangeQuery(field, lower, higher)
           }
 
-        case Some(LongFieldSchema(_, _, _, _, false)) =>
+        case Some(LongFieldSchema(filter=false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
-        case Some(IntFieldSchema(_, _, _, _, false)) =>
+        case Some(IntFieldSchema(filter=false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
-        case Some(FloatFieldSchema(_, _, _, _, true)) =>
+        case Some(FloatFieldSchema(filter=true)) =>
           IO {
             val lower = greaterThan match {
               case FiniteRange.Lower.Gt(value)  => Math.nextUp(value.toFloat)
@@ -220,7 +221,7 @@ object Predicate {
             }
             org.apache.lucene.document.FloatField.newRangeQuery(field, lower, higher)
           }
-        case Some(DoubleFieldSchema(_, _, _, _, true)) =>
+        case Some(DoubleFieldSchema(filter=true)) =>
           IO {
             val lower = greaterThan match {
               case FiniteRange.Lower.Gt(value)  => Math.nextUp(value)
@@ -234,7 +235,7 @@ object Predicate {
             org.apache.lucene.document.DoubleField.newRangeQuery(field, lower, higher)
           }
 
-        case Some(FloatFieldSchema(_, _, _, _, false)) =>
+        case Some(FloatFieldSchema(filter=false)) =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(other) => IO.raiseError(new Exception(s"range queries only work with numeric fields: $other"))
         case None        => IO.raiseError(new Exception(s"cannot execute range query over non-existent field $field"))

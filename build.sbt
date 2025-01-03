@@ -4,24 +4,24 @@ import sbt.Package.ManifestAttributes
 lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
-version := "0.3.3"
+version := "0.3.4"
 
-scalaVersion := "3.5.1"
+scalaVersion := "3.6.2"
 
 name := "nixiesearch"
 
 libraryDependencies ++= Seq(
-  "org.typelevel"         %% "cats-effect"                % "3.5.4",
+  "org.typelevel"         %% "cats-effect"                % "3.5.7",
   "org.scalatest"         %% "scalatest"                  % scalatestVersion % "test",
   "org.scalactic"         %% "scalactic"                  % scalatestVersion % "test",
   "org.scalatestplus"     %% "scalacheck-1-16"            % "3.2.14.0"       % "test",
-  "ch.qos.logback"         % "logback-classic"            % "1.5.9",
+  "ch.qos.logback"         % "logback-classic"            % "1.5.15",
   "io.circe"              %% "circe-yaml"                 % circeYamlVersion,
   "io.circe"              %% "circe-core"                 % circeVersion,
   "io.circe"              %% "circe-generic"              % circeVersion,
   "io.circe"              %% "circe-parser"               % circeVersion,
   "com.github.pathikrit"  %% "better-files"               % "3.9.2",
-  "org.rogach"            %% "scallop"                    % "5.1.0",
+  "org.rogach"            %% "scallop"                    % "5.2.0",
   "com.github.blemale"    %% "scaffeine"                  % "5.3.0",
   "org.http4s"            %% "http4s-dsl"                 % http4sVersion,
   "org.http4s"            %% "http4s-ember-server"        % http4sVersion,
@@ -39,14 +39,14 @@ libraryDependencies ++= Seq(
   "org.apache.lucene"      % "lucene-analysis-kuromoji"   % luceneVersion,
   "org.apache.lucene"      % "lucene-analysis-stempel"    % luceneVersion,
   "org.apache.lucene"      % "lucene-analysis-morfologik" % luceneVersion,
-  "commons-io"             % "commons-io"                 % "2.17.0",
+  "commons-io"             % "commons-io"                 % "2.18.0",
   "commons-codec"          % "commons-codec"              % "1.17.1",
   "org.apache.commons"     % "commons-lang3"              % "3.17.0",
   "ai.djl"                 % "api"                        % djlVersion,
   "ai.djl.huggingface"     % "tokenizers"                 % djlVersion,
-  "com.github.luben"       % "zstd-jni"                   % "1.5.6-6",
+  "com.github.luben"       % "zstd-jni"                   % "1.5.6-9",
   "com.github.blemale"    %% "scaffeine"                  % "5.3.0",
-  "com.hubspot.jinjava"    % "jinjava"                    % "2.7.3",
+  "com.hubspot.jinjava"    % "jinjava"                    % "2.7.4",
   "software.amazon.awssdk" % "s3"                         % awsVersion,
   "co.fs2"                %% "fs2-core"                   % fs2Version,
   "co.fs2"                %% "fs2-io"                     % fs2Version,
@@ -55,18 +55,18 @@ libraryDependencies ++= Seq(
   "de.lhns"               %% "fs2-compress-gzip"          % fs2CompressVersion,
   "de.lhns"               %% "fs2-compress-bzip2"         % fs2CompressVersion,
   "de.lhns"               %% "fs2-compress-zstd"          % fs2CompressVersion,
-  "org.apache.kafka"       % "kafka-clients"              % "3.8.0"
+  "org.apache.kafka"       % "kafka-clients"              % "3.9.0"
 )
 
 if (GPU) {
   libraryDependencies ++= Seq(
-    "com.microsoft.onnxruntime" % "onnxruntime_gpu" % onnxRuntimeVersion,
-    "de.kherud"                 % "llama"           % llamacppVersion classifier "cuda12-linux-x86-64"
+    "com.microsoft.onnxruntime" % "onnxruntime_gpu"      % onnxRuntimeVersion,
+    "ai.nixiesearch"            % "llamacpp-server-java" % llamacppVersion classifier "cuda12-linux-x86-64"
   )
 } else {
   libraryDependencies ++= Seq(
-    "com.microsoft.onnxruntime" % "onnxruntime" % onnxRuntimeVersion,
-    "de.kherud"                 % "llama"       % llamacppVersion
+    "com.microsoft.onnxruntime" % "onnxruntime"          % onnxRuntimeVersion,
+    "ai.nixiesearch"            % "llamacpp-server-java" % llamacppVersion
   )
 }
 
@@ -80,7 +80,8 @@ scalacOptions ++= Seq(
   "-Xfatal-warnings",
 //  "-Wunused:imports",
 //  "-release:20",
-  "-no-indent"
+  "-no-indent",
+  "-experimental"
 )
 
 concurrentRestrictions in Global := Seq(Tags.limitAll(1))
@@ -96,7 +97,7 @@ docker / dockerfile := {
   val artifactTargetPath = s"/app/${artifact.name}"
 
   new Dockerfile {
-    from(s"--platform=$PLATFORM ubuntu:noble-20240605")
+    from(s"--platform=$PLATFORM ubuntu:jammy-20240911.1")
     runRaw(
       List(
         "apt-get update",
@@ -108,12 +109,12 @@ docker / dockerfile := {
     if (GPU) {
       runRaw(
         List(
-          "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb",
+          "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb",
           "dpkg -i cuda-keyring_1.1-1_all.deb",
           "apt-get update",
-          "apt-get install -y --no-install-recommends cuda-toolkit-12-6 nvidia-headless-560-open cudnn9-cuda-12-6",
+          "apt-get install -y --no-install-recommends cuda-toolkit-12-4 nvidia-headless-550-open cudnn9-cuda-12",
           "rm -rf /usr/lib/x86_64-linux-gnu/lib*static_v9.a",
-          "rm -rf /usr/local/cuda-12.6/targets/x86_64-linux/lib/lib*.a",
+          "rm -rf /usr/local/cuda-12.4/targets/x86_64-linux/lib/lib*.a",
           "rm -rf /opt/nvidia"
         ).mkString(" && ")
       )

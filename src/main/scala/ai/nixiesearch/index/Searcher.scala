@@ -43,6 +43,7 @@ import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
 import scala.collection.mutable
+import language.experimental.namedTuples
 
 case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends Logging {
 
@@ -54,7 +55,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     _ <- IO.whenA(ondiskSeqnum > readers.seqnum)(for {
       newReaders <- Readers.reopen(readers.reader, ondiskSeqnum)
       _          <- readersRef.set(Some(newReaders))
-      _          <- debug(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
+      _          <- info(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
     } yield {})
   } yield {}
 
@@ -66,9 +67,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       .evalMap(fieldName =>
         index.mapping.fields.get(fieldName) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
-          case Some(TextLikeFieldSchema(_, _, _, _, _, _, language, Some(schema))) =>
+          case Some(TextLikeFieldSchema(language=language, suggest=Some(schema))) =>
             GeneratedSuggestions.fromField(fieldName, suggester, language.analyzer, request.query, request.count)
-          case Some(TextLikeFieldSchema(_, _, _, _, _, _, language, None)) =>
+          case Some(TextLikeFieldSchema(language=language, suggest=None)) =>
             IO.raiseError(UserError(s"field '$fieldName' is not suggestable in mapping"))
           case Some(other) => IO.raiseError(UserError(s"cannot generate suggestions over field $other"))
 
@@ -131,7 +132,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
                 case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
                   s"$name: $value"
               }
-              .mkString(" ")
+              .mkString("\n")
           )
           .mkString("\n\n")}"))
       _     <- Stream.eval(debug(s"prompt: ${prompt}"))
@@ -157,9 +158,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   ): IO[List[LuceneQuery]] =
     mapping.fields.get(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
-      case Some(TextLikeFieldSchema(_, LexicalSearch(), _, _, _, _, language, _)) =>
+      case Some(TextLikeFieldSchema(search=LexicalSearch(),language=language)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-      case Some(TextLikeFieldSchema(_, SemanticSearch(modelRef), _, _, _, _, _, _)) =>
+      case Some(TextLikeFieldSchema(search=SemanticSearch(modelRef))) =>
         SemanticLuceneQuery
           .create(
             encoders = encoders,
@@ -171,7 +172,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
             mapping = mapping
           )
 
-      case Some(TextLikeFieldSchema(_, HybridSearch(modelRef), _, _, _, _, language, _)) =>
+      case Some(TextLikeFieldSchema(search=HybridSearch(modelRef), language=language)) =>
         for {
           x1 <- LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
           x2 <- SemanticLuceneQuery

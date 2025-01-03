@@ -22,7 +22,7 @@ class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
     val (models, modelsShutdown)   = Models.create(conf.inference, CacheConfig()).allocated.unsafeRunSync()
     val (master, masterShutdown)   = Index.forIndexing(mapping, models).allocated.unsafeRunSync()
     val (indexer, indexerShutdown) = Indexer.open(master).allocated.unsafeRunSync()
-    val docs                       = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz")
+    val docs                       = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
     indexer.addDocuments(docs).unsafeRunSync()
     indexer.flush().unsafeRunSync()
     master.sync().unsafeRunSync()
