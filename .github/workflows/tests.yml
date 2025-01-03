@@ -26,7 +26,7 @@ jobs:
 
     - uses: actions/cache@v2
       with:
-        path: ~/.sbt ~/.m2 ~/.ivy2 ~/.cache
+        path: ~/.sbt ~/.m2 ~/.ivy2 ~/.cache /tmp/nixiesearch ~/work/nixiesearch/nixiesearch/cache
         key: ${{ runner.os }}-build-x1-${{ hashFiles('build.sbt') }}
 
     - name: Set up JDK
