@@ -166,12 +166,4 @@ object FieldJson {
       decodeRecursiveScalar[Boolean](parts, schema, cursor, _.as[Option[Boolean]], BooleanField(schema.name, _))
     }
   }
-
-//  given textFieldJson: FieldJson[TextField, TextFieldSchema]             = TextFieldJson
-//  given textListFieldJson: FieldJson[TextListField, TextListFieldSchema] = TextListFieldJson
-//  given intFieldJson: FieldJson[IntField, IntFieldSchema]                = IntFieldJson
-//  given longFieldJson: FieldJson[LongField, LongFieldSchema]             = LongFieldJson
-//  given floatFieldJson: FieldJson[FloatField, FloatFieldSchema]          = FloatFieldJson
-//  given doubleFieldJson: FieldJson[DoubleField, DoubleFieldSchema]       = DoubleFieldJson
-//  given booleanFieldJson: FieldJson[BooleanField, BooleanFieldSchema]    = BooleanFieldJson
 }

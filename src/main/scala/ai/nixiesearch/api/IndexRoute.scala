@@ -90,8 +90,6 @@ object IndexRoute extends Logging {
 
   given schemaEncoderJson: EntityEncoder[IO, IndexMapping] = jsonEncoderOf
   given schemaDecoderJson: EntityDecoder[IO, IndexMapping] = jsonOf
-  // given singleDocJson: EntityDecoder[IO, Document]                 = jsonOf
-  // given docListJson: EntityDecoder[IO, List[Document]]             = jsonOf
   given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
   given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
 

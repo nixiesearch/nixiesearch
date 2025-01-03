@@ -199,10 +199,6 @@ object SearchRoute {
         s"event: rag\ndata: ${value.asJson.noSpaces}\n\n"
     }
 
-//    given searchResponseFrameEncoder: Encoder[SearchResponseFrame] = Encoder.instance {
-//      case s: SearchResultsFrame => Json.obj("results" -> SearchResponse.searchResponseEncoder(s.value))
-//      case r: RAGResponseFrame   => Json.obj("rag" -> RAGResponse.ragResponseEncoder(r.value))
-//    }
   }
 
   case class SearchResponse(
@@ -212,10 +208,6 @@ object SearchRoute {
       response: Option[String] = None,
       ts: Long
   ) {}
-//  object SearchResponse {
-//    given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
-//    given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
-//  }
 
   import SearchRequest.given
 
