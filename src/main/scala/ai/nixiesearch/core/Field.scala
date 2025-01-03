@@ -1,11 +1,11 @@
 package ai.nixiesearch.core
 
-sealed trait Field {
+trait Field {
   def name: String
 }
 
 object Field {
-  sealed trait TextLikeField                                  extends Field
+  trait TextLikeField                                         extends Field
   case class TextField(name: String, value: String)           extends Field with TextLikeField
   case class TextListField(name: String, value: List[String]) extends Field with TextLikeField
   object TextListField {
