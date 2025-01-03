@@ -24,10 +24,16 @@ jobs:
       with:
         lfs: 'true'
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
-        path: ~/.sbt ~/.m2 ~/.ivy2 ~/.cache /tmp/nixiesearch ~/work/nixiesearch/nixiesearch/cache
-        key: ${{ runner.os }}-build-x1-${{ hashFiles('build.sbt') }}
+        path: |
+          ~/.ivy2
+          ~/.sbt
+          ~/.m2
+          ~/.cache
+          ~/work/nixiesearch/nixiesearch/cache
+          /tmp/nixiesearch
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
 
     - name: Set up JDK
       uses: actions/setup-java@v1
