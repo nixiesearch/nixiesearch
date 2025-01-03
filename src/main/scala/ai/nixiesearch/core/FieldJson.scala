@@ -166,10 +166,22 @@ object FieldJson {
       decodeRecursiveScalar[Boolean](parts, schema, cursor, _.as[Option[Boolean]], BooleanField(schema.name, _))
     }
   }
-  
-  object GeopointFieldJson extends FieldJson[GeopointField, GeopointFieldSchema] {
-    override def encode(field: GeopointField): Json = ???
 
-    override def decode(schema: GeopointFieldSchema, cursor: ACursor): Result[Option[GeopointField]] = ???
+  object GeopointFieldJson extends FieldJson[GeopointField, GeopointFieldSchema] {
+    override def encode(field: GeopointField): Json =
+      Json.obj("lat" -> Json.fromDoubleOrNull(field.lat), "lon" -> Json.fromDoubleOrNull(field.lon))
+
+    override def decode(schema: GeopointFieldSchema, cursor: ACursor): Result[Option[GeopointField]] = for {
+      latOption <- cursor.downField(schema.name).downField("lat").as[Option[Double]]
+      lonOption <- cursor.downField(schema.name).downField("lon").as[Option[Double]]
+      field <- (latOption, lonOption) match {
+        case (Some(lat), Some(lon)) => Right(Some(GeopointField(schema.name, lat, lon)))
+        case (None, None)           => Right(None)
+        case (errLat, errLon) =>
+          Left(DecodingFailure(s"cannot decode geopoint field '${schema.name}' from ${cursor.focus}", cursor.history))
+      }
+    } yield {
+      field
+    }
   }
 }

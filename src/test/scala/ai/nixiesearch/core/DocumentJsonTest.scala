@@ -210,16 +210,7 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
         )
       )
     val json = """{"_id": "a", "point1": {"lon": 2}, "point2": {"lon": 1, "salat": 2}}"""
-    decode[Document](json) shouldBe Right(
-      Document(
-        List(
-          TextField("_id", "a"),
-          FloatField("point1.lon", 2.0),
-          FloatField("point2.salat", 2),
-          FloatField("point2.lon", 1)
-        )
-      )
-    )
+    decode[Document](json) shouldBe a[Left[?, ?]]
   }
 
 }
