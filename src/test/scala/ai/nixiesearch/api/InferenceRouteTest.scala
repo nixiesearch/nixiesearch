@@ -34,7 +34,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
           Some(CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10)),
           Method.POST
         )
-      response.output shouldBe "Because he was afraid of the road."
+      response.output shouldBe "To avoid a collision with a car."
     }
   }
 
@@ -50,7 +50,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
           Method.POST
         )
       val events = response.split("\n\n")
-      events.size shouldBe 10
+      events.size shouldBe 9
 
     }
   }

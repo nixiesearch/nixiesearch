@@ -77,7 +77,7 @@ Fields:
 * `max_tokens`: *optional*, *int*, default `512`. How many tokens from the input document to process. All tokens beyond the threshold are truncated.
 * `batch_size`: *optional*, *int*, default `32`. Computing embeddings is a highly parallel task, and doing it in big chunks is much more effective than one by one. For CPUs there are usually no gains of batch sizes beyong 32, but on GPUs you can go up to 1024.
 
-### LLM competion models
+### LLM completion models
 
 Example of a full configuration:
 
@@ -88,17 +88,12 @@ inference:
       provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
-      prompt: qwen2
       system: "You are a helpful assistant, answer only in haiku."
       options:
-        n_threads: 8
-        n_gpu_layers: 100
-        n_parallel: 8
+        threads: 8
+        gpu_layers: 100
         cont_batching: true
         flash_attn: true
-        use_mmap: true
-        use_mlock: true
-        no_kv_offload: false
         seed: 42
 ```
 
@@ -107,6 +102,5 @@ Fields:
 * `provider`: *required*, *string*. As for `v0.3.0`, only `llamacpp` is supported. Other SaaS providers like OpenAI, Cohere, mxb and Google are on the roadmap.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](url.md) for more details on how to load your model.
 * `file`: *optional*, *string*. A file name for the model, if the target model has multiple. A typical case for quantized models.
-* `prompt`: *required*, *string*. A prompt format used for the LLM. See [Supported LLM prompts for more details](../features/search/rag.md#supported-prompts)
 * `system`: *optional*, *string*, default empty. An optional system prompt to be prepended to all the user prompts.
 * `options`: *optional*, *obj*. A set of llama-cpp specific options. See [llamacpp reference on options](https://github.com/ggerganov/llama.cpp/blob/master/examples/main/README.md) for more details.

@@ -11,5 +11,5 @@ object Deps {
   lazy val awsVersion         = "2.29.25"
   lazy val djlVersion         = "0.31.1"
   lazy val onnxRuntimeVersion = "1.20.0"
-  lazy val llamacppVersion    = "3.4.1"
+  lazy val llamacppVersion    = "0.0.2-b4404"
 }

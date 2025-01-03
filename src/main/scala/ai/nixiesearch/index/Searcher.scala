@@ -131,7 +131,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
                 case Field.TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
                   s"$name: $value"
               }
-              .mkString(" ")
+              .mkString("\n")
           )
           .mkString("\n\n")}"))
       _     <- Stream.eval(debug(s"prompt: ${prompt}"))
