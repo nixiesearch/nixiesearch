@@ -43,6 +43,8 @@ object Document {
       case f: DoubleFieldSchema   => DoubleField.decodeJson(f, cursor)
       case f: BooleanFieldSchema  => BooleanField.decodeJson(f, cursor)
       case f: GeopointFieldSchema => GeopointField.decodeJson(f, cursor)
+      case f: DateFieldSchema     => DateField.decodeJson(f, cursor)
+      case f: DateTimeFieldSchema => DateTimeField.decodeJson(f, cursor)
     }
     val unwrapped = fields.foldLeft[Decoder.Result[List[Field]]](Right(Nil)) {
       case (Left(err), _)                   => Left(err)
