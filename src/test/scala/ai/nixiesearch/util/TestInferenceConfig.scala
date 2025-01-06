@@ -25,7 +25,8 @@ object TestInferenceConfig {
       )
     )
   )
-  def empty() = InferenceConfig()
+  def empty()    = InferenceConfig()
+  def semantic() = apply()
   def apply() = InferenceConfig(
     embedding = Map(
       ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(

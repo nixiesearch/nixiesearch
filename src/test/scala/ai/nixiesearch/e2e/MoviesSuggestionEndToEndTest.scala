@@ -2,7 +2,7 @@ package ai.nixiesearch.e2e
 
 import ai.nixiesearch.api.SearchRoute.{SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.{IndexRoute, SearchRoute}
-import ai.nixiesearch.config.Config
+import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.util.{DatasetLoader, SearchTest}
 import cats.effect.IO
@@ -20,6 +20,7 @@ class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with Search
   lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml"), Map.empty).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
   val docs         = Nil
+  override def inference: InferenceConfig = conf.inference
 
   it should "load docs and suggest" in withIndex { nixie =>
     {

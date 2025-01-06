@@ -116,6 +116,26 @@ object FieldSchema {
     def facet = false
   }
 
+  case class DateFieldSchema(
+      name: String,
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false
+  ) extends FieldSchema[DateField] {
+    def asInt = IntFieldSchema(name, store, sort, facet, filter)
+  }
+
+  case class DateTimeFieldSchema(
+      name: String,
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false
+  ) extends FieldSchema[DateTimeField] {
+    def asLong = LongFieldSchema(name, store, sort, facet, filter)
+  }
+
   object yaml {
     import SearchType.yaml.given
     import SuggestSchema.yaml.given
@@ -218,6 +238,26 @@ object FieldSchema {
         BooleanFieldSchema(name, store, sort, facet, filter)
       }
     )
+    def dateFieldSchemaDecoder(name: String): Decoder[DateFieldSchema] = Decoder.instance(c =>
+      for {
+        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        DateFieldSchema(name, store, sort, facet, filter)
+      }
+    )
+    def dateTimeFieldSchemaDecoder(name: String): Decoder[DateTimeFieldSchema] = Decoder.instance(c =>
+      for {
+        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        DateTimeFieldSchema(name, store, sort, facet, filter)
+      }
+    )
 
     def geopointFieldSchemaDecoder(name: String): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
       for {
@@ -239,6 +279,8 @@ object FieldSchema {
         case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
         case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
         case Right("geopoint")            => geopointFieldSchemaDecoder(name).tryDecode(c)
+        case Right("date")                => dateFieldSchemaDecoder(name).tryDecode(c)
+        case Right("datetime")            => dateTimeFieldSchemaDecoder(name).tryDecode(c)
         case Right(other) =>
           Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
@@ -274,6 +316,12 @@ object FieldSchema {
     given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = deriveDecoder
     given geopointFieldSchemaEncoder: Encoder[GeopointFieldSchema] = deriveEncoder
 
+    given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = deriveDecoder
+    given dateFieldSchemaEncoder: Encoder[DateFieldSchema] = deriveEncoder
+
+    given dateTimeFieldSchemaDecoder: Decoder[DateTimeFieldSchema] = deriveDecoder
+    given dateTimeFieldSchemaEncoder: Encoder[DateTimeFieldSchema] = deriveEncoder
+
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
@@ -283,6 +331,8 @@ object FieldSchema {
       case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
       case f: BooleanFieldSchema  => boolFieldSchemaEncoder.apply(f).deepMerge(withType("bool"))
       case f: GeopointFieldSchema => geopointFieldSchemaEncoder.apply(f).deepMerge(withType("geopoint"))
+      case f: DateFieldSchema     => dateFieldSchemaEncoder.apply(f).deepMerge(withType("date"))
+      case f: DateTimeFieldSchema => dateTimeFieldSchemaEncoder.apply(f).deepMerge(withType("datetime"))
     }
 
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
@@ -295,6 +345,8 @@ object FieldSchema {
         case Right("text")     => textFieldSchemaDecoder.tryDecode(c)
         case Right("text[]")   => textListFieldSchemaDecoder.tryDecode(c)
         case Right("geopoint") => geopointFieldSchemaDecoder.tryDecode(c)
+        case Right("date")     => dateFieldSchemaDecoder.tryDecode(c)
+        case Right("datetime") => dateTimeFieldSchemaDecoder.tryDecode(c)
         case Right(other)      => Left(DecodingFailure(s"field type '$other' is not supported", c.history))
         case Left(err)         => Left(err)
       }
