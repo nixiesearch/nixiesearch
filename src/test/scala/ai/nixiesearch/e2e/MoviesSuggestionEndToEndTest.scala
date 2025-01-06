@@ -17,7 +17,7 @@ import java.io.File
 
 class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml")).unsafeRunSync()
+  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml"), Map.empty).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
   val docs         = Nil
   override def inference: InferenceConfig = conf.inference

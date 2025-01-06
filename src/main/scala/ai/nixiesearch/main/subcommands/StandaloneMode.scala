@@ -38,7 +38,7 @@ object StandaloneMode extends Logging {
       List(HealthRoute().routes),
       List(InferenceRoute(models).routes)
     ).flatten.reduce(_ <+> _)
-    server <- API.start(routes, config.searcher.host, config.searcher.port)
+    server <- API.start(routes, config.core.host, config.core.port)
     _      <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
   } yield {
     server

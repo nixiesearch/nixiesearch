@@ -6,6 +6,7 @@ import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneA
 import ai.nixiesearch.main.CliConfig.Loglevel
 import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode}
 import ai.nixiesearch.util.GPUUtils
+import cats.effect.std.Env
 import cats.effect.{ExitCode, IO, IOApp}
 import ch.qos.logback.classic.{Level, LoggerContext}
 import org.slf4j.LoggerFactory
@@ -16,7 +17,8 @@ object Main extends IOApp with Logging {
     _      <- info("Staring Nixiesearch")
     opts   <- CliConfig.load(args)
     _      <- changeLogbackLevel(opts.loglevel)
-    config <- Config.load(opts.config)
+    env    <- Env[IO].entries.map(_.toMap)
+    config <- Config.load(opts.config, env)
     _      <- gpuChecks(config)
     _ <- opts match {
       case s: StandaloneArgs => StandaloneMode.run(s, config)

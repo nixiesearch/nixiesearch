@@ -41,11 +41,13 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         ),
         indexer = IndexerConfig(),
         core = CoreConfig(
+          host = Hostname("0.0.0.0"),
+          port = Port(8080),
           cache = CacheConfig(
             dir = "/cache"
           )
         ),
-        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
+        searcher = SearcherConfig(),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(
             name = IndexName.unsafe("helloworld"),
@@ -73,6 +75,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
+        core = CoreConfig(host = Hostname("0.0.0.0"), port = Port(8080)),
         inference = InferenceConfig(
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
@@ -85,7 +88,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
           )
         ),
         indexer = IndexerConfig(),
-        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
+        searcher = SearcherConfig(),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(
             name = IndexName.unsafe("helloworld"),
@@ -151,6 +154,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     val parsed = parse(yaml).flatMap(_.as[Config])
     parsed shouldBe Right(
       Config(
+        core = CoreConfig(host = Hostname("0.0.0.0"), port = Port(8080)),
         inference = InferenceConfig(
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
@@ -163,7 +167,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
           )
         ),
         indexer = IndexerConfig(),
-        searcher = SearcherConfig(Hostname("0.0.0.0"), Port(8080)),
+        searcher = SearcherConfig(),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(
             name = IndexName.unsafe("helloworld"),

@@ -1,15 +1,20 @@
 package ai.nixiesearch.config
 
+import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.main.CliConfig.Loglevel
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
+import cats.effect.std.Env
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import cats.implicits.*
 import io.circe.generic.semiauto.*
+
 import language.experimental.namedTuples
 import java.io.File
 import io.circe.yaml.parser.*
@@ -62,7 +67,9 @@ object Config extends Logging {
     val indexRefs = config.schema.values
       .flatMap(mapping =>
         mapping.fields.values.collect {
-          case field @ TextLikeFieldSchema(search=SemanticSearchLikeType(ref)) =>
+          case field @ TextListFieldSchema(_, SemanticSearchLikeType(ref), _, _, _, _, _, _) =>
+            field.name -> ref
+          case field @ TextFieldSchema(_, SemanticSearchLikeType(ref), _, _, _, _, _, _) =>
             field.name -> ref
         }
       )
@@ -73,20 +80,49 @@ object Config extends Logging {
     }
   }
 
-  def load(path: URL): IO[Config] = for {
+  def load(path: URL, env: Map[String, String]): IO[Config] = for {
     text   <- URLReader.bytes(path).through(fs2.text.utf8.decode).compile.fold("")(_ + _)
-    config <- load(text)
+    config <- load(text, env)
     _      <- info(s"Loaded config: $path")
   } yield {
     config
   }
 
-  def load(path: File): IO[Config] = load(LocalURL(path.toPath))
+  def load(path: File, env: Map[String, String]): IO[Config] = load(LocalURL(path.toPath), env)
 
-  def load(text: String): IO[Config] = for {
-    yaml    <- IO.fromEither(parse(text))
-    decoded <- IO.fromEither(yaml.as[Config])
-  } yield {
-    decoded
+  case class EnvOverride(name: String, lens: (Config, String) => IO[Config]) {
+    def patch(config: Config, env: Map[String, String]): IO[Config] = {
+      env.get(name) match {
+        case None        => IO.pure(config)
+        case Some(value) => lens(config, value).flatTap(_ => info(s"substituted env var $name=$value"))
+      }
+    }
   }
+  val overrides = List(
+    EnvOverride(
+      "NIXIESEARCH_CORE_PORT",
+      (config, port) =>
+        IO.fromOption(port.toIntOption)(UserError("port should be a number"))
+          .map(port => config.copy(core = config.core.copy(port = Port(port))))
+    ),
+    EnvOverride(
+      "NIXIESEARCH_CORE_HOST",
+      (config, host) => IO(config.copy(core = config.core.copy(host = Hostname(host))))
+    ),
+    EnvOverride(
+      "NIXIESEARCH_CORE_LOGLEVEL",
+      (config, level) =>
+        IO.fromEither(Loglevel.tryDecode(level).toEither)
+          .map(level => config.copy(core = config.core.copy(loglevel = level)))
+    )
+  )
+
+  def load(text: String, env: Map[String, String]): IO[Config] = for {
+    yaml        <- IO.fromEither(parse(text))
+    decoded     <- IO.fromEither(yaml.as[Config])
+    substituted <- overrides.foldLeftM(decoded)((config, envOverride) => envOverride.patch(config, env))
+  } yield {
+    substituted
+  }
+
 }
