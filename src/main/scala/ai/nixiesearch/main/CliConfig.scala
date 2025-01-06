@@ -2,6 +2,7 @@ package ai.nixiesearch.main
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.*
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexSourceArgs, *}
@@ -10,6 +11,7 @@ import ai.nixiesearch.source.SourceOffset
 import ai.nixiesearch.source.SourceOffset.Latest
 import ai.nixiesearch.util.Version
 import cats.effect.IO
+import io.circe.{Decoder, Encoder}
 import org.rogach.scallop.exceptions.{Help, ScallopException, ScallopResult, Version as ScallopVersion}
 import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, throwError, given}
 
@@ -161,6 +163,25 @@ object CliConfig extends Logging {
     case INFO  extends Loglevel
     case WARN  extends Loglevel
     case ERROR extends Loglevel
+  }
+
+  object Loglevel {
+    given loglevelEncoder: Encoder[Loglevel] = Encoder.encodeString.contramap {
+      case Loglevel.DEBUG => "debug"
+      case Loglevel.INFO  => "info"
+      case Loglevel.WARN  => "warn"
+      case Loglevel.ERROR => "error"
+    }
+
+    given loglevelDecoder: Decoder[Loglevel] = Decoder.decodeString.map(_.toLowerCase()).emapTry(tryDecode)
+
+    def tryDecode(string: String): Try[Loglevel] = string match {
+      case "debug" => Success(Loglevel.DEBUG)
+      case "info"  => Success(Loglevel.INFO)
+      case "warn"  => Success(Loglevel.WARN)
+      case "error" => Success(Loglevel.ERROR)
+      case other   => Failure(UserError(s"cannot parse loglevel '$other'"))
+    }
   }
 
   def load(args: List[String]): IO[CliArgs] = for {

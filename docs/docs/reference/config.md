@@ -1,4 +1,25 @@
-# Config file 
+# Config file
+
+## Core config
+
+Main server-related settings are stored here:
+
+```yaml
+core:
+  host: 0.0.0.0 # optional, default=0.0.0.0
+  port: 8080 # optional, default=8080
+  loglevel: info # optional, default info
+```
+
+### Environment variables overrides
+
+Core config settings can be overridden with env variables:
+
+* `NIXIESEARCH_CORE_HOST`: overrides `core.host` 
+* `NIXIESEARCH_CORE_PORT`: overrides `core.port`
+* `NIXIESEARCH_CORE_LOGLEVEL`: overrides `core.loglevel`
+
+Loglevel can also be set from the [command-line flags](../reference/cli/standalone.md). Env overrides always have higher priority than config values.
 
 ## Index mapping
 
@@ -104,3 +125,4 @@ Fields:
 * `file`: *optional*, *string*. A file name for the model, if the target model has multiple. A typical case for quantized models.
 * `system`: *optional*, *string*, default empty. An optional system prompt to be prepended to all the user prompts.
 * `options`: *optional*, *obj*. A set of llama-cpp specific options. See [llamacpp reference on options](https://github.com/ggerganov/llama.cpp/blob/master/examples/main/README.md) for more details.
+

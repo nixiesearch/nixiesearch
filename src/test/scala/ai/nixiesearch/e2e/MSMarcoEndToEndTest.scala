@@ -18,7 +18,7 @@ import scodec.bits.ByteVector
 
 class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml")).unsafeRunSync()
+  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml"), Map.empty).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("msmarco"))
   lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json", mapping, 1000)
 

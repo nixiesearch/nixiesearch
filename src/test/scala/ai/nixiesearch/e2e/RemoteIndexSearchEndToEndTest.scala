@@ -14,15 +14,16 @@ import cats.effect.unsafe.implicits.global
 import java.io.File
 
 class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
-  lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-dist.yaml")).unsafeRunSync()
+  lazy val pwd = System.getProperty("user.dir")
+  lazy val conf =
+    Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-dist.yaml"), Map.empty).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
 
   it should "write index to s3" in {
     val (models, modelsShutdown)   = Models.create(conf.inference, CacheConfig()).allocated.unsafeRunSync()
     val (master, masterShutdown)   = Index.forIndexing(mapping, models).allocated.unsafeRunSync()
     val (indexer, indexerShutdown) = Indexer.open(master).allocated.unsafeRunSync()
-    val docs                       = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
+    val docs = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
     indexer.addDocuments(docs).unsafeRunSync()
     indexer.flush().unsafeRunSync()
     master.sync().unsafeRunSync()

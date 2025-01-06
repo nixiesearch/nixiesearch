@@ -52,7 +52,7 @@ object SearchMode extends Logging {
       List(TypicalErrorsRoute(searchers.map(_.index.name.value)).routes),
       List(InferenceRoute(models).routes)
     ).flatten.reduce(_ <+> _)
-    api <- API.start(routes, config.searcher.host, config.searcher.port)
+    api <- API.start(routes, config.core.host, config.core.port)
     _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
   } yield {
     api
