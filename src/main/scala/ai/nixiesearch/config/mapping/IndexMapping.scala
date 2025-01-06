@@ -40,6 +40,8 @@ case class IndexMapping(
   val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
   val booleanFields  = fields.collect { case (name, s: BooleanFieldSchema) => name -> s }
   val geopointFields = fields.collect { case (name, s: GeopointFieldSchema) => name -> s }
+  val dateFields = fields.collect { case (name, s: DateFieldSchema) => name -> s}
+  val dateTimeFields = fields.collect { case (name, s: DateTimeFieldSchema) => name -> s}
 
   val analyzer = IndexMapping.createAnalyzer(this)
 

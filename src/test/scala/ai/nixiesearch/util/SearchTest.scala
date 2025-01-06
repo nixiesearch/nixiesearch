@@ -13,7 +13,7 @@ import org.http4s.{EntityDecoder, EntityEncoder}
 import org.http4s.circe.*
 
 trait SearchTest extends AnyFlatSpec {
-  def inference: InferenceConfig = TestInferenceConfig()
+  def inference: InferenceConfig = TestInferenceConfig.empty()
   def mapping: IndexMapping
   def docs: List[Document]
 

@@ -45,7 +45,7 @@ Term predicate can be defined as a simple JSON key-value pair, where key is a fi
 
     A simple term filter works only with a single field and a single value. If you want to filter over multiple fields and multiple values, use a [boolean filter](#boolean-filters) to combine them together in a single expression.
  
-Term filters currently support the following field types: `int`, `long`, `string`, `boolean`. For example, filtering over a boolean field called `active` can be done with the following query:
+Term filters currently support the following field types: `int`, `long`, `date`, `datetime`, `string`, `boolean`. For example, filtering over a boolean field called `active` can be done with the following query:
 
 ```json
 {
@@ -62,7 +62,7 @@ Term filters currently support the following field types: `int`, `long`, `string
 
 ## Range filters
 
-Range filters allow defining open and closed ranges for numeric fields of types [int, long, double, float] to pre-select documents for search:
+Range filters allow defining open and closed ranges for numeric fields of types `[int, long, double, float, date, datetime]` to pre-select documents for search:
 
 ```json
 {

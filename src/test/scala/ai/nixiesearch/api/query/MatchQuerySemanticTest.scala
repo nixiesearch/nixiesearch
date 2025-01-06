@@ -10,10 +10,11 @@ import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, NoSearch}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
-import ai.nixiesearch.util.SearchTest
+import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
 
 class MatchQuerySemanticTest extends SearchTest with Matchers {
+  override lazy val inference = TestInferenceConfig.semantic()
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(

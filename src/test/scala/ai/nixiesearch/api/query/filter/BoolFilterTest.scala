@@ -2,8 +2,7 @@ package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, OrPredicate}
-import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGt
-import ai.nixiesearch.api.filter.Predicate.TermPredicate
+import ai.nixiesearch.api.filter.Predicate.{RangePredicate, TermPredicate}
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -11,7 +10,7 @@ import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.FiniteRange.Lower.Gt
-import ai.nixiesearch.util.SearchTest
+import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
 
 class BoolFilterTest extends SearchTest with Matchers {
@@ -34,7 +33,7 @@ class BoolFilterTest extends SearchTest with Matchers {
   it should "select by both filters" in withIndex { index =>
     {
       val result = index.search(filters =
-        Some(Filters(include = Some(AndPredicate(List(TermPredicate("color", "red"), RangeGt("price", Gt(20)))))))
+        Some(Filters(include = Some(AndPredicate(List(TermPredicate("color", "red"), RangePredicate("price", Gt(20)))))))
       )
       result shouldBe List("3")
     }
@@ -43,7 +42,7 @@ class BoolFilterTest extends SearchTest with Matchers {
   it should "do or" in withIndex { index =>
     {
       val result = index.search(filters =
-        Some(Filters(include = Some(OrPredicate(List(TermPredicate("color", "red"), RangeGt("price", Gt(30)))))))
+        Some(Filters(include = Some(OrPredicate(List(TermPredicate("color", "red"), RangePredicate("price", Gt(30)))))))
       )
       result shouldBe List("1", "3", "4")
     }

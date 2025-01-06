@@ -52,7 +52,7 @@ Nixiesearch currently supports the following types of facet aggregations:
 
 ## Term aggregations
 
-A term facet aggregation scans over all values of a specific [text](../indexing/types/basic.md) field of matching documents, and builds a list of top-N values:
+A term facet aggregation scans over all values of a specific [text, long, int, float, double, date, datetime](../indexing/types/basic.md) field of matching documents, and builds a list of top-N values:
 
 ```json
 {
@@ -115,7 +115,7 @@ Range aggregation scans over all values of a specific numerical field for matchi
 
 Range facet aggregation has the following parameters:
 
-* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../features/indexing/mapping.md) and had the type of `int`/`float`/`double`/`long`
+* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../features/indexing/mapping.md) and had the type of `int`/`float`/`double`/`long`/`date`/`datetime`
 * `ranges`, ***required***, non-empty list.
 * `ranges.lt`, ***optional***, *number*. **L**ess **T**han. An end of the range, not inclusive.
 * `ranges.lte`, ***optional***, *number*. **L**ess **T**han or **E**quals. An end of the range, inclusive.

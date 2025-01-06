@@ -5,16 +5,7 @@ import ai.nixiesearch.api.query.MatchAllQuery
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.FieldSchema.{
-  BooleanFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  GeopointFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, GeopointFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -35,7 +26,9 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       FloatFieldSchema("float"),
       DoubleFieldSchema("double"),
       BooleanFieldSchema("boolean"),
-      GeopointFieldSchema("geo")
+      GeopointFieldSchema("geo"),
+      DateFieldSchema("date"),
+      DateTimeFieldSchema("datetime")
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
@@ -53,7 +46,9 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
             FloatField("float", 1),
             DoubleField("double", 1),
             BooleanField("boolean", true),
-            GeopointField("geo", 1, 2)
+            GeopointField("geo", 1, 2),
+            DateField("date", 1),
+            DateTimeField("datetime", 1)
           )
         )
       store.indexer.addDocuments(List(source)).unsafeRunSync()
@@ -63,7 +58,8 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
 
       val request = SearchRequest(
         MatchAllQuery(),
-        fields = List("_id", "title", "title2", "count", "long", "float", "double", "boolean", "geo")
+        fields =
+          List("_id", "title", "title2", "count", "long", "float", "double", "boolean", "geo", "date", "datetime")
       )
       val docs           = store.searcher.search(request).unsafeRunSync()
       val actualFields   = docs.hits.head.fields.sortBy(_.name)

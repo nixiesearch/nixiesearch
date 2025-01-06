@@ -1,14 +1,23 @@
 package ai.nixiesearch.api.filter
 
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, NotPredicate, OrPredicate}
-import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, NumTerm, StringTerm}
+import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, DateTerm, NumTerm, StringTerm, DateTimeTerm}
 import ai.nixiesearch.api.filter.Predicate.GeoBoundingBoxPredicate.{geoBoxDecoder, geoBoxEncoder}
 import ai.nixiesearch.api.filter.Predicate.GeoDistancePredicate.{geoDistanceDecoder, geoDistanceEncoder}
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextLikeFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextLikeFieldSchema
+}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.FiniteRange.{Higher, Lower, RangeValue}
+import ai.nixiesearch.core.field.{DateField, DateTimeField, TextField}
 import ai.nixiesearch.core.{FiniteRange, Logging}
 import ai.nixiesearch.util.Distance
 import cats.effect.IO
@@ -71,6 +80,20 @@ object Predicate {
   }
 
   object FilterTerm {
+    object DateTerm {
+      def unapply(str: String): Option[Int] = DateField.parseString(str).toOption
+      def unapply(term: FilterTerm): Option[Int] = term match {
+        case StringTerm(string) => DateField.parseString(string).toOption
+        case _                  => None
+      }
+    }
+    object DateTimeTerm {
+      def unapply(string: String): Option[Long] = DateTimeField.parseString(string).toOption
+      def unapply(term: FilterTerm): Option[Long] = term match {
+        case StringTerm(string) => DateTimeField.parseString(string).toOption
+        case _                  => None
+      }
+    }
     given filterTermEncoder: Encoder[FilterTerm] = Encoder.instance {
       case StringTerm(value)  => Json.fromString(value)
       case BooleanTerm(value) => Json.fromBoolean(value)
@@ -107,18 +130,32 @@ object Predicate {
           IO(new TermQuery(new Term(field + TextField.RAW_SUFFIX, value)))
         case (Some(schema: TextLikeFieldSchema[?]), other) =>
           IO.raiseError(UserError(s"field $field expects string filter term, but got $other"))
-        case (Some(schema: IntFieldSchema), FilterTerm.NumTerm(value)) if schema.filter =>
+        case (Some(schema: IntFieldSchema), FilterTerm.NumTerm(value)) =>
           if ((value <= Int.MaxValue) && (value >= Int.MinValue))
             IO(IntField.newExactQuery(field, value.toInt))
           else
             IO.raiseError(UserError(s"field $field is int field, but term $value cannot be cast to int safely"))
-        case (Some(schema: LongFieldSchema), FilterTerm.NumTerm(value)) if schema.filter =>
+        case (Some(schema: LongFieldSchema), FilterTerm.NumTerm(value)) =>
           IO(LongField.newExactQuery(field, value))
-        case (Some(schema: BooleanFieldSchema), FilterTerm.BooleanTerm(value)) if schema.filter =>
+        case (Some(schema: BooleanFieldSchema), FilterTerm.BooleanTerm(value)) =>
           IO(IntField.newExactQuery(field, if (value) 1 else 0))
+        case (Some(schema: DateFieldSchema), DateTerm(days)) =>
+          IO(IntField.newExactQuery(field, days))
+        case (Some(schema: DateFieldSchema), _) =>
+          IO.raiseError(
+            UserError(s"cannot filter over date $field with predicate '$value' - it should be a date string")
+          )
+        case (Some(schema: DateTimeFieldSchema), DateTimeTerm(millis)) =>
+          IO(LongField.newExactQuery(field, millis))
+        case (Some(schema: DateTimeFieldSchema), _) =>
+          IO.raiseError(
+            UserError(s"cannot filter over datetime $field with predicate '$value' - it should be a datetime string")
+          )
         case (Some(other), _) =>
           IO.raiseError(
-            UserError(s"Term filtering only works with text/bool/int/long fields, and field '$field' is $other")
+            UserError(
+              s"Term filtering only works with text/bool/int/long/date/datetime fields, and field '$field' is $other"
+            )
           )
       }
     }
@@ -149,106 +186,86 @@ object Predicate {
     )
   }
 
-  sealed trait RangePredicate extends Predicate {
-    def field: String
-  }
-  object RangePredicate {
-    case class RangeGt(field: String, greaterThan: FiniteRange.Lower) extends RangePredicate {
-      override def compile(mapping: IndexMapping): IO[LuceneQuery] =
-        build(field, mapping, greaterThan, Higher.POSITIVE_INF)
-    }
-    case class RangeLt(field: String, lessThan: FiniteRange.Higher) extends RangePredicate {
-      override def compile(mapping: IndexMapping): IO[LuceneQuery] =
-        build(field, mapping, Lower.NEGATIVE_INF, lessThan)
-    }
-    case class RangeGtLt(field: String, greaterThan: FiniteRange.Lower, lessThan: FiniteRange.Higher)
-        extends RangePredicate {
-      override def compile(mapping: IndexMapping): IO[LuceneQuery] =
-        build(field, mapping, greaterThan, lessThan)
-    }
-
-    def build(
-        field: String,
-        mapping: IndexMapping,
-        greaterThan: FiniteRange.Lower,
-        smallerThan: FiniteRange.Higher
-    ): IO[LuceneQuery] = {
+  case class RangePredicate(
+      field: String,
+      greaterThan: Option[FiniteRange.Lower] = None,
+      lessThan: Option[FiniteRange.Higher] = None
+  ) extends Predicate {
+    override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
       mapping.fields.get(field) match {
-        case Some(IntFieldSchema(filter=true)) =>
+        case Some(spec) if !spec.filter =>
+          IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
+        case Some(_: IntFieldSchema | _: DateFieldSchema) =>
           IO {
             val lower = greaterThan match {
-              case FiniteRange.Lower.Gt(value)  => math.round(value).toInt + 1
-              case FiniteRange.Lower.Gte(value) => math.round(value).toInt
+              case None                               => Int.MinValue
+              case Some(FiniteRange.Lower.Gt(value))  => value.toInt + 1
+              case Some(FiniteRange.Lower.Gte(value)) => value.toInt
             }
-            val higher = smallerThan match {
-              case FiniteRange.Higher.Lt(value)  => math.round(value).toInt - 1
-              case FiniteRange.Higher.Lte(value) => math.round(value).toInt
+            val higher = lessThan match {
+              case None                                => Int.MaxValue
+              case Some(FiniteRange.Higher.Lt(value))  => value.toInt - 1
+              case Some(FiniteRange.Higher.Lte(value)) => value.toInt
             }
             org.apache.lucene.document.IntField.newRangeQuery(field, lower, higher)
           }
-        case Some(LongFieldSchema(filter=true)) =>
+        case Some(_: LongFieldSchema | _: DateTimeFieldSchema) =>
           IO {
             val lower = greaterThan match {
-              case FiniteRange.Lower.Gt(value)  => math.round(value) + 1
-              case FiniteRange.Lower.Gte(value) => math.round(value)
+              case None                               => Long.MinValue
+              case Some(FiniteRange.Lower.Gt(value))  => value.toLong + 1
+              case Some(FiniteRange.Lower.Gte(value)) => value.toLong
             }
-            val higher = smallerThan match {
-              case FiniteRange.Higher.Lt(value)  => math.round(value) - 1
-              case FiniteRange.Higher.Lte(value) => math.round(value)
+            val higher = lessThan match {
+              case None                                => Long.MaxValue
+              case Some(FiniteRange.Higher.Lt(value))  => value.toLong - 1
+              case Some(FiniteRange.Higher.Lte(value)) => value.toLong
             }
             org.apache.lucene.document.LongField.newRangeQuery(field, lower, higher)
           }
 
-        case Some(LongFieldSchema(filter=false)) =>
-          IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
-        case Some(IntFieldSchema(filter=false)) =>
-          IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
-        case Some(FloatFieldSchema(filter=true)) =>
+        case Some(_: FloatFieldSchema) =>
           IO {
             val lower = greaterThan match {
-              case FiniteRange.Lower.Gt(value)  => Math.nextUp(value.toFloat)
-              case FiniteRange.Lower.Gte(value) => value.toFloat
+              case None                               => Float.MinValue
+              case Some(FiniteRange.Lower.Gt(value))  => Math.nextUp(value.toFloat)
+              case Some(FiniteRange.Lower.Gte(value)) => value.toFloat
             }
 
-            val higher = smallerThan match {
-              case FiniteRange.Higher.Lt(value)  => Math.nextDown(value.toFloat)
-              case FiniteRange.Higher.Lte(value) => value.toFloat
+            val higher = lessThan match {
+              case None                                => Float.MaxValue
+              case Some(FiniteRange.Higher.Lt(value))  => Math.nextDown(value.toFloat)
+              case Some(FiniteRange.Higher.Lte(value)) => value.toFloat
             }
             org.apache.lucene.document.FloatField.newRangeQuery(field, lower, higher)
           }
-        case Some(DoubleFieldSchema(filter=true)) =>
+        case Some(_: DoubleFieldSchema) =>
           IO {
             val lower = greaterThan match {
-              case FiniteRange.Lower.Gt(value)  => Math.nextUp(value)
-              case FiniteRange.Lower.Gte(value) => value
+              case None                               => Double.MinValue
+              case Some(FiniteRange.Lower.Gt(value))  => Math.nextUp(value.toDouble)
+              case Some(FiniteRange.Lower.Gte(value)) => value.toDouble
             }
 
-            val higher = smallerThan match {
-              case FiniteRange.Higher.Lt(value)  => Math.nextDown(value)
-              case FiniteRange.Higher.Lte(value) => value
+            val higher = lessThan match {
+              case None                                => Double.MaxValue
+              case Some(FiniteRange.Higher.Lt(value))  => Math.nextDown(value.toDouble)
+              case Some(FiniteRange.Higher.Lte(value)) => value.toDouble
             }
             org.apache.lucene.document.DoubleField.newRangeQuery(field, lower, higher)
           }
 
-        case Some(FloatFieldSchema(filter=false)) =>
-          IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(other) => IO.raiseError(new Exception(s"range queries only work with numeric fields: $other"))
         case None        => IO.raiseError(new Exception(s"cannot execute range query over non-existent field $field"))
       }
     }
 
-    def hilow(greaterThan: FiniteRange.Lower, smallerThan: FiniteRange.Higher) = {
-      val lower = greaterThan match {
-        case FiniteRange.Lower.Gt(value)  => Math.nextUp(value.toFloat)
-        case FiniteRange.Lower.Gte(value) => value.toFloat
-      }
-
-      val higher = smallerThan match {
-        case FiniteRange.Higher.Lt(value)  => Math.nextDown(value.toFloat)
-        case FiniteRange.Higher.Lte(value) => value.toFloat
-      }
-      (lower, higher)
-    }
+  }
+  object RangePredicate {
+    def apply(name: String, from: FiniteRange.Lower) = new RangePredicate(name, Some(from), None)
+    def apply(name: String, to: FiniteRange.Higher)  = new RangePredicate(name, None, Some(to))
+    def apply(name: String, from: FiniteRange.Lower, to: FiniteRange.Higher) =
+      new RangePredicate(name, Some(from), Some(to))
 
     given rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
       c.keys.map(_.toList) match {
@@ -256,8 +273,8 @@ object Predicate {
         case Some(Nil) => Left(DecodingFailure(s"cannot decode range without a field", c.history))
         case Some(field :: Nil) =>
           for {
-            gt  <- c.downField(field).downField("gt").as[Option[Double]]
-            gte <- c.downField(field).downField("gte").as[Option[Double]]
+            gt  <- c.downField(field).downField("gt").as[Option[RangeValue]]
+            gte <- c.downField(field).downField("gte").as[Option[RangeValue]]
             lower <- (gt, gte) match {
               case (Some(gt), None)  => Right(Some(Lower.Gt(gt)))
               case (None, Some(gte)) => Right(Some(Lower.Gte(gte)))
@@ -265,8 +282,8 @@ object Predicate {
               case (Some(_), Some(_)) =>
                 Left(DecodingFailure(s"got both gt and gte fields for range, expected one", c.history))
             }
-            lt  <- c.downField(field).downField("lt").as[Option[Double]]
-            lte <- c.downField(field).downField("lte").as[Option[Double]]
+            lt  <- c.downField(field).downField("lt").as[Option[RangeValue]]
+            lte <- c.downField(field).downField("lte").as[Option[RangeValue]]
             higher <- (lt, lte) match {
               case (Some(lt), None)  => Right(Some(Higher.Lt(lt)))
               case (None, Some(lte)) => Right(Some(Higher.Lte(lte)))
@@ -275,11 +292,9 @@ object Predicate {
                 Left(DecodingFailure("got both lt and lte fields for a range, expected one", c.history))
             }
             range <- (lower, higher) match {
-              case (Some(low), Some(high)) => Right(RangeGtLt(field, low, high))
-              case (Some(low), None)       => Right(RangeGt(field, low))
-              case (None, Some(high))      => Right(RangeLt(field, high))
               case (None, None) =>
                 Left(DecodingFailure(s"cannot decode range without gt/gte/lt/lte predicates", c.history))
+              case (low, high) => Right(RangePredicate(field, low, high))
             }
           } yield {
             range
@@ -295,18 +310,30 @@ object Predicate {
     })
 
     given rangePredicateEncoder: Encoder[RangePredicate] = Encoder.instance {
-      case RangeGt(field, gt) => json(field, JsonObject.singleton(gt.name, Json.fromDoubleOrNull(gt.value)))
-      case RangeLt(field, lt) => json(field, JsonObject.singleton(lt.name, Json.fromDoubleOrNull(lt.value)))
-      case RangeGtLt(field, gt, lt) =>
-        json(
-          field,
-          JsonObject.fromIterable(
-            List(
-              gt.name -> Json.fromDoubleOrNull(gt.value),
-              lt.name -> Json.fromDoubleOrNull(lt.value)
-            )
+      case RangePredicate(field, Some(gt), Some(lt)) =>
+        Json.obj(
+          field -> Json.obj(
+            gt.name -> Json.fromBigDecimal(gt.value.value),
+            lt.name -> Json.fromBigDecimal(lt.value.value)
           )
         )
+      case RangePredicate(field, Some(gt), None) =>
+        Json.obj(
+          field -> Json.obj(
+            gt.name -> Json.fromBigDecimal(gt.value.value)
+          )
+        )
+      case RangePredicate(field, None, Some(lt)) =>
+        Json.obj(
+          field -> Json.obj(
+            lt.name -> Json.fromBigDecimal(lt.value.value)
+          )
+        )
+      case RangePredicate(field, None, None) =>
+        Json.obj(
+          field -> Json.obj()
+        )
+
     }
 
   }

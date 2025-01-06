@@ -1,10 +1,12 @@
 package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.api.filter.Predicate.RangePredicate.RangeGtLt
+import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{
+  DateFieldSchema,
+  DateTimeFieldSchema,
   DoubleFieldSchema,
   FloatFieldSchema,
   IntFieldSchema,
@@ -42,6 +44,16 @@ class DoubleRangeFilterTest extends RangeFilterTestForType[DoubleField, DoubleFi
   override def field(value: Int) = DoubleField("field", value.toFloat)
 }
 
+class DateRangeFilterTest extends RangeFilterTestForType[DateField, DateFieldSchema] {
+  override def schema(): DateFieldSchema    = DateFieldSchema("field", filter = true)
+  override def field(value: Int): DateField = DateField("field", value)
+}
+
+class DateTimeRangeFilterTest extends RangeFilterTestForType[DateTimeField, DateTimeFieldSchema] {
+  override def schema(): DateTimeFieldSchema    = DateTimeFieldSchema("field", filter = true)
+  override def field(value: Int): DateTimeField = DateTimeField("field", value)
+}
+
 object RangeFilterTest {
 
   trait RangeFilterTestForType[F <: Field, S <: FieldSchema[F]] extends SearchTest with Matchers {
@@ -65,35 +77,35 @@ object RangeFilterTest {
 
     it should "select all on wide range" in withIndex { index =>
       {
-        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(0), Lte(100))))))
+        val result = index.search(filters = Some(Filters(include = Some(RangePredicate("field", Gte(0), Lte(100))))))
         result shouldBe List("1", "2", "3", "4")
       }
     }
 
     it should "select none on out-of-range" in withIndex { index =>
       {
-        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(100), Lte(200))))))
+        val result = index.search(filters = Some(Filters(include = Some(RangePredicate("field", Gte(100), Lte(200))))))
         result shouldBe Nil
       }
     }
 
     it should "select subset" in withIndex { index =>
       {
-        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(12), Lte(22))))))
+        val result = index.search(filters = Some(Filters(include = Some(RangePredicate("field", Gte(12), Lte(22))))))
         result shouldBe List("2", "3")
       }
     }
 
     it should "include the borders" in withIndex { index =>
       {
-        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gte(10), Lte(20))))))
+        val result = index.search(filters = Some(Filters(include = Some(RangePredicate("field", Gte(10), Lte(20))))))
         result shouldBe List("1", "2", "3")
       }
     }
 
     it should "exclude the borders" in withIndex { index =>
       {
-        val result = index.search(filters = Some(Filters(include = Some(RangeGtLt("field", Gt(10), Lt(20))))))
+        val result = index.search(filters = Some(Filters(include = Some(RangePredicate("field", Gt(10), Lt(20))))))
         result shouldBe List("2")
       }
     }

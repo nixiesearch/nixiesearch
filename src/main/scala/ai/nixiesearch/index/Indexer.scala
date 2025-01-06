@@ -61,6 +61,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
             writeField(field, BooleanField, index.mapping.booleanFields, buffer)
           case field @ GeopointField(name, lat, lon) =>
             writeField(field, GeopointField, index.mapping.geopointFields, buffer)
+          case field @ DateField(name, value) =>
+            writeField(field, DateField, index.mapping.dateFields, buffer)
+          case field @ DateTimeField(name, value) =>
+            writeField(field, DateTimeField, index.mapping.dateTimeFields, buffer)
         }
         all.add(buffer)
       })

@@ -10,7 +10,15 @@ import org.apache.lucene.index.StoredFieldVisitor
 import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
@@ -48,9 +56,11 @@ case class DocumentVisitor(
 
   override def intField(fieldInfo: FieldInfo, value: Int): Unit = {
     mapping.fields.get(fieldInfo.name) match {
-      case Some(int: IntFieldSchema) => collectField(mapping.intFields, fieldInfo.name, value, IntField)
-      case Some(bool: BooleanFieldSchema) =>
-        collectField(mapping.booleanFields, fieldInfo.name, value, BooleanField)
+      case Some(schema: IntFieldSchema) => collectField(Some(schema), fieldInfo.name, value, IntField)
+      case Some(schema: BooleanFieldSchema) =>
+        collectField(Some(schema), fieldInfo.name, value, BooleanField)
+      case Some(schema: DateFieldSchema) =>
+        collectField(Some(schema), fieldInfo.name, value, DateField)
       case Some(other) =>
         logger.warn(s"field ${fieldInfo.name} is int on disk, but ${other} in the mapping")
       case None =>
@@ -58,30 +68,41 @@ case class DocumentVisitor(
     }
   }
 
-  override def longField(fieldInfo: FieldInfo, value: Long): Unit =
-    collectField(mapping.longFields, fieldInfo.name, value, LongField)
+  override def longField(fieldInfo: FieldInfo, value: Long): Unit = {
+    mapping.fields.get(fieldInfo.name) match {
+      case Some(schema: LongFieldSchema) =>
+        collectField(Some(schema), fieldInfo.name, value, LongField)
+      case Some(schema: DateTimeFieldSchema) =>
+        collectField(Some(schema), fieldInfo.name, value, DateTimeField)
+      case Some(other) =>
+        logger.warn(s"field ${fieldInfo.name} is int on disk, but ${other} in the mapping")
+      case None =>
+        logger.warn(s"field ${fieldInfo.name} is not defined in mapping")
+    }
+
+  }
 
   override def floatField(fieldInfo: FieldInfo, value: Float): Unit =
-    collectField(mapping.floatFields, fieldInfo.name, value, FloatField)
+    collectField(mapping.floatFields.get(fieldInfo.name), fieldInfo.name, value, FloatField)
 
   override def doubleField(fieldInfo: FieldInfo, value: Double): Unit =
-    collectField(mapping.doubleFields, fieldInfo.name, value, DoubleField)
+    collectField(mapping.doubleFields.get(fieldInfo.name), fieldInfo.name, value, DoubleField)
 
   override def binaryField(fieldInfo: FieldInfo, value: Array[Byte]): Unit =
-    collectField(mapping.geopointFields, fieldInfo.name, value, GeopointField)
+    collectField(mapping.geopointFields.get(fieldInfo.name), fieldInfo.name, value, GeopointField)
 
   private def collectField[T, F <: Field, S <: FieldSchema[F]](
-      specs: Map[String, S],
+      specOption: Option[S],
       name: String,
       value: T,
       codec: FieldCodec[F, S, T]
-  ): Unit = specs.get(name) match {
+  ): Unit = specOption match {
     case Some(spec) =>
       codec.readLucene(spec, value) match {
         case Left(error)  => errors.addOne(error)
         case Right(value) => collectedScalars.addOne(value)
       }
-    case None => logger.warn("field ${fieldInfo.name} is not found in mapping, but visited: this should not happen")
+    case None => logger.warn(s"field $name is not found in mapping, but visited: this should not happen")
   }
 
   def asDocument(score: Float): Document = {

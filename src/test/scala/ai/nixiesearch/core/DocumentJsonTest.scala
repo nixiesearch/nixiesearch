@@ -2,6 +2,8 @@ package ai.nixiesearch.core
 
 import ai.nixiesearch.config.FieldSchema.{
   BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
   DoubleFieldSchema,
   FloatFieldSchema,
   GeopointFieldSchema,
@@ -211,6 +213,31 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       )
     val json = """{"_id": "a", "point1": {"lon": 2}, "point2": {"lon": 1, "salat": 2}}"""
     decode[Document](json) shouldBe a[Left[?, ?]]
+  }
+
+  it should "decode dates" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema("_id"), TextFieldSchema("title"), DateFieldSchema("date")))
+      )
+    val json = """{"_id": "a", "title": "foo", "date": "2025-01-01"}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), DateField("date", 20089)))
+    )
+  }
+
+  it should "decode datetime" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(TextFieldSchema("_id"), TextFieldSchema("title"), DateTimeFieldSchema("datetime"))
+        )
+      )
+    val json = """{"_id": "a", "title": "foo", "datetime": "1970-01-01T00:00:01Z"}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), DateTimeField("datetime", 1000)))
+    )
   }
 
 }

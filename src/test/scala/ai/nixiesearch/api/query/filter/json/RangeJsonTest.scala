@@ -1,7 +1,6 @@
 package ai.nixiesearch.api.query.filter.json
 
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
-import ai.nixiesearch.api.filter.Predicate.RangePredicate.{RangeGt, RangeGtLt}
 import ai.nixiesearch.core.FiniteRange.Higher.*
 import ai.nixiesearch.core.FiniteRange.Lower.*
 import io.circe.parser.*
@@ -12,17 +11,17 @@ import org.scalatest.matchers.should.Matchers
 class RangeJsonTest extends AnyFlatSpec with Matchers {
   it should "decode gte/lte range" in {
     val result = decode[RangePredicate]("""{"price":{"gte":10,"lte":100}}""")
-    result shouldBe Right(RangeGtLt("price", Gte(10.0), Lte(100.0)))
+    result shouldBe Right(RangePredicate("price", Gte(10.0), Lte(100.0)))
   }
 
   it should "decode gt/lt range" in {
     val result = decode[RangePredicate]("""{"price":{"gt":10,"lt":100}}""")
-    result shouldBe Right(RangeGtLt("price", Gt(10.0), Lt(100.0)))
+    result shouldBe Right(RangePredicate("price", Gt(10.0), Lt(100.0)))
   }
 
   it should "decode gte range" in {
     val result = decode[RangePredicate]("""{"price":{"gte":10}}""")
-    result shouldBe Right(RangeGt("price", Gte(10.0)))
+    result shouldBe Right(RangePredicate("price", Gte(10.0)))
   }
 
   it should "fail decoding when no gte+lte" in {
@@ -36,7 +35,7 @@ class RangeJsonTest extends AnyFlatSpec with Matchers {
   }
 
   it should "encode gte/lte range" in {
-    val result = RangeGtLt("price", Gte(10.0), Lte(100.0)).asJson(RangePredicate.rangePredicateEncoder).noSpaces
+    val result = RangePredicate("price", Gte(10.0), Lte(100.0)).asJson(RangePredicate.rangePredicateEncoder).noSpaces
     result shouldBe """{"price":{"gte":10.0,"lte":100.0}}"""
   }
 }
