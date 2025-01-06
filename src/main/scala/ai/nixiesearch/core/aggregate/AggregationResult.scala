@@ -1,6 +1,6 @@
 package ai.nixiesearch.core.aggregate
 
-import ai.nixiesearch.core.FiniteRange.{Higher, Lower}
+import ai.nixiesearch.core.FiniteRange.{Higher, Lower, RangeValue}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 
@@ -33,8 +33,8 @@ object AggregationResult {
   given rangeCountEncoder: Encoder[RangeCount] = Encoder.instance { case RangeCount(from, to, count) =>
     Json.obj(
       List.concat(
-        from.map(x => x.name -> Json.fromDoubleOrNull(x.value)).toList,
-        to.map(x => x.name -> Json.fromDoubleOrNull(x.value)).toList,
+        from.map(x => x.name -> x.value.json).toList,
+        to.map(x => x.name -> x.value.json).toList,
         List("count" -> Json.fromInt(count))
       )*
     )
@@ -43,8 +43,8 @@ object AggregationResult {
 
   given rangeCountDecoder: Decoder[RangeCount] = Decoder.instance(c =>
     for {
-      gtOption  <- c.downField("gt").as[Option[Double]]
-      gteOption <- c.downField("gte").as[Option[Double]]
+      gtOption  <- c.downField("gt").as[Option[RangeValue]]
+      gteOption <- c.downField("gte").as[Option[RangeValue]]
       from <- (gtOption, gteOption) match {
         case (Some(gt), None)  => Right(Some(Lower.Gt(gt)))
         case (None, Some(gte)) => Right(Some(Lower.Gte(gte)))
@@ -52,8 +52,8 @@ object AggregationResult {
         case (Some(gt), Some(gte)) =>
           Left(DecodingFailure(s"both gt and gte options present, should be only one: ${c.focus}", c.history))
       }
-      ltOption  <- c.downField("lt").as[Option[Double]]
-      lteOption <- c.downField("lte").as[Option[Double]]
+      ltOption  <- c.downField("lt").as[Option[RangeValue]]
+      lteOption <- c.downField("lte").as[Option[RangeValue]]
       to <- (ltOption, lteOption) match {
         case (Some(lt), None)  => Right(Some(Higher.Lt(lt)))
         case (None, Some(lte)) => Right(Some(Higher.Lte(lte)))

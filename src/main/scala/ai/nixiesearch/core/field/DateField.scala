@@ -52,5 +52,12 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
     val epoch = LocalDate.of(1970, 1, 1)
     epoch.plusDays(in).toString
   }
-  
+
+  def applyUnsafe(name: String, str: String): DateField = {
+    val epoch = LocalDate.of(1970, 1, 1)
+    val date  = LocalDate.parse(str)
+    val days  = ChronoUnit.DAYS.between(epoch, date).toInt
+    new DateField(name, days)
+  }
+
 }

@@ -19,6 +19,8 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
   given dateTimeDecode: Decoder[DateTime] =
     Decoder.decodeString.emapTry(string => parseString(string).map(DateTime.apply).toTry)
 
+  def applyUnsafe(name: String, value: String): DateTimeField = new DateTimeField(name, parseString(value).toOption.get)
+
   override def readLucene(spec: DateTimeFieldSchema, value: Long): Either[FieldCodec.WireDecodingError, DateTimeField] =
     LongField.readLucene(spec.asLong, value).map(long => DateTimeField(spec.name, long.value))
 

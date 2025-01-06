@@ -81,12 +81,14 @@ object Predicate {
 
   object FilterTerm {
     object DateTerm {
+      def unapply(str: String): Option[Int] = DateField.parseString(str).toOption
       def unapply(term: FilterTerm): Option[Int] = term match {
         case StringTerm(string) => DateField.parseString(string).toOption
         case _                  => None
       }
     }
     object DateTimeTerm {
+      def unapply(string: String): Option[Long] = DateTimeField.parseString(string).toOption
       def unapply(term: FilterTerm): Option[Long] = term match {
         case StringTerm(string) => DateTimeField.parseString(string).toOption
         case _                  => None
@@ -184,8 +186,11 @@ object Predicate {
     )
   }
 
-  case class RangePredicate(field: String, greaterThan: Option[FiniteRange.Lower], lessThan: Option[FiniteRange.Higher])
-      extends Predicate {
+  case class RangePredicate(
+      field: String,
+      greaterThan: Option[FiniteRange.Lower] = None,
+      lessThan: Option[FiniteRange.Higher] = None
+  ) extends Predicate {
     override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
       mapping.fields.get(field) match {
         case Some(spec) if !spec.filter =>
@@ -257,6 +262,10 @@ object Predicate {
 
   }
   object RangePredicate {
+    def apply(name: String, from: FiniteRange.Lower) = new RangePredicate(name, Some(from), None)
+    def apply(name: String, to: FiniteRange.Higher)  = new RangePredicate(name, None, Some(to))
+    def apply(name: String, from: FiniteRange.Lower, to: FiniteRange.Higher) =
+      new RangePredicate(name, Some(from), Some(to))
 
     given rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
       c.keys.map(_.toList) match {
