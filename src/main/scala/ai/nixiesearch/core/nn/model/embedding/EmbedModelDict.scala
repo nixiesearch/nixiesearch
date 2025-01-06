@@ -39,7 +39,12 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel], cache: Embedding
   }
   def encodeDocuments(handle: ModelRef, docs: List[String]): IO[Array[Array[Float]]] =
     IO(embedders.get(handle)).flatMap {
-      case None => IO.raiseError(new Exception(s"cannot get embedding model $handle"))
+      case None =>
+        IO.raiseError(
+          new Exception(
+            s"Embedding model '${handle.name}' is referenced in the index mapping, but not defined in the inference config."
+          )
+        )
       case Some(embedder) =>
         val formattedDocs = docs.map(doc => embedder.prompt.doc + doc)
         cache.getOrEmbedAndCache(handle, formattedDocs, embedder.encode)

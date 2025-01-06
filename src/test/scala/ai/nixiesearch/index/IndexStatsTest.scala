@@ -1,6 +1,7 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.SearchType.HybridSearch
@@ -9,7 +10,7 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.index.IndexStats.{FieldStats, LeafStats, SegmentStats}
-import ai.nixiesearch.util.SearchTest
+import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -28,6 +29,7 @@ class IndexStatsTest extends SearchTest with Matchers {
     Document(List(TextField("title", "foo bar"))),
     Document(List(TextField("title", "qux")))
   )
+  override def inference: InferenceConfig = TestInferenceConfig.semantic()
 
   it should "return stats for simple indices" in withIndex(index => {
     val stats = IndexStats
