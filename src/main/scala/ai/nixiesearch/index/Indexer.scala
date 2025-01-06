@@ -7,6 +7,7 @@ import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.*
+import ai.nixiesearch.core.codec.compat.{Nixiesearch101Codec, Nixiesearch912Codec}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.RAW_SUFFIX
 import ai.nixiesearch.core.nn.ModelRef
@@ -202,7 +203,7 @@ object Indexer extends Logging {
 
   def indexWriter(directory: Directory, analyzer: Analyzer, config: IndexConfig): Resource[IO, IndexWriter] =
     for {
-      codec  <- Resource.pure(NixiesearchCodec(config))
+      codec  <- Resource.pure(Nixiesearch101Codec(config))
       config <- Resource.eval(IO(new IndexWriterConfig(analyzer).setCodec(codec)))
       _      <- Resource.eval(debug("opening IndexWriter"))
       writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()) *> debug("IndexWriter closed"))

@@ -20,7 +20,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
   val IO_BUFFER_SIZE = 16 * 1024L
 
   private def inputSize(name: String): IO[Long] = IO {
-    val input = dir.openInput(name, IOContext.LOAD)
+    val input = dir.openInput(name, IOContext.DEFAULT)
     val size  = input.length()
     input.close()
     size
@@ -75,7 +75,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
       Chunk.byteBuffer(ByteBuffer.wrap(buffer))
     }
     for {
-      input <- Stream.bracket(IO(dir.openInput(fileName, IOContext.READ)).handleErrorWith(wrapExceptions))(input =>
+      input <- Stream.bracket(IO(dir.openInput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(input =>
         IO(input.close())
       )
       inputSize <- Stream.eval(IO(input.length()))

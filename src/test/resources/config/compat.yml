@@ -1,0 +1,75 @@
+inference:
+  embedding:
+    text:
+      provider: onnx
+      model: nixiesearch/e5-small-v2-onnx
+      prompt:
+        query: "query: "
+        doc: "passage: "
+
+
+schema:
+  all_types:
+    fields:
+      text_semantic:
+        type: text
+        search:
+          type: semantic
+          model: text
+        facet: true
+        filter: true
+        sort: true
+      text_lexical:
+        type: text
+        search:
+          type: lexical
+          model: text
+        facet: true
+        filter: true
+        sort: true
+        suggest: true
+      text_array:
+        type: text[]
+        search:
+          type: lexical
+          model: text
+        facet: true
+        filter: true
+        sort: true
+        suggest: true
+      int:
+        type: int
+        filter: true
+        facet: true
+        sort: true
+      float:
+        type: float
+        filter: true
+        facet: true
+        sort: true
+      long:
+        type: long
+        filter: true
+        facet: true
+        sort: true
+      double:
+        type: float
+        filter: true
+        facet: true
+        sort: true
+      date:
+        type: date
+        filter: true
+        facet: true
+        sort: true
+      datetime:
+        type: datetime
+        filter: true
+        facet: true
+        sort: true
+      geopoint:
+        type: geopoint
+        filter: true
+        sort: true
+
+
