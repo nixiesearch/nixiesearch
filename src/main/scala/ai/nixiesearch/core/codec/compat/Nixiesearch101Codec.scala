@@ -1,16 +1,25 @@
-package ai.nixiesearch.core.codec
+package ai.nixiesearch.core.codec.compat
 
 import ai.nixiesearch.config.mapping.IndexConfig
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.field.TextField
-import org.apache.lucene.codecs.lucene912.Lucene912Codec
+import org.apache.lucene.backward_codecs.lucene912.Lucene912Codec
+import org.apache.lucene.codecs.lucene101.Lucene101Codec
+import org.apache.lucene.codecs.{Codec, FilterCodec, KnnVectorsFormat, PostingsFormat}
 import org.apache.lucene.codecs.lucene99.Lucene99HnswVectorsFormat
 import org.apache.lucene.codecs.perfield.{PerFieldKnnVectorsFormat, PerFieldPostingsFormat}
-import org.apache.lucene.codecs.{Codec, FilterCodec, KnnVectorsFormat, PostingsFormat}
-import org.apache.lucene.search.suggest.document.{Completion912PostingsFormat, CompletionPostingsFormat}
+import org.apache.lucene.search.suggest.document.{
+  Completion101PostingsFormat,
+  Completion912PostingsFormat,
+  CompletionPostingsFormat
+}
 
-class NixiesearchCodec(parent: Codec, config: IndexConfig) extends FilterCodec(parent.getName, parent) with Logging {
-  val suggestPostingsFormat = new Completion912PostingsFormat(CompletionPostingsFormat.FSTLoadMode.AUTO)
+class Nixiesearch101Codec(parent: Codec, config: IndexConfig)
+    extends FilterCodec("Nixiesearch101", parent)
+    with Logging {
+
+  def this() = this(new Lucene101Codec(), IndexConfig())
+  val suggestPostingsFormat = new Completion101PostingsFormat(CompletionPostingsFormat.FSTLoadMode.AUTO)
 
   override def postingsFormat(): PostingsFormat = new PerFieldPostingsFormat {
     override def getPostingsFormatForField(field: String): PostingsFormat =
@@ -30,8 +39,8 @@ class NixiesearchCodec(parent: Codec, config: IndexConfig) extends FilterCodec(p
 
 }
 
-object NixiesearchCodec {
-  def apply(config: IndexConfig): NixiesearchCodec = {
-    new NixiesearchCodec(new Lucene912Codec(), config)
+object Nixiesearch101Codec {
+  def apply(config: IndexConfig): Nixiesearch101Codec = {
+    new Nixiesearch101Codec(new Lucene101Codec(), config)
   }
 }

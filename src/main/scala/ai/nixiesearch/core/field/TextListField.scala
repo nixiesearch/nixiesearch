@@ -49,7 +49,7 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
           SuggestCandidates
             .fromString(schema, spec.name, value)
             .foreach(candidate => {
-              val s = SuggestField(field.name, candidate, 1)
+              val s = SuggestField(field.name + TextField.SUGGEST_SUFFIX, candidate, 1)
               buffer.add(s)
             })
         })

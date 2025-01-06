@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.suggest
 
 import ai.nixiesearch.api.SearchRoute.SuggestRequest
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
@@ -18,19 +18,27 @@ class SuggestSingleFieldTest extends SearchTest with Matchers {
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = NoSearch, suggest = Some(SuggestSchema()))
+      TextFieldSchema(name = "title", search = NoSearch, suggest = Some(SuggestSchema())),
+      TextListFieldSchema(name = "genres", search = NoSearch, suggest = Some(SuggestSchema()))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
-    Document(List(TextField("title", "hello world"))),
-    Document(List(TextField("title", "I like hotdogs"))),
-    Document(List(TextField("title", "where is my mind?")))
+    Document(List(TextField("title", "hello world"), TextListField("genres", "action", "arcade"))),
+    Document(List(TextField("title", "I like hotdogs"), TextListField("genres", "action", "romance"))),
+    Document(List(TextField("title", "where is my mind?"), TextListField("genres", "sports")))
   )
 
-  it should "generate suggestions" in withIndex { nixie =>
+  it should "generate suggestions for text fields" in withIndex { nixie =>
     {
       val resp = nixie.searcher.suggest(SuggestRequest(query = "he", fields = List("title"))).unsafeRunSync()
+      resp.suggestions.map(_.text) shouldBe List("hello", "hello world", "where", "where is", "where is my")
+    }
+  }
+
+  it should "generate suggestions for text[] fields" in withIndex { nixie =>
+    {
+      val resp = nixie.searcher.suggest(SuggestRequest(query = "a", fields = List("genres"))).unsafeRunSync()
       resp.suggestions.map(_.text) shouldBe List("hello", "hello world", "where", "where is", "where is my")
     }
   }
