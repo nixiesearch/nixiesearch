@@ -96,7 +96,7 @@ object EmbedModel {
         threads: Int = ONNX_THREADS_DEFAULT,
         seqlen: Int = 512
     ): Resource[IO, OnnxEmbedModel] = for {
-      isGPUBuild <- Resource.eval(GPUUtils.isGPUBuild())
+      isGPUBuild <- Resource.eval(IO(GPUUtils.isGPUBuild()))
       _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
       model <- Resource.make(
         IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen))

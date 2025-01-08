@@ -93,6 +93,12 @@ Compile / discoveredMainClasses := Seq()
 
 enablePlugins(DockerPlugin)
 
+enablePlugins(BuildInfoPlugin)
+buildInfoKeys ++= Seq[BuildInfoKey](
+  BuildInfoKey.action("jdk") {
+    java.lang.Runtime.version().toString
+  }
+)
 docker / dockerfile := {
   val artifact: File     = assembly.value
   val artifactTargetPath = s"/app/${artifact.name}"

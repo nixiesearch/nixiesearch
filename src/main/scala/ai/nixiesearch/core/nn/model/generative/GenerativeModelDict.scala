@@ -56,7 +56,7 @@ object GenerativeModelDict extends Logging {
     } yield {
       modelPath
     })
-    isGPU <- Resource.eval(GPUUtils.isGPUBuild())
+    isGPU <- Resource.eval(IO(GPUUtils.isGPUBuild()))
     genModel <- LlamacppGenerativeModel.create(
       path = modelFile,
       options = config.options,
@@ -81,7 +81,7 @@ object GenerativeModelDict extends Logging {
       } yield {
         path.toNioPath.resolve(modelFile)
       })
-      isGPU <- Resource.eval(GPUUtils.isGPUBuild())
+      isGPU <- Resource.eval(IO(GPUUtils.isGPUBuild()))
       genModel <- LlamacppGenerativeModel.create(
         path = modelFile,
         options = config.options,

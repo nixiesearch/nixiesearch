@@ -16,8 +16,8 @@ object GPUUtils extends Logging {
   case class GPUDevice(id: Int, model: String)
 
   val ONNX_CUDA_EP_PATH = "/ai/onnxruntime/native/linux-x64/libonnxruntime_providers_cuda.so"
-  def isGPUBuild(): IO[Boolean] = {
-    IO(this.getClass.getResource(ONNX_CUDA_EP_PATH)).map(Option.apply).map(_.isDefined)
+  def isGPUBuild(): Boolean = {
+    Option(this.getClass.getResource(ONNX_CUDA_EP_PATH)).isDefined
   }
 
   val CUDART_NAME = "libcudart.so.12"
