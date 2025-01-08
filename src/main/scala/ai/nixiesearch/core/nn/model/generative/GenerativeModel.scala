@@ -127,8 +127,10 @@ object GenerativeModel {
         List("--threads", options.threads.toString),
         List("--gpu_layers", options.gpu_layers.toString),
         if (options.cont_batching) List("--cont-batching") else List("--no-cont-batching"),
-        if (options.flash_attn) List("--flash-attn") else List()
+        if (options.flash_attn) List("--flash-attn") else List(),
+        List("--seed", options.seed.toString)
       )
+      logger.info(s"Starting llamacpp-server with args: ${args.map(_.mkString(" ")).mkString(" ")}")
       LlamacppServer.start(
         args.flatten.toArray,
         if (useGpu) LLAMACPP_BACKEND.GGML_CUDA12 else LLAMACPP_BACKEND.GGML_CPU
