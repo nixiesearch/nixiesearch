@@ -32,6 +32,6 @@ class GPUUtilsTest extends AnyFlatSpec with Matchers {
   }
 
   it should "detect GPU build" in {
-    GPUUtils.isGPUBuild().unsafeRunSync() shouldBe false
+    GPUUtils.isGPUBuild() shouldBe false
   }
 }

@@ -14,7 +14,7 @@ import fs2.Stream
 
 object Main extends IOApp with Logging {
   override def run(args: List[String]): IO[ExitCode] = for {
-    _      <- info("Staring Nixiesearch")
+    _      <- info(s"Staring Nixiesearch: ${Logo.version}")
     opts   <- CliConfig.load(args)
     _      <- changeLogbackLevel(opts.loglevel)
     env    <- Env[IO].entries.map(_.toMap)
@@ -43,7 +43,7 @@ object Main extends IOApp with Logging {
   }
 
   def gpuChecks(config: Config): IO[Unit] = for {
-    _ <- GPUUtils.isGPUBuild().flatMap {
+    _ <- IO(GPUUtils.isGPUBuild()).flatMap {
       case false => info("Nixiesearch CPU inference build. GPU inference not supported")
       case true =>
         info("ONNX CUDA EP Found: GPU Build") *> Stream
