@@ -11,7 +11,9 @@ inference:
       provider: llamacpp
       model: Qwen/Qwen2.5-1.5B-Instruct-GGUF
       file: qwen2.5-1.5b-instruct-q4_0.gguf
-      seed: 0
+      options:
+        seed: 42
+        cont_batching: false
 
 searcher:
   api:
