@@ -42,9 +42,4 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
   }
 
   override def encodeJson(field: BooleanField): Json = Json.fromBoolean(field.value)
-
-  override def decodeJson(name: String, schema: BooleanFieldSchema, json: Json): Result[Option[BooleanField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[Boolean](parts, schema, json, _.as[Option[Boolean]], BooleanField(name, _))
-  }
 }

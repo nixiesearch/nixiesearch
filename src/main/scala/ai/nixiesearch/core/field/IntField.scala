@@ -38,9 +38,4 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
 
-  override def decodeJson(name: String, schema: IntFieldSchema, json: Json): Result[Option[IntField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[Int](parts, schema, json, _.as[Option[Int]], IntField(name, _))
-  }
-
 }

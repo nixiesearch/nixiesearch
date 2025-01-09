@@ -39,8 +39,4 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
 
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
 
-  override def decodeJson(name: String, schema: DoubleFieldSchema, json: Json): Result[Option[DoubleField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[Double](parts, schema, json, _.as[Option[Double]], DoubleField(name, _))
-  }
 }

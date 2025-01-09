@@ -36,11 +36,6 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
     IntField.writeLucene(IntField(field.name, field.value), spec.asInt, buffer, embeddings)
   }
 
-  override def decodeJson(name: String, schema: DateFieldSchema, json: Json): Result[Option[DateField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[Date](parts, schema, json, _.as[Option[Date]], (d: Date) => DateField(name, d.value))
-  }
-
   override def encodeJson(field: DateField): Json = Json.fromString(writeString(field.value))
 
   def parseString(in: String): Either[Throwable, Int] = {

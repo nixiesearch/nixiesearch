@@ -38,8 +38,4 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
 
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
 
-  override def decodeJson(name: String, schema: LongFieldSchema, json: Json): Result[Option[LongField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[Long](parts, schema, json, _.as[Option[Long]], LongField(name, _))
-  }
 }

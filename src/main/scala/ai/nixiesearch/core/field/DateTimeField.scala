@@ -34,18 +34,6 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
 
   override def encodeJson(field: DateTimeField): Json = Json.fromString(writeString(field.value))
 
-  override def decodeJson(name: String, schema: DateTimeFieldSchema, json: Json): Result[Option[DateTimeField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[DateTime](
-      parts,
-      schema,
-      json,
-      _.as[Option[DateTime]],
-      (d: DateTime) => DateTimeField(name, d.millis)
-    )
-
-  }
-
   def parseString(in: String): Either[Throwable, Long] = {
     Try(ZonedDateTime.parse(in, DateTimeFormatter.ISO_DATE_TIME)) match {
       case Success(zoned) =>

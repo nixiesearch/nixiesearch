@@ -1,27 +1,17 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.config.FieldSchema.{
-  BooleanFieldSchema,
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  GeopointFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.TestIndexMapping
-import io.circe.Decoder
+import io.circe.{Decoder, Json}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
-import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
+import ai.nixiesearch.core.Document.JsonScalar.{JNumber, JString, JStringArray}
 
 class DocumentJsonTest extends AnyFlatSpec with Matchers {
   it should "decode flat json documents" in {
@@ -42,10 +32,74 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "decode flat docs with wildcarts" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(FieldName.parse("field_*_str").toOption.get),
+            IntFieldSchema(FieldName.parse("field_*_int").toOption.get)
+          )
+        )
+      )
+    val json = """{"_id": "a", "field_title_str": "foo", "field_count_int": 1}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("field_title_str", "foo"), IntField("field_count_int", 1)))
+    )
+  }
+
+  it should "decode nested docs with wildcarts" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(FieldName.parse("root.field_*_str").toOption.get),
+            IntFieldSchema(FieldName.parse("root.field_*_int").toOption.get)
+          )
+        )
+      )
+    val json = """{"_id": "a", "root": {"field_title_str": "foo", "field_count_int": 1}}"""
+    decode[Document](json) shouldBe Right(
+      Document(
+        List(TextField("_id", "a"), TextField("root.field_title_str", "foo"), IntField("root.field_count_int", 1))
+      )
+    )
+  }
+
+  it should "decode nested array docs with wildcarts" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextListFieldSchema(FieldName.parse("root.field_*_str").toOption.get)
+          )
+        )
+      )
+    val json = """{"_id": "a", "root": [{"field_title_str": "foo"}]}"""
+    decode[Document](json) shouldBe Right(
+      Document(
+        List(TextField("_id", "a"), TextListField("root.field_title_str", List("foo")))
+      )
+    )
+  }
+
   it should "decode 2x nested json documents" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
-        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), FloatFieldSchema(StringName("info.group"))))
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            FloatFieldSchema(StringName("info.group"))
+          )
+        )
       )
     val json = """{"_id": "a", "title": "foo", "info": {"group": 1}}"""
     decode[Document](json) shouldBe Right(
@@ -58,7 +112,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), FloatFieldSchema(StringName("info.group.deep")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            FloatFieldSchema(StringName("info.group.deep"))
+          )
         )
       )
     val json = """{"_id": "a", "title": "foo", "info": {"group": {"deep":1}}}"""
@@ -72,7 +130,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks.name")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            TextListFieldSchema(StringName("tracks.name"))
+          )
         )
       )
     val json = """{"_id": "a", "title": "foo", "tracks": [{"name": "foo"}]}"""
@@ -86,7 +148,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks.name")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            TextListFieldSchema(StringName("tracks.name"))
+          )
         )
       )
     val json = """{"_id": "a", "title": "foo", "tracks": [{"name": ["foo"]}]}"""
@@ -98,7 +164,14 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
   it should "decode arrays of strings" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
-        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks"))))
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            TextListFieldSchema(StringName("tracks"))
+          )
+        )
       )
     val json = """{"_id": "a", "title": "foo", "tracks": ["foo"]}"""
     decode[Document](json) shouldBe Right(
@@ -111,7 +184,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            TextListFieldSchema(StringName("tracks"))
+          )
         )
       )
     val json = """{"_id": "a", "title": "foo", "tracks": []}"""
@@ -121,38 +198,61 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
   }
   it should "fail on arrays of nulls" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks"))))
+      )
     val json = """{"_id": "a", "title": "foo", "tracks": [null]}"""
+    decode[Document](json) shouldBe a[Left[?, ?]]
+  }
+
+  it should "fail on nested ints" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("title")), TextListFieldSchema(StringName("tracks"))))
+      )
+    val json = """{"_id": "a", "title": "foo", "tracks": [1,2,3]}"""
     decode[Document](json) shouldBe a[Left[?, ?]]
   }
 
   it should "skip empty objects" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
+      )
     val json = """{"_id": "a", "title": "foo", "tracks": {}}"""
     decode[Document](json) shouldBe Right(
       Document(List(TextField("_id", "a"), TextField("title", "foo")))
     )
   }
 
-  it should "accept null values" in {
+  it should "not accept null values" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
-        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), IntFieldSchema(StringName("count"))))
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            IntFieldSchema(StringName("count"))
+          )
+        )
       )
     val json    = """{"_id": "a", "title": null, "count": 1}"""
     val decoded = decode[Document](json)
-    decoded shouldBe Right(Document(List(TextField("_id", "a"), IntField("count", 1))))
+    decoded shouldBe a[Left[?, ?]]
   }
 
   it should "fail on zero fields" in {
-    given decoder: Decoder[Document] = Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("title")))))
+    given decoder: Decoder[Document] =
+      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("title")))))
     decode[Document]("{}") shouldBe a[Left[?, ?]]
   }
 
   it should "generate synthetic ID" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
+      )
     val ids = decode[Document]("""{"title":"foo"}""").map(_.fields.collectFirst { case TextField("_id", value) =>
       value
     })
@@ -162,7 +262,9 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
 
   it should "accept numeric ids" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
+      )
     decode[Document]("""{"_id": 1,"title":"foo"}""") shouldBe Right(
       Document(List(TextField("_id", "1"), TextField("title", "foo")))
     )
@@ -170,26 +272,39 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
 
   it should "fail on real ids" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
+      )
     decode[Document]("""{"_id": 1.666,"title":"foo"}""") shouldBe a[Left[?, ?]]
   }
 
   it should "fail on bool ids" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
+      )
     decode[Document]("""{"_id": true,"title":"foo"}""") shouldBe a[Left[?, ?]]
   }
 
   it should "fail on bool arrays" in {
     given decoder: Decoder[Document] =
-      Document.decoderFor(TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")))))
+      Document.decoderFor(
+        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
+      )
     decode[Document]("""{"_id": 1,"title":[true, false]}""") shouldBe a[Left[?, ?]]
   }
 
   it should "decode booleans" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
-        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), BooleanFieldSchema(StringName("flag"))))
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            BooleanFieldSchema(StringName("flag"))
+          )
+        )
       )
     val json = """{"_id": "a", "title": "foo", "flag": true}"""
     decode[Document](json) shouldBe Right(
@@ -202,7 +317,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), GeopointFieldSchema(StringName("point1")), GeopointFieldSchema(StringName("point2")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            GeopointFieldSchema(StringName("point1")),
+            GeopointFieldSchema(StringName("point2"))
+          )
         )
       )
     val json = """{"_id": "a", "point1": {"lat": 1, "lon": 2}, "point2": {"lon": 1, "lat": 2}}"""
@@ -216,7 +335,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), GeopointFieldSchema(StringName("point1")), GeopointFieldSchema(StringName("point2")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            GeopointFieldSchema(StringName("point1")),
+            GeopointFieldSchema(StringName("point2"))
+          )
         )
       )
     val json = """{"_id": "a", "point1": {"lon": 2}, "point2": {"lon": 1, "salat": 2}}"""
@@ -226,7 +349,14 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
   it should "decode dates" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
-        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), DateFieldSchema(StringName("date"))))
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            DateFieldSchema(StringName("date"))
+          )
+        )
       )
     val json = """{"_id": "a", "title": "foo", "date": "2025-01-01"}"""
     decode[Document](json) shouldBe Right(
@@ -239,7 +369,11 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping(
           "test",
-          List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title")), DateTimeFieldSchema(StringName("datetime")))
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            DateTimeFieldSchema(StringName("datetime"))
+          )
         )
       )
     val json = """{"_id": "a", "title": "foo", "datetime": "1970-01-01T00:00:01Z"}"""

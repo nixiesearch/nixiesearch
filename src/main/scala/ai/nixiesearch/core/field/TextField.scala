@@ -86,29 +86,4 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     Right(TextField(name, value))
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
-
-  override def decodeJson(name: String, schema: TextFieldSchema, json: Json): Result[Option[TextField]] = {
-    val parts = name.split('.').toList
-    if (name == "_id") {
-      decodeRecursiveScalar[String](parts, schema, json, _.as[Option[String]], TextField(name, _)) match {
-        case Left(_) | Right(None) =>
-          decodeRecursiveScalar[Long](
-            parts,
-            schema,
-            json,
-            _.as[Option[Long]],
-            (x: Long) => TextField(name, x.toString)
-          ) match {
-            case Left(err)    => Left(err)
-            case Right(None)  => Right(Some(TextField("_id", UUID.randomUUID().toString)))
-            case Right(value) => Right(value)
-          }
-        case Right(value) => Right(value)
-      }
-    } else {
-      decodeRecursiveScalar[String](parts, schema, json, _.as[Option[String]], TextField(name, _))
-    }
-
-  }
-
 }

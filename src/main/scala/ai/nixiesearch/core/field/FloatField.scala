@@ -7,7 +7,14 @@ import ai.nixiesearch.core.codec.FieldCodec
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{KnnFloatVectorField, SortedDocValuesField, SortedNumericDocValuesField, StoredField, StringField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  KnnFloatVectorField,
+  SortedDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  StringField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.util.NumericUtils
 case class FloatField(name: String, value: Float) extends Field with NumericField
 
@@ -29,14 +36,13 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
     }
   }
 
-  override def readLucene(name: String, spec: FloatFieldSchema, value: Float): Either[FieldCodec.WireDecodingError, FloatField] =
+  override def readLucene(
+      name: String,
+      spec: FloatFieldSchema,
+      value: Float
+  ): Either[FieldCodec.WireDecodingError, FloatField] =
     Right(FloatField(name, value))
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
-
-  override def decodeJson(name: String, schema: FloatFieldSchema, json: Json): Result[Option[FloatField]] = {
-    val parts = name.split('.').toList
-    decodeRecursiveScalar[Float](parts, schema, json, _.as[Option[Float]], FloatField(name, _))
-  }
 
 }
