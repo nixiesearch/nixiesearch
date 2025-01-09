@@ -1,12 +1,14 @@
 package ai.nixiesearch.core
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.field.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import fs2.Stream
 import cats.effect.unsafe.implicits.global
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val doc      = """{"_id":"1","text":"foo"}"""
@@ -14,8 +16,8 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val mapping = IndexMapping(
     name = IndexName("test"),
     fields = Map(
-      "_id"  -> TextFieldSchema(name = "_id"),
-      "text" -> TextFieldSchema(name = "text")
+      StringName("_id")  -> TextFieldSchema(name = StringName("_id")),
+      StringName("text") -> TextFieldSchema(name = StringName("text"))
     )
   )
 

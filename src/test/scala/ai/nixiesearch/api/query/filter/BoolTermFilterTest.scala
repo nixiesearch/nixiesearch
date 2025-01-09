@@ -10,13 +10,14 @@ import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class BoolTermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      BooleanFieldSchema("color", filter = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      BooleanFieldSchema(StringName("color"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

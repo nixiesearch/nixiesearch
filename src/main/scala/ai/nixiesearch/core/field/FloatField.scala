@@ -29,14 +29,14 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
     }
   }
 
-  override def readLucene(spec: FloatFieldSchema, value: Float): Either[FieldCodec.WireDecodingError, FloatField] =
-    Right(FloatField(spec.name, value))
+  override def readLucene(name: String, spec: FloatFieldSchema, value: Float): Either[FieldCodec.WireDecodingError, FloatField] =
+    Right(FloatField(name, value))
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
 
-  override def decodeJson(schema: FloatFieldSchema, cursor: ACursor): Result[Option[FloatField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[Float](parts, schema, cursor, _.as[Option[Float]], FloatField(schema.name, _))
+  override def decodeJson(name: String, schema: FloatFieldSchema, json: Json): Result[Option[FloatField]] = {
+    val parts = name.split('.').toList
+    decodeRecursiveScalar[Float](parts, schema, json, _.as[Option[Float]], FloatField(name, _))
   }
 
 }

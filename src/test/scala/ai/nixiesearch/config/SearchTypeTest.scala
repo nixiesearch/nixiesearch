@@ -8,6 +8,7 @@ import io.circe.Decoder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class SearchTypeTest extends AnyFlatSpec with Matchers {
 
@@ -17,7 +18,7 @@ class SearchTypeTest extends AnyFlatSpec with Matchers {
         |search:
         |  type: lexical""".stripMargin
     val result = decodeYaml(yaml)
-    result shouldBe Right(TextFieldSchema(name = "field", search = LexicalSearch()))
+    result shouldBe Right(TextFieldSchema(name = StringName("field"), search = LexicalSearch()))
   }
 
   it should "decode hybrid as object" in {
@@ -27,7 +28,7 @@ class SearchTypeTest extends AnyFlatSpec with Matchers {
         |  type: hybrid
         |  model: text""".stripMargin
     val result = decodeYaml(yaml)
-    result shouldBe Right(TextFieldSchema(name = "field", search = HybridSearch(ModelRef("text"))))
+    result shouldBe Right(TextFieldSchema(name = StringName("field"), search = HybridSearch(ModelRef("text"))))
   }
 
   it should "decode semantic with options" in {
@@ -38,11 +39,11 @@ class SearchTypeTest extends AnyFlatSpec with Matchers {
         |  language: english
         |  model: text""".stripMargin
     val result = decodeYaml(yaml)
-    result shouldBe Right(TextFieldSchema(name = "field", search = SemanticSearch(ModelRef("text"))))
+    result shouldBe Right(TextFieldSchema(name = StringName("field"), search = SemanticSearch(ModelRef("text"))))
   }
 
   def decodeYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {
-    implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder("field")
+    implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder(StringName("field"))
     parse(yaml).flatMap(_.as[FieldSchema[? <: Field]])
   }
 }

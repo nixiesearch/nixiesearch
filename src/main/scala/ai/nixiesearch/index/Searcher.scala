@@ -66,7 +66,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     fieldSuggestions <- Stream
       .emits(request.fields)
       .evalMap(fieldName =>
-        index.mapping.fields.get(fieldName) match {
+        index.mapping.fieldSchema(fieldName) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
           case Some(TextLikeFieldSchema(language=language, suggest=Some(schema))) =>
             GeneratedSuggestions.fromField(fieldName, suggester, language.analyzer, request.query, request.count)
@@ -157,7 +157,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       size: Int,
       encoders: EmbedModelDict
   ): IO[List[LuceneQuery]] =
-    mapping.fields.get(field) match {
+    mapping.fieldSchema(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
       case Some(TextLikeFieldSchema(search=LexicalSearch(),language=language)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
@@ -243,7 +243,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case Some(a) =>
         a.aggs.toList
           .traverse { case (name, agg) =>
-            mapping.fields.get(agg.field) match {
+            mapping.fieldSchema(agg.field) match {
               case Some(field) if !field.facet =>
                 IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
               case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))

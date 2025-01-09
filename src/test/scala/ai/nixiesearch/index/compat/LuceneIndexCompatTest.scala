@@ -13,7 +13,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
-
+import scala.language.implicitConversions
 import scala.compiletime.uninitialized
 
 class Lucene912IndexCompatTest extends LuceneIndexCompatTest("lucene9.12")
@@ -37,7 +37,7 @@ abstract class LuceneIndexCompatTest(name: String) extends AnyFlatSpec with Matc
 
   it should "fetch all fields" in {
     val response = searcher
-      .search(SearchRequest(query = MatchAllQuery(), fields = CompatUtil.mapping.fields.keys.toList))
+      .search(SearchRequest(query = MatchAllQuery(), fields = CompatUtil.mapping.fields.keys.toList.map(_.name)))
       .unsafeRunSync()
     response.hits.map(_.fields.size) shouldBe List(10)
   }

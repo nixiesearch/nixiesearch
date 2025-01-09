@@ -30,13 +30,17 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
     }
   }
 
-  override def readLucene(spec: DoubleFieldSchema, value: Double): Either[FieldCodec.WireDecodingError, DoubleField] =
-    Right(DoubleField(spec.name, value))
+  override def readLucene(
+      name: String,
+      spec: DoubleFieldSchema,
+      value: Double
+  ): Either[FieldCodec.WireDecodingError, DoubleField] =
+    Right(DoubleField(name, value))
 
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
 
-  override def decodeJson(schema: DoubleFieldSchema, cursor: ACursor): Result[Option[DoubleField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[Double](parts, schema, cursor, _.as[Option[Double]], DoubleField(schema.name, _))
+  override def decodeJson(name: String, schema: DoubleFieldSchema, json: Json): Result[Option[DoubleField]] = {
+    val parts = name.split('.').toList
+    decodeRecursiveScalar[Double](parts, schema, json, _.as[Option[Double]], DoubleField(name, _))
   }
 }

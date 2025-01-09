@@ -12,14 +12,15 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class SearchAndFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      TextFieldSchema("color", filter = true),
-      TextFieldSchema("title", search = LexicalSearch())
+      TextFieldSchema(StringName("_id"), filter = true),
+      TextFieldSchema(StringName("color"), filter = true),
+      TextFieldSchema(StringName("title"), search = LexicalSearch())
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

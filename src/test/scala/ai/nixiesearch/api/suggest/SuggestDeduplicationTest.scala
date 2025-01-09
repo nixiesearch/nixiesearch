@@ -12,13 +12,14 @@ import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class SuggestDeduplicationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = NoSearch, suggest = Some(SuggestSchema()))
+      TextFieldSchema(name = StringName("_id"), filter = true),
+      TextFieldSchema(name = StringName("title"), search = NoSearch, suggest = Some(SuggestSchema()))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

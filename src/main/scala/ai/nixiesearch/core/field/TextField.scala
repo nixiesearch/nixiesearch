@@ -69,7 +69,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     }
     spec.suggest.foreach(schema => {
       SuggestCandidates
-        .fromString(schema, spec.name, field.value)
+        .fromString(schema, field.name, field.value)
         .foreach(candidate => {
           val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
           buffer.add(s)
@@ -78,22 +78,26 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     val br = 1
   }
 
-  override def readLucene(spec: TextFieldSchema, value: String): Either[FieldCodec.WireDecodingError, TextField] =
-    Right(TextField(spec.name, value))
+  override def readLucene(
+      name: String,
+      spec: TextFieldSchema,
+      value: String
+  ): Either[FieldCodec.WireDecodingError, TextField] =
+    Right(TextField(name, value))
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
 
-  override def decodeJson(schema: TextFieldSchema, cursor: ACursor): Result[Option[TextField]] = {
-    val parts = schema.name.split('.').toList
-    if (schema.name == "_id") {
-      decodeRecursiveScalar[String](parts, schema, cursor, _.as[Option[String]], TextField(schema.name, _)) match {
+  override def decodeJson(name: String, schema: TextFieldSchema, json: Json): Result[Option[TextField]] = {
+    val parts = name.split('.').toList
+    if (name == "_id") {
+      decodeRecursiveScalar[String](parts, schema, json, _.as[Option[String]], TextField(name, _)) match {
         case Left(_) | Right(None) =>
           decodeRecursiveScalar[Long](
             parts,
             schema,
-            cursor,
+            json,
             _.as[Option[Long]],
-            (x: Long) => TextField(schema.name, x.toString)
+            (x: Long) => TextField(name, x.toString)
           ) match {
             case Left(err)    => Left(err)
             case Right(None)  => Right(Some(TextField("_id", UUID.randomUUID().toString)))
@@ -102,7 +106,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
         case Right(value) => Right(value)
       }
     } else {
-      decodeRecursiveScalar[String](parts, schema, cursor, _.as[Option[String]], TextField(schema.name, _))
+      decodeRecursiveScalar[String](parts, schema, json, _.as[Option[String]], TextField(name, _))
     }
 
   }

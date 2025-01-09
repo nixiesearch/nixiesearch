@@ -19,8 +19,12 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
   given dateEncoder: Encoder[Date] = Encoder.instance(days => Json.fromString(writeString(days.value)))
   given dateDecoder: Decoder[Date] = Decoder.decodeString.emapTry(str => parseString(str).map(Date.apply).toTry)
 
-  override def readLucene(spec: DateFieldSchema, value: Int): Either[FieldCodec.WireDecodingError, DateField] = {
-    IntField.readLucene(spec.asInt, value).map(f => DateField(f.name, f.value))
+  override def readLucene(
+      name: String,
+      spec: DateFieldSchema,
+      value: Int
+  ): Either[FieldCodec.WireDecodingError, DateField] = {
+    IntField.readLucene(name, spec.asInt, value).map(f => DateField(f.name, f.value))
   }
 
   override def writeLucene(
@@ -29,12 +33,12 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
       buffer: Document,
       embeddings: Map[String, Array[Float]]
   ): Unit = {
-    IntField.writeLucene(IntField(spec.name, field.value), spec.asInt, buffer, embeddings)
+    IntField.writeLucene(IntField(field.name, field.value), spec.asInt, buffer, embeddings)
   }
 
-  override def decodeJson(schema: DateFieldSchema, cursor: ACursor): Result[Option[DateField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[Date](parts, schema, cursor, _.as[Option[Date]], (d: Date) => DateField(schema.name, d.value))
+  override def decodeJson(name: String, schema: DateFieldSchema, json: Json): Result[Option[DateField]] = {
+    val parts = name.split('.').toList
+    decodeRecursiveScalar[Date](parts, schema, json, _.as[Option[Date]], (d: Date) => DateField(name, d.value))
   }
 
   override def encodeJson(field: DateField): Json = Json.fromString(writeString(field.value))

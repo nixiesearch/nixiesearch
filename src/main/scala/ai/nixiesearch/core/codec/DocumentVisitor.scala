@@ -14,6 +14,9 @@ import ai.nixiesearch.config.FieldSchema.{
   BooleanFieldSchema,
   DateFieldSchema,
   DateTimeFieldSchema,
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  GeopointFieldSchema,
   IntFieldSchema,
   LongFieldSchema,
   TextFieldSchema,
@@ -34,10 +37,10 @@ case class DocumentVisitor(
   override def needsField(fieldInfo: FieldInfo): Status =
     if ((fieldInfo.name == "_id") || fields.contains(fieldInfo.name)) Status.YES else Status.NO
 
-  override def stringField(fieldInfo: FieldInfo, value: String): Unit = mapping.fields.get(fieldInfo.name) match {
+  override def stringField(fieldInfo: FieldInfo, value: String): Unit = mapping.fieldSchema(fieldInfo.name) match {
     case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but collected: this should not happen")
     case Some(spec: TextFieldSchema) =>
-      TextField.readLucene(spec, value) match {
+      TextField.readLucene(fieldInfo.name, spec, value) match {
         case Left(err)    => errors.addOne(err)
         case Right(field) => collectedScalars.addOne(field)
       }
@@ -55,7 +58,7 @@ case class DocumentVisitor(
   }
 
   override def intField(fieldInfo: FieldInfo, value: Int): Unit = {
-    mapping.fields.get(fieldInfo.name) match {
+    mapping.fieldSchema(fieldInfo.name) match {
       case Some(schema: IntFieldSchema) => collectField(Some(schema), fieldInfo.name, value, IntField)
       case Some(schema: BooleanFieldSchema) =>
         collectField(Some(schema), fieldInfo.name, value, BooleanField)
@@ -69,7 +72,7 @@ case class DocumentVisitor(
   }
 
   override def longField(fieldInfo: FieldInfo, value: Long): Unit = {
-    mapping.fields.get(fieldInfo.name) match {
+    mapping.fieldSchema(fieldInfo.name) match {
       case Some(schema: LongFieldSchema) =>
         collectField(Some(schema), fieldInfo.name, value, LongField)
       case Some(schema: DateTimeFieldSchema) =>
@@ -83,13 +86,13 @@ case class DocumentVisitor(
   }
 
   override def floatField(fieldInfo: FieldInfo, value: Float): Unit =
-    collectField(mapping.floatFields.get(fieldInfo.name), fieldInfo.name, value, FloatField)
+    collectField(mapping.fieldSchemaOf[FloatFieldSchema](fieldInfo.name), fieldInfo.name, value, FloatField)
 
   override def doubleField(fieldInfo: FieldInfo, value: Double): Unit =
-    collectField(mapping.doubleFields.get(fieldInfo.name), fieldInfo.name, value, DoubleField)
+    collectField(mapping.fieldSchemaOf[DoubleFieldSchema](fieldInfo.name), fieldInfo.name, value, DoubleField)
 
   override def binaryField(fieldInfo: FieldInfo, value: Array[Byte]): Unit =
-    collectField(mapping.geopointFields.get(fieldInfo.name), fieldInfo.name, value, GeopointField)
+    collectField(mapping.fieldSchemaOf[GeopointFieldSchema](fieldInfo.name), fieldInfo.name, value, GeopointField)
 
   private def collectField[T, F <: Field, S <: FieldSchema[F]](
       specOption: Option[S],
@@ -98,7 +101,7 @@ case class DocumentVisitor(
       codec: FieldCodec[F, S, T]
   ): Unit = specOption match {
     case Some(spec) =>
-      codec.readLucene(spec, value) match {
+      codec.readLucene(name, spec, value) match {
         case Left(error)  => errors.addOne(error)
         case Right(value) => collectedScalars.addOne(value)
       }

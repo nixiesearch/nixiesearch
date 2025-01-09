@@ -12,14 +12,15 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.FiniteRange.Lower.Gt
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class BoolFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      TextFieldSchema("color", filter = true),
-      FloatFieldSchema("price", filter = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      TextFieldSchema(StringName("color"), filter = true),
+      FloatFieldSchema(StringName("price"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

@@ -1,9 +1,10 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.mapping.SearchType.NoSearch
-import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
+import ai.nixiesearch.config.mapping.{FieldName, Language, SearchType, SuggestSchema}
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
+import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.field.*
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
@@ -14,11 +15,12 @@ import language.experimental.namedTuples
 import scala.NamedTuple.NamedTuple
 
 sealed trait FieldSchema[T <: Field] {
-  def name: String
+  def name: FieldName
   def store: Boolean
   def sort: Boolean
   def facet: Boolean
   def filter: Boolean
+
 }
 
 object FieldSchema {
@@ -32,10 +34,10 @@ object FieldSchema {
     def unapply(
         f: TextLikeFieldSchema[? <: Field]
     ): Option[
-      NamedTuple[("name", "search", "language", "suggest"), (String, SearchType, Language, Option[SuggestSchema])]
+      NamedTuple[("name", "search", "language", "suggest"), (FieldName, SearchType, Language, Option[SuggestSchema])]
     ] = {
       Some(
-        NamedTuple[("name", "search", "language", "suggest"), (String, SearchType, Language, Option[SuggestSchema])](
+        NamedTuple[("name", "search", "language", "suggest"), (FieldName, SearchType, Language, Option[SuggestSchema])](
           (f.name, f.search, f.language, f.suggest)
         )
       )
@@ -44,7 +46,7 @@ object FieldSchema {
   }
 
   case class TextFieldSchema(
-      name: String,
+      name: FieldName,
       search: SearchType = NoSearch,
       store: Boolean = true,
       sort: Boolean = false,
@@ -54,9 +56,9 @@ object FieldSchema {
       suggest: Option[SuggestSchema] = None
   ) extends TextLikeFieldSchema[TextField]
       with FieldSchema[TextField]
-
+      
   case class TextListFieldSchema(
-      name: String,
+      name: FieldName,
       search: SearchType = NoSearch,
       store: Boolean = true,
       sort: Boolean = false,
@@ -68,7 +70,7 @@ object FieldSchema {
       with FieldSchema[TextListField]
 
   case class IntFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -76,7 +78,7 @@ object FieldSchema {
   ) extends FieldSchema[IntField]
 
   case class LongFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -84,7 +86,7 @@ object FieldSchema {
   ) extends FieldSchema[LongField]
 
   case class FloatFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -92,7 +94,7 @@ object FieldSchema {
   ) extends FieldSchema[FloatField]
 
   case class DoubleFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -100,7 +102,7 @@ object FieldSchema {
   ) extends FieldSchema[DoubleField]
 
   case class BooleanFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -108,7 +110,7 @@ object FieldSchema {
   ) extends FieldSchema[BooleanField]
 
   case class GeopointFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       filter: Boolean = false
   ) extends FieldSchema[GeopointField] {
@@ -117,7 +119,7 @@ object FieldSchema {
   }
 
   case class DateFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -127,7 +129,7 @@ object FieldSchema {
   }
 
   case class DateTimeFieldSchema(
-      name: String,
+      name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
@@ -140,7 +142,7 @@ object FieldSchema {
     import SearchType.yaml.given
     import SuggestSchema.yaml.given
 
-    def textFieldSchemaDecoder(name: String): Decoder[TextFieldSchema] = Decoder.instance(c =>
+    def textFieldSchemaDecoder(name: FieldName): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
         search <- c
           .downField("search")
@@ -163,7 +165,7 @@ object FieldSchema {
         TextFieldSchema(name, search, store, sort, facet, filter, language, suggest)
       }
     )
-    def textListFieldSchemaDecoder(name: String): Decoder[TextListFieldSchema] = Decoder.instance(c =>
+    def textListFieldSchemaDecoder(name: FieldName): Decoder[TextListFieldSchema] = Decoder.instance(c =>
       for {
         search   <- c.downField("search").as[Option[SearchType]].map(_.getOrElse(NoSearch))
         store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
@@ -184,7 +186,7 @@ object FieldSchema {
         TextListFieldSchema(name, search, store, sort, facet, filter, language, suggest)
       }
     )
-    def intFieldSchemaDecoder(name: String): Decoder[IntFieldSchema] = Decoder.instance(c =>
+    def intFieldSchemaDecoder(name: FieldName): Decoder[IntFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -195,7 +197,7 @@ object FieldSchema {
       }
     )
 
-    def longFieldSchemaDecoder(name: String): Decoder[LongFieldSchema] = Decoder.instance(c =>
+    def longFieldSchemaDecoder(name: FieldName): Decoder[LongFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -206,7 +208,7 @@ object FieldSchema {
       }
     )
 
-    def floatFieldSchemaDecoder(name: String): Decoder[FloatFieldSchema] = Decoder.instance(c =>
+    def floatFieldSchemaDecoder(name: FieldName): Decoder[FloatFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -217,7 +219,7 @@ object FieldSchema {
       }
     )
 
-    def doubleFieldSchemaDecoder(name: String): Decoder[DoubleFieldSchema] = Decoder.instance(c =>
+    def doubleFieldSchemaDecoder(name: FieldName): Decoder[DoubleFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -228,7 +230,7 @@ object FieldSchema {
       }
     )
 
-    def booleanFieldSchemaDecoder(name: String): Decoder[BooleanFieldSchema] = Decoder.instance(c =>
+    def booleanFieldSchemaDecoder(name: FieldName): Decoder[BooleanFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -238,7 +240,7 @@ object FieldSchema {
         BooleanFieldSchema(name, store, sort, facet, filter)
       }
     )
-    def dateFieldSchemaDecoder(name: String): Decoder[DateFieldSchema] = Decoder.instance(c =>
+    def dateFieldSchemaDecoder(name: FieldName): Decoder[DateFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -248,7 +250,7 @@ object FieldSchema {
         DateFieldSchema(name, store, sort, facet, filter)
       }
     )
-    def dateTimeFieldSchemaDecoder(name: String): Decoder[DateTimeFieldSchema] = Decoder.instance(c =>
+    def dateTimeFieldSchemaDecoder(name: FieldName): Decoder[DateTimeFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
@@ -259,7 +261,7 @@ object FieldSchema {
       }
     )
 
-    def geopointFieldSchemaDecoder(name: String): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
+    def geopointFieldSchemaDecoder(name: FieldName): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
@@ -268,7 +270,7 @@ object FieldSchema {
       }
     )
 
-    def fieldSchemaDecoder(name: String): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
+    def fieldSchemaDecoder(name: FieldName): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
         case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)

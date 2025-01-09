@@ -15,18 +15,18 @@ import org.scalatest.matchers.should.Matchers
 import fs2.io.readInputStream
 import io.circe.parser.*
 import cats.effect.unsafe.implicits.global
-
 import java.util.zip.GZIPInputStream
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class GeoQueryTest extends SearchTest with Matchers {
   override val inference = TestInferenceConfig.empty()
   val mapping = IndexMapping(
     name = IndexName("cities"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      TextFieldSchema("city", facet = true),
-      TextFieldSchema("country", facet = true),
-      GeopointFieldSchema("location", filter = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      TextFieldSchema(StringName("city"), facet = true),
+      TextFieldSchema(StringName("country"), facet = true),
+      GeopointFieldSchema(StringName("location"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

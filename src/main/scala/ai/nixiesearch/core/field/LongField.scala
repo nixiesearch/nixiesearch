@@ -29,13 +29,17 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
     }
   }
 
-  override def readLucene(spec: LongFieldSchema, value: Long): Either[FieldCodec.WireDecodingError, LongField] =
-    Right(LongField(spec.name, value))
+  override def readLucene(
+      name: String,
+      spec: LongFieldSchema,
+      value: Long
+  ): Either[FieldCodec.WireDecodingError, LongField] =
+    Right(LongField(name, value))
 
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
 
-  override def decodeJson(schema: LongFieldSchema, cursor: ACursor): Result[Option[LongField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[Long](parts, schema, cursor, _.as[Option[Long]], LongField(schema.name, _))
+  override def decodeJson(name: String, schema: LongFieldSchema, json: Json): Result[Option[LongField]] = {
+    val parts = name.split('.').toList
+    decodeRecursiveScalar[Long](parts, schema, json, _.as[Option[Long]], LongField(name, _))
   }
 }

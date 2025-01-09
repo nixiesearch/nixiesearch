@@ -47,7 +47,7 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
       spec.suggest.foreach(schema => {
         field.value.foreach(value => {
           SuggestCandidates
-            .fromString(schema, spec.name, value)
+            .fromString(schema, field.name, value)
             .foreach(candidate => {
               val s = SuggestField(field.name + TextField.SUGGEST_SUFFIX, candidate, 1)
               buffer.add(s)
@@ -59,20 +59,22 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
   }
 
   override def readLucene(
+      name: String,
       spec: TextListFieldSchema,
       value: List[String]
   ): Either[FieldCodec.WireDecodingError, TextListField] =
-    Right(TextListField(spec.name, value))
+    Right(TextListField(name, value))
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
 
-  override def decodeJson(schema: TextListFieldSchema, cursor: ACursor): Result[Option[TextListField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursive(parts, schema, cursor.focus.get, cursor, Nil) match {
-      case Right(Nil)      => Right(None)
-      case Right(nonEmpty) => Right(Some(TextListField(schema.name, nonEmpty)))
-      case Left(err)       => Left(err)
-    }
+  override def decodeJson(name: String, schema: TextListFieldSchema, json: Json): Result[Option[TextListField]] = {
+    val parts = name.split('.').toList
+    ???
+//    decodeRecursive(parts, schema, cursor.focus.get, cursor, Nil) match {
+//      case Right(Nil)      => Right(None)
+//      case Right(nonEmpty) => Right(Some(TextListField(name, nonEmpty)))
+//      case Left(err)       => Left(err)
+//    }
   }
 
   private def decodeRecursive(
