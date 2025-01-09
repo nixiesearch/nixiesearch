@@ -116,7 +116,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
           .map(doc =>
             doc.fields
               .collect {
-                case TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
+                case TextField(name, value) if request.fields.exists(_.matches(name)) || request.fields.isEmpty =>
                   s"$name: $value"
               }
               .mkString("\n")
