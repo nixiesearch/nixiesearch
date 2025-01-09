@@ -8,6 +8,7 @@ import ai.nixiesearch.api.query.{MatchAllQuery, Query}
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.index.sync.LocalIndex
@@ -24,7 +25,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       n: Int = 10
   ): List[String] = {
     searcher
-      .search(SearchRequest(query, filters, n, fields, aggs))
+      .search(SearchRequest(query, filters, n, fields.map(StringName.apply), aggs))
       .unsafeRunSync()
       .hits
       .flatMap(_.fields.collect { case TextField(_, value) => value })
@@ -38,7 +39,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       n: Int = 10
   ): SearchRoute.SearchResponse = {
     searcher
-      .search(SearchRequest(query, filters, n, fields, aggs))
+      .search(SearchRequest(query, filters, n, fields.map(StringName.apply), aggs))
       .unsafeRunSync()
   }
 

@@ -60,7 +60,6 @@ object CompatUtil {
   def readResource(path: String): Resource[IO, Searcher] = for {
     models   <- Models.create(inference, CacheConfig())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(DiskLocation(Paths.get(path))), models)
-    indexer  <- Indexer.open(index)
     searcher <- Searcher.open(index)
   } yield {
     searcher

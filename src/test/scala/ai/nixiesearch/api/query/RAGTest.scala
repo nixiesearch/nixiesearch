@@ -3,6 +3,7 @@ package ai.nixiesearch.api.query
 import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponseFrame}
 import ai.nixiesearch.config.InferenceConfig
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
@@ -25,12 +26,12 @@ class RAGTest extends SearchTest with Matchers {
     {
       val request = SearchRequest(
         query = MatchQuery("title", "dress"),
-        fields = List("title"),
+        fields = List(StringName("title")),
         rag = Some(
           RAGRequest(
             prompt = "Shortly summarize the following search result document for a search query 'dress':\n\n",
             model = ModelRef("qwen2"),
-            fields = List("title")
+            fields = List(StringName("title"))
           )
         )
       )

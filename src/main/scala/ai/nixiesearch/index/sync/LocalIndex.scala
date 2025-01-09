@@ -78,6 +78,12 @@ object LocalIndex extends Logging {
         } yield {
           manifest
         }
+      case Right(Some(oldManifest)) if oldManifest.mapping == configMapping =>
+        for {
+          _ <- info("index manifest has no changes")
+        } yield {
+          oldManifest
+        }
       case Right(Some(indexManifest)) =>
         for {
           mergedMapping <- indexManifest.mapping.migrate(configMapping)

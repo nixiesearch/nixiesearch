@@ -1,32 +1,17 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{
-  RAGRequest,
-  RAGResponse,
-  SearchRequest,
-  SearchResponse,
-  SuggestRequest,
-  SuggestResponse
-}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.TextField
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{
-  IndexSearcher,
-  MultiCollectorManager,
-  ScoreDoc,
-  TopDocs,
-  TopScoreDocCollectorManager,
-  TotalHits,
-  Query as LuceneQuery
-}
+import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, TopDocs, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
 import cats.implicits.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
@@ -43,6 +28,7 @@ import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
+
 import scala.collection.mutable
 import language.experimental.namedTuples
 
@@ -265,13 +251,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   protected def collect(
       mapping: IndexMapping,
       top: TopDocs,
-      fields: List[String]
+      fields: List[FieldName]
   ): IO[List[Document]] = for {
     reader <- getReadersOrFail().map(_.reader)
     docs <- IO {
-      val fieldSet = fields.toSet
       val docs = top.scoreDocs.map(doc => {
-        val visitor = DocumentVisitor(mapping, fieldSet)
+        val visitor = DocumentVisitor(mapping, fields)
         reader.storedFields().document(doc.doc, visitor)
         visitor.asDocument(doc.score)
       })

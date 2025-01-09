@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.Field
 
 import scala.collection.mutable
@@ -10,32 +10,21 @@ import org.apache.lucene.index.StoredFieldVisitor
 import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.config.FieldSchema.{
-  BooleanFieldSchema,
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  GeopointFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, GeopointFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
 
 case class DocumentVisitor(
-    mapping: IndexMapping,
-    fields: Set[String],
-    collectedScalars: ArrayBuffer[Field] = ArrayBuffer.empty,
-    collectedTextList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
-    errors: ArrayBuffer[Exception] = ArrayBuffer.empty
+                            mapping: IndexMapping,
+                            fields: List[FieldName],
+                            collectedScalars: ArrayBuffer[Field] = ArrayBuffer.empty,
+                            collectedTextList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
+                            errors: ArrayBuffer[Exception] = ArrayBuffer.empty
 ) extends StoredFieldVisitor
     with Logging {
   override def needsField(fieldInfo: FieldInfo): Status =
-    if ((fieldInfo.name == "_id") || fields.contains(fieldInfo.name)) Status.YES else Status.NO
+    if ((fieldInfo.name == "_id") || fields.exists(_.matches(fieldInfo.name))) Status.YES else Status.NO
 
   override def stringField(fieldInfo: FieldInfo, value: String): Unit = mapping.fieldSchema(fieldInfo.name) match {
     case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but collected: this should not happen")
