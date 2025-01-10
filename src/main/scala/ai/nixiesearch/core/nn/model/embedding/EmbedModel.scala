@@ -124,7 +124,7 @@ object EmbedModel {
       val opts = new SessionOptions()
       opts.setIntraOpNumThreads(threads)
       opts.setOptimizationLevel(OptLevel.ALL_OPT)
-      // opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
+      if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
       val modelFile = new RandomAccessFile(model.toFile, "r")
       val channel   = modelFile.getChannel
