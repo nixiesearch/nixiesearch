@@ -85,9 +85,9 @@ object GenerativeModel {
     def waitForHealthy(client: Client[IO], uri: Uri): IO[Unit] = {
       Stream
         .iterate[IO, Int](0)(_ + 1)
-        .metered(100.millis)
+        .metered(1.second)
         .take(600)
-        .evalTap(i => info(s"waiting for llamacpp init (${i * 100.millis})"))
+        .evalTap(i => info(s"waiting for llamacpp init (${i * 1.seconds})"))
         .evalMap(_ =>
           client.statusFromUri(uri / "health").map(_.code).recoverWith { case err =>
             debug(s"network error: ${err.getMessage}") *> IO.pure(500)
@@ -96,6 +96,7 @@ object GenerativeModel {
         .takeWhile(_ != 200)
         .compile
         .drain
+        .flatTap(_ => info("llamacpp server initialized successfully"))
     }
 
     def findPort(): IO[Int] =
