@@ -96,6 +96,7 @@ object GenerativeModel {
         .takeWhile(_ != 200)
         .compile
         .drain
+        .flatTap(_ => info("llamacpp server initialized successfully"))
     }
 
     def findPort(): IO[Int] =
