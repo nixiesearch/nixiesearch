@@ -71,6 +71,19 @@ Multiple field types are supported, so the `type` parameter can be one of the fo
 * [Numerical fields](#numerical-fields): `int`, `long`, `double`, `float`, `bool`. You cannot search over numerical fields (unless you treat them as strings), but you can [filter](../search/filter.md), [facet](../search/facet.md) and [sort](../search/sort.md)!
 * [Media fields](#media-fields): `image`. A special field type for [multi-modal search](types/images.md).
 
+### Wildcard fields
+
+You can use a `*` wildcard placeholder in field names to make schema a bit more dynamic:
+
+```yaml
+schema:
+  movies:
+    extra_*:
+      type: text
+```
+
+Which will index documents with fields `extra_name` and `extra_type` as text. See [Query DSL > Wildcard queries](../search/query.md#wildcard-field-queries)
+
 ## Text field mapping
 
 Apart from common `type`, `store`, `filter`, `sort` and `facet` parameters, text fields have a set of other search-related options:

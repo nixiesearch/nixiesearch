@@ -77,6 +77,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     queries <- request.query match {
       case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
       case MatchQuery(field, query, operator) =>
+
         fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.models.embedding)
       case MultiMatchQuery(query, fields, operator) =>
         fields

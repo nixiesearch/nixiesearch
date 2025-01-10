@@ -17,6 +17,8 @@ object FieldName {
     override def matches(field: String): Boolean = field.startsWith(prefix) && field.endsWith(suffix)
   }
 
+  def unsafe(value: String) = parse(value).toOption.get
+
   def parse(field: String): Either[Throwable, FieldName] = {
     val pos = field.indexOf('*')
     if (pos == -1) {

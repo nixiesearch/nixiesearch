@@ -93,3 +93,46 @@ A search operator matching all documents in an index. Useful when combining with
 
 `match_all` operator has no parameters.
 
+## Wildcard field queries
+
+To allow more dynamism in index schema, you can use `*` wildcard placeholder in field names:
+
+```yaml
+schema:
+  movies:
+    extra_*:
+      type: text
+      search:
+        type: lexical
+        language: en
+```
+
+So all fields matching the wildcard pattern are going to be treated according to the schema. Wildcard fields have minor limitations:
+
+* only a single `*` placeholder is allowed.
+* you cannot have a non-wildcard field defined matching a wildcard pattern (e.g. having both a regular `title_string` field and a wildcard `*_string` in the same index).
+
+To search over a wildcard field, you have to use the exact field name:
+
+```json
+{
+  "query": {
+    "match": {
+      "extra_title": "<search-query>"
+    }
+  }
+}
+```
+
+Although it's possible to use wildcard placeholders in retrieval fields:
+
+```json
+{
+  "query": {
+    "match_all": {}
+  },
+  "fields": ["extra_*"]
+}
+```
+
+Which will return all fields stored for a document matching the `extra_*` wildcard pattern.
