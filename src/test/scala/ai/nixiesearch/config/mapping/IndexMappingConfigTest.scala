@@ -1,9 +1,11 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexConfig.HnswConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class IndexMappingConfigTest extends AnyFlatSpec with Matchers {
   it should "parse hnsw config" in {
@@ -31,8 +33,8 @@ class IndexMappingConfigTest extends AnyFlatSpec with Matchers {
           )
         ),
         fields = Map(
-          "_id"   -> TextFieldSchema("_id", filter = true),
-          "title" -> TextFieldSchema("title")
+          StringName("_id")   -> TextFieldSchema(StringName("_id"), filter = true),
+          StringName("title") -> TextFieldSchema(StringName("title"))
         )
       )
     )

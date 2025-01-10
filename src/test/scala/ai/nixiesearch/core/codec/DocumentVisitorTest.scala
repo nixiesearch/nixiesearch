@@ -4,31 +4,44 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, GeopointFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName}
+import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  GeopointFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import cats.effect.unsafe.implicits.global
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val docs = Nil
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id"),
-      TextFieldSchema("title"),
-      TextListFieldSchema("title2"),
-      IntFieldSchema("count"),
-      LongFieldSchema("long"),
-      FloatFieldSchema("float"),
-      DoubleFieldSchema("double"),
-      BooleanFieldSchema("boolean"),
-      GeopointFieldSchema("geo"),
-      DateFieldSchema("date"),
-      DateTimeFieldSchema("datetime")
+      TextFieldSchema(StringName("_id")),
+      TextFieldSchema(StringName("title")),
+      TextListFieldSchema(StringName("title2")),
+      TextFieldSchema(FieldName.parse("str_*").toOption.get),
+      IntFieldSchema(StringName("count")),
+      LongFieldSchema(StringName("long")),
+      FloatFieldSchema(StringName("float")),
+      DoubleFieldSchema(StringName("double")),
+      BooleanFieldSchema(StringName("boolean")),
+      GeopointFieldSchema(StringName("geo")),
+      DateFieldSchema(StringName("date")),
+      DateTimeFieldSchema(StringName("datetime"))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
@@ -41,6 +54,8 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
             TextField("_id", "1"),
             TextField("title", "foo"),
             TextListField("title2", List("foo", "bar")),
+            TextField("str_foo", "foo"),
+            TextField("str_bar", "bar"),
             IntField("count", 1),
             LongField("long", 1),
             FloatField("float", 1),
@@ -58,8 +73,20 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
 
       val request = SearchRequest(
         MatchAllQuery(),
-        fields =
-          List("_id", "title", "title2", "count", "long", "float", "double", "boolean", "geo", "date", "datetime")
+        fields = List(
+          StringName("_id"),
+          StringName("title"),
+          StringName("title2"),
+          FieldName.parse("str_*").toOption.get,
+          StringName("count"),
+          StringName("long"),
+          StringName("float"),
+          StringName("double"),
+          StringName("boolean"),
+          StringName("geo"),
+          StringName("date"),
+          StringName("datetime")
+        )
       )
       val docs           = store.searcher.search(request).unsafeRunSync()
       val actualFields   = docs.hits.head.fields.sortBy(_.name)

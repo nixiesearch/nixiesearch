@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponse
 import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.config.Config
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{DatasetLoader, SearchTest}
@@ -36,14 +37,14 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
           ByteVector.view(
             SearchRequest(
               MatchQuery("title", "matrix"),
-              fields = List("title", "overview"),
+              fields = List(StringName("title"), StringName("overview")),
               rag = Some(
                 RAGRequest(
                   topDocs = 3,
                   prompt =
                     "Based on following search result documents, summarize the answer for a user search query 'matrix' in a single sentence. Do not include task or intro.",
                   model = ModelRef("qwen2"),
-                  fields = List("title", "overview")
+                  fields = List(StringName("title"), StringName("overview"))
                 )
               )
             ).asJson.noSpaces.getBytes()

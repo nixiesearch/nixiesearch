@@ -12,13 +12,14 @@ import ai.nixiesearch.core.field.{DateField, IntField, LongField, TextField}
 import ai.nixiesearch.util.SearchTest
 import io.circe.Json
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class DateFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      DateFieldSchema("date", filter = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      DateFieldSchema(StringName("date"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

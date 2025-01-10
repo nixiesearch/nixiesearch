@@ -22,21 +22,21 @@ import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, T
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import scala.util.Try
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class TermAggregationTest extends SearchTest with Matchers {
 
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      TextFieldSchema("title", search = LexicalSearch()),
-      TextFieldSchema("color", filter = true, facet = true),
-      TextListFieldSchema("size", filter = true, facet = true),
-      IntFieldSchema("count", facet = true),
-      DateFieldSchema("date", facet = true),
-      DateTimeFieldSchema("dt", facet = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      TextFieldSchema(StringName("title"), search = LexicalSearch()),
+      TextFieldSchema(StringName("color"), filter = true, facet = true),
+      TextListFieldSchema(StringName("size"), filter = true, facet = true),
+      IntFieldSchema(StringName("count"), facet = true),
+      DateFieldSchema(StringName("date"), facet = true),
+      DateTimeFieldSchema(StringName("dt"), facet = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

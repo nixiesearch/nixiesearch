@@ -8,7 +8,7 @@ import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOpt
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.nn.ModelRef
@@ -131,7 +131,7 @@ object SearchRoute {
       topDocs: Int = 10,
       maxDocLength: Int = 128,
       maxResponseLength: Int = 64,
-      fields: List[String] = Nil,
+      fields: List[FieldName] = Nil,
       stream: Boolean = false
   )
   object RAGRequest {
@@ -143,7 +143,7 @@ object SearchRoute {
         topDocs           <- c.downField("topDocs").as[Option[Int]]
         maxDocLength      <- c.downField("maxDocLength").as[Option[Int]]
         maxResponseLength <- c.downField("maxResponseLength").as[Option[Int]]
-        fields            <- c.downField("fields").as[Option[List[String]]]
+        fields            <- c.downField("fields").as[Option[List[FieldName]]]
         stream            <- c.downField("stream").as[Option[Boolean]]
       } yield {
         RAGRequest(
@@ -162,7 +162,7 @@ object SearchRoute {
       query: Query,
       filters: Option[Filters] = None,
       size: Int = 10,
-      fields: List[String] = Nil,
+      fields: List[FieldName] = Nil,
       aggs: Option[Aggs] = None,
       rag: Option[RAGRequest] = None
   )
@@ -173,7 +173,7 @@ object SearchRoute {
         query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]]
-        fields <- c.downField("fields").as[Option[List[String]]].map {
+        fields <- c.downField("fields").as[Option[List[FieldName]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil

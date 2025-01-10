@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.{IndexCacheConfig, FieldSchema, StoreConfig}
+import ai.nixiesearch.config.{FieldSchema, IndexCacheConfig, StoreConfig}
 import ai.nixiesearch.core.{Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -8,6 +8,7 @@ import cats.implicits.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, fieldNameDecoder}
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
@@ -18,7 +19,6 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 
 import scala.jdk.CollectionConverters.*
-
 import language.experimental.namedTuples
 
 case class IndexMapping(
@@ -27,23 +27,19 @@ case class IndexMapping(
     config: IndexConfig = IndexConfig(),
     store: StoreConfig = StoreConfig(),
     cache: IndexCacheConfig = IndexCacheConfig(),
-    fields: Map[String, FieldSchema[? <: Field]]
+    fields: Map[FieldName, FieldSchema[? <: Field]]
 ) extends Logging {
-  val intFields    = fields.collect { case (name, s: IntFieldSchema) => name -> s }
-  val longFields   = fields.collect { case (name, s: LongFieldSchema) => name -> s }
-  val floatFields  = fields.collect { case (name, s: FloatFieldSchema) => name -> s }
-  val doubleFields = fields.collect { case (name, s: DoubleFieldSchema) => name -> s }
-  val textFields   = fields.collect { case (name, s: TextFieldSchema) => name -> s }
-  val textLikeFields: Map[String, TextLikeFieldSchema[?]] = fields.collect { case (name, s: TextLikeFieldSchema[?]) =>
-    name -> s
-  }
-  val textListFields = fields.collect { case (name, s: TextListFieldSchema) => name -> s }
-  val booleanFields  = fields.collect { case (name, s: BooleanFieldSchema) => name -> s }
-  val geopointFields = fields.collect { case (name, s: GeopointFieldSchema) => name -> s }
-  val dateFields = fields.collect { case (name, s: DateFieldSchema) => name -> s}
-  val dateTimeFields = fields.collect { case (name, s: DateTimeFieldSchema) => name -> s}
 
-  val analyzer = IndexMapping.createAnalyzer(this)
+  val analyzer = PerFieldAnalyzer(new KeywordAnalyzer(), this)
+
+  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = fields.collectFirst {
+    case (field, schema) if field.matches(name) => schema
+  }
+
+  def fieldSchemaOf[S <: FieldSchema[? <: Field]](name: String)(using manifest: scala.reflect.ClassTag[S]): Option[S] =
+    fields.collectFirst {
+      case (field, schema: S) if field.matches(name) => schema
+    }
 
   def nameMatches(value: String): Boolean = {
     (name.value == value) || alias.contains(Alias(value))
@@ -80,13 +76,14 @@ case class IndexMapping(
         )
     }
 
-  def suggestFields(): List[String] =
+  def suggestFields(): List[FieldName] =
     fields.values.toList.collect { case TextLikeFieldSchema(name = name, suggest=Some(_)) =>
       name
     }
 }
 
 object IndexMapping extends Logging {
+
   sealed trait Migration {
     def field: FieldSchema[? <: Field]
   }
@@ -111,13 +108,6 @@ object IndexMapping extends Logging {
     )
   }
 
-  def createAnalyzer(mapping: IndexMapping): Analyzer = {
-    val fieldAnalyzers = mapping.fields.values.collect { case TextLikeFieldSchema(name=name,language=language) =>
-      name -> language.analyzer
-    }
-    new PerFieldAnalyzerWrapper(new KeywordAnalyzer(), fieldAnalyzers.toMap.asJava)
-  }
-
   object Alias {
     given aliasDecoder: Decoder[Alias] = Decoder.decodeString.emapTry {
       case ""    => Failure(new Exception("index alias cannot be empty"))
@@ -132,25 +122,32 @@ object IndexMapping extends Logging {
     def indexMappingDecoder(name: IndexName): Decoder[IndexMapping] = Decoder.instance(c =>
       for {
         alias <- decodeAlias(c.downField("alias"))
-        fieldJsons <- c.downField("fields").as[Map[String, Json]].map(_.toList) match {
+        fieldJsons <- c.downField("fields").as[Map[FieldName, Json]].map(_.toList) match {
           case Left(value)  => Left(DecodingFailure(s"'fields' expected to be a map: $value", c.history))
           case Right(value) => Right(value)
         }
         fields <- fieldJsons.traverse { case (name, json) =>
           FieldSchema.yaml.fieldSchemaDecoder(name).decodeJson(json)
         }
+        _ <- checkWildcardOverrides(fields) match {
+          case Nil => Right(true)
+          case failures =>
+            val names = failures.map { case (wc, f) => s"${wc.name}/${f.name}"}
+            Left(DecodingFailure(s"Fields $names should not wildcard override each other", c.history))
+        }
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
         cache  <- c.downField("cache").as[Option[IndexCacheConfig]].map(_.getOrElse(IndexCacheConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
-        val extendedFields = fieldsMap.get("_id") match {
+        val id = StringName("_id")
+        val extendedFields = fieldsMap.get(id) match {
           case Some(idMapping) =>
             logger.warn("_id field is internal field and it's mapping cannot be changed")
             logger.warn("_id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
-            fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
+            fieldsMap.updated(id, TextFieldSchema(id, filter = true))
           case None =>
-            fieldsMap.updated("_id", TextFieldSchema("_id", filter = true))
+            fieldsMap.updated(id, TextFieldSchema(id, filter = true))
         }
         IndexMapping(
           name,
@@ -169,6 +166,17 @@ object IndexMapping extends Logging {
         case Left(value)        => c.as[List[Alias]]
         case Right(Some(value)) => Right(List(value))
         case Right(None)        => Right(Nil)
+      }
+    }
+
+    def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(WildcardName, StringName)] = {
+      val fieldNames = fields.map(_.name)
+      val stringFields = fieldNames.collect { case s: StringName => s }
+      for {
+        wildcard <- fieldNames.collect { case wc: WildcardName => wc }
+        string <- fieldNames.collect { case s: StringName => s} if wildcard.matches(string.name)
+      } yield {
+        (wildcard, string)
       }
     }
   }

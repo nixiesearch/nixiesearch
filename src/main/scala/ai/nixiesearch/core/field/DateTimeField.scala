@@ -21,8 +21,8 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
 
   def applyUnsafe(name: String, value: String): DateTimeField = new DateTimeField(name, parseString(value).toOption.get)
 
-  override def readLucene(spec: DateTimeFieldSchema, value: Long): Either[FieldCodec.WireDecodingError, DateTimeField] =
-    LongField.readLucene(spec.asLong, value).map(long => DateTimeField(spec.name, long.value))
+  override def readLucene(name: String, spec: DateTimeFieldSchema, value: Long): Either[FieldCodec.WireDecodingError, DateTimeField] =
+    LongField.readLucene(name, spec.asLong, value).map(long => DateTimeField(name, long.value))
 
   override def writeLucene(
       field: DateTimeField,
@@ -33,18 +33,6 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
     LongField.writeLucene(LongField(field.name, field.value), spec.asLong, buffer, embeddings)
 
   override def encodeJson(field: DateTimeField): Json = Json.fromString(writeString(field.value))
-
-  override def decodeJson(schema: DateTimeFieldSchema, cursor: ACursor): Result[Option[DateTimeField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[DateTime](
-      parts,
-      schema,
-      cursor,
-      _.as[Option[DateTime]],
-      (d: DateTime) => DateTimeField(schema.name, d.millis)
-    )
-
-  }
 
   def parseString(in: String): Either[Throwable, Long] = {
     Try(ZonedDateTime.parse(in, DateTimeFormatter.ISO_DATE_TIME)) match {

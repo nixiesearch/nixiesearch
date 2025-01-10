@@ -9,6 +9,7 @@ import io.circe.Decoder
 import io.circe.yaml.parser.parse
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class FieldSchemaTest extends AnyFlatSpec with Matchers {
   it should "decode text field schema" in {
@@ -21,7 +22,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val result = parseYaml(yaml)
     result shouldBe Right(
       TextFieldSchema(
-        name = "field",
+        name = StringName("field"),
         search = NoSearch,
         store = false,
         filter = true,
@@ -39,7 +40,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val result = parseYaml(yaml)
     result shouldBe Right(
       IntFieldSchema(
-        name = "field",
+        name = StringName("field"),
         store = false,
         filter = true,
         facet = true
@@ -50,7 +51,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
   it should "decode int field schema with all default fields" in {
     val yaml   = """type: int""".stripMargin
     val result = parseYaml(yaml)
-    result shouldBe Right(IntFieldSchema(name = "field"))
+    result shouldBe Right(IntFieldSchema(name = StringName("field")))
   }
 
   it should "decode geopoint schema" in {
@@ -61,7 +62,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val result = parseYaml(yaml)
     result shouldBe Right(
       GeopointFieldSchema(
-        name = "field",
+        name = StringName("field"),
         store = true,
         filter = true
       )
@@ -78,7 +79,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val result = parseYaml(yaml)
     result shouldBe Right(
       TextFieldSchema(
-        name = "field",
+        name = StringName("field"),
         search = NoSearch,
         store = true,
         filter = false,
@@ -102,7 +103,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     val result = parseYaml(yaml)
     result shouldBe Right(
       TextFieldSchema(
-        name = "field",
+        name = StringName("field"),
         search = NoSearch,
         store = true,
         filter = false,
@@ -119,7 +120,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
   }
 
   def parseYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {
-    implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder("field")
+    implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder(StringName("field"))
     parse(yaml).flatMap(_.as[FieldSchema[? <: Field]])
   }
 }

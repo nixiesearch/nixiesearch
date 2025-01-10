@@ -10,14 +10,15 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class MultiMatchQueryTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = "_id"),
-      TextFieldSchema(name = "title", search = LexicalSearch(), sort = true),
-      TextFieldSchema(name = "desc", search = LexicalSearch(), sort = true)
+      TextFieldSchema(name = StringName("_id")),
+      TextFieldSchema(name = StringName("title"), search = LexicalSearch(), sort = true),
+      TextFieldSchema(name = StringName("desc"), search = LexicalSearch(), sort = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

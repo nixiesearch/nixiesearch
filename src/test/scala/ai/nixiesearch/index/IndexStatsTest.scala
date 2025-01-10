@@ -14,13 +14,15 @@ import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
+import scala.language.implicitConversions
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class IndexStatsTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = HybridSearch(ModelRef("text")), suggest = Some(SuggestSchema()))
+      TextFieldSchema(name = StringName("_id"), filter = true),
+      TextFieldSchema(name = StringName("title"), search = HybridSearch(ModelRef("text")), suggest = Some(SuggestSchema()))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

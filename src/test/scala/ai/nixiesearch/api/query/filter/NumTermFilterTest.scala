@@ -10,14 +10,15 @@ import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class NumTermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      IntFieldSchema("int", filter = true),
-      LongFieldSchema("long", filter = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      IntFieldSchema(StringName("int"), filter = true),
+      LongFieldSchema(StringName("long"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

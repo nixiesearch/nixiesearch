@@ -10,6 +10,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.core.{Document, Field}
 import io.circe.{Codec, Decoder, Encoder}
 import io.circe.generic.semiauto.*
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 object TestIndexMapping {
   given documentCodec: Codec[Document]                 = Document.codecFor(apply())
@@ -24,9 +25,9 @@ object TestIndexMapping {
   def apply() = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = LexicalSearch(), sort = true),
-      IntFieldSchema(name = "price", sort = true, facet = true, filter = true)
+      TextFieldSchema(name = StringName("_id"), filter = true),
+      TextFieldSchema(name = StringName("title"), search = LexicalSearch(), sort = true),
+      IntFieldSchema(name = StringName("price"), sort = true, facet = true, filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

@@ -8,6 +8,7 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.URL.LocalURL
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
 import ai.nixiesearch.config.mapping.SuggestSchema.Lemmatize
@@ -18,7 +19,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
-
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
@@ -53,16 +54,21 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              "_id" -> TextFieldSchema(name = "_id", filter = true),
-              "title" -> TextFieldSchema(
-                name = "title",
+              StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("title") -> TextFieldSchema(
+                name = StringName("title"),
                 search = SemanticSearch(model = ModelRef("text"))
               ),
-              "desc" -> TextFieldSchema(
-                name = "desc",
+              StringName("desc") -> TextFieldSchema(
+                name = StringName("desc"),
                 search = SemanticSearch(model = ModelRef("text"))
               ),
-              "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
+              StringName("price") -> IntFieldSchema(
+                name = StringName("price"),
+                filter = true,
+                facet = true,
+                sort = true
+              )
             )
           )
         )
@@ -94,9 +100,9 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              "_id" -> TextFieldSchema(name = "_id", filter = true),
-              "title" -> TextFieldSchema(
-                name = "title",
+              StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("title") -> TextFieldSchema(
+                name = StringName("title"),
                 search = SemanticSearch(model = ModelRef("text"))
               )
             ),
@@ -173,14 +179,14 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              "_id" -> TextFieldSchema(name = "_id", filter = true),
-              "title1" -> TextFieldSchema(
-                name = "title1",
+              StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("title1") -> TextFieldSchema(
+                name = StringName("title1"),
                 search = SemanticSearch(model = ModelRef("text")),
                 suggest = Some(SuggestSchema())
               ),
-              "title2" -> TextFieldSchema(
-                name = "title2",
+              StringName("title2") -> TextFieldSchema(
+                name = StringName("title2"),
                 language = English,
                 search = SemanticSearch(model = ModelRef("text")),
                 suggest = Some(
@@ -189,11 +195,16 @@ class ConfigTest extends AnyFlatSpec with Matchers {
                   )
                 )
               ),
-              "desc" -> TextFieldSchema(
-                name = "desc",
+              StringName("desc") -> TextFieldSchema(
+                name = StringName("desc"),
                 search = SemanticSearch(model = ModelRef("text"))
               ),
-              "price" -> IntFieldSchema(name = "price", filter = true, facet = true, sort = true)
+              StringName("price") -> IntFieldSchema(
+                name = StringName("price"),
+                filter = true,
+                facet = true,
+                sort = true
+              )
             )
           )
         )

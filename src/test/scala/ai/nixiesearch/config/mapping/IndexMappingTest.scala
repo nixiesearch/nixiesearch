@@ -1,6 +1,7 @@
 package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
@@ -9,29 +10,30 @@ import ai.nixiesearch.core.nn.ModelRef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
-
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import scala.util.Try
 import io.circe.syntax.*
 import io.circe.parser.*
 
 class IndexMappingTest extends AnyFlatSpec with Matchers {
   "migration" should "preserve compatible int fields" in {
-    val before = IndexMapping(IndexName("foo"), fields = Map("test" -> IntFieldSchema("test")))
-    val after  = IndexMapping(IndexName("foo"), fields = Map("test" -> IntFieldSchema("test")))
+    val before = IndexMapping(IndexName("foo"), fields = Map(StringName("test") -> IntFieldSchema(StringName("test"))))
+    val after  = IndexMapping(IndexName("foo"), fields = Map(StringName("test") -> IntFieldSchema(StringName("test"))))
     val result = before.migrate(after).unsafeRunSync()
     result shouldBe after
   }
 
   it should "fail on incompatible migrations" in {
-    val before = IndexMapping(IndexName("foo"), fields = Map("test" -> IntFieldSchema("test")))
-    val after  = IndexMapping(IndexName("foo"), fields = Map("test" -> TextFieldSchema("test")))
+    val before = IndexMapping(IndexName("foo"), fields = Map(StringName("test") -> IntFieldSchema(StringName("test"))))
+    val after  = IndexMapping(IndexName("foo"), fields = Map(StringName("test") -> TextFieldSchema(StringName("test"))))
     val result = Try(before.migrate(after).unsafeRunSync())
     result.isFailure shouldBe true
   }
 
   it should "add+remove fields" in {
-    val before = IndexMapping(IndexName("foo"), fields = Map("test1" -> IntFieldSchema("test1")))
-    val after  = IndexMapping(IndexName("foo"), fields = Map("test2" -> IntFieldSchema("test2")))
+    val before =
+      IndexMapping(IndexName("foo"), fields = Map(StringName("test1") -> IntFieldSchema(StringName("test1"))))
+    val after = IndexMapping(IndexName("foo"), fields = Map(StringName("test2") -> IntFieldSchema(StringName("test2"))))
     val result = before.migrate(after).unsafeRunSync()
     result shouldBe after
   }
@@ -43,13 +45,29 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
       alias = List(Alias("bar")),
       config = IndexConfig(mapping = MappingConfig(dynamic = true)),
       fields = Map(
-        "text" -> TextFieldSchema("text", search = SemanticSearch(ModelRef("text"))),
-        "int"  -> IntFieldSchema("int", facet = true)
+        StringName("text") -> TextFieldSchema(StringName("text"), search = SemanticSearch(ModelRef("text"))),
+        StringName("int")  -> IntFieldSchema(StringName("int"), facet = true)
       )
     )
     val json    = mapping.asJson.noSpaces
     val decoded = decode[IndexMapping](json)
     decoded shouldBe Right(mapping)
+  }
+
+  it should "get field schema for a type" in {
+    val mapping = IndexMapping(
+      name = IndexName("foo"),
+      alias = List(Alias("bar")),
+      config = IndexConfig(mapping = MappingConfig(dynamic = true)),
+      fields = Map(
+        StringName("text") -> TextFieldSchema(StringName("text"), search = SemanticSearch(ModelRef("text"))),
+        StringName("int")  -> IntFieldSchema(StringName("int"), facet = true)
+      )
+    )
+    val schemaOK = mapping.fieldSchemaOf[IntFieldSchema]("int")
+    schemaOK shouldBe Some(IntFieldSchema(StringName("int"), facet = true))
+    val schemaFail = mapping.fieldSchemaOf[TextFieldSchema]("int")
+    schemaFail shouldBe None
   }
 
   "yaml decoder" should "add an implicit id field mapping" in {
@@ -67,10 +85,26 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         name = IndexName("test"),
         alias = List(Alias("prod")),
         fields = Map(
-          "_id"   -> TextFieldSchema("_id", filter = true),
-          "title" -> TextFieldSchema("title")
+          StringName("_id")   -> TextFieldSchema(StringName("_id"), filter = true),
+          StringName("title") -> TextFieldSchema(StringName("title"))
         )
       )
     )
+  }
+
+  it should "fail if wildcard field overrides regular field" in {
+    val yaml =
+      """
+        |fields:
+        |  tit*:
+        |    type: text
+        |    search: false
+        |  title:
+        |    type: text
+        |    search: false""".stripMargin
+    val decoder = IndexMapping.yaml.indexMappingDecoder(IndexName("test"))
+    val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](decoder))
+    json shouldBe a[Left[?, ?]]
+
   }
 }

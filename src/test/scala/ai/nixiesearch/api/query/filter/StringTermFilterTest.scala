@@ -11,14 +11,15 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class StringTermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      TextFieldSchema("color", filter = true),
-      TextFieldSchema("color2", filter = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      TextFieldSchema(StringName("color"), filter = true),
+      TextFieldSchema(StringName("color2"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

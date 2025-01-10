@@ -47,7 +47,7 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
       spec.suggest.foreach(schema => {
         field.value.foreach(value => {
           SuggestCandidates
-            .fromString(schema, spec.name, value)
+            .fromString(schema, field.name, value)
             .foreach(candidate => {
               val s = SuggestField(field.name + TextField.SUGGEST_SUFFIX, candidate, 1)
               buffer.add(s)
@@ -59,65 +59,12 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
   }
 
   override def readLucene(
+      name: String,
       spec: TextListFieldSchema,
       value: List[String]
   ): Either[FieldCodec.WireDecodingError, TextListField] =
-    Right(TextListField(spec.name, value))
+    Right(TextListField(name, value))
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
-
-  override def decodeJson(schema: TextListFieldSchema, cursor: ACursor): Result[Option[TextListField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursive(parts, schema, cursor.focus.get, cursor, Nil) match {
-      case Right(Nil)      => Right(None)
-      case Right(nonEmpty) => Right(Some(TextListField(schema.name, nonEmpty)))
-      case Left(err)       => Left(err)
-    }
-  }
-
-  private def decodeRecursive(
-      parts: List[String],
-      schema: TextListFieldSchema,
-      json: Json,
-      cursor: ACursor,
-      acc: List[String]
-  ): Result[List[String]] = parts match {
-    case head :: tail =>
-      if (json.isObject) {
-        json.asObject.flatMap(_.apply(head)) match {
-          case Some(value) => decodeRecursive(tail, schema, value, cursor, acc)
-          case None        => Right(Nil)
-        }
-      } else if (json.isArray) {
-        json.asArray.toList.flatten.foldLeft[Decoder.Result[List[String]]](Right(Nil)) {
-          case (Right(list), next) =>
-            decodeRecursive(head :: tail, schema, next, cursor, list) match {
-              case Left(err)    => Left(err)
-              case Right(value) => Right(list ++ value)
-            }
-          case (Left(err), _) => Left(err)
-        }
-      } else {
-        Left(
-          DecodingFailure(
-            s"for text[] field ${schema.name} we expect root obj/array json value, but got $json",
-            cursor.history
-          )
-        )
-      }
-    case Nil =>
-      if (json.isString) {
-        Right(json.asString.toList)
-      } else if (json.isArray) {
-        json.as[List[String]]
-      } else {
-        Left(
-          DecodingFailure(
-            s"for text[] field ${schema.name} we expect string/string[] json value, but got $json",
-            cursor.history
-          )
-        )
-      }
-  }
 
 }

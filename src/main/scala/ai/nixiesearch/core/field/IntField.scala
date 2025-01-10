@@ -29,14 +29,13 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
     }
   }
 
-  override def readLucene(spec: IntFieldSchema, value: Int): Either[FieldCodec.WireDecodingError, IntField] =
-    Right(IntField(spec.name, value))
+  override def readLucene(
+      name: String,
+      spec: IntFieldSchema,
+      value: Int
+  ): Either[FieldCodec.WireDecodingError, IntField] =
+    Right(IntField(name, value))
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
-
-  override def decodeJson(schema: IntFieldSchema, cursor: ACursor): Result[Option[IntField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[Int](parts, schema, cursor, _.as[Option[Int]], IntField(schema.name, _))
-  }
 
 }

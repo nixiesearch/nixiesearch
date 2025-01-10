@@ -1,6 +1,6 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextLikeFieldSchema}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
 import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
@@ -40,32 +40,32 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         doc.fields.foreach {
           case field @ TextField(name, value) =>
             if (name == "_id") ids.addOne(value)
-            writeField(field, TextField, index.mapping.textFields, buffer, fieldEmbeds(field, embeddedStrings))
+            writeField(field, TextField, index.mapping.fieldSchemaOf[TextFieldSchema](field.name), buffer, fieldEmbeds(field, embeddedStrings))
 
           case field @ TextListField(name, value) =>
             writeField(
               field,
               TextListField,
-              index.mapping.textListFields,
+              index.mapping.fieldSchemaOf[TextListFieldSchema](field.name),
               buffer,
               fieldEmbeds(field, embeddedStrings)
             )
           case field @ IntField(name, value) =>
-            writeField(field, IntField, index.mapping.intFields, buffer)
+            writeField(field, IntField, index.mapping.fieldSchemaOf[IntFieldSchema](field.name), buffer)
           case field @ LongField(name, value) =>
-            writeField(field, LongField, index.mapping.longFields, buffer)
+            writeField(field, LongField, index.mapping.fieldSchemaOf[LongFieldSchema](field.name), buffer)
           case field @ FloatField(name, value) =>
-            writeField(field, FloatField, index.mapping.floatFields, buffer)
+            writeField(field, FloatField, index.mapping.fieldSchemaOf[FloatFieldSchema](field.name), buffer)
           case field @ DoubleField(name, value) =>
-            writeField(field, DoubleField, index.mapping.doubleFields, buffer)
+            writeField(field, DoubleField, index.mapping.fieldSchemaOf[DoubleFieldSchema](field.name), buffer)
           case field @ BooleanField(name, value) =>
-            writeField(field, BooleanField, index.mapping.booleanFields, buffer)
+            writeField(field, BooleanField, index.mapping.fieldSchemaOf[BooleanFieldSchema](field.name), buffer)
           case field @ GeopointField(name, lat, lon) =>
-            writeField(field, GeopointField, index.mapping.geopointFields, buffer)
+            writeField(field, GeopointField, index.mapping.fieldSchemaOf[GeopointFieldSchema](field.name), buffer)
           case field @ DateField(name, value) =>
-            writeField(field, DateField, index.mapping.dateFields, buffer)
+            writeField(field, DateField, index.mapping.fieldSchemaOf[DateFieldSchema](field.name), buffer)
           case field @ DateTimeField(name, value) =>
-            writeField(field, DateTimeField, index.mapping.dateTimeFields, buffer)
+            writeField(field, DateTimeField, index.mapping.fieldSchemaOf[DateTimeFieldSchema](field.name), buffer)
         }
         all.add(buffer)
       })
@@ -78,10 +78,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   private def writeField[T <: Field, S <: FieldSchema[T]](
       field: T,
       codec: FieldCodec[T, S, ?],
-      mappings: Map[String, S],
+      mapping: Option[S],
       buffer: LuceneDocument,
       embeds: Map[String, Array[Float]] = Map.empty
-  ): Unit = mappings.get(field.name) match {
+  ): Unit = mapping match {
     case None          => logger.warn(s"field '${field.name}' is not defined in index mapping for ${index.name.value}")
     case Some(mapping) => codec.writeLucene(field, mapping, buffer, embeds)
   }
@@ -91,7 +91,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       allFieldEmbeds: Map[ModelRef, Map[String, Array[Float]]]
   ): Map[String, Array[Float]] = field match {
     case t: TextLikeField =>
-      index.mapping.textLikeFields.get(t.name) match {
+      index.mapping.fieldSchema(t.name) match {
         case Some(TextLikeFieldSchema(search=tpe: SemanticSearchLikeType)) =>
           allFieldEmbeds.getOrElse(tpe.model, Map.empty)
         case _ => Map.empty
@@ -102,7 +102,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
     val candidates = for {
       doc   <- docs
       field <- doc.fields
-      model <- mapping.fields.get(field.name).toList.flatMap {
+      model <- mapping.fieldSchema(field.name).toList.flatMap {
         case TextLikeFieldSchema(search=tpe: SemanticSearchLikeType) =>          Some(tpe)
         case other =>
           None
@@ -195,8 +195,7 @@ object Indexer extends Logging {
   }
 
   def indexWriter(directory: Directory, mapping: IndexMapping, config: IndexConfig): Resource[IO, IndexWriter] = for {
-    analyzer <- Resource.eval(IO(IndexMapping.createAnalyzer(mapping)))
-    writer   <- Indexer.indexWriter(directory, analyzer, config)
+    writer   <- Indexer.indexWriter(directory, mapping.analyzer, config)
   } yield {
     writer
   }

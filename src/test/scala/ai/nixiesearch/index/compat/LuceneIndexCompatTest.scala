@@ -13,7 +13,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
-
+import scala.language.implicitConversions
 import scala.compiletime.uninitialized
 
 class Lucene912IndexCompatTest extends LuceneIndexCompatTest("lucene9.12")

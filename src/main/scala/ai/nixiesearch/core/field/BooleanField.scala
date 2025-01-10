@@ -31,8 +31,8 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
     }
   }
 
-  override def readLucene(spec: BooleanFieldSchema, value: Int): Either[WireDecodingError, BooleanField] =
-    fromInt(value).map(bool => BooleanField(spec.name, bool))
+  override def readLucene(name: String, spec: BooleanFieldSchema, value: Int): Either[WireDecodingError, BooleanField] =
+    fromInt(value).map(bool => BooleanField(name, bool))
 
   private def toInt(bool: Boolean): Int = if (bool) 1 else 0
   private def fromInt(value: Int): Either[WireDecodingError, Boolean] = value match {
@@ -42,9 +42,4 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
   }
 
   override def encodeJson(field: BooleanField): Json = Json.fromBoolean(field.value)
-
-  override def decodeJson(schema: BooleanFieldSchema, cursor: ACursor): Result[Option[BooleanField]] = {
-    val parts = schema.name.split('.').toList
-    decodeRecursiveScalar[Boolean](parts, schema, cursor, _.as[Option[Boolean]], BooleanField(schema.name, _))
-  }
 }

@@ -12,15 +12,16 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class MatchQuerySemanticTest extends SearchTest with Matchers {
   override lazy val inference = TestInferenceConfig.semantic()
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = "_id", filter = true),
-      TextFieldSchema(name = "title", search = HybridSearch(ModelRef("text"))),
-      TextListFieldSchema(name = "cat", search = NoSearch, filter = true)
+      TextFieldSchema(name = StringName("_id"), filter = true),
+      TextFieldSchema(name = StringName("title"), search = HybridSearch(ModelRef("text"))),
+      TextListFieldSchema(name = StringName("cat"), search = NoSearch, filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

@@ -26,22 +26,22 @@ import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
-
 import scala.util.Try
+import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class RangeAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema("_id", filter = true),
-      TextFieldSchema("title", search = LexicalSearch()),
-      TextFieldSchema("color", filter = true, facet = true),
-      IntFieldSchema("count", facet = true, filter = true),
-      FloatFieldSchema("fcount", facet = true),
-      LongFieldSchema("lcount", facet = true),
-      DoubleFieldSchema("dcount", facet = true),
-      DateFieldSchema("date", facet = true),
-      DateTimeFieldSchema("dt", facet = true)
+      TextFieldSchema(StringName("_id"), filter = true),
+      TextFieldSchema(StringName("title"), search = LexicalSearch()),
+      TextFieldSchema(StringName("color"), filter = true, facet = true),
+      IntFieldSchema(StringName("count"), facet = true, filter = true),
+      FloatFieldSchema(StringName("fcount"), facet = true),
+      LongFieldSchema(StringName("lcount"), facet = true),
+      DoubleFieldSchema(StringName("dcount"), facet = true),
+      DateFieldSchema(StringName("date"), facet = true),
+      DateTimeFieldSchema(StringName("dt"), facet = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

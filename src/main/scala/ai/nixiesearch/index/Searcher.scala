@@ -1,32 +1,17 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{
-  RAGRequest,
-  RAGResponse,
-  SearchRequest,
-  SearchResponse,
-  SuggestRequest,
-  SuggestResponse
-}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.TextField
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{
-  IndexSearcher,
-  MultiCollectorManager,
-  ScoreDoc,
-  TopDocs,
-  TopScoreDocCollectorManager,
-  TotalHits,
-  Query as LuceneQuery
-}
+import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, TopDocs, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
 import cats.implicits.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
@@ -43,6 +28,7 @@ import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
+
 import scala.collection.mutable
 import language.experimental.namedTuples
 
@@ -66,7 +52,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     fieldSuggestions <- Stream
       .emits(request.fields)
       .evalMap(fieldName =>
-        index.mapping.fields.get(fieldName) match {
+        index.mapping.fieldSchema(fieldName) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
           case Some(TextLikeFieldSchema(language=language, suggest=Some(schema))) =>
             GeneratedSuggestions.fromField(fieldName, suggester, language.analyzer, request.query, request.count)
@@ -91,6 +77,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     queries <- request.query match {
       case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
       case MatchQuery(field, query, operator) =>
+
         fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.models.embedding)
       case MultiMatchQuery(query, fields, operator) =>
         fields
@@ -130,7 +117,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
           .map(doc =>
             doc.fields
               .collect {
-                case TextField(name, value) if request.fields.contains(name) || request.fields.isEmpty =>
+                case TextField(name, value) if request.fields.exists(_.matches(name)) || request.fields.isEmpty =>
                   s"$name: $value"
               }
               .mkString("\n")
@@ -157,7 +144,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       size: Int,
       encoders: EmbedModelDict
   ): IO[List[LuceneQuery]] =
-    mapping.fields.get(field) match {
+    mapping.fieldSchema(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
       case Some(TextLikeFieldSchema(search=LexicalSearch(),language=language)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
@@ -243,7 +230,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case Some(a) =>
         a.aggs.toList
           .traverse { case (name, agg) =>
-            mapping.fields.get(agg.field) match {
+            mapping.fieldSchema(agg.field) match {
               case Some(field) if !field.facet =>
                 IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
               case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
@@ -265,13 +252,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   protected def collect(
       mapping: IndexMapping,
       top: TopDocs,
-      fields: List[String]
+      fields: List[FieldName]
   ): IO[List[Document]] = for {
     reader <- getReadersOrFail().map(_.reader)
     docs <- IO {
-      val fieldSet = fields.toSet
       val docs = top.scoreDocs.map(doc => {
-        val visitor = DocumentVisitor(mapping, fieldSet)
+        val visitor = DocumentVisitor(mapping, fields)
         reader.storedFields().document(doc.doc, visitor)
         visitor.asDocument(doc.score)
       })
