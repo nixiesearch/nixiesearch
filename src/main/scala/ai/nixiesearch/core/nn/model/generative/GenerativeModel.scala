@@ -88,7 +88,11 @@ object GenerativeModel {
         .metered(100.millis)
         .take(600)
         .evalTap(i => info(s"waiting for llamacpp init (${i * 100.millis})"))
-        .evalMap(_ => client.statusFromUri(uri / "health").map(_.code))
+        .evalMap(_ =>
+          client.statusFromUri(uri / "health").map(_.code).recoverWith { case err =>
+            debug(s"network error: ${err.getMessage}") *> IO.pure(500)
+          }
+        )
         .takeWhile(_ != 200)
         .compile
         .drain
