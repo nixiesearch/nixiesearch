@@ -1,5 +1,8 @@
 package ai.nixiesearch.index
 
+import ai.nixiesearch.api.IndexRoute.DeleteResponse
+import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
@@ -12,6 +15,7 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.RAW_SUFFIX
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
 import ai.nixiesearch.index.sync.Index
 import cats.effect.{IO, Resource}
 import org.apache.lucene.analysis.Analyzer
@@ -21,6 +25,7 @@ import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
 import cats.implicits.*
+import org.apache.lucene.search.MatchAllDocsQuery
 
 import language.experimental.namedTuples
 import scala.collection.mutable.ArrayBuffer
@@ -142,10 +147,11 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   }
 
   def flush(): IO[Boolean] = {
-    IO((writer.numRamDocs() > 0) || writer.hasDeletions).flatMap {
+    val b=1
+    IO((writer.numRamDocs() > 0) || writer.hasDeletions || writer.hasUncommittedChanges).flatMap {
       case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
       case true =>
-        debug(s"mem docs: ${writer.numRamDocs()} deletes=${writer.hasDeletions}") *> IO(writer.commit()).flatMap {
+        debug(s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}") *> IO(writer.commit()).flatMap {
           case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
           case seqnum =>
             for {
@@ -180,6 +186,21 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
 
   def delete(docid: String): IO[Unit] = IO {
     writer.deleteDocuments(new Term("_id" + RAW_SUFFIX, docid))
+  }
+
+  def delete(filters: Option[Filters]): IO[Int] = for {
+    query <- filters match {
+      case None => IO.pure(new MatchAllDocsQuery())
+      case Some(f) => f.toLuceneQuery(index.mapping).map {
+        case Some(value) => value
+        case None => new MatchAllDocsQuery()
+      }
+    }
+    before <- IO(writer.getDocStats)
+    _ <- IO(writer.deleteDocuments(query))
+    after <- IO(writer.getDocStats)
+  } yield {
+    before.numDocs - after.numDocs
   }
 
 }

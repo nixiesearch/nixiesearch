@@ -66,12 +66,47 @@ Response:
 Example:
 
 ```shell
-$ curl -XPOST -d '{"segments": 1}' http://localhost:8080/msmarco/_merge|jq .
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100    24  100    24    0     0   3625      0 --:--:-- --:--:-- --:--:--  4000
+curl -XPOST -d '{"segments": 1}' http://localhost:8080/msmarco/_merge|jq .
+```
+```
 {
   "status": "ok",
-  "tool": 3
+  "took": 3
+}
+```
+
+### Deletes
+
+#### Delete by docid
+
+todo
+
+#### Delete by query
+
+Route: `POST /<index_name>/_delete`
+
+Payload:
+
+```json
+{
+  "filters": {
+    "include": "...",
+    "exclude": "..."
+  }
+}
+```
+
+* `filters`: optional, Filters. Has the same JSON format as [filters](../../features/search/filter.md). 
+
+Example, deleting all documents from the index:
+
+```shell
+curl -XPOST -d '{}' http://localhost:8080/msmarco/_delete|jq .
+```
+```
+{
+  "status": "ok",
+  "took": 3,
+  "deleted": 100
 }
 ```
