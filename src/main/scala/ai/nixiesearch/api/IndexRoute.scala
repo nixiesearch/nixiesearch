@@ -1,10 +1,12 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
 import ai.nixiesearch.index.Indexer
 import cats.effect.IO
-import io.circe.{Codec, Encoder}
+import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
@@ -21,6 +23,8 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
       index(request)
     case request @ POST -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
       index(request)
+    case request @ POST -> Root / indexName / "_delete" if indexer.index.mapping.nameMatches(indexName) =>
+      delete(request)
     case request @ DELETE -> Root / indexName / "_delete" / docid if indexer.index.mapping.nameMatches(indexName) =>
       delete(docid)
   }
@@ -35,9 +39,18 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
 
   def delete(docid: String): IO[Response[IO]] = for {
     start    <- IO(System.currentTimeMillis())
-    _        <- info(s"DELETE /${indexer.index.name.value}/_doc/$docid")
     _        <- IO(indexer.delete(docid))
     response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
+  } yield {
+    response
+  }
+
+  def delete(request: Request[IO]): IO[Response[IO]] = for {
+    start    <- IO(System.currentTimeMillis())
+    delete   <- request.as[DeleteRequest]
+    deleted  <- indexer.delete(delete.filters)
+    end      <- IO(System.currentTimeMillis())
+    response <- Ok(DeleteResponse("ok", end - start, deleted))
   } yield {
     response
   }
@@ -86,10 +99,27 @@ object IndexRoute extends Logging {
   }
   given indexResponseCodec: Codec[IndexResponse] = deriveCodec
 
+  case class DeleteRequest(filters: Option[Filters] = None)
+
+  object DeleteRequest {
+    given deleteRequestEncoder: Encoder[DeleteRequest]               = deriveEncoder
+    given deleteRequestDecoder: Decoder[DeleteRequest]               = deriveDecoder
+    given deleteRequestEncoderJson: EntityDecoder[IO, DeleteRequest] = jsonOf
+    given deleteRequestDecoderJson: EntityEncoder[IO, DeleteRequest] = jsonEncoderOf
+  }
+
+  case class DeleteResponse(status: String, took: Long, deleted: Int)
+
+  object DeleteResponse {
+    given deleteResponseCodec: Codec[DeleteResponse]                   = deriveCodec
+    given deleteResponseEncoderJson: EntityEncoder[IO, DeleteResponse] = jsonEncoderOf
+    given deleteResponseDecoderJson: EntityDecoder[IO, DeleteResponse] = jsonOf
+  }
+
   import ai.nixiesearch.config.mapping.IndexMapping.json.given
 
-  given schemaEncoderJson: EntityEncoder[IO, IndexMapping] = jsonEncoderOf
-  given schemaDecoderJson: EntityDecoder[IO, IndexMapping] = jsonOf
+  given schemaEncoderJson: EntityEncoder[IO, IndexMapping]         = jsonEncoderOf
+  given schemaDecoderJson: EntityDecoder[IO, IndexMapping]         = jsonOf
   given indexResponseEncoderJson: EntityEncoder[IO, IndexResponse] = jsonEncoderOf
   given indexResponseDecoderJson: EntityDecoder[IO, IndexResponse] = jsonOf
 

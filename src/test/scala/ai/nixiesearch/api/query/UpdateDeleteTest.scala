@@ -1,5 +1,6 @@
 package ai.nixiesearch.api.query
 
+import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
@@ -13,7 +14,7 @@ class UpdateDeleteTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
   )
-  it should "delete documents" in withIndex { index =>
+  it should "delete documents by id" in withIndex { index =>
     {
       index.search(MatchQuery("title", "pajama")) shouldBe List("3")
       index.indexer.delete("3").unsafeRunSync()
@@ -21,6 +22,18 @@ class UpdateDeleteTest extends SearchTest with Matchers {
       index.indexer.index.sync().unsafeRunSync()
       index.searcher.sync().unsafeRunSync()
       index.search(MatchQuery("title", "pajama")) shouldBe List()
+    }
+  }
+
+  it should "delete documents by query" in withIndex { index =>
+    {
+      index.search(MatchQuery("title", "pajama")) shouldBe List("3")
+      val response = index.indexer.delete(None).unsafeRunSync()
+      index.indexer.flush().unsafeRunSync()
+      index.indexer.index.sync().unsafeRunSync()
+      index.searcher.sync().unsafeRunSync()
+      index.search(MatchAllQuery()) shouldBe List()
+      response shouldBe 3
     }
   }
 
