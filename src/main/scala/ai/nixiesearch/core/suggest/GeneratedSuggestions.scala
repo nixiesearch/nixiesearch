@@ -6,7 +6,13 @@ import cats.effect.IO
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.suggest.document.TopSuggestDocs.SuggestScoreDoc
-import org.apache.lucene.search.suggest.document.{FuzzyCompletionQuery, PrefixCompletionQuery, RegexCompletionQuery, SuggestIndexSearcher, TopSuggestDocs}
+import org.apache.lucene.search.suggest.document.{
+  FuzzyCompletionQuery,
+  PrefixCompletionQuery,
+  RegexCompletionQuery,
+  SuggestIndexSearcher,
+  TopSuggestDocs
+}
 
 import scala.jdk.CollectionConverters.*
 import org.apache.lucene.util.automaton.Operations

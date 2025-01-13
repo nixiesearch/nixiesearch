@@ -1,6 +1,13 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{
+  RAGRequest,
+  RAGResponse,
+  SearchRequest,
+  SearchResponse,
+  SuggestRequest,
+  SuggestResponse
+}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
@@ -11,7 +18,15 @@ import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.TextField
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, TopDocs, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
+import org.apache.lucene.search.{
+  IndexSearcher,
+  MultiCollectorManager,
+  ScoreDoc,
+  TopDocs,
+  TopScoreDocCollectorManager,
+  TotalHits,
+  Query as LuceneQuery
+}
 import cats.implicits.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
@@ -54,9 +69,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       .evalMap(fieldName =>
         index.mapping.fieldSchema(fieldName) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
-          case Some(TextLikeFieldSchema(language=language, suggest=Some(schema))) =>
+          case Some(TextLikeFieldSchema(language = language, suggest = Some(schema))) =>
             GeneratedSuggestions.fromField(fieldName, suggester, language.analyzer, request.query, request.count)
-          case Some(TextLikeFieldSchema(language=language, suggest=None)) =>
+          case Some(TextLikeFieldSchema(language = language, suggest = None)) =>
             IO.raiseError(UserError(s"field '$fieldName' is not suggestable in mapping"))
           case Some(other) => IO.raiseError(UserError(s"cannot generate suggestions over field $other"))
 
@@ -146,9 +161,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   ): IO[List[LuceneQuery]] =
     mapping.fieldSchema(field) match {
       case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
-      case Some(TextLikeFieldSchema(search=LexicalSearch(),language=language)) =>
+      case Some(TextLikeFieldSchema(search = LexicalSearch(), language = language)) =>
         LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-      case Some(TextLikeFieldSchema(search=SemanticSearch(modelRef))) =>
+      case Some(TextLikeFieldSchema(search = SemanticSearch(modelRef))) =>
         SemanticLuceneQuery
           .create(
             encoders = encoders,
@@ -160,7 +175,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
             mapping = mapping
           )
 
-      case Some(TextLikeFieldSchema(search=HybridSearch(modelRef), language=language)) =>
+      case Some(TextLikeFieldSchema(search = HybridSearch(modelRef), language = language)) =>
         for {
           x1 <- LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
           x2 <- SemanticLuceneQuery
