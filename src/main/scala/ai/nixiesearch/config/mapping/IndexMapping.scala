@@ -77,7 +77,7 @@ case class IndexMapping(
     }
 
   def suggestFields(): List[FieldName] =
-    fields.values.toList.collect { case TextLikeFieldSchema(name = name, suggest=Some(_)) =>
+    fields.values.toList.collect { case TextLikeFieldSchema(name = name, suggest = Some(_)) =>
       name
     }
 }
@@ -132,7 +132,7 @@ object IndexMapping extends Logging {
         _ <- checkWildcardOverrides(fields) match {
           case Nil => Right(true)
           case failures =>
-            val names = failures.map { case (wc, f) => s"${wc.name}/${f.name}"}
+            val names = failures.map { case (wc, f) => s"${wc.name}/${f.name}" }
             Left(DecodingFailure(s"Fields $names should not wildcard override each other", c.history))
         }
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
@@ -140,7 +140,7 @@ object IndexMapping extends Logging {
         cache  <- c.downField("cache").as[Option[IndexCacheConfig]].map(_.getOrElse(IndexCacheConfig()))
       } yield {
         val fieldsMap = fields.map(f => f.name -> f).toMap
-        val id = StringName("_id")
+        val id        = StringName("_id")
         val extendedFields = fieldsMap.get(id) match {
           case Some(idMapping) =>
             logger.warn("_id field is internal field and it's mapping cannot be changed")
@@ -170,11 +170,11 @@ object IndexMapping extends Logging {
     }
 
     def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(WildcardName, StringName)] = {
-      val fieldNames = fields.map(_.name)
+      val fieldNames   = fields.map(_.name)
       val stringFields = fieldNames.collect { case s: StringName => s }
       for {
         wildcard <- fieldNames.collect { case wc: WildcardName => wc }
-        string <- fieldNames.collect { case s: StringName => s} if wildcard.matches(string.name)
+        string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string.name)
       } yield {
         (wildcard, string)
       }

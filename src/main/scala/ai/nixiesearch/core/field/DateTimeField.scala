@@ -21,7 +21,11 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
 
   def applyUnsafe(name: String, value: String): DateTimeField = new DateTimeField(name, parseString(value).toOption.get)
 
-  override def readLucene(name: String, spec: DateTimeFieldSchema, value: Long): Either[FieldCodec.WireDecodingError, DateTimeField] =
+  override def readLucene(
+      name: String,
+      spec: DateTimeFieldSchema,
+      value: Long
+  ): Either[FieldCodec.WireDecodingError, DateTimeField] =
     LongField.readLucene(name, spec.asLong, value).map(long => DateTimeField(name, long.value))
 
   override def writeLucene(

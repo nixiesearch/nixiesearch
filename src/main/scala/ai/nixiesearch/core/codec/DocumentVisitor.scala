@@ -10,17 +10,28 @@ import org.apache.lucene.index.StoredFieldVisitor
 import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, GeopointFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  GeopointFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
 
 case class DocumentVisitor(
-                            mapping: IndexMapping,
-                            fields: List[FieldName],
-                            collectedScalars: ArrayBuffer[Field] = ArrayBuffer.empty,
-                            collectedTextList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
-                            errors: ArrayBuffer[Exception] = ArrayBuffer.empty
+    mapping: IndexMapping,
+    fields: List[FieldName],
+    collectedScalars: ArrayBuffer[Field] = ArrayBuffer.empty,
+    collectedTextList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
+    errors: ArrayBuffer[Exception] = ArrayBuffer.empty
 ) extends StoredFieldVisitor
     with Logging {
   override def needsField(fieldInfo: FieldInfo): Status =

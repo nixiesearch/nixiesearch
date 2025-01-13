@@ -45,7 +45,13 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         doc.fields.foreach {
           case field @ TextField(name, value) =>
             if (name == "_id") ids.addOne(value)
-            writeField(field, TextField, index.mapping.fieldSchemaOf[TextFieldSchema](field.name), buffer, fieldEmbeds(field, embeddedStrings))
+            writeField(
+              field,
+              TextField,
+              index.mapping.fieldSchemaOf[TextFieldSchema](field.name),
+              buffer,
+              fieldEmbeds(field, embeddedStrings)
+            )
 
           case field @ TextListField(name, value) =>
             writeField(
@@ -97,7 +103,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   ): Map[String, Array[Float]] = field match {
     case t: TextLikeField =>
       index.mapping.fieldSchema(t.name) match {
-        case Some(TextLikeFieldSchema(search=tpe: SemanticSearchLikeType)) =>
+        case Some(TextLikeFieldSchema(search = tpe: SemanticSearchLikeType)) =>
           allFieldEmbeds.getOrElse(tpe.model, Map.empty)
         case _ => Map.empty
       }
@@ -108,7 +114,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
       doc   <- docs
       field <- doc.fields
       model <- mapping.fieldSchema(field.name).toList.flatMap {
-        case TextLikeFieldSchema(search=tpe: SemanticSearchLikeType) =>          Some(tpe)
+        case TextLikeFieldSchema(search = tpe: SemanticSearchLikeType) => Some(tpe)
         case other =>
           None
       }
@@ -216,7 +222,7 @@ object Indexer extends Logging {
   }
 
   def indexWriter(directory: Directory, mapping: IndexMapping, config: IndexConfig): Resource[IO, IndexWriter] = for {
-    writer   <- Indexer.indexWriter(directory, mapping.analyzer, config)
+    writer <- Indexer.indexWriter(directory, mapping.analyzer, config)
   } yield {
     writer
   }

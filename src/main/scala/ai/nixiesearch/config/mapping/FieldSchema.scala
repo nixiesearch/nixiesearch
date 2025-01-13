@@ -56,7 +56,7 @@ object FieldSchema {
       suggest: Option[SuggestSchema] = None
   ) extends TextLikeFieldSchema[TextField]
       with FieldSchema[TextField]
-      
+
   case class TextListFieldSchema(
       name: FieldName,
       search: SearchType = NoSearch,
