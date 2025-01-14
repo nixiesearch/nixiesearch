@@ -4,9 +4,10 @@ import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.{
   OnnxEmbeddingInferenceModelConfig,
+  OnnxModelFile,
   OpenAIEmbeddingInferenceModelConfig
 }
-import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
@@ -82,23 +83,28 @@ object EmbedModelDict extends Logging {
       cache: ModelFileCache
   ): Resource[IO, EmbedModel] = for {
     hf <- HuggingFaceClient.create(cache)
-    (model, vocab, config) <- Resource.eval(for {
+    (model, data, vocab, config) <- Resource.eval(for {
       card      <- hf.model(handle)
       modelFile <- chooseModelFile(card.siblings.map(_.rfilename), conf.file)
       tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
         BackendError("Cannot find tokenizer.json in repo")
       )
       _         <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
-      modelPath <- hf.getCached(handle, modelFile)
+      modelPath <- hf.getCached(handle, modelFile.base)
+      maybeModelDataPath <- modelFile.data match {
+        case None       => IO.none
+        case Some(data) => hf.getCached(handle, data).map(Option.apply)
+      }
       vocabPath <- hf.getCached(handle, tokenizerFile)
       config <- hf
         .getCached(handle, CONFIG_FILE)
         .flatMap(path => IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path))))
     } yield {
-      (modelPath, vocabPath, config)
+      (modelPath, maybeModelDataPath, vocabPath, config)
     })
     onnxEmbedder <- OnnxEmbedModel.create(
       model = model,
+      data = data,
       dic = vocab,
       dim = config.hidden_size,
       prompt = conf.prompt,
@@ -109,7 +115,7 @@ object EmbedModelDict extends Logging {
   }
   def createLocal(handle: LocalModelHandle, conf: OnnxEmbeddingInferenceModelConfig): Resource[IO, EmbedModel] = {
     for {
-      (model, vocab, config) <- Resource.eval(for {
+      (model, modelData, vocab, config) <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))
         files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
         modelFile <- chooseModelFile(files, conf.file)
@@ -119,10 +125,16 @@ object EmbedModelDict extends Logging {
         _      <- info(s"loading $modelFile from $handle")
         config <- IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path.toNioPath.resolve(CONFIG_FILE))))
       } yield {
-        (path.toNioPath.resolve(modelFile), path.toNioPath.resolve(tokenizerFile), config)
+        (
+          path.toNioPath.resolve(modelFile.base),
+          modelFile.data.map(path.toNioPath.resolve),
+          path.toNioPath.resolve(tokenizerFile),
+          config
+        )
       })
       onnxEmbedder <- OnnxEmbedModel.create(
         model = model,
+        data = modelData,
         dic = vocab,
         dim = config.hidden_size,
         prompt = conf.prompt,
@@ -139,20 +151,23 @@ object EmbedModelDict extends Logging {
     "model_opt2_QInt8.onnx",
     "model.onnx"
   )
-  def chooseModelFile(files: List[String], forced: Option[String]): IO[String] = {
+
+  val DEFAULT_MODEL_EXT = Set("onnx", "onnx_data")
+  def chooseModelFile(files: List[String], forced: Option[OnnxModelFile]): IO[OnnxModelFile] = {
     forced match {
       case Some(f) => IO.pure(f)
       case None =>
-        files.find(x => DEFAULT_MODEL_FILES.contains(x)) match {
-          case Some(value) => info(s"loading $value") *> IO.pure(value)
-          case None =>
-            files.find(_ == "model.onnx") match {
-              case Some(value) => info(s"loading regular FP32 $value") *> IO.pure(value)
-              case None =>
-                files.find(_.endsWith("onnx")) match {
-                  case Some(value) => IO.pure(value)
-                  case None        => IO.raiseError(BackendError(s"cannot find onnx model: files=$files"))
-                }
+        files.filter(_.endsWith(".onnx")) match {
+          case Nil => IO.raiseError(UserError(s"no ONNX files found in the repo. files=$files"))
+          case base :: other =>
+            if (other.nonEmpty) {
+              logger.warn(s"multiple ONNX files found in the repo: choosing $base (and ignoring $other)")
+            }
+            val dataFile = s"${base}_data"
+            if (files.contains(dataFile)) {
+              IO.pure(OnnxModelFile(base, Some(dataFile)))
+            } else {
+              IO.pure(OnnxModelFile(base))
             }
         }
     }
