@@ -1,6 +1,9 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.{
+  OnnxEmbeddingInferenceModelConfig,
+  OnnxModelFile
+}
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
   LlamacppInferenceModelConfig,
   LlamacppParams
@@ -34,6 +37,57 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
             prompt = PromptConfig(doc = "passage: {doc}", query = "query: {query}")
+          )
+        )
+      )
+    )
+  }
+
+  it should "parse embedding config with onnx file override, string" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: onnx
+        |    model: nixiesearch/e5-small-v2-onnx
+        |    file: test.onnx
+        |    prompt:
+        |      doc: "passage: {doc}"
+        |      query: "query: {query}"
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            prompt = PromptConfig(doc = "passage: {doc}", query = "query: {query}"),
+            file = Some(OnnxModelFile("test.onnx"))
+          )
+        )
+      )
+    )
+  }
+  it should "parse embedding config with onnx file override, obj" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: onnx
+        |    model: nixiesearch/e5-small-v2-onnx
+        |    file:
+        |      base: test.onnx
+        |      data: test.onnx_data
+        |    prompt:
+        |      doc: "passage: {doc}"
+        |      query: "query: {query}"
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            prompt = PromptConfig(doc = "passage: {doc}", query = "query: {query}"),
+            file = Some(OnnxModelFile("test.onnx", Some("test.onnx_data")))
           )
         )
       )

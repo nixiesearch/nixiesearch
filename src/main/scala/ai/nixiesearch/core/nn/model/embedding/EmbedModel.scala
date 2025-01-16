@@ -89,6 +89,7 @@ object EmbedModel {
     val ONNX_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
     def create(
         model: Path,
+        data: Option[Path],
         dic: Path,
         dim: Int,
         prompt: PromptConfig,
@@ -126,16 +127,17 @@ object EmbedModel {
       opts.setOptimizationLevel(OptLevel.ALL_OPT)
       if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
-      val modelFile = new RandomAccessFile(model.toFile, "r")
-      val channel   = modelFile.getChannel
-      val buffer    = channel.map(MapMode.READ_ONLY, 0, channel.size())
-      val session   = env.createSession(buffer, opts)
-      val size      = FileUtils.byteCountToDisplaySize(channel.size())
-      val inputs    = session.getInputNames.asScala.toList
-      val outputs   = session.getOutputNames.asScala.toList
-      logger.info(s"Loaded ONNX model (size=$size inputs=$inputs outputs=$outputs dim=$dim)")
-      channel.close()
-      modelFile.close()
+
+//      val modelFile = new RandomAccessFile(model.toFile, "r")
+//      val channel   = modelFile.getChannel
+//      val buffer    = channel.map(MapMode.READ_ONLY, 0, channel.size())
+      val session = env.createSession(model.toString, opts)
+      // val size      = FileUtils.byteCountToDisplaySize(channel.size())
+      val inputs  = session.getInputNames.asScala.toList
+      val outputs = session.getOutputNames.asScala.toList
+      logger.info(s"Loaded ONNX model (inputs=$inputs outputs=$outputs dim=$dim)")
+      // channel.close()
+      // modelFile.close()
       OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt)
     }
   }

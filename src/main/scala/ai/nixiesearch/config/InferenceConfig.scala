@@ -27,9 +27,30 @@ object InferenceConfig {
   sealed trait EmbeddingInferenceModelConfig
 
   object EmbeddingInferenceModelConfig {
+    case class OnnxModelFile(base: String, data: Option[String] = None)
+    object OnnxModelFile {
+      given onnxModelFileEncoder: Encoder[OnnxModelFile] = Encoder.instance {
+        case OnnxModelFile(base, None) => Json.fromString(base)
+        case OnnxModelFile(base, Some(data)) =>
+          Json.obj("base" -> Json.fromString(base), "data" -> Json.fromString(data))
+      }
+
+      given onnxModelDecoder: Decoder[OnnxModelFile] = Decoder.instance(c =>
+        c.as[String] match {
+          case Right(value) => Right(OnnxModelFile(value))
+          case Left(_) =>
+            for {
+              base <- c.downField("base").as[String]
+              data <- c.downField("data").as[Option[String]]
+            } yield {
+              OnnxModelFile(base, data)
+            }
+        }
+      )
+    }
     case class OnnxEmbeddingInferenceModelConfig(
         model: ModelHandle,
-        file: Option[String] = None,
+        file: Option[OnnxModelFile] = None,
         prompt: PromptConfig = PromptConfig(),
         maxTokens: Int = 512,
         batchSize: Int = 32
@@ -41,14 +62,14 @@ object InferenceConfig {
     given onnxEmbeddingConfigDecoder: Decoder[OnnxEmbeddingInferenceModelConfig] = Decoder.instance(c =>
       for {
         model     <- c.downField("model").as[ModelHandle]
-        file      <- c.downField("file").as[Option[String]]
+        file      <- c.downField("file").as[Option[OnnxModelFile]]
         seqlen    <- c.downField("max_tokens").as[Option[Int]]
         prompt    <- c.downField("prompt").as[Option[PromptConfig]]
         batchSize <- c.downField("batch_size").as[Option[Int]]
       } yield {
         OnnxEmbeddingInferenceModelConfig(
           model,
-          file,
+          file = file,
           prompt.getOrElse(PromptConfig()),
           maxTokens = seqlen.getOrElse(512),
           batchSize = batchSize.getOrElse(32)
