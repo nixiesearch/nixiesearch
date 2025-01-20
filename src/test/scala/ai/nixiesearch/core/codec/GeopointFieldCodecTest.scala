@@ -13,7 +13,7 @@ class GeopointFieldCodecTest extends AnyFlatSpec with Matchers {
     val schema = GeopointFieldSchema(StringName("location"), store = true)
     GeopointField.writeLucene(GeopointField("location", 1, 2), schema, doc)
     val bytes   = doc.getField("location").asInstanceOf[StoredField]
-    val decoded = GeopointField.readLucene("location",schema, bytes.binaryValue().bytes)
+    val decoded = GeopointField.readLucene("location", schema, bytes.binaryValue().bytes)
     decoded shouldBe Right(GeopointField("location", 1, 2))
   }
 }

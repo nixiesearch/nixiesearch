@@ -24,7 +24,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   it should "search over dsl with empty query" in withIndex { index =>
     {
       val route = SearchRoute(index.searcher)
-      import route.given 
+      import route.given
       val response =
         send[SearchRequest, SearchResponse](
           route.routes,
@@ -53,7 +53,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
 
   it should "search over dsl" in withIndex { index =>
     {
-      val route   = SearchRoute(index.searcher)
+      val route = SearchRoute(index.searcher)
       import route.given
       val request = SearchRequest(MatchQuery("title", "pajama"), size = 10)
       val response =

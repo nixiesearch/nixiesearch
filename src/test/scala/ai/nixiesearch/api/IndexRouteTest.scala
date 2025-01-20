@@ -42,5 +42,4 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     }
   }
 
-
 }
