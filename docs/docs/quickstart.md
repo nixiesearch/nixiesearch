@@ -57,13 +57,7 @@ For this guide we'll use a [MSRD: Movie Search Ranking Dataset](https://github.c
 You can download the dataset and unpack it with the following command:
 
 ```shell
-$> curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
-
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100  1206  100  1206    0     0   4576      0 --:--:-- --:--:-- --:--:--  4585
-100  317k  100  317k    0     0   783k      0 --:--:-- --:--:-- --:--:--  783k
-
+$> curl -L -o movies.jsonl https://nixiesearch.ai/data/movies.jsonl 
 ```
 
 ## Index schema

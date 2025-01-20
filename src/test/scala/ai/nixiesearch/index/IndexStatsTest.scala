@@ -22,7 +22,11 @@ class IndexStatsTest extends SearchTest with Matchers {
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = StringName("_id"), filter = true),
-      TextFieldSchema(name = StringName("title"), search = HybridSearch(ModelRef("text")), suggest = Some(SuggestSchema()))
+      TextFieldSchema(
+        name = StringName("title"),
+        search = HybridSearch(ModelRef("text")),
+        suggest = Some(SuggestSchema())
+      )
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

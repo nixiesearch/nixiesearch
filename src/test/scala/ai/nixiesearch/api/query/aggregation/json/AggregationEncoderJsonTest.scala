@@ -14,7 +14,7 @@ class AggregationEncoderJsonTest extends AnyFlatSpec with Matchers {
       hits = Nil,
       aggs = Map("a" -> TermAggregationResult(buckets = List(TermCount("foo", 1))))
     )
-    import ai.nixiesearch.util.TestIndexMapping.given 
+    import ai.nixiesearch.util.TestIndexMapping.given
     val json = response.asJson.noSpaces
     json shouldBe """{"took":1,"hits":[],"aggs":{"a":{"buckets":[{"term":"foo","count":1}]}},"ts":1}"""
   }

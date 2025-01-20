@@ -95,9 +95,9 @@ enablePlugins(DockerPlugin)
 
 enablePlugins(BuildInfoPlugin)
 buildInfoKeys ++= Seq[BuildInfoKey](
-  BuildInfoKey.action("jdk") {
-    java.lang.Runtime.version().toString
-  }
+  BuildInfoKey.action("jdk") { java.lang.Runtime.version().toString },
+  BuildInfoKey.action("gpu") { GPU },
+  BuildInfoKey.action("arch") { PLATFORM }
 )
 docker / dockerfile := {
   val artifact: File     = assembly.value

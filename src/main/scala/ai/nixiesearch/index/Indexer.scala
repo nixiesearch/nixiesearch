@@ -153,11 +153,12 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   }
 
   def flush(): IO[Boolean] = {
-    val b=1
     IO((writer.numRamDocs() > 0) || writer.hasDeletions || writer.hasUncommittedChanges).flatMap {
       case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
       case true =>
-        debug(s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}") *> IO(writer.commit()).flatMap {
+        debug(
+          s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
+        ) *> IO(writer.commit()).flatMap {
           case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
           case seqnum =>
             for {
@@ -197,14 +198,15 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   def delete(filters: Option[Filters]): IO[Int] = for {
     query <- filters match {
       case None => IO.pure(new MatchAllDocsQuery())
-      case Some(f) => f.toLuceneQuery(index.mapping).map {
-        case Some(value) => value
-        case None => new MatchAllDocsQuery()
-      }
+      case Some(f) =>
+        f.toLuceneQuery(index.mapping).map {
+          case Some(value) => value
+          case None        => new MatchAllDocsQuery()
+        }
     }
     before <- IO(writer.getDocStats)
-    _ <- IO(writer.deleteDocuments(query))
-    after <- IO(writer.getDocStats)
+    _      <- IO(writer.deleteDocuments(query))
+    after  <- IO(writer.getDocStats)
   } yield {
     before.numDocs - after.numDocs
   }
