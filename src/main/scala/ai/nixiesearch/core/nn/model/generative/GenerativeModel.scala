@@ -106,12 +106,12 @@ object GenerativeModel {
         maxTokensPerDoc: Int,
         fields: List[FieldName]
     ): IO[String] = for {
-      instructionTokens <- tokenize(instruction)
+      instructionTokens <- tokenize(instruction + "\n\n")
       docTokensTrimmed <- Stream
         .emits[IO, Document](docs)
         .parEvalMap(Runtime.getRuntime.availableProcessors())(doc =>
-          IO(
-            doc.fields
+          IO {
+            val stringifiedFields = doc.fields
               .filter(f => fields.isEmpty || fields.exists(_.matches(f.name)))
               .flatMap {
                 case f if f.name == "_id"       => None
@@ -127,8 +127,12 @@ object GenerativeModel {
                 case TextListField(name, value) => Some(s"$name: ${value.mkString(", ")}")
                 case GeopointField(_, _, _)     => None
               }
-              .mkString("", "\n", "\n\n")
-          )
+            stringifiedFields match {
+              case Nil => ""
+              case nel => nel.mkString("", "\n", "\n\n")
+            }
+
+          }
         )
         .parEvalMap(Runtime.getRuntime.availableProcessors())(str => tokenize(str))
         .map(_.take(maxTokensPerDoc))

@@ -45,7 +45,7 @@ class RAGTest extends SearchTest with Matchers {
         .toList
         .unsafeRunSync()
       val text = response.map(_.token).mkString("")
-      text shouldBe "This search result document lists two options for a red or white dress: \"dress\"."
+      text shouldBe "The document describes dresses in two different colors: red and white."
     }
   }
 
@@ -65,7 +65,7 @@ class RAGTest extends SearchTest with Matchers {
       val api      = SearchRoute(index.searcher)
       val response = api.searchBlocking(request).unsafeRunSync()
       response.response shouldBe Some(
-        "This search result document lists two options for a red or white dress: \"dress\"."
+        "The document describes dresses in two different colors: red and white."
       )
     }
   }
@@ -87,7 +87,7 @@ class RAGTest extends SearchTest with Matchers {
       val api      = SearchRoute(index.searcher)
       val response = api.searchBlocking(request).unsafeRunSync()
       response.response shouldBe Some(
-        "The document contains a red dress, possibly for sale or a fashion reference."
+        "The document is about a red dress, possibly for a specific event or occasion, and there are no other keywords or context provided. The document is titled \"red dress\", and there is no additional information or context given."
       )
     }
   }
@@ -109,7 +109,7 @@ class RAGTest extends SearchTest with Matchers {
       )
       val api      = SearchRoute(index.searcher)
       val response = api.searchBlocking(request).unsafeRunSync()
-      response.response shouldBe Some("Red dress.")
+      response.response shouldBe Some("Red dress trend.")
     }
   }
 }
