@@ -34,7 +34,9 @@ class BoolFilterTest extends SearchTest with Matchers {
   it should "select by both filters" in withIndex { index =>
     {
       val result = index.search(filters =
-        Some(Filters(include = Some(AndPredicate(List(TermPredicate("color", "red"), RangePredicate("price", Gt(20)))))))
+        Some(
+          Filters(include = Some(AndPredicate(List(TermPredicate("color", "red"), RangePredicate("price", Gt(20))))))
+        )
       )
       result shouldBe List("3")
     }
