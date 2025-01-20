@@ -22,7 +22,7 @@ class RAGTest extends SearchTest with Matchers {
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
   )
-  it should "summarize search results in " in withIndex { index =>
+  it should "do stream RAG" in withIndex { index =>
     {
       val request = SearchRequest(
         query = MatchQuery("title", "dress"),
@@ -45,7 +45,71 @@ class RAGTest extends SearchTest with Matchers {
         .toList
         .unsafeRunSync()
       val text = response.map(_.token).mkString("")
-      text shouldBe "The search result document provides two options for a red or white dress: \"red dress\" and \"white dress.\""
+      text shouldBe "The document describes dresses in two different colors: red and white."
+    }
+  }
+
+  it should "do blocking RAG" in withIndex { index =>
+    {
+      val request = SearchRequest(
+        query = MatchQuery("title", "dress"),
+        fields = List(StringName("title")),
+        rag = Some(
+          RAGRequest(
+            prompt = "Shortly summarize the following search result document for a search query 'dress':\n\n",
+            model = ModelRef("qwen2"),
+            fields = List(StringName("title"))
+          )
+        )
+      )
+      val api      = SearchRoute(index.searcher)
+      val response = api.searchBlocking(request).unsafeRunSync()
+      response.response shouldBe Some(
+        "The document describes dresses in two different colors: red and white."
+      )
+    }
+  }
+
+  it should "limit num documents" in withIndex { index =>
+    {
+      val request = SearchRequest(
+        query = MatchQuery("title", "dress"),
+        fields = List(StringName("title")),
+        rag = Some(
+          RAGRequest(
+            prompt = "Shortly summarize the following search result document for a search query 'dress':\n\n",
+            model = ModelRef("qwen2"),
+            fields = List(StringName("title")),
+            topDocs = 1
+          )
+        )
+      )
+      val api      = SearchRoute(index.searcher)
+      val response = api.searchBlocking(request).unsafeRunSync()
+      response.response shouldBe Some(
+        "The document is about a red dress, possibly for a specific event or occasion, and there are no other keywords or context provided. The document is titled \"red dress\", and there is no additional information or context given."
+      )
+    }
+  }
+
+  it should "trim docs" in withIndex { index =>
+    {
+      val request = SearchRequest(
+        query = MatchQuery("title", "dress"),
+        fields = List(StringName("title")),
+        rag = Some(
+          RAGRequest(
+            prompt = "Shortly summarize the following search result document for a search query 'dress':\n\n",
+            model = ModelRef("qwen2"),
+            fields = List(StringName("title")),
+            topDocs = 1,
+            maxDocLength = 3
+          )
+        )
+      )
+      val api      = SearchRoute(index.searcher)
+      val response = api.searchBlocking(request).unsafeRunSync()
+      response.response shouldBe Some("Red dress trend.")
     }
   }
 }

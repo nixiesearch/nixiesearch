@@ -30,30 +30,22 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val searchApi = SearchRoute(nixie.searcher)
 
-      val searchRequest = Request[IO](
-        method = Method.POST,
-        uri = Uri.unsafeFromString("http://localhost:8080/movies/_search"),
-        entity = Entity.strict(
-          ByteVector.view(
-            SearchRequest(
-              MatchQuery("title", "matrix"),
-              fields = List(StringName("title"), StringName("overview")),
-              rag = Some(
-                RAGRequest(
-                  topDocs = 3,
-                  prompt =
-                    "Based on following search result documents, summarize the answer for a user search query 'matrix' in a single sentence. Do not include task or intro.",
-                  model = ModelRef("qwen2"),
-                  fields = List(StringName("title"), StringName("overview"))
-                )
-              )
-            ).asJson.noSpaces.getBytes()
+      val searchRequest = SearchRequest(
+        MatchQuery("title", "matrix"),
+        fields = List(StringName("title"), StringName("overview")),
+        rag = Some(
+          RAGRequest(
+            topDocs = 3,
+            prompt =
+              "Based on following search result documents, summarize the answer for a user search query 'matrix' in a single sentence. Do not include task or intro.",
+            model = ModelRef("qwen2"),
+            fields = List(StringName("title"), StringName("overview"))
           )
         )
       )
-      val response = searchApi.searchBlocking(searchRequest).unsafeRunSync().as[SearchResponse].unsafeRunSync()
+      val response = searchApi.searchBlocking(searchRequest).unsafeRunSync()
       response.response shouldBe Some(
-        "The Matrix is a science fiction film about a computer hacker who joins a group of underground insurgents fighting against computer rule."
+        "The Matrix is a science fiction film set in the 22nd century about a computer hacker who joins a group of underground insurgents fighting the powerful computers that rule the earth."
       )
     }
   }

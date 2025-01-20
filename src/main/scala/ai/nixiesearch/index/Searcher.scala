@@ -127,17 +127,15 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
 
   def rag(docs: List[Document], request: RAGRequest): Stream[IO, RAGResponse] = {
     val stream = for {
-      prompt <- Stream.eval(IO(s"${request.prompt}\n\n${docs
-          .take(request.topDocs)
-          .map(doc =>
-            doc.fields
-              .collect {
-                case TextField(name, value) if request.fields.exists(_.matches(name)) || request.fields.isEmpty =>
-                  s"$name: $value"
-              }
-              .mkString("\n")
-          )
-          .mkString("\n\n")}"))
+      prompt <- Stream.eval(
+        index.models.generative.prompt(
+          request.model,
+          request.prompt,
+          docs.take(request.topDocs),
+          request.maxDocLength,
+          request.fields
+        )
+      )
       _     <- Stream.eval(debug(s"prompt: ${prompt}"))
       start <- Stream.eval(IO(System.currentTimeMillis()))
       (token, took) <- index.models.generative

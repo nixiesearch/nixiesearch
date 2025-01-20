@@ -2,8 +2,9 @@ package ai.nixiesearch.core.nn.model.generative
 
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppInferenceModelConfig
+import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel
@@ -22,6 +23,20 @@ case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel]) {
         UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")
       )
   }
+  def prompt(
+      name: ModelRef,
+      instruction: String,
+      docs: List[Document],
+      maxTokensPerDoc: Int,
+      fields: List[FieldName]
+  ): IO[String] =
+    models.get(name) match {
+      case Some(model) => model.prompt(instruction, docs, maxTokensPerDoc, fields)
+      case None =>
+        IO.raiseError(
+          UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")
+        )
+    }
 }
 
 object GenerativeModelDict extends Logging {

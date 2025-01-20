@@ -39,14 +39,9 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       indexApi.flush().unsafeRunSync()
       nixie.searcher.sync().unsafeRunSync()
 
-      val searchRequest = Request[IO](
-        method = Method.POST,
-        uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_search"),
-        entity =
-          Entity.strict(ByteVector.view(SearchRequest(MatchQuery("text", "manhattan")).asJson.noSpaces.getBytes()))
-      )
-      val response = searchApi.searchBlocking(searchRequest).unsafeRunSync()
-      response.as[SearchResponse].map(_.hits.size).unsafeRunSync() shouldBe 10
+      val searchRequest = SearchRequest(MatchQuery("text", "manhattan"))
+      val response      = searchApi.searchBlocking(searchRequest).unsafeRunSync()
+      response.hits.size shouldBe 10
     }
   }
 }
