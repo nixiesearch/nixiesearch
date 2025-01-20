@@ -10,7 +10,7 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.GeopointField.Geopoint
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json, JsonNumber, JsonObject}
 import cats.implicits.*
-import io.circe.Decoder.Result
+import io.circe.Decoder.{Result, resultInstance}
 
 import java.util.UUID
 import scala.annotation.tailrec
@@ -62,7 +62,8 @@ object Document {
   }
 
   case class ArrayParser(field: List[String], mapping: IndexMapping)
-      extends Json.Folder[Decoder.Result[List[TextListField]]] {
+      extends Json.Folder[Decoder.Result[List[TextListField]]]
+      with Logging {
     val fieldName = field.mkString(".")
 
     override def onNull: Decoder.Result[List[TextListField]] = Left(
@@ -110,7 +111,8 @@ object Document {
   }
 
   case class DocumentParser(field: List[String], mapping: IndexMapping)
-      extends Json.Folder[Decoder.Result[List[Field]]] {
+      extends Json.Folder[Decoder.Result[List[Field]]]
+      with Logging {
     val fieldName = field.mkString(".")
 
     override def onNull: Decoder.Result[List[Field]] = Left(DecodingFailure(s"field $fieldName cannot be null", Nil))
@@ -193,16 +195,23 @@ object Document {
           }
         case Some(_) => Left(DecodingFailure(s"unexpected array for field '$fieldName': $value", Nil))
         case None =>
-          value.toList
+          val result = value.toList
             .map(json => json.foldWith(ArrayParser(field, mapping)))
-            .reduce {
+            .tapEach(x => logger.info(x.toString))
+            .reduceLeftOption {
               case (Left(err), _)       => Left(err)
               case (_, Left(err))       => Left(err)
               case (Right(a), Right(b)) => Right(a ++ b)
             }
-            .map(_.groupMapReduce(_.name)(identity) { case (a, b) =>
-              TextListField(a.name, a.value ++ b.value)
-            }.values.toList)
+          result match {
+            case None =>
+              Right(Nil)
+            case Some(nel) =>
+              nel.map(_.groupMapReduce(_.name)(identity) { case (a, b) =>
+                TextListField(a.name, a.value ++ b.value)
+              }.values.toList)
+          }
+
       }
   }
 

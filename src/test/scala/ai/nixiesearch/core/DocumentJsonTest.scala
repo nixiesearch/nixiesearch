@@ -196,6 +196,24 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document(List(TextField("_id", "a"), TextField("title", "foo")))
     )
   }
+
+  it should "skip empty arrays not defined in schema" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title"))
+          )
+        )
+      )
+    val json = """{"_id": "a", "title": "foo", "tracks": []}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo")))
+    )
+  }
+
   it should "fail on arrays of nulls" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
