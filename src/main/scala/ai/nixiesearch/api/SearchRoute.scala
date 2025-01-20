@@ -34,6 +34,7 @@ import io.circe.generic.semiauto.*
 import fs2.Stream
 import io.circe.syntax.*
 import org.http4s.headers.`Content-Type`
+import io.circe.syntax.*
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   given documentCodec: Codec[Document]                 = Document.codecFor(searcher.index.mapping)
@@ -44,7 +45,21 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case request @ POST -> Root / indexName / "_search" if searcher.index.mapping.nameMatches(indexName) =>
-      searchBlocking(request)
+      for {
+        request <- IO(request.entity.length).flatMap {
+          case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
+          case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
+          case Some(_) => request.as[SearchRequest]
+        }
+        response <- searchBlocking(request)
+      } yield {
+        Response[IO](
+          status = Status.Ok,
+          headers = Headers(`Content-Type`(new MediaType("application", "json"))),
+          entity = Entity.string(response.asJson.noSpaces, Charset.`UTF-8`)
+        )
+      }
+
     case request @ POST -> Root / indexName / "_suggest" if searcher.index.mapping.nameMatches(indexName) =>
       suggest(request)
   }
@@ -70,52 +85,19 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
     frame
   }
 
-  def searchBlocking(request: Request[IO]): IO[Response[IO]] = for {
-    query <- IO(request.entity.length).flatMap {
-      case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
-      case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
-      case Some(_) => request.as[SearchRequest]
-    }
-    _    <- info(s"search index='${searcher.index.name}' query=$query")
-    docs <- searcher.search(query)
-    response <- query.rag match {
+  def searchBlocking(request: SearchRequest): IO[SearchResponse] = for {
+    _    <- info(s"search index='${searcher.index.name}' query=$request")
+    docs <- searcher.search(request)
+    response <- request.rag match {
       case None =>
-        IO.pure(
-          Response[IO](
-            status = Status.Ok,
-            headers = Headers(`Content-Type`(new MediaType("application", "json"))),
-            entity = Entity.string(docs.asJson.noSpaces, Charset.`UTF-8`)
-          )
-        )
+        IO.pure(docs)
       case Some(ragRequest) =>
-        ragRequest.stream match {
-          case true =>
-            IO.pure(
-              Response[IO](
-                status = Status.Ok,
-                headers = Headers(`Content-Type`(MediaType.`text/event-stream`)),
-                entity = Entity.stream(
-                  searchStreaming(query).flatMap(e => Stream.emits(e.asServerSideEvent.getBytes))
-                )
-              )
-            )
-          case false =>
-            searcher
-              .rag(docs.hits, ragRequest)
-              .map(_.token)
-              .compile
-              .fold("")(_ + _)
-              .map(resp => docs.copy(response = Some(resp)))
-              .map(resp =>
-                Response[IO](
-                  status = Status.Ok,
-                  headers = Headers(`Content-Type`(new MediaType("application", "json"))),
-                  entity = Entity.string(resp.asJson.noSpaces, Charset.`UTF-8`)
-                )
-              )
-
-        }
-
+        searcher
+          .rag(docs.hits, ragRequest)
+          .map(_.token)
+          .compile
+          .fold("")(_ + _)
+          .map(resp => docs.copy(response = Some(resp)))
     }
 
   } yield {
@@ -129,7 +111,7 @@ object SearchRoute {
       prompt: String,
       model: ModelRef,
       topDocs: Int = 10,
-      maxDocLength: Int = 128,
+      maxDocLength: Int = 512,
       maxResponseLength: Int = 64,
       fields: List[FieldName] = Nil,
       stream: Boolean = false

@@ -2,18 +2,32 @@ package ai.nixiesearch.core.nn.model.generative
 
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppParams
-import ai.nixiesearch.core.Logging
+import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.{Document, Field, Logging}
+import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
+import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel.{
+  ModelMetadata,
+  Token,
+  TokenizeRequest,
+  TokenizeResponse,
+  tokenCodec
+}
 import ai.nixiesearch.llamacppserver.LlamacppServer
 import ai.nixiesearch.llamacppserver.LlamacppServer.LLAMACPP_BACKEND
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import fs2.Stream
+import io.circe.Codec
 import org.http4s.Entity.Strict
-import org.http4s.{Entity, Method, Request, Uri}
+import org.http4s.{Entity, EntityDecoder, Method, Request, Uri}
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import io.circe.syntax.*
+import io.circe.generic.semiauto.*
+import org.http4s.circe.jsonOf
+
 import java.net.{ServerSocket, Socket}
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
@@ -22,13 +36,26 @@ import scala.util.Random
 
 trait GenerativeModel {
   def generate(input: String, maxTokens: Int): Stream[IO, String]
+  def prompt(instruction: String, docs: List[Document], maxTokensPerDoc: Int, fields: List[FieldName]): IO[String]
 }
 
 object GenerativeModel {
-  case class LlamacppGenerativeModel(server: LlamacppServer, client: Client[IO], endpoint: Uri, name: ModelRef)
-      extends GenerativeModel
+  case class LlamacppGenerativeModel(
+      server: LlamacppServer,
+      client: Client[IO],
+      endpoint: Uri,
+      name: ModelRef,
+      metadata: ModelMetadata
+  ) extends GenerativeModel
       with Logging {
     override def generate(input: String, maxTokens: Int): Stream[IO, String] = for {
+      tokenized <- Stream.eval(tokenize(input))
+      truncated <- Stream(tokenized.take(metadata.n_ctx_train))
+      _ <- Stream.eval(
+        IO.whenA(truncated.size < tokenized.size)(
+          warn(s"Trimmed ${tokenized.size} -> ${metadata.n_ctx_train} due to too long context")
+        )
+      )
       request <- Stream(
         Request[IO](
           method = Method.POST,
@@ -38,7 +65,7 @@ object GenerativeModel {
               .Request(
                 model = name.name,
                 stream = true,
-                messages = List(ChatML.Message(role = "user", content = input)),
+                messages = List(ChatML.Message(role = "user", content = truncated.map(_.piece).mkString(""))),
                 max_tokens = Some(maxTokens),
                 seed = Some(42)
               )
@@ -60,9 +87,79 @@ object GenerativeModel {
       content
     }
     def close(): IO[Unit] = info("Closing Llamacpp model") *> IO(server.close())
+
+    def tokenize(text: String): IO[List[Token]] = for {
+      response <- client.expect[TokenizeResponse](
+        Request[IO](
+          method = Method.POST,
+          uri = endpoint / "tokenize",
+          entity = Entity.utf8String(TokenizeRequest(text, with_pieces = true).asJson.noSpaces)
+        )
+      )
+    } yield {
+      response.tokens
+    }
+
+    override def prompt(
+        instruction: String,
+        docs: List[Document],
+        maxTokensPerDoc: Int,
+        fields: List[FieldName]
+    ): IO[String] = for {
+      instructionTokens <- tokenize(instruction)
+      docTokensTrimmed <- Stream
+        .emits[IO, Document](docs)
+        .parEvalMap(Runtime.getRuntime.availableProcessors())(doc =>
+          IO(
+            doc.fields
+              .filter(f => fields.isEmpty || fields.exists(_.matches(f.name)))
+              .flatMap {
+                case f if f.name == "_id"       => None
+                case f if f.name == "_score"    => None
+                case IntField(name, value)      => Some(s"$name: $value")
+                case DateField(name, value)     => Some(s"$name: ${DateField.writeString(value)}")
+                case LongField(name, value)     => Some(s"$name: $value")
+                case TextField(name, value)     => Some(s"$name: $value")
+                case FloatField(name, value)    => Some(s"$name: $value")
+                case DoubleField(name, value)   => Some(s"$name: $value")
+                case BooleanField(name, value)  => Some(s"$name: $value")
+                case DateTimeField(name, value) => Some(s"$name: ${DateTimeField.writeString(value)}")
+                case TextListField(name, value) => Some(s"$name: ${value.mkString(", ")}")
+                case GeopointField(_, _, _)     => None
+              }
+              .mkString("", "\n", "\n\n")
+          )
+        )
+        .parEvalMap(Runtime.getRuntime.availableProcessors())(str => tokenize(str))
+        .map(_.take(maxTokensPerDoc))
+        .reduce(_ ++ _)
+        .compile
+        .lastOrError
+        .map(_.take(metadata.n_ctx_train - instructionTokens.size))
+      prompt <- IO(instructionTokens ++ docTokensTrimmed)
+      _ <- info(s"inst_tokens=${instructionTokens.size} payload_tokens=${prompt.size} max_ctx=${metadata.n_ctx_train}")
+    } yield {
+      prompt.map(_.piece).mkString("")
+    }
   }
 
   object LlamacppGenerativeModel extends Logging {
+    case class Token(id: Int, piece: String)
+    case class TokenizeRequest(content: String, with_pieces: Boolean)
+    case class TokenizeResponse(tokens: List[Token])
+    given tokenCodec: Codec[Token]                                  = deriveCodec
+    given tokenizeRequestCodec: Codec[TokenizeRequest]              = deriveCodec
+    given tokenizeResponseCodec: Codec[TokenizeResponse]            = deriveCodec
+    given tokenizeResponseJson: EntityDecoder[IO, TokenizeResponse] = jsonOf
+
+    case class ModelMetadata(vocab_type: Int, n_vocab: Int, n_ctx_train: Int, n_embd: Int, n_params: Long, size: Long)
+    case class ModelResponse(id: String, created: Long, meta: ModelMetadata)
+    case class ModelsListResponse(data: List[ModelResponse])
+    given modelMetaCodec: Codec[ModelMetadata]                                = deriveCodec
+    given modelResponseCodec: Codec[ModelResponse]                            = deriveCodec
+    given modelListResponseCodec: Codec[ModelsListResponse]                   = deriveCodec
+    given modelListResponseJsonDecoder: EntityDecoder[IO, ModelsListResponse] = jsonOf
+
     def create(
         path: Path,
         options: LlamacppParams,
@@ -76,10 +173,13 @@ object GenerativeModel {
         .default[IO]
         .withTimeout(120.second)
         .build
-      _ <- Resource.eval(waitForHealthy(client, uri))
-
+      _      <- Resource.eval(waitForHealthy(client, uri))
+      models <- Resource.eval(client.expect[ModelsListResponse](uri / "v1" / "models"))
+      meta <- Resource.eval(
+        IO.fromOption(models.data.headOption)(BackendError("expected model metadata in llamacpp response"))
+      )
     } yield {
-      LlamacppGenerativeModel(server, client, uri, name)
+      LlamacppGenerativeModel(server, client, uri, name, meta.meta)
     }
 
     def waitForHealthy(client: Client[IO], uri: Uri): IO[Unit] = {
