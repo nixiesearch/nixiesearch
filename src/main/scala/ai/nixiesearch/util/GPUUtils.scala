@@ -3,22 +3,21 @@ package ai.nixiesearch.util
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
 import ai.onnxruntime.OrtEnvironment
+import buildinfo.BuildInfo
 import cats.effect.IO
 
 import java.nio.file.Paths
 import fs2.{Collector, Stream}
 import fs2.io.file.{Files, Path}
 import fs2.io.readInputStream
-import scala.jdk.CollectionConverters._
+
+import scala.jdk.CollectionConverters.*
 import java.io.FileInputStream
 
 object GPUUtils extends Logging {
   case class GPUDevice(id: Int, model: String)
 
-  val ONNX_CUDA_EP_PATH = "/ai/onnxruntime/native/linux-x64/libonnxruntime_providers_cuda.so"
-  def isGPUBuild(): Boolean = {
-    Option(this.getClass.getResource(ONNX_CUDA_EP_PATH)).isDefined
-  }
+  def isGPUBuild(): Boolean = BuildInfo.gpu
 
   val CUDART_NAME = "libcudart.so.12"
 

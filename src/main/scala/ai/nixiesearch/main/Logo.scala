@@ -11,7 +11,7 @@ object Logo {
     "version"      -> BuildInfo.version,
     "jdk[build]"   -> BuildInfo.jdk,
     "jdk[runtime]" -> Runtime.version().toString,
-    "arch"         -> System.getProperty("os.arch"),
+    "arch"         -> BuildInfo.arch,
     "build"        -> (if (GPUUtils.isGPUBuild()) "CPU+GPU" else "CPU")
   )
   val args = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.mkString(" ")
