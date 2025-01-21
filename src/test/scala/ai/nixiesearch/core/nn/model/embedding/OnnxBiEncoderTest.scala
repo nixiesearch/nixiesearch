@@ -3,7 +3,7 @@ package ai.nixiesearch.core.nn.model.embedding
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, PromptConfig}
-import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
+import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
 import ai.nixiesearch.core.nn.model.ModelFileCache
@@ -59,6 +59,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val result = embedder.encode(List("query: test")).unsafeRunSync()
     result.length shouldBe 1
     result(0).length shouldBe 768
+    shutdownHandle.unsafeRunSync()
   }
 
   it should "load ONNX with data section models" in {
@@ -77,5 +78,26 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val result = embedder.encode(List("query: test")).unsafeRunSync()
     result.length shouldBe 1
     result(0).length shouldBe 1024
+    shutdownHandle.unsafeRunSync()
   }
+
+  it should "load decoder-only ONNX models" in {
+    val handle = LocalModelHandle("/home/shutty/models/gemma2-test")
+    val config = OnnxEmbeddingInferenceModelConfig(
+      model = handle,
+      prompt = PromptConfig(
+        query = "query: ",
+        doc = "passage: "
+      )
+    )
+    val (embedder, shutdownHandle) = EmbedModelDict
+      .createLocal(handle, config)
+      .allocated
+      .unsafeRunSync()
+    val result = embedder.encode(List("query: test")).unsafeRunSync()
+    result.length shouldBe 1
+    result(0).length shouldBe 1024
+    shutdownHandle.unsafeRunSync()
+  }
+
 }
