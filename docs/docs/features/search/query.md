@@ -72,7 +72,7 @@ Where:
 * `<search-query>`: a search query string.
 * `operator`: optional, possible values: `"and"`, `"or"`. For lexical search, should documents contain all or some of terms from the search query. For semantic search this parameter is ignored.
 
-Compared to Lucene-based search engines, Nixiesearch does a [RRF](../../features/search/index.md#hybrid-search-with-reciprocal-rank-fusion) mixing of documents matched over different fields:
+Compared to Lucene-based search engines, Nixiesearch does a [RRF](../../features/search/overview.md#hybrid-search-with-reciprocal-rank-fusion) mixing of documents matched over different fields:
 
 1. At first pass, documents matching each separate field are collected.
 2. At next step N separate per-field search results are merged together into a single ranking.

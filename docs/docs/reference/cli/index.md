@@ -155,7 +155,7 @@ docker run -i -t nixiesearch/nixiesearch:latest -v <dir>:/data search --config /
 
 Online indexing with a REST API is mainly meant for experimentation and for small-scale document ingestion jobs.
 
-REST API for indexing can be used in both [distributed](../../deployment/distributed/index.md) (e.g. when you have separate deployments for Searcher and Indexer) and [standalone](../../deployment/standalone.md) (e.g. when Searcher and Indexer are colocated in a single node and single process) modes.
+REST API for indexing can be used in both [distributed](../../deployment/distributed/overview.md) (e.g. when you have separate deployments for Searcher and Indexer) and [standalone](../../deployment/standalone.md) (e.g. when Searcher and Indexer are colocated in a single node and single process) modes.
 
 To run Nixiesearch in [a standalone mode](../../deployment/standalone.md), use the `standalone` CLI subcommand:
 
@@ -177,7 +177,7 @@ You will see in the logs that Indexer HTTP service is listening on a port 8080:
 14:11:50.787 INFO  o.h.ember.server.EmberServerBuilder - Ember-Server service bound to address: [::]:8080
 ```
 
-After that you can HTTP POST the documents file to the `_index` [indexing endpoint](../../features/indexing/api.md):
+After that you can HTTP POST the documents file to the `_index` [indexing endpoint](../../api.md):
 
 ```shell
 $ curl -XPOST -d @movies.jsonl http://localhost:8080/movies/_index

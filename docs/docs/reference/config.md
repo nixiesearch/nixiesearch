@@ -69,7 +69,7 @@ TODO
 
 ## ML Inference
 
-See [ML Inference overview](../features/inference/index.md) and [RAG Search](../features/search/rag.md) for an overview of use cases for inference models.
+See [ML Inference overview](../features/inference/overview.md) and [RAG Search](../features/search/rag.md) for an overview of use cases for inference models.
 
 ### Embedding models
 

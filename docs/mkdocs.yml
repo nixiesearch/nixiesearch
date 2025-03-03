@@ -2,7 +2,7 @@
 site_name: Nixiesearch
 site_url: https://nixiesearch.ai
 site_description: >-
-  Nixiesearch is an open-source hybrid search engine, which can fine-tune to your documents.
+  Nixiesearch is an open-source batteries-included search engine.
 
 # Repository
 repo_url: https://github.com/nixiesearch/nixiesearch
@@ -10,13 +10,13 @@ repo_name: nixiesearch/nixiesearch
 edit_uri: edit/master/docs/
 
 #Copyright
-copyright: © 2024 nixiesearch
+copyright: © 2025 Nixiesearch
 
 # Configuration
 theme:
   name: material
-  #custom_dir: docs/overrides
-  #logo: assets/images/logo.svg
+  # custom_dir: docs/overrides
+  logo: img/logo.png
   #favicon: assets/images/dstack-fav-32.ico
   icon:
 #    repo: custom/github
@@ -33,12 +33,12 @@ theme:
     #    - navigation.path
     - content.code.copy
     - content.action.edit
-    #    - navigation.indexes
+    - navigation.indexes
     - navigation.tabs
     #    - navigation.instant
     #    - toc.integrate
     - navigation.sections
-    - navigation.expand
+    # - navigation.expand
     - navigation.indexes
     - navigation.top
     - announce.dismiss
@@ -112,41 +112,42 @@ extra:
 
 # Page tree
 nav:
-  - Docs:
-    - Introduction:
-      - index.md
-      - Quickstart: quickstart.md
-    - Features:
+  - Introduction:
+    - index.md
+    - Quickstart: quickstart.md
+    - Key features: key_features.md
+    - Why [not] Nixiesearch?: why.md
+    - Performance: performance.md
+    - Concepts:
       - Indexing:
-          - features/indexing/index.md
+          - Overview: features/indexing/overview.md
           - Index mapping: features/indexing/mapping.md
           - Document format: features/indexing/format.md
           - Field types:
-              - features/indexing/types/index.md
+              - Overview: features/indexing/types/overview.md
               - Text and numbers: features/indexing/types/basic.md
               - Images: features/indexing/types/images.md
-          - REST API: features/indexing/api.md
+          - Language support: reference/languages.md
       - Search:
-          - features/search/index.md
+          - Overview: features/search/overview.md
           - Query DSL: features/search/query.md
           - Filters: features/search/filter.md
           - Facets: features/search/facet.md
           - Sorting: features/search/sort.md
-          - RAG: features/search/rag.md
-          - REST API: features/search/request.md
       - Autocomplete:
           - features/autocomplete/index.md
+      - RAG: features/search/rag.md
       - Inference:
-          - features/inference/index.md
-          - Embeddings: features/inference/embeddings.md
+          - Overview: features/inference/overview.md
+          - Embeddings:
+              - Overview: features/inference/embeddings.md
+              - Supported models: features/inference/embeddings/models.md
           - Completions: features/inference/completions.md
     - Deployment:
-        - Overview:
-            - deployment/index.md
-            - GPU support: deployment/gpu.md
+        - Overview: deployment/overview.md
         - Standalone: deployment/standalone.md
         - Distributed:
-            - deployment/distributed/index.md
+            - Overview: deployment/distributed/overview.md
             - Persistence:
                 - deployment/distributed/persistence/index.md
                 - S3: deployment/distributed/persistence/s3.md
@@ -157,24 +158,26 @@ nav:
                 - Apache Kafka: deployment/distributed/indexing/kafka.md
                 - File: deployment/distributed/indexing/file.md
             - Kubernetes: deployment/distributed/kubernetes.md
+            - GPU support: deployment/distributed/gpu.md
+            - Caching: reference/cache.md
     - Reference:
         - Config file: reference/config.md
         - CLI options:
             - nixiesearch standalone: reference/cli/standalone.md
             - nixiesearch index: reference/cli/index.md
             - nixiesearch search: reference/cli/search.md
-        - System API:
-            - Metrics: reference/api/admin/metrics.md
-            - Config: reference/api/admin/config.md
-            - Indices: reference/api/admin/list-indices.md
-            - Stats: reference/api/admin/stats.md
-        - Caching: reference/cache.md
-        - ML models:
-            - reference/models/index.md
-            - LLM Completion: reference/models/completion.md
-            - Embedding: reference/models/embedding.md
-        - Language support: reference/languages.md
+#        - System API:
+#            - Metrics: reference/api/admin/metrics.md
+#            - Config: reference/api/admin/config.md
+#            - Indices: reference/api/admin/list-indices.md
+#            - Stats: reference/api/admin/stats.md
+    - Help:
+        - Support: help/support.md
+        - Contact us: help/contact.md
+
+  - API Reference: api.md
+  - Tutorials: tutorials.md
   - Demo: https://demo.nixiesearch.ai/
-  - Blog: https://medium.com/nixiesearch/
+  - Blog: https://nixiesearch.substack.com/
   - Slack: https://communityinviter.com/apps/nixiesearch/nixiesearch
-  - Contact us: https://communityinviter.com/apps/nixiesearch/nixiesearch
+  - Contact us: https://calendly.com/d/cmqp-ny8-2tz/nixiesearch
