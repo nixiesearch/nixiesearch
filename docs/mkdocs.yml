@@ -33,6 +33,7 @@ theme:
     #    - navigation.path
     - content.code.copy
     - content.action.edit
+    - content.code.annotate
     - navigation.indexes
     - navigation.tabs
     #    - navigation.instant
@@ -56,6 +57,7 @@ plugins:
         color: "#FFFFFF"
         font_family: Roboto
   - search
+  - swagger-ui-tag
 #  - typeset
 
 # Extensions
@@ -89,7 +91,6 @@ markdown_extensions:
 
 # Customization
 #extra_css:
-#  - assets/stylesheets/extra.css
 #  - assets/stylesheets/termynal.css
 #  - assets/stylesheets/landing.css
 #extra_javascript:
@@ -176,7 +177,12 @@ nav:
         - Contact us: help/contact.md
 
   - API Reference: api.md
-  - Tutorials: tutorials.md
+  - Tutorials:
+      - Overview: tutorial/overview.md
+      - Backup and Restore: tutorial/backup.md
+      - Schema migrations: tutorial/schema.md
+      - Upgrades: tutorial/upgrade.md
+      - Auto-scaling: tutorial/autoscaling.md
   - Demo: https://demo.nixiesearch.ai/
   - Blog: https://nixiesearch.substack.com/
   - Slack: https://communityinviter.com/apps/nixiesearch/nixiesearch
