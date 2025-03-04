@@ -117,7 +117,6 @@ nav:
     - index.md
     - Quickstart: quickstart.md
     - Key features: key_features.md
-    - Why [not] Nixiesearch?: why.md
     - Performance: performance.md
     - Concepts:
       - Indexing:
