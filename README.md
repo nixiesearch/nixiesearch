@@ -17,7 +17,7 @@ Nixiesearch is a **modern search engine** that runs on [S3-compatible storage](h
 * **No state inside the cluster**: All changes (settings, indexes, etc.) are just [config](https://nixiesearch.ai/reference/config) updates, which makes [blue-green deployments](https://nixiesearch.ai/tutorial/schema) of index changes a breeze.
 * **AI batteries included**: [Embedding](https://nixiesearch.ai/features/inference/embeddings) and [LLM inference](https://nixiesearch.ai/features/inference/completions), first class [RAG API](https://nixiesearch.ai/features/search/rag) support.
 
-![NS design diagram](img/arch.png)
+![NS design diagram](https://nixiesearch.ai/img/arch.png)
 
 Search is never easy, but Nixiesearch has your back. It takes care of the toughest parts—like reindexing, capacity planning, and maintenance—so you can save time (and your sanity).
 
@@ -38,11 +38,11 @@ When your search cluster is red again when you accidentally send a wrong JSON to
 * Lucene: [Uber’s Search Platform Version Upgrade](https://www.uber.com/en-NL/blog/lucene-version-upgrade/).
 * Amazon: [E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE).
 * [Introducing DoorDash’s in-house search engine](https://careers.doordash.com/blog/introducing-doordashs-in-house-search-engine/).
-![doordash design](img/doordash.gif)
+![doordash design](https://nixiesearch.ai/img/doordash.gif)
 
 Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
 
-![immutable config diagram](img/reindex.gif)
+![immutable config diagram](https://nixiesearch.ai/img/reindex.gif)
 
 ## Try it out
 
