@@ -57,7 +57,7 @@ plugins:
         color: "#FFFFFF"
         font_family: Roboto
   - search
-  - swagger-ui-tag
+#   - swagger-ui-tag
 #  - typeset
 
 # Extensions

@@ -1,2 +1,1 @@
 mkdocs-material[imaging] == 9.6.5
-mkdocs-swagger-ui-tag
