@@ -9,38 +9,42 @@
 
 ## What is Nixiesearch?
 
-Nixiesearch is a **hybrid search engine** that fine-tunes to your data. 
+Nixiesearch is a **modern search engine** that runs on [S3-compatible storage](deployment/distributed/persistence/s3.md). We built it after dealing with the headaches of running large Elastic/OpenSearch clusters (here's the [blog post full of pain](https://nixiesearch.substack.com/p/nixiesearch-running-lucene-over-s3)), and here’s why it’s awesome:
 
-* Designed to be cloud-native with [S3-compatible index persistence](deployment/distributed/persistence/s3.md). Distributed with stateless searchers and scale-to-zero. No more `status: red` on your cluster.
-* Built on top of battle-tested [Apache Lucene](https://lucene.apache.org) library: [39 languages](reference/languages.md), [facets](features/search/facet.md), [advanced filters](features/search/filter.md), [autocomplete suggestions](features/autocomplete/index.md) and [sorting](features/search/sort.md) out of the box.
-* Batteries included: [RAG queries](features/search/rag.md) and [vector search](reference/models/index.md) within a [single container](deployment/standalone.md) with a fully local CPU and [GPU inference](deployment/gpu.md). 
-* Can learn the intent of a visitor by [fine-tuning an embedding model](https://github.com/nixiesearch/nixietune) to your data. Is "ketchup" relevant to a "tomato" query? It depends, but Nixiesearch can predict that from past user behavior.
-> Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/) and check out [the live demo](https://demo.nixiesearch.ai). 
+* **Powered by [Apache Lucene](https://lucene.apache.org)**: You get support for [39 languages](reference/languages.md), [facets](features/search/facet.md), [advanced filters](features/search/filter.md), [autocomplete suggestions](features/autocomplete/index.md), and the familiar [sorting](features/search/sort.md) features you’re used to.
+* **Decoupled [S3-based](deployment/distributed/persistence/s3.md) storage and compute**: There's nothing to break. You get risk-free [backups](tutorial/backup.md), [upgrades](tutorial/upgrade.md), [schema changes](tutorial/schema.md) and [auto-scaling](tutorial/autoscaling.md), all on a stateless index stored in S3.
+* **Pull indexing**: Supports both offline and online incremental indexing using an [Apache Spark based ETL process](features/indexing/overview.md). No more POSTing JSON blobs to prod cluster (and overloading it).
+* **No state inside the cluster**: All changes (settings, indexes, etc.) are just [config](reference/config.md) updates, which makes [blue-green deployments](tutorial/schema.md) of index changes a breeze.
+* **AI batteries included**: [Embedding](features/inference/embeddings.md) and [LLM inference](features/inference/completions.md), first class [RAG API](features/search/rag.md) support.
 
-### Why Nixiesearch?
+![NS design diagram](img/arch.png)
 
-Unlike Elastic/SOLR:
+Search is never easy, but Nixiesearch has your back. It takes care of the toughest parts—like reindexing, capacity planning, and maintenance—so you can save time (and your sanity).
 
-* Can run over [S3-compatible block storage](deployment/distributed/persistence/s3.md): Rapid auto-scaling (even down to zero!) and much easier operations (your index is just a directory in S3 bucket!)
-* [RAG](features/search/rag.md),  [text](features/search/query.md) and [image](features/indexing/types/images.md) embeddings are first class search methods: no need for complex hand-written indexing pipelines.
-* All LLM inference [can be run fully locally](reference/models/index.md) on CPU and [GPU](deployment/gpu.md), no need to send all your queries and private documents to OpenAI API. But [you can](reference/models/index.md), if you wish.
+!!! note 
+    Want to learn more? Go straight to the [quickstart](https://www.nixiesearch.ai/quickstart/) and check out [the live demo](https://demo.nixiesearch.ai).
 
-Unlike other vector search engines:
+## What Nixiesearch is not?
 
-* **Supports [facets](features/search/facet.md), [rich filtering](features/search/filter.md), sorting and [autocomplete](features/autocomplete/index.md)**: things you got used to in traditional search engines.
-* **Text in, text out**: [text embedding](reference/models/embedding.md) is handled by the search engine, not by you.
-* **Exact-match search**: Nixiesearch is a hybrid retrieval engine searching over terms and embeddings. Your brand or SKU search queries will return what you expect, and not what the LLM hallucinates about.
+* **Nixiesearch is not a database**, and was never meant to be. Nixiesearch is a search index for consumer-facing apps to find top-N most relevant documents for a query. For analytical cases consider using good old SQL with [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
+* **Not a tool to search for logs**. Log search is about throughput, and Nixiesearch is about relevance. If you plan to use Nixiesearch as a log storage system, please don't: consider [ELK](https://www.elastic.co/elastic-stack) or [Quickwit](https://github.com/quickwit-oss/quickwit) as better alternatives.
 
-The project is in active development and does not yet have backwards compatibility for configuration and data. Stay tuned and [reach out](https://www.metarank.ai/contact) if you want to try it!
+## The difference
 
-### Why NOT Nixiesearch?
+> Our elasticsearch cluster has been a pain in the ass since day one with the main fix always "just double the size of the server" to the point where our ES cluster ended up costing more than our entire AWS bill pre-ES [ [HN source] ](https://news.ycombinator.com/item?id=30791838)
 
-Nixiesearch has the following design limitations:
+When your search cluster is red again when you accidentally send a wrong JSON to a wrong REST endpoint, you can just write your own S3-based search engine like big guys do:
 
-* **Does not support sharding**: sharding requires multi-node coordination and consensus, and we would like to avoid having any distributed state in the cluster - at least in the v1. If you plan to use Nixiesearch for searching 1TB of logs, please don't: consider [ELK](https://www.elastic.co/elastic-stack) or [Quickwit](https://github.com/quickwit-oss/quickwit) as better alternatives.
-* **Query language is [simple](features/search/query.md)**: supporting analytical queries over deeply-nested documents is out of scope for the project. Nixiesearch is about consumer-facing search, and for analytical cases consider using [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
+* Lucene: [Uber’s Search Platform Version Upgrade](https://www.uber.com/en-NL/blog/lucene-version-upgrade/).
+* Amazon: [E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE).
+* [Introducing DoorDash’s in-house search engine](https://careers.doordash.com/blog/introducing-doordashs-in-house-search-engine/).
+![doordash design](img/doordash.gif)
 
-## Usage
+Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
+
+![immutable config diagram](img/reindex.gif)
+
+## Try it out
 
 Get the sample [MSRD: Movie Search Ranking Dataset](https://github.com/metarank/msrd) dataset:
 
@@ -61,8 +65,8 @@ Create an index mapping for `movies` index in a file `config.yml`:
 inference:
   embedding:
     e5-small:
-      provider: onnx
-      model: nixiesearch/e5-small-v2-onnx
+      provider: onnx # (1)
+      model: nixiesearch/e5-small-v2-onnx # (2)
       prompt:
         query: "query: "
         doc: "passage: "
@@ -83,6 +87,9 @@ schema:
           model: e5-small
         language: en
 ```
+
+1. We use [ONNX Runtime](https://onnxruntime.ai/) for local embedding inference. But you can also use any API-based SaaS embedding provider.
+2. Any [SBERT](https://sbert.net/)-compatible embedding model can be used, and you can [convert your own](https://github.com/nixiesearch/onnx-convert)
 
 Run the Nixiesearch [docker container](https://hub.docker.com/r/nixiesearch/nixiesearch):
 
@@ -151,108 +158,7 @@ You can also open `http://localhost:8080/_ui` in your web browser for a basic we
 
 For more details, see a complete [Quickstart guide](quickstart.md).
 
-## Design
 
-Nixiesearch is inspired by an Amazon search engine design described in a talk
-[E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE):
-
-![NS design diagram](https://www.nixiesearch.ai/img/arch.png)
-
-Compared to traditional search engines like Elasticsearch/Solr:
-
-* **Independent stateful indexer and stateless search backends**: with index sync happening via [S3-compatible block storage](deployment/distributed/persistence/s3.md).
-  No more red index status and cluster split-brains due to indexer overload.
-* **Pull-based indexing**: [pull updated documents](deployment/distributed/indexing/kafka.md) right from [Kafka](https://kafka.apache.org/) in real-time, no need for separate indexing ETL jobs with limited throughput.
-
-Nixiesearch uses [RRF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) for combining text and neural search results.
-
-### Hybrid search
-
-Nixiesearch transparently uses two Lucene-powered search indices for both lexical and semantic search, combining search results into a single list with [Reciprocal Rank Fusion](features/search/index.md#hybrid-search-with-reciprocal-rank-fusion):
-
-![RRF](img/hybridsearch.png)
-
-Compared to just a single lexical or semantic search approach:
-
-* hybrid search allows combining best of two worlds: being able to [perform exact match searches](features/search/index.md#search) over keywords, but at the same time retrieving documents with similar context.
-* [RRF ranking](features/search/index.md#hybrid-search-with-reciprocal-rank-fusion) requires almost zero configuration for reasonably good results while mixing search results from different indices.
-
-### LLM fine-tuning
-
-!!! note
-
-    This feature is in development and planned for the v0.3 release.
-
-Embedding-based semantic search is a great way to increase search recall: it will match all the similar documents based on the search query even when there are no keyword matches. But in practice a customer expects good enough precision of top-N results, and a good balance between precision and recall is important.
-
-Nixiesearch can incorporate explicit customer feedback about search relevance directly into the embedding LLM by [fine-tuning it](https://github.com/nixiesearch/nixietune):
-
-![fine-tuning](img/fine-tuned.png)
-
-Two main sources of relevance labels can be used as a customer feedback:
-
-1. Explicit relevance judgments made by human raters. You can use open-source tools like [Quepid](https://quepid.com/) and SaaS platforms like [Toloka.ai](https://toloka.ai/search-relevance/) and [Amazon MTurk](https://www.mturk.com/) to build such datasets.
-2. Implicit judgments made from aggregating real customer behavior, based on query-document CTR and Conversion rates.
-
-Using customer feedback, you can teach the underlying LLM which documents are truly relevant in your particular case.
-
-### Pull-based indexing
-
-Existing search engines require you to build a satellite indexing app, which pushes documents to the search engine:
-
-* indexer should maintain back-pressure not to write too many documents which can overflow the internal indexing queue. Queue overflow may cause a search cluster node crash and affect normal search operations. But writing too few documents means a suboptimal indexing throughput.
-* you should also implement full re-indexing capability to re-process all the documents in a case of incompatible index mapping change.
-
-Architecturally, your app pushes documents to the search engine and maintains the best rate.
-
-![pull-push indexing](img/pullpush.png)
-
-In comparison, Nixiesearch is a [pull-based system](deployment/distributed/indexing/index.md):
-
-* it pulls the next document batch immediately when indexing resources become available. This approach allows to have a perfect resource utilization and the most optimal indexing throughput.
-* it does not have an internal indexing queue, so there is no way to overflow it.
-* no need for a specialized indexing app with complicated back-pressure logic. You can use Kafka topic or a set of files on S3 block storage as a source of documents. 
-
-!!! note
-
-    Nixiesearch can emulate a push-based indexing behavior using a traditional [indexing API](features/indexing/api.md), but a pull-based approach is recommended.
-
-### S3 index storage and auto-scaling
-
-Distributed cluster state is the most complicated part of existing search engines:
-
-* Re-balance of a large index is an expensive and fragile operation due to large amount of data shuffled through the network.
-* A subtle bug in consensus algorithm may result in [split-brain](https://www.slideshare.net/DilumBandara/cap-theorem-and-split-brain-syndrome) scenarios and incur data loss.
-
-![s3 index](img/s3-index.png)
-
-Nixiesearch uses an S3-compatible block storage (like [AWS S3](https://aws.amazon.com/s3/), [Google GCS](https://cloud.google.com/storage) and [Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs)) for index synchronization, which greatly simplifies cloud operations:
-
-* Search replicas can now be spawned immediately, as there is no need for node-to-node data transfers. No need to have persistent volumes for your k8s Pods. Complete index can be loaded from the object storage, allowing you to have **seamless load-based auto-scaling**.
-* As indexer runs separately from Search replicas, it is possible to have a **scale-to-zero autoscaling**: search backend can be spawned as a lambda function only when there is an incoming search request.
-
-
-## Limitations
-
-### Lack of sharding
-
-Nixiesearch does not support index sharding out-of-the-box (but nothing stops you from implementing sharding client-side over multiple Nixiesearch clusters).
-
-Main reason for this design decision is much simplified search replica coordination during auto-scaling: each replica always contains a complete copy of the index, there is no need to maintain a specific set of shard-replicas while up-down scaling.
-
-### Low indexing throughput
-
-As Nixiesearch computes text embeddings on a CPU by default, indexing large sets of documents is a resource-intensive task - as you need to embed all of them.
-
-Nixiesearch implements multiple technical optimizations to make indexing throughput higher (like using ONNX runtime for running LLMs and caching embeddings for frequent text strings), but still expect a throughput of 100-500 documents per second.
-
-### GPU needed for fine-tuning
-
-Fine-tuning adapts an LLM to a specific training dataset, which requires running tens of thousands of forward-backward passes over a complete dataset. Fine-tuning can take 1-2 hours on a GPU, and can be unreasonably slow even on a fastest CPU.
-
-In practice, CPU fine-tuning is 30x-50x slower than GPU one and can take multiple days instead of 1-2 hours.
-
-
-# License
+## License
 
 This project is released under the Apache 2.0 license, as specified in the [License](https://github.com/nixiesearch/nixiesearch/blob/master/LICENSE) file.

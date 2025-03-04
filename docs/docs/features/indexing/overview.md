@@ -1,3 +1,9 @@
+# TODO
+
+!!! note
+    
+    Add description how indexing in NXS differs from ES/OS
+
 # Building an index
 
 Nixiesearch index is a searchable group of documents sharing the same structure.
@@ -44,7 +50,7 @@ Internally Nixiesearch implements a pull-based indexing - the service itself ask
 
 ![push pull](../../img/pullpush.png)
 
-For convenience, Nixiesearch can emulate a push-based approach via [REST API](api.md) - your app should send a payload with documents and wait for an acknowledgement.
+For convenience, Nixiesearch can emulate a push-based approach via [REST API](../../api.md) - your app should send a payload with documents and wait for an acknowledgement.
 
 ### Starting Nixiesearch
 
@@ -53,7 +59,7 @@ Nixiesearch has multiple ways of running indexing:
 * [Offline indexing](../../reference/cli/index.md#offline-indexing). Useful when performing full reindexing from static document source, like from a set of files, or from Kafka topic.
 * [Online indexing](../../reference/cli/index.md#online-indexing). For folks who got used to Elasticsearch with REST API.
 
-For the sake of simplicity we can start Nixiesearch in a [standalone](../../deployment/standalone.md) mode, which bundles both searcher and indexer in a single process with a shared [REST API](api.md).
+For the sake of simplicity we can start Nixiesearch in a [standalone](../../deployment/standalone.md) mode, which bundles both searcher and indexer in a single process with a shared [REST API](../../api.md).
 
 ```shell
 docker run -it nixiesearch/nixiesearch:latest standalone --config /path/to/conf.yml
@@ -61,7 +67,7 @@ docker run -it nixiesearch/nixiesearch:latest standalone --config /path/to/conf.
 
 !!! note
 
-    Standalone mode is intended for small-scale local deployments and developer environments, not for a production use. If you plan to use Nixiesearch with real customer traffic, consider using a [distributed](../../deployment/distributed/index.md) deployment with [S3-based storage](../../deployment/distributed/persistence/s3.md).
+    Standalone mode is intended for small-scale local deployments and developer environments, not for a production use. If you plan to use Nixiesearch with real customer traffic, consider using a [distributed](../../deployment/distributed/overview.md) deployment with [S3-based storage](../../deployment/distributed/persistence/s3.md).
 
 ### Indexing REST API
 

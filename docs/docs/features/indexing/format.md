@@ -1,5 +1,11 @@
 # Nixiesearch JSON document format
 
+!!! note
+
+    TODO: add cURL example of adding docs to NXS
+
+    TODO: Note on offline/online ingestion
+
 Nixiesearch does not have a strict incoming JSON document schema: any format is probably OK while it can be processed using the existing [index mapping](mapping.md).
 
 ## Document identifier

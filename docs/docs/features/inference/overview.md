@@ -30,7 +30,7 @@ The inference section (and embedding/completion sub-sections also) are optional 
 
 !!! note
 
-    Inference for both embedding and completion models can also be done on [GPUs](../../deployment/gpu.md).
+    Inference for both embedding and completion models can also be done on [GPUs](../../deployment/distributed/gpu.md).
 
 ## Supported endpoints
 

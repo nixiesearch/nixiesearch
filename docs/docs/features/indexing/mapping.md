@@ -1,5 +1,9 @@
 # Index mapping
 
+!!! note
+
+    TODO: add comparison to ES
+
 Index mapping is used to describe how you plan to search for documents in Nixiesearch. Each time a document arrives to the indexer, it iterates over all fields in the payload, and maps them to internal index structures.
 
 To create an index mapping, create a block in the `schema` section of the [config file](../../reference/config.md):
@@ -187,7 +191,7 @@ inference:
         query: "query: "
 ```
 
-For hybrid retrieval, Nixiesearch performs two search queries in parallel for both methods, and then mixes search results with [Reciprocal Rank Fusion](../search/index.md#hybrid-search-with-reciprocal-rank-fusion).
+For hybrid retrieval, Nixiesearch performs two search queries in parallel for both methods, and then mixes search results with [Reciprocal Rank Fusion](../search/overview.md#hybrid-search-with-reciprocal-rank-fusion).
 
 ## Numerical fields
 
@@ -304,11 +308,11 @@ Where:
 * `name`: name of this model you will reference in RAG search requests
 * `system` (optional): A system prompt for the model.
 
-See [RAG reference](../search/rag.md) and [ML model inference](../inference/index.md) sections for more details.
+See [RAG reference](../search/rag.md) and [ML model inference](../inference/overview.md) sections for more details.
 
 ### Store settings
 
-When ran in [distributed mode](../../deployment/distributed/index.md), you can configure the way index is stored:
+When ran in [distributed mode](../../deployment/distributed/overview.md), you can configure the way index is stored:
 
 ```yaml
 schema:
@@ -361,5 +365,5 @@ See [distributed persistence reference](../../deployment/distributed/persistence
 To continue your journey with setting up indexing, follow to the next sections:
 
 * [Document format](format.md) of JSON documents you index.
-* Supported [field types](types/index.md).
-* Indexing [REST API](api.md) and [nixiesearch index](../../reference/cli/index.md) CLI app reference for offline indexing.
+* Supported [field types](types/overview.md).
+* Indexing [REST API](../../api.md) and [nixiesearch index](../../reference/cli/index.md) CLI app reference for offline indexing.

@@ -4,7 +4,7 @@ Text embeddings map your text inputs into a numerical representation in such a w
 
 ## Configuration file
 
-To use a text embedding model for [search](../search/index.md#search) or only for inference, you need to configure model in the `inference.embedding` section of a [config file](../../reference/config.md#ml-inference):
+To use a text embedding model for [search](../search/overview.md#search) or only for inference, you need to configure model in the `inference.embedding` section of a [config file](../../reference/config.md#ml-inference):
 
 ```yaml
 inference:

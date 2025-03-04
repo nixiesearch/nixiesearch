@@ -3,7 +3,7 @@
 This guide will show you how to run Nixiesearch in a [standalone](deployment/standalone.md) mode on your local machine using Docker. We will:
 
 * start Nixiesearch in a [standalone](deployment/standalone.md) mode using Docker
-* [index](features/indexing/index.md) a demo set of documents using [REST API](features/indexing/api.md)
+* [index](features/indexing/overview.md) a demo set of documents using [REST API](api.md)
 * run a couple of [search queries](features/search/query.md)
 
 ## Prerequisites
@@ -101,9 +101,9 @@ schema:
 
 !!! note 
 
-    Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](features/indexing/types/index.md) field types are currently supported.
+    Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](features/indexing/types/overview.md) field types are currently supported.
 
-See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes, and [ML inference](features/inference/index.md) on configuring ML models inside Nixiesearch for CPU and [GPU](deployment/gpu.md). 
+See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes, and [ML inference](features/inference/overview.md) on configuring ML models inside Nixiesearch for CPU and [GPU](deployment/distributed/gpu.md). 
 
 ## Starting the service
 
@@ -135,11 +135,11 @@ Options breakdown:
 
 !!! note
 
-    Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](deployment/distributed/index.md) over S3-compatible block storage.
+    Standalone mode is designed for small-scale and development deployments: it uses local filesystem for index storage, and runs both indexer and searcher within a single application. For production usage please consider a [distributed mode](deployment/distributed/overview.md) over S3-compatible block storage.
 
 ## Indexing data
 
-After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs with [REST API](features/indexing/api.md)!
+After you start the Nixiesearch service in the `standalone` mode listening on port `8080`, let's index some docs with [REST API](api.md)!
 
 Nixiesearch uses a similar API semantics as Elasticsearch, so to upload docs for indexing, you need to make a HTTP PUT request to the `/<index-name>/_index` endpoint:
 
@@ -155,7 +155,7 @@ As Nixiesearch is running an LLM embedding model inference inside, indexing larg
 
 !!! note
 
-    Nixiesearch can also index documents directly from a [local file](deployment/distributed/indexing/file.md), [S3 bucket](deployment/distributed/indexing/file.md) or [Kafka topic](deployment/distributed/indexing/kafka.md) in a pull-based scenario. Both in realtime and offline. Check [Building index](features/indexing/index.md) reference for more information about indexing your data.
+    Nixiesearch can also index documents directly from a [local file](deployment/distributed/indexing/file.md), [S3 bucket](deployment/distributed/indexing/file.md) or [Kafka topic](deployment/distributed/indexing/kafka.md) in a pull-based scenario. Both in realtime and offline. Check [Building index](features/indexing/overview.md) reference for more information about indexing your data.
 
 ## Sending search requests
 
@@ -201,7 +201,7 @@ This query performed a hybrid search:
 
 !!! note
 
-    Learn more about searching in the [Search](features/search/index.md) section.
+    Learn more about searching in the [Search](features/search/overview.md) section.
 
 ## Web UI
 
@@ -214,8 +214,8 @@ Nixiesearch has a basic search web UI available as `http://localhost:8080/_ui` U
 If you want to continue learning about Nixiesearch, these sections of documentation are great next steps:
 
 * [An overview of Nixiesearch design](index.md#design) to understand how it differs from existing search engines.
-* Using [Filters](features/search/index.md#filters) and [Facets](features/search/index.md#facets) while searching.
-* [How it should be deployed](deployment/index.md) in a production environment.
+* Using [Filters](features/search/overview.md#filters) and [Facets](features/search/overview.md#facets) while searching.
+* [How it should be deployed](deployment/overview.md) in a production environment.
 * Building [semantic autocomplete](features/autocomplete/index.md) index for search-as-you-type support.
 
 If you have a question not covered in these docs and want to chat with the team behind Nixiesearch, you're welcome to join our [Community Slack](https://communityinviter.com/apps/nixiesearch/nixiesearch)
