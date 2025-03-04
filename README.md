@@ -163,4 +163,3 @@ For more details, see a complete [Quickstart guide](https://nixiesearch.ai/quick
 
 This project is released under the Apache 2.0 license, as specified in the [License](https://github.com/nixiesearch/nixiesearch/blob/master/LICENSE) file.
 
-None
