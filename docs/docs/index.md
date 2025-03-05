@@ -1,5 +1,8 @@
 # Nixiesearch: batteries included search engine
 
+![logo with name](img/logo-with-title.png)
+
+
 [![CI Status](https://github.com/nixiesearch/nixiesearch/workflows/Tests/badge.svg)](https://github.com/nixiesearch/nixiesearch/actions)
 [![License: Apache 2](https://img.shields.io/badge/License-Apache2-green.svg)](https://opensource.org/licenses/Apache-2.0)
 ![Last commit](https://img.shields.io/github/last-commit/nixiesearch/nixiesearch)
@@ -35,14 +38,21 @@ Search is never easy, but Nixiesearch has your back. It takes care of the toughe
 
 When your search cluster is red again when you accidentally send a wrong JSON to a wrong REST endpoint, you can just write your own S3-based search engine like big guys do:
 
-* Lucene: [Uber’s Search Platform Version Upgrade](https://www.uber.com/en-NL/blog/lucene-version-upgrade/).
-* Amazon: [E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE).
-* [Introducing DoorDash’s in-house search engine](https://careers.doordash.com/blog/introducing-doordashs-in-house-search-engine/).
+* **Uber**:  [Lucene: Uber’s Search Platform Version Upgrade](https://www.uber.com/en-NL/blog/lucene-version-upgrade/).
+* **Amazon**: [E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE).
+* **Doordash**: [Introducing DoorDash’s in-house search engine](https://careers.doordash.com/blog/introducing-doordashs-in-house-search-engine/).
 ![doordash design](img/doordash.gif)
 
-Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
+Nixiesearch was inspired by these search engines, but is [open-source](#license). Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
 
 ![immutable config diagram](img/reindex.gif)
+
+How it's different from popular search engines?
+
+* vs [Elastic](https://www.elastic.co/elasticsearch): [Embedding inference](features/inference/embeddings.md), [hybrid search](features/search/overview.md#hybrid-search-with-reciprocal-rank-fusion) and [reranking](#) are free and open-source. For ES these are part of the [proprietary cloud](https://www.elastic.co/subscriptions/cloud).
+* vs [OpenSearch](TODO): While OpenSearch can use [S3-based segment replication](https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/segment-replication/index/), Nixiesearch can also offload cluster state to S3.
+* vs [Qdrant](https://qdrant.tech/) and [Weaviate](https://weaviate.io/): Not a sidecar search engine to handle just vector search. [Autocomplete](features/autocomplete/index.md), [facets](features/search/facet.md), [RAG](features/search/rag.md) and [embedding inference](features/inference/embeddings.md) out of the box.
+
 
 ## Try it out
 

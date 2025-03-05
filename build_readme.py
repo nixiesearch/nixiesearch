@@ -7,7 +7,7 @@ text = Path(sys.argv[1]).read_text()
 url = "https://nixiesearch.ai/"
 
 start = 0
-for match in re.finditer("\\[[a-zA-Z0-9\\ \\-]+]\\(([a-z0-9\\/\\.]+)\\)", text):
+for match in re.finditer("\\[[a-zA-Z0-9\\ \\-]+]\\(([a-z0-9\\/\\.\\-]+)\\)", text):
     if match:
         match_start, match_end = match.span()
         if not match.group(1).startswith("http"):
