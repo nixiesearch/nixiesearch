@@ -22,5 +22,8 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install -r docs/requirements.freeze.txt
-      - run: mkdocs gh-deploy --force -f docs/mkdocs.yml
+      - run: pip install -r requirements.freeze.txt
+        working-directory: docs
+      - run: mkdocs gh-deploy --force -f mkdocs.yml
+        working-directory: docs
+        

@@ -5,4 +5,4 @@ hide:
 #   - title
 ---
 
-[OAD(openapi.yaml)]
+[OAD(docs/openapi.yaml)]
