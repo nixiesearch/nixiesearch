@@ -1,1 +1,2 @@
 mkdocs-material[imaging] == 9.6.5
+neoteroi-mkdocs

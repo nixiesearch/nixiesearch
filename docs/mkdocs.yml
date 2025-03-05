@@ -57,6 +57,8 @@ plugins:
         color: "#FFFFFF"
         font_family: Roboto
   - search
+  - neoteroi.mkdocsoad:
+      use_pymdownx: true
 #   - swagger-ui-tag
 #  - typeset
 
