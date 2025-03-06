@@ -4,6 +4,7 @@ import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.IndexFile
 import ai.nixiesearch.index.store.StateClient.StateError.FileMissingError
+import ai.nixiesearch.util.Tags.EndToEnd.Network
 import ai.nixiesearch.util.TestIndexMapping
 import cats.effect.{IO, Resource}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -11,7 +12,6 @@ import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 import org.apache.lucene.store.ByteBuffersDirectory
 import io.circe.syntax.*
-
 import fs2.{Chunk, Collector, Stream}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{Document, StringField}
@@ -33,11 +33,11 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "return none on empty manifest" in withClient { client =>
+  it should "return none on empty manifest" taggedAs (Network) in withClient { client =>
     client.readManifest().unsafeRunSync() shouldBe None
   }
 
-  it should "read existing manifest" in withClient { client =>
+  it should "read existing manifest" taggedAs (Network) in withClient { client =>
     {
       val manifest = IndexManifest(TestIndexMapping(), List(IndexFile("foo", 1L)), 0L)
       val mfjson   = manifest.asJson.spaces2.getBytes()
@@ -47,7 +47,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "stream write+reads" in withClient { client =>
+  it should "stream write+reads" taggedAs (Network) in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test1.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
@@ -56,7 +56,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "delete files" in withClient { client =>
+  it should "delete files" taggedAs (Network) in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test2.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
@@ -65,7 +65,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "fail on double delete" in withClient { client =>
+  it should "fail on double delete" taggedAs (Network) in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test3.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
@@ -76,7 +76,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "do file overwrite" in withClient { client =>
+  it should "do file overwrite" taggedAs (Network) in withClient { client =>
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test4.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
@@ -84,7 +84,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "create manifest from dir" in withClient { client =>
+  it should "create manifest from dir" taggedAs (Network) in withClient { client =>
     {
       val dir    = new ByteBuffersDirectory()
       val writer = new IndexWriter(dir, new IndexWriterConfig())

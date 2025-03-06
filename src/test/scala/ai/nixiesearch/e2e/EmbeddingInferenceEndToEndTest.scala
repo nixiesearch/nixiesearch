@@ -4,6 +4,7 @@ import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxE
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.util.Tags.EndToEnd
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.Tables.Table
@@ -38,14 +39,14 @@ class EmbeddingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
     // ("ibm-granite/granite-embedding-125m-english", 1) // no onnx
   )
 
-  it should "load the model and embed" in {
+  it should "load the model and embed" taggedAs (EndToEnd.Embeddings) in {
     forAll(models) { (model, dims) =>
       {
         val parts  = model.split("/")
         val handle = HuggingFaceHandle(parts(0), parts(1))
         val config = OnnxEmbeddingInferenceModelConfig(model = handle)
         val (embedder, shutdownHandle) = EmbedModelDict
-          .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/models/")))
+          .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
           .allocated
           .unsafeRunSync()
         val result = embedder.encode(List("query: test")).unsafeRunSync()

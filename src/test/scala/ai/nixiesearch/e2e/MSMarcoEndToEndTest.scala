@@ -6,6 +6,7 @@ import ai.nixiesearch.api.{IndexRoute, SearchRoute}
 import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.util.Tags.EndToEnd
 import ai.nixiesearch.util.{DatasetLoader, SearchTest}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
@@ -24,7 +25,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json", mapping, 1000)
   override def inference: InferenceConfig = conf.inference
 
-  it should "load docs and search" in withIndex { nixie =>
+  it should "load docs and search" taggedAs (EndToEnd.Index) in withIndex { nixie =>
     {
       val indexApi  = IndexRoute(nixie.indexer)
       val searchApi = SearchRoute(nixie.searcher)

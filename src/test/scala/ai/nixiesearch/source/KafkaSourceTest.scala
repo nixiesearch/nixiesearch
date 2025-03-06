@@ -2,6 +2,7 @@ package ai.nixiesearch.source
 
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.KafkaIndexSourceArgs
+import ai.nixiesearch.util.Tags.EndToEnd
 import ai.nixiesearch.util.{TestDocument, TestIndexMapping}
 import org.apache.kafka.clients.admin.{Admin, AdminClientConfig, NewTopic}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
@@ -21,7 +22,7 @@ class KafkaSourceTest extends AnyFlatSpec with Matchers with Logging {
 
   import ai.nixiesearch.util.TestIndexMapping.given
 
-  it should "receive events from kafka" in {
+  it should "receive events from kafka" taggedAs (EndToEnd.Network) in {
     val sourceConfig = KafkaIndexSourceArgs(
       brokers = List(s"localhost:9092"),
       topic = topic,
