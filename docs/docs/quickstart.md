@@ -68,11 +68,7 @@ Unlike other search engines, Nixiesearch requires a strongly-typed description o
 inference:
   embedding:
     e5-small:
-      provider: onnx
-      model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        query: "query: "
-        doc: "passage: "
+      model: intfloat/e5-small-v2
 schema:
   movies: # index name
     fields:
@@ -213,7 +209,7 @@ Nixiesearch has a basic search web UI available as `http://localhost:8080/_ui` U
 
 If you want to continue learning about Nixiesearch, these sections of documentation are great next steps:
 
-* [An overview of Nixiesearch design](index.md#design) to understand how it differs from existing search engines.
+* [An overview of Nixiesearch design](index.md#the-difference) to understand how it differs from existing search engines.
 * Using [Filters](features/search/overview.md#filters) and [Facets](features/search/overview.md#facets) while searching.
 * [How it should be deployed](deployment/overview.md) in a production environment.
 * Building [semantic autocomplete](features/autocomplete/index.md) index for search-as-you-type support.

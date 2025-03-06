@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.nn.model.embedding
 
 import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig
+import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, PromptConfig}
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.{
   OnnxEmbeddingInferenceModelConfig,
   OnnxModelFile,
@@ -56,7 +56,7 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel], cache: Embedding
 object EmbedModelDict extends Logging {
   val CONFIG_FILE = "config.json"
 
-  case class TransformersConfig(hidden_size: Int, model_type: String)
+  case class TransformersConfig(hidden_size: Int, model_type: Option[String])
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder
 
   def create(
@@ -107,7 +107,7 @@ object EmbedModelDict extends Logging {
       data = data,
       dic = vocab,
       dim = config.hidden_size,
-      prompt = conf.prompt,
+      prompt = conf.prompt.getOrElse(PromptConfig(handle)),
       seqlen = conf.maxTokens
     )
   } yield {
@@ -137,7 +137,7 @@ object EmbedModelDict extends Logging {
         data = modelData,
         dic = vocab,
         dim = config.hidden_size,
-        prompt = conf.prompt,
+        prompt = conf.prompt.getOrElse(PromptConfig(handle)),
         seqlen = conf.maxTokens
       )
     } yield {
@@ -162,6 +162,9 @@ object EmbedModelDict extends Logging {
           case base :: other =>
             if (other.nonEmpty) {
               logger.warn(s"multiple ONNX files found in the repo: choosing $base (and ignoring $other)")
+              logger.warn(
+                "If you want to use another ONNX file, please set inference.embedding.<name>.file with desired file name"
+              )
             }
             val dataFile = s"${base}_data"
             if (files.contains(dataFile)) {

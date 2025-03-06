@@ -137,7 +137,7 @@ For a better search quality, it's advised for lexical search to define the `lang
 
 ### Semantic search
 
-To use an embedding-based semantic search, mark a text field as `search.type: semantic` and define [an embedding model](../../reference/models/embedding.md) to use:
+To use an embedding-based semantic search, mark a text field as `search.type: semantic` and define [an embedding model](../inference/embeddings.md) to use:
 
 ```yaml
 schema:
@@ -163,7 +163,7 @@ inference:
 
 ```
 
-Nixiesearch supports both [self-hosted ONNX embedding models](../../reference/models/embedding.md) and [external embedding APIs](../../reference/models/embedding.md).
+Nixiesearch supports both [self-hosted ONNX embedding models](../inference/embeddings.md) and [external embedding APIs](../inference/embeddings.md).
 
 ### Hybrid search
 

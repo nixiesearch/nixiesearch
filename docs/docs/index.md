@@ -74,12 +74,8 @@ Create an index mapping for `movies` index in a file `config.yml`:
 ```yaml
 inference:
   embedding:
-    e5-small:
-      provider: onnx # (1)
-      model: nixiesearch/e5-small-v2-onnx # (2)
-      prompt:
-        query: "query: "
-        doc: "passage: "
+    e5-small: # (1)
+      model: intfloat/e5-small-v2 # (2)
 schema:
   movies: # index name
     fields:

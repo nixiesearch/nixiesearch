@@ -1,7 +1,6 @@
 package ai.nixiesearch.core.search.lucene
 
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}

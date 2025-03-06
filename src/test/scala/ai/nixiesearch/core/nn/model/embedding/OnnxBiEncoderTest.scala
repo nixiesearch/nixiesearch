@@ -15,12 +15,14 @@ import java.nio.file.{Files, Paths}
 
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {
-    val handle = HuggingFaceHandle("nixiesearch", "all-MiniLM-L6-v2-onnx")
+    val handle = HuggingFaceHandle("sentence-transformers", "all-MiniLM-L6-v2")
     val config = OnnxEmbeddingInferenceModelConfig(
       model = handle,
-      prompt = PromptConfig(
-        query = "query: ",
-        doc = "doc: "
+      prompt = Some(
+        PromptConfig(
+          query = "query: ",
+          doc = "doc: "
+        )
       )
     )
     val (embedder, shutdownHandle) = EmbedModelDict
@@ -44,12 +46,14 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   }
 
   it should "work with an XLM-based models" in {
-    val handle = HuggingFaceHandle("nixiesearch", "multilingual-e5-base-onnx")
+    val handle = HuggingFaceHandle("intfloat", "multilingual-e5-base")
     val config = OnnxEmbeddingInferenceModelConfig(
       model = handle,
-      prompt = PromptConfig(
-        query = "query: ",
-        doc = "passage: "
+      prompt = Some(
+        PromptConfig(
+          query = "query: ",
+          doc = "passage: "
+        )
       )
     )
     val (embedder, shutdownHandle) = EmbedModelDict
@@ -65,9 +69,11 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val handle = HuggingFaceHandle("BAAI", "bge-m3")
     val config = OnnxEmbeddingInferenceModelConfig(
       model = handle,
-      prompt = PromptConfig(
-        query = "query: ",
-        doc = "passage: "
+      prompt = Some(
+        PromptConfig(
+          query = "query: ",
+          doc = "passage: "
+        )
       )
     )
     val (embedder, shutdownHandle) = EmbedModelDict

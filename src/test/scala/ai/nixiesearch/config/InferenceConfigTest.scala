@@ -27,8 +27,8 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         |    provider: onnx
         |    model: nixiesearch/e5-small-v2-onnx
         |    prompt:
-        |      doc: "passage: {doc}"
-        |      query: "query: {query}"
+        |      doc: "passage: "
+        |      query: "query: "
         |""".stripMargin
     val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
     decoded shouldBe Right(
@@ -36,7 +36,25 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = PromptConfig(doc = "passage: {doc}", query = "query: {query}")
+            prompt = Some(PromptConfig(doc = "passage: ", query = "query: "))
+          )
+        )
+      )
+    )
+  }
+  it should "parse minified embedding" in {
+    val text =
+      """embedding:
+        |  small:
+        |    model: nixiesearch/e5-small-v2-onnx
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            prompt = None
           )
         )
       )
@@ -60,7 +78,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = PromptConfig(doc = "passage: {doc}", query = "query: {query}"),
+            prompt = Some(PromptConfig(doc = "passage: {doc}", query = "query: {query}")),
             file = Some(OnnxModelFile("test.onnx"))
           )
         )
@@ -86,7 +104,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = PromptConfig(doc = "passage: {doc}", query = "query: {query}"),
+            prompt = Some(PromptConfig(doc = "passage: {doc}", query = "query: {query}")),
             file = Some(OnnxModelFile("test.onnx", Some("test.onnx_data")))
           )
         )
