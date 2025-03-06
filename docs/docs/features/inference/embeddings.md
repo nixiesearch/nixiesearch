@@ -10,16 +10,27 @@ To use a text embedding model for [search](../search/overview.md#search) or only
 inference:
   embedding:
     your-model-name:
+      model: intfloat/e5-small-v2
+```
+
+A full configuration looks like this:
+
+```yaml
+inference:
+  embedding:
+    your-model-name:
       provider: onnx
-      model: nixiesearch/e5-small-v2-onnx
-      prompt:
+      model: intfloat/e5-small-v2
+      prompt: # (1)
         query: "query: "
         doc: "passage: "
 ```
 
+1. Nixiesearch can correctly guess the prompt format for all the moder
+
 Fields:
 
-* `provider`: *required*, *string*. As for `v0.3.0`, only the `onnx` provider is supported.
+* `provider`: *optional*, *string*. As for `v0.3.0`, only the `onnx` provider is supported.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](../../reference/url.md) for more details on how to load your model.
 * `prompt`: *optional*. A document and query prefixes for asymmetrical models.
 
@@ -27,7 +38,7 @@ See [inference.embedding config file reference](../../reference/config.md#ml-inf
 
 Nixiesearch supports the following set of models:
 
-* any [sentence-transformers](https://sbert.net) compatible embedding model in the ONNX format. See the [list of supported pre-converted models](../../reference/models/embedding.md) Nixiesearch already has, or check out [the guide on how to convert your own model](../../reference/models/index.md#converting-your-own-model).
+* any [sentence-transformers](https://sbert.net) compatible embedding model in the ONNX format. See the [list of supported pre-converted models](embeddings/local.md) Nixiesearch already has, or check out [the guide on how to convert your own model](../inference/embeddings/local.md#converting-your-own-model).
 * As for version `0.3.0`, Nixiesearch only supports the `ONNX` provider for embedding inference. We have OpenAI, Cohere, mxb and Google providers on the roadmap.
 
 !!! note

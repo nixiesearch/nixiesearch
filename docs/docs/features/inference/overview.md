@@ -26,7 +26,7 @@ inference:
       prompt: qwen2
 ```
 
-The inference section (and embedding/completion sub-sections also) are optional and not required if you do only lexical search. See a full [config file reference](../../reference/config.md#ml-inference) for all the configuration options and a list of supported [LLM models](../../reference/models/completion.md) and [embeddings](../../reference/models/embedding.md).
+The inference section (and embedding/completion sub-sections also) are optional and not required if you do only lexical search. See a full [config file reference](../../reference/config.md#ml-inference) for all the configuration options and a list of supported [LLM models](../inference/completions.md) and [embeddings](../inference/embeddings.md).
 
 !!! note
 

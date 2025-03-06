@@ -18,9 +18,11 @@ object TestInferenceConfig {
     embedding = Map(
       ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
         model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-        prompt = PromptConfig(
-          query = "query: ",
-          doc = "doc: "
+        prompt = Some(
+          PromptConfig(
+            query = "query: ",
+            doc = "doc: "
+          )
         )
       )
     )
@@ -31,9 +33,11 @@ object TestInferenceConfig {
     embedding = Map(
       ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
         model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-        prompt = PromptConfig(
-          query = "query: ",
-          doc = "doc: "
+        prompt = Some(
+          PromptConfig(
+            query = "query: ",
+            doc = "doc: "
+          )
         )
       )
     )

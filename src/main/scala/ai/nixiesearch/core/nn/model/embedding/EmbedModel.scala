@@ -68,7 +68,9 @@ object EmbedModel {
         case "input_ids"      => OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
         case "token_type_ids" => OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
         case "attention_mask" => OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
-        case other            => throw Exception(s"input $other not supported")
+        // for jina-embed-v3
+        case "task_id" => OnnxTensor.createTensor(env, LongBuffer.wrap(Array(4L)), Array(1L))
+        case other     => throw Exception(s"input $other not supported")
       }
       val args       = inputTensorNames.zip(argsList).toMap
       val result     = session.run(args.asJava)

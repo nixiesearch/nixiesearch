@@ -1,3 +1,0 @@
-# Supported embedding models
-
-todo

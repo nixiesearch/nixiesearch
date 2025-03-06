@@ -1,6 +1,8 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, CompletionInferenceModelConfig}
+import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig}
+import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -14,15 +16,66 @@ case class InferenceConfig(
 
 object InferenceConfig {
   case class PromptConfig(doc: String = "", query: String = "")
-  given promptEncoder: Encoder[PromptConfig] = deriveEncoder
-  given promptDecoder: Decoder[PromptConfig] = Decoder.instance(c =>
-    for {
-      doc   <- c.downField("doc").as[Option[String]]
-      query <- c.downField("query").as[Option[String]]
-    } yield {
-      PromptConfig(doc.getOrElse(""), query.getOrElse(""))
+  object PromptConfig extends Logging {
+    def apply(model: ModelHandle): PromptConfig = {
+      model match {
+        case hf: HuggingFaceHandle =>
+          hf match {
+            case HuggingFaceHandle("nixiesearch", name) if name.contains("e5") => PromptConfig("passage: ", "query: ")
+            case HuggingFaceHandle("intfloat", _)                              => PromptConfig("passage: ", "query: ")
+            case HuggingFaceHandle("Snowflake", _)                             => PromptConfig(query = "query: ")
+            case HuggingFaceHandle("BAAI", x) if x.startsWith("bge") && x.contains("-zh-") =>
+              PromptConfig(query = "为这个句子生成表示以用于检索相关文章：")
+            case HuggingFaceHandle("BAAI", x) if x.startsWith("bge") && x.contains("-en-") =>
+              PromptConfig(query = "Represent this sentence for searching relevant passages: ")
+            case HuggingFaceHandle(_, "UAE-Large-V1") =>
+              PromptConfig(query = "Represent this sentence for searching relevant passages: ")
+            case HuggingFaceHandle("mixedbread-ai", "mxbai-embed-large-v1") =>
+              PromptConfig(query = "Represent this sentence for searching relevant passages: ")
+            case HuggingFaceHandle("mixedbread-ai", "deepset-mxbai-embed-de-large-v1") =>
+              PromptConfig("passage: ", "query: ")
+            case HuggingFaceHandle("Alibaba-NLP", _) =>
+              PromptConfig()
+            case HuggingFaceHandle("jinaai", name) if name.contains("v3") =>
+              PromptConfig(
+                query = "Represent the query for retrieving evidence documents: ",
+                doc = "Represent the document for retrieval: "
+              )
+            case HuggingFaceHandle("nomic-ai", _) =>
+              PromptConfig(
+                query = "search_document: ",
+                doc = "search_query: "
+              )
+            case HuggingFaceHandle("infly", _) =>
+              PromptConfig(
+                query = "Instruct: Given a web search query, retrieve relevant passages that answer the query\\nQuery: "
+              )
+            case HuggingFaceHandle("NovaSearch", _) =>
+              PromptConfig(
+                query =
+                  "Instruct: Given a web search query, retrieve relevant passages that answer the query.\\nQuery: "
+              )
+            case _ => PromptConfig()
+          }
+        case LocalModelHandle(_) =>
+          logger.warn("Loading embedding model from disk, so we cannot guess doc/query prompts based on model name")
+          logger.warn(
+            "Using empty prompt - please set them explicitly in the config inference.embedding.<model>.prompt"
+          )
+          PromptConfig()
+      }
     }
-  )
+
+    given promptEncoder: Encoder[PromptConfig] = deriveEncoder
+    given promptDecoder: Decoder[PromptConfig] = Decoder.instance(c =>
+      for {
+        doc   <- c.downField("doc").as[Option[String]]
+        query <- c.downField("query").as[Option[String]]
+      } yield {
+        PromptConfig(doc.getOrElse(""), query.getOrElse(""))
+      }
+    )
+  }
 
   sealed trait EmbeddingInferenceModelConfig
 
@@ -51,7 +104,7 @@ object InferenceConfig {
     case class OnnxEmbeddingInferenceModelConfig(
         model: ModelHandle,
         file: Option[OnnxModelFile] = None,
-        prompt: PromptConfig = PromptConfig(),
+        prompt: Option[PromptConfig] = None,
         maxTokens: Int = 512,
         batchSize: Int = 32
     ) extends EmbeddingInferenceModelConfig
@@ -70,7 +123,7 @@ object InferenceConfig {
         OnnxEmbeddingInferenceModelConfig(
           model,
           file = file,
-          prompt.getOrElse(PromptConfig()),
+          prompt = prompt,
           maxTokens = seqlen.getOrElse(512),
           batchSize = batchSize.getOrElse(32)
         )
@@ -88,11 +141,12 @@ object InferenceConfig {
     }
 
     given embedInferenceModelConfigDecoder: Decoder[EmbeddingInferenceModelConfig] = Decoder.instance(c =>
-      c.downField("provider").as[String] match {
-        case Left(err)       => Left(err)
-        case Right("onnx")   => onnxEmbeddingConfigDecoder.tryDecode(c)
-        case Right("openai") => openAIEmbeddingConfigDecoder.tryDecode(c)
-        case Right(other)    => Left(DecodingFailure(s"provider $other not supported", c.history))
+      c.downField("provider").as[Option[String]] match {
+        case Left(err)             => Left(err)
+        case Right(Some("onnx"))   => onnxEmbeddingConfigDecoder.tryDecode(c)
+        case Right(Some("openai")) => openAIEmbeddingConfigDecoder.tryDecode(c)
+        case Right(None)           => onnxEmbeddingConfigDecoder.tryDecode(c)
+        case Right(other)          => Left(DecodingFailure(s"provider $other not supported", c.history))
       }
     )
 

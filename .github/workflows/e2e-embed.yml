@@ -1,4 +1,4 @@
-name: Tests
+name: "E2E: embedding models tests"
 
 on:
   push:
@@ -42,7 +42,4 @@ jobs:
         java-version: ${{ matrix.jvm }}
 
     - name: Run tests
-      run: sbt -mem 5000 'testOnly --  -l "e2e-index e2e-embed e2e-network"'
-
-    - name: Make assembly
-      run: sbt -mem 5000 assembly
+      run: sbt -mem 5000 'testOnly --  -n e2e-embed'

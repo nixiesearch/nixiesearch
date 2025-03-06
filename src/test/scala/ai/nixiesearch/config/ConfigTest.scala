@@ -33,9 +33,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
               model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-              prompt = PromptConfig(
-                doc = "passage: ",
-                query = "query: "
+              prompt = Some(
+                PromptConfig(
+                  doc = "passage: ",
+                  query = "query: "
+                )
               )
             )
           )
@@ -86,9 +88,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
               model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-              prompt = PromptConfig(
-                doc = "passage: ",
-                query = "query: "
+              prompt = Some(
+                PromptConfig(
+                  doc = "passage: ",
+                  query = "query: "
+                )
               )
             )
           )
@@ -165,9 +169,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
               model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-              prompt = PromptConfig(
-                doc = "passage: ",
-                query = "query: "
+              prompt = Some(
+                PromptConfig(
+                  doc = "passage: ",
+                  query = "query: "
+                )
               )
             )
           )

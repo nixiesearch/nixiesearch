@@ -1,4 +1,4 @@
-name: Tests
+name: "E2E: network+indexing tests"
 
 on:
   push:
@@ -41,8 +41,11 @@ jobs:
         distribution: 'adopt-hotspot'
         java-version: ${{ matrix.jvm }}
 
-    - name: Run tests
-      run: sbt -mem 5000 'testOnly --  -l "e2e-index e2e-embed e2e-network"'
+    - name:  Run docker-compose
+      run: docker compose -f .github/compose.yaml up -d
 
-    - name: Make assembly
-      run: sbt -mem 5000 assembly
+    - name: Run tests
+      run: sbt -mem 5000 'testOnly --  -n "e2e-index e2e-network"'
+
+    - name:  Stop docker-compose
+      run: docker compose -f .github/compose.yaml down

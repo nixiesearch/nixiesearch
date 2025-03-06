@@ -2,6 +2,7 @@ package ai.nixiesearch.util.source
 
 import ai.nixiesearch.config.URL.{HttpURL, LocalURL, S3URL}
 import ai.nixiesearch.util.S3Client
+import ai.nixiesearch.util.Tags.EndToEnd.Network
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -56,7 +57,7 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
     read shouldBe List.concat(data, data, data, data)
   }
 
-  it should "read s3 files" in {
+  it should "read s3 files" taggedAs (Network) in {
     val data             = List(1, 2, 3, 4).map(_.toByte)
     val name             = Random.nextInt(1024000).toString + ".tmp"
     val client: S3Client = S3Client.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1
@@ -70,7 +71,7 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
     out shouldBe data
   }
 
-  it should "read s3 dirs" in {
+  it should "read s3 dirs" taggedAs (Network) in {
     val data             = List(1, 2, 3, 4).map(_.toByte)
     val name             = Random.nextInt(1024000).toString + "_dir"
     val client: S3Client = S3Client.create("us-east-1", Some("http://localhost:4566")).allocated.unsafeRunSync()._1

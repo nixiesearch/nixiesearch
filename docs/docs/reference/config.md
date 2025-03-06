@@ -91,9 +91,9 @@ inference:
 
 Fields:
 
-* `provider`: *required*, *string*. As for `v0.3.0`, only the `onnx` provider is supported.
+* `provider`: *optional*, *string*, default `onnx`. As for `v0.3.0`, only the `onnx` provider is supported.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](url.md) for more details on how to load your model.
-* `prompt`: *optional*. A document and query prefixes for asymmetrical models.
+* `prompt`: *optional*. A document and query prefixes for asymmetrical models. Nixiesearch can guess the proper prompt format for the vast majority of embedding models. See the [list of supported embedding models](../features/inference/embeddings/local.md) for more details.
 * `file`: *optional*, *string*, default is to pick a lexicographically first file. A file name of the model - useful when HF repo contains multiple versions of the same model.
 * `max_tokens`: *optional*, *int*, default `512`. How many tokens from the input document to process. All tokens beyond the threshold are truncated.
 * `batch_size`: *optional*, *int*, default `32`. Computing embeddings is a highly parallel task, and doing it in big chunks is much more effective than one by one. For CPUs there are usually no gains of batch sizes beyong 32, but on GPUs you can go up to 1024.

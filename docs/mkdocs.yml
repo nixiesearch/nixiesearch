@@ -48,6 +48,7 @@ theme:
 
 # Plugins
 plugins:
+  - table-reader
 #  - blog:
 #      blog_dir: blog
 #      blog_toc: true
@@ -143,7 +144,9 @@ nav:
           - Overview: features/inference/overview.md
           - Embeddings:
               - Overview: features/inference/embeddings.md
-              - Supported models: features/inference/embeddings/models.md
+              - Supported models:
+                  - Local inference: features/inference/embeddings/local.md
+                  - OpenAI: features/inference/embeddings/openai.md
           - Completions: features/inference/completions.md
     - Deployment:
         - Overview: deployment/overview.md
