@@ -1,13 +1,14 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig}
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
 
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 case class InferenceConfig(
     embedding: Map[ModelRef, EmbeddingInferenceModelConfig] = Map.empty,
@@ -105,9 +106,43 @@ object InferenceConfig {
         model: ModelHandle,
         file: Option[OnnxModelFile] = None,
         prompt: Option[PromptConfig] = None,
+        pooling: Option[PoolingType] = None,
         maxTokens: Int = 512,
         batchSize: Int = 32
     ) extends EmbeddingInferenceModelConfig
+
+    sealed trait PoolingType
+    object PoolingType extends Logging {
+      case object MeanPooling extends PoolingType
+      case object CLSPooling  extends PoolingType
+
+      def apply(handle: ModelHandle) = handle match {
+        case hf: HuggingFaceHandle =>
+          hf match {
+            case HuggingFaceHandle("Alibaba-NLP", _)   => CLSPooling
+            case HuggingFaceHandle("Snowflake", _)     => CLSPooling
+            case HuggingFaceHandle("mixedbread-ai", _) => CLSPooling
+            case _                                     => MeanPooling
+          }
+        case LocalModelHandle(dir) =>
+          logger.warn("When using local non-HF model, we cannot guess the embedding pooling type")
+          logger.warn(
+            "Using 'mean' by default, but if you're using GTE/Snowflake embeddings, you need to set inference.embedding.<model>.pooling=cls"
+          )
+          MeanPooling
+      }
+
+      given poolingTypeEncoder: Encoder[PoolingType] = Encoder.encodeString.contramap {
+        case MeanPooling => "mean"
+        case CLSPooling  => "cls"
+      }
+
+      given poolingTypeDecoder: Decoder[PoolingType] = Decoder.decodeString.emapTry {
+        case "mean" => Success(MeanPooling)
+        case "cls"  => Success(CLSPooling)
+        case other  => Failure(UserError(s"only cls/mean pooling types supported, but got '$other'"))
+      }
+    }
 
     case class OpenAIEmbeddingInferenceModelConfig(model: String) extends EmbeddingInferenceModelConfig
 
@@ -119,6 +154,7 @@ object InferenceConfig {
         seqlen    <- c.downField("max_tokens").as[Option[Int]]
         prompt    <- c.downField("prompt").as[Option[PromptConfig]]
         batchSize <- c.downField("batch_size").as[Option[Int]]
+        pooling   <- c.downField("pooling").as[Option[PoolingType]]
       } yield {
         OnnxEmbeddingInferenceModelConfig(
           model,

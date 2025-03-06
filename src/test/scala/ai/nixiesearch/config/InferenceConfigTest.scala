@@ -8,6 +8,7 @@ import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
   LlamacppInferenceModelConfig,
   LlamacppParams
 }
+import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.PoolingType.MeanPooling
 import ai.nixiesearch.config.InferenceConfig.{
   CompletionInferenceModelConfig,
   EmbeddingInferenceModelConfig,
@@ -54,6 +55,26 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            prompt = None
+          )
+        )
+      )
+    )
+  }
+  it should "parse minified embedding with pooling" in {
+    val text =
+      """embedding:
+        |  small:
+        |    model: nixiesearch/e5-small-v2-onnx
+        |    pooling: mean
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            pooling = Some(MeanPooling),
             prompt = None
           )
         )

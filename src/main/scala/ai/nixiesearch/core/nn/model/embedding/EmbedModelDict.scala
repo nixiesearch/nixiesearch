@@ -5,7 +5,8 @@ import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, Pro
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.{
   OnnxEmbeddingInferenceModelConfig,
   OnnxModelFile,
-  OpenAIEmbeddingInferenceModelConfig
+  OpenAIEmbeddingInferenceModelConfig,
+  PoolingType
 }
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
@@ -65,9 +66,9 @@ object EmbedModelDict extends Logging {
   ): Resource[IO, EmbedModelDict] =
     for {
       encoders <- models.toList.map {
-        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _)) =>
+        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: HuggingFaceHandle, _, _, _, _, _)) =>
           createHuggingface(handle, conf, cache).map(embedder => name -> embedder)
-        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: LocalModelHandle, _, _, _, _)) =>
+        case (name: ModelRef, conf @ OnnxEmbeddingInferenceModelConfig(handle: LocalModelHandle, _, _, _, _, _)) =>
           createLocal(handle, conf).map(embedder => name -> embedder)
         case (name: ModelRef, conf @ OpenAIEmbeddingInferenceModelConfig(model)) =>
           Resource.raiseError[IO, (ModelRef, EmbedModel), Throwable](BackendError("not yet implemented"))
@@ -108,7 +109,8 @@ object EmbedModelDict extends Logging {
       dic = vocab,
       dim = config.hidden_size,
       prompt = conf.prompt.getOrElse(PromptConfig(handle)),
-      seqlen = conf.maxTokens
+      seqlen = conf.maxTokens,
+      pooling = conf.pooling.getOrElse(PoolingType(handle))
     )
   } yield {
     onnxEmbedder
@@ -138,7 +140,8 @@ object EmbedModelDict extends Logging {
         dic = vocab,
         dim = config.hidden_size,
         prompt = conf.prompt.getOrElse(PromptConfig(handle)),
-        seqlen = conf.maxTokens
+        seqlen = conf.maxTokens,
+        pooling = conf.pooling.getOrElse(PoolingType(handle))
       )
     } yield {
       onnxEmbedder
