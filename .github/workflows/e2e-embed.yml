@@ -1,4 +1,4 @@
-name: End-to-end embedding models tests
+name: "E2E: embedding models tests"
 
 on:
   push:

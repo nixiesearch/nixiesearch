@@ -1,4 +1,4 @@
-name: End-to-end network+indexing tests
+name: "E2E: network+indexing tests"
 
 on:
   push:

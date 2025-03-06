@@ -7,6 +7,7 @@ import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
 import ai.nixiesearch.core.nn.model.ModelFileCache
+import ai.nixiesearch.util.Tags.EndToEnd
 import cats.effect.unsafe.implicits.global
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,7 +27,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       )
     )
     val (embedder, shutdownHandle) = EmbedModelDict
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/")))
+      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
     val result = embedder
@@ -45,7 +46,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     shutdownHandle.unsafeRunSync()
   }
 
-  it should "work with an XLM-based models" in {
+  it should "work with an XLM-based models" taggedAs (EndToEnd.Embeddings) in {
     val handle = HuggingFaceHandle("intfloat", "multilingual-e5-base")
     val config = OnnxEmbeddingInferenceModelConfig(
       model = handle,
@@ -57,7 +58,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       )
     )
     val (embedder, shutdownHandle) = EmbedModelDict
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/")))
+      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated
       .unsafeRunSync()
     val result = embedder.encode(List("query: test")).unsafeRunSync()
@@ -65,7 +66,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     result(0).length shouldBe 768
   }
 
-  it should "load ONNX with data section models" in {
+  it should "load ONNX with data section models" taggedAs (EndToEnd.Embeddings) in {
     val handle = HuggingFaceHandle("BAAI", "bge-m3")
     val config = OnnxEmbeddingInferenceModelConfig(
       model = handle,
@@ -77,7 +78,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       )
     )
     val (embedder, shutdownHandle) = EmbedModelDict
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/")))
+      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated
       .unsafeRunSync()
     val result = embedder.encode(List("query: test")).unsafeRunSync()
