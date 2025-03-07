@@ -1,21 +1,26 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGResponseFrame, SearchResultsFrame}
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.Last
+import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.ASC
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SearchResponseFrame, SuggestRequest}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.filter.Predicate.LatLon
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
-import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject, syntax}
 import org.http4s.{
   Charset,
   Entity,
@@ -35,6 +40,8 @@ import fs2.Stream
 import io.circe.syntax.*
 import org.http4s.headers.`Content-Type`
 import io.circe.syntax.*
+
+import scala.util.{Failure, Success}
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   given documentCodec: Codec[Document]                 = Document.codecFor(searcher.index.mapping)
@@ -295,4 +302,108 @@ object SearchRoute {
   given suggestResponseEncJson: EntityEncoder[IO, SuggestResponse] = jsonEncoderOf
   given suggestResponseDecJson: EntityDecoder[IO, SuggestResponse] = jsonOf
 
+  sealed trait SortPredicate {
+    def field: FieldName
+  }
+  object SortPredicate {
+    sealed trait SortOrder
+    object SortOrder {
+      case object ASC  extends SortOrder
+      case object DESC extends SortOrder
+
+      given sortOrderEncoder: Encoder[SortOrder] = Encoder.encodeString.contramap {
+        case ASC  => "asc"
+        case DESC => "desc"
+      }
+
+      given sortOrderDecoder: Decoder[SortOrder] = Decoder.decodeString.map(_.toLowerCase).emapTry {
+        case "asc"  => Success(SortOrder.ASC)
+        case "desc" => Success(SortOrder.DESC)
+        case other  => Failure(UserError(s"sorting ordering '$other' not supported, try asc/desc"))
+      }
+    }
+
+    sealed trait MissingValue
+    object MissingValue {
+      case object First extends MissingValue
+      case object Last  extends MissingValue
+
+      given missingValueEncoder: Encoder[MissingValue] = Encoder.encodeString.contramap {
+        case MissingValue.First => "first"
+        case MissingValue.Last  => "last"
+      }
+
+      given missingValueDecoder: Decoder[MissingValue] = Decoder.decodeString.map(_.toLowerCase).emapTry {
+        case "first" => Success(MissingValue.First)
+        case "last"  => Success(MissingValue.Last)
+        case other   => Failure(UserError(s"missing value type '$other' not supported, try first/last"))
+      }
+    }
+    case class FieldValueSort(
+        field: FieldName,
+        order: SortOrder = SortOrder.ASC,
+        missing: MissingValue = MissingValue.Last
+    ) extends SortPredicate
+
+    case class DistanceSort(
+        field: FieldName,
+        order: SortOrder = SortOrder.ASC,
+        missing: MissingValue = MissingValue.Last,
+        geopoint: LatLon
+    ) extends SortPredicate
+
+    given sortPredicateEncoder: Encoder[SortPredicate] = Encoder.instance {
+      case sort: FieldValueSort =>
+        Json.obj(
+          sort.field.name -> Json.obj(
+            "order"   -> SortOrder.sortOrderEncoder(sort.order),
+            "missing" -> MissingValue.missingValueEncoder(sort.missing)
+          )
+        )
+      case sort: DistanceSort =>
+        Json.obj(
+          sort.field.name -> Json.obj(
+            "order"    -> SortOrder.sortOrderEncoder(sort.order),
+            "missing"  -> MissingValue.missingValueEncoder(sort.missing),
+            "geopoint" -> LatLon.latLonCodec(sort.geopoint)
+          )
+        )
+    }
+
+    given sortPredicateDecoder: Decoder[SortPredicate] = Decoder.instance { c =>
+      {
+        c.focus match {
+          case None => Left(DecodingFailure("sort object cannot be empty", c.history))
+          case Some(json) =>
+            json.fold(
+              jsonNull = Left(DecodingFailure("sort object cannot be null", c.history)),
+              jsonBoolean = _ => Left(DecodingFailure("sort object cannot be boolean", c.history)),
+              jsonNumber = _ => Left(DecodingFailure("sort object cannot be a number", c.history)),
+              jsonString = str => Right(FieldValueSort(StringName(str))),
+              jsonArray = _ => Left(DecodingFailure("sort object cannot be a list", c.history)),
+              jsonObject = obj =>
+                obj.keys.toList match {
+                  case field :: Nil =>
+                    for {
+                      order    <- c.downField(field).downField("order").as[Option[SortOrder]]
+                      missing  <- c.downField(field).downField("missing").as[Option[MissingValue]]
+                      geopoint <- c.downField(field).downField("geopoint").as[Option[LatLon]]
+                    } yield {
+                      geopoint match {
+                        case None => FieldValueSort(StringName(field), order.getOrElse(ASC), missing.getOrElse(Last))
+                        case Some(gp) =>
+                          DistanceSort(StringName(field), order.getOrElse(ASC), missing.getOrElse(Last), gp)
+                      }
+
+                    }
+                  case field :: tail =>
+                    Left(DecodingFailure(s"sort object cannot contain multiple keys $field and $tail", c.history))
+                  case Nil => Left(DecodingFailure("sort object cannot be nil", c.history))
+                }
+            )
+        }
+
+      }
+    }
+  }
 }
