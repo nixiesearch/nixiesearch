@@ -145,7 +145,7 @@ nav:
           - Embeddings:
               - Overview: features/inference/embeddings.md
               - Supported models:
-                  - Local inference: features/inference/embeddings/local.md
+                  - Sentence Transformers: features/inference/embeddings/sbert.md
                   - OpenAI: features/inference/embeddings/openai.md
           - Completions: features/inference/completions.md
     - Deployment:

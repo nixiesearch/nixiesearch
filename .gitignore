@@ -8,7 +8,7 @@ metals.sbt
 project/project
 project/target
 target/
-docs/.venv
+.venv
 .cache
 docs/site
 .run

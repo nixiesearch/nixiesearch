@@ -48,13 +48,14 @@ sealed trait EmbedModel extends Logging {
 
 object EmbedModel {
   case class OnnxEmbedModel(
-      env: OrtEnvironment,
-      session: OrtSession,
-      tokenizer: HuggingFaceTokenizer,
-      dim: Int,
-      inputTensorNames: List[String],
-      prompt: PromptConfig,
-      pooling: PoolingType
+                             env: OrtEnvironment,
+                             session: OrtSession,
+                             tokenizer: HuggingFaceTokenizer,
+                             dim: Int,
+                             inputTensorNames: List[String],
+                             prompt: PromptConfig,
+                             poolingType: PoolingType,
+                             normalize: Boolean
   ) extends EmbedModel {
     override val batchSize = 16
     override def encodeBatch(batch: List[String]): IO[Array[Array[Float]]] = IO {
@@ -77,9 +78,9 @@ object EmbedModel {
       val args   = inputTensorNames.zip(argsList).toMap
       val result = session.run(args.asJava)
       val tensor = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
-      val normalized = pooling match {
-        case PoolingType.MeanPooling => EmbedPooling.mean(tensor, tokenLengths, dim)
-        case PoolingType.CLSPooling  => EmbedPooling.cls(tensor, tokenLengths, dim)
+      val normalized = poolingType match {
+        case PoolingType.MeanPooling => EmbedPooling.mean(tensor, tokenLengths, dim, normalize)
+        case PoolingType.CLSPooling  => EmbedPooling.cls(tensor, tokenLengths, dim, normalize)
       }
 
       result.close()
@@ -104,12 +105,13 @@ object EmbedModel {
         ttidNeeded: Boolean = true,
         threads: Int = ONNX_THREADS_DEFAULT,
         seqlen: Int = 512,
-        pooling: PoolingType
+        pooling: PoolingType,
+        normalize: Boolean
     ): Resource[IO, OnnxEmbedModel] = for {
       isGPUBuild <- Resource.eval(IO(GPUUtils.isGPUBuild()))
       _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
       model <- Resource.make(
-        IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen, pooling))
+        IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen, pooling, normalize))
       )(e => e.close())
     } yield {
       model
@@ -124,7 +126,8 @@ object EmbedModel {
         gpu: Boolean = false,
         threads: Int = ONNX_THREADS_DEFAULT,
         seqlen: Int = 512,
-        pooling: PoolingType
+        pooling: PoolingType,
+        normalize: Boolean
     ) = {
       val tokenizer = HuggingFaceTokenizer.newInstance(
         dic,
@@ -138,17 +141,11 @@ object EmbedModel {
       if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
 
-//      val modelFile = new RandomAccessFile(model.toFile, "r")
-//      val channel   = modelFile.getChannel
-//      val buffer    = channel.map(MapMode.READ_ONLY, 0, channel.size())
       val session = env.createSession(model.toString, opts)
-      // val size      = FileUtils.byteCountToDisplaySize(channel.size())
       val inputs  = session.getInputNames.asScala.toList
       val outputs = session.getOutputNames.asScala.toList
       logger.info(s"Loaded ONNX model (inputs=$inputs outputs=$outputs dim=$dim)")
-      // channel.close()
-      // modelFile.close()
-      OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt, pooling)
+      OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt, pooling, normalize)
     }
   }
 

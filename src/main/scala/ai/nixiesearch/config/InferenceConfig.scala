@@ -107,6 +107,7 @@ object InferenceConfig {
         file: Option[OnnxModelFile] = None,
         prompt: Option[PromptConfig] = None,
         pooling: Option[PoolingType] = None,
+        normalize: Boolean = true,
         maxTokens: Int = 512,
         batchSize: Int = 32
     ) extends EmbeddingInferenceModelConfig
@@ -155,13 +156,16 @@ object InferenceConfig {
         prompt    <- c.downField("prompt").as[Option[PromptConfig]]
         batchSize <- c.downField("batch_size").as[Option[Int]]
         pooling   <- c.downField("pooling").as[Option[PoolingType]]
+        normalize <- c.downField("normalize").as[Option[Boolean]]
       } yield {
         OnnxEmbeddingInferenceModelConfig(
           model,
           file = file,
           prompt = prompt,
           maxTokens = seqlen.getOrElse(512),
-          batchSize = batchSize.getOrElse(32)
+          batchSize = batchSize.getOrElse(32),
+          pooling = pooling,
+          normalize = normalize.getOrElse(true)
         )
       }
     )

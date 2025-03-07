@@ -61,12 +61,13 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
       )
     )
   }
-  it should "parse minified embedding with pooling" in {
+  it should "parse minified embedding with pooling and norm" in {
     val text =
       """embedding:
         |  small:
         |    model: nixiesearch/e5-small-v2-onnx
         |    pooling: mean
+        |    normalize: false
         |""".stripMargin
     val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
     decoded shouldBe Right(
@@ -75,7 +76,8 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
             pooling = Some(MeanPooling),
-            prompt = None
+            prompt = None,
+            normalize = false
           )
         )
       )
