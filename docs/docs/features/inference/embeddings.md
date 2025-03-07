@@ -38,7 +38,7 @@ See [inference.embedding config file reference](../../reference/config.md#ml-inf
 
 Nixiesearch supports the following set of models:
 
-* any [sentence-transformers](https://sbert.net) compatible embedding model in the ONNX format. See the [list of supported pre-converted models](embeddings/local.md) Nixiesearch already has, or check out [the guide on how to convert your own model](../inference/embeddings/local.md#converting-your-own-model).
+* any [sentence-transformers](https://sbert.net) compatible embedding model in the ONNX format. See the [list of supported pre-converted models](embeddings/sbert.md) Nixiesearch already has, or check out [the guide on how to convert your own model](../inference/embeddings/sbert.md#converting-your-own-model).
 * As for version `0.3.0`, Nixiesearch only supports the `ONNX` provider for embedding inference. We have OpenAI, Cohere, mxb and Google providers on the roadmap.
 
 !!! note

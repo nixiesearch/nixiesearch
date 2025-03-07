@@ -50,7 +50,7 @@ Nixiesearch was inspired by these search engines, but is [open-source](#license)
 How it's different from popular search engines?
 
 * vs [Elastic](https://www.elastic.co/elasticsearch): [Embedding inference](features/inference/embeddings.md), [hybrid search](features/search/overview.md#hybrid-search-with-reciprocal-rank-fusion) and [reranking](#) are free and open-source. For ES these are part of the [proprietary cloud](https://www.elastic.co/subscriptions/cloud).
-* vs [OpenSearch](TODO): While OpenSearch can use [S3-based segment replication](https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/segment-replication/index/), Nixiesearch can also offload cluster state to S3.
+* vs [OpenSearch](https://opensearch.org/): While OpenSearch can use [S3-based segment replication](https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/segment-replication/index/), Nixiesearch can also offload cluster state to S3.
 * vs [Qdrant](https://qdrant.tech/) and [Weaviate](https://weaviate.io/): Not a sidecar search engine to handle just vector search. [Autocomplete](features/autocomplete/index.md), [facets](features/search/facet.md), [RAG](features/search/rag.md) and [embedding inference](features/inference/embeddings.md) out of the box.
 
 

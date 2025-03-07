@@ -9,9 +9,15 @@ The following list of models is tested to work well with Nixiesearch:
 * Nixiesearch can correctly guess query and document prompt format (like E5-family of models requiring `query: ` and `passage: ` prefixes),
 * embedding pooling method is supported - `CLS` or `mean`.
 
+!!! note
+
+    Nixiesearch can automatically guess the proper prompt format and pooling method for all the models in the supported list table below. You can override this behavior in the model [configuration section](../../../reference/config.md#embedding-models) with `pooling` and `prompt` parameters.
+
+### List of supported models
+
 {{ read_csv('models.csv') }}
 
-If the model is not listed in this table, but has an ONNX file available, then most probably it should work well. 
+If the model is not listed in this table, but has an ONNX file available, then most probably it should work well. But you might set `prompt` and `pooling` parameters based on model documentation. See embedding model [configuration section](../../../reference/config.md#embedding-models) for more details.
 
 ## Model handles
 

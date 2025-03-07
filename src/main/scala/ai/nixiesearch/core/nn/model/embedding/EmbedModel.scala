@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.nn.model.embedding
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
+import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.PoolingType
 import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
@@ -47,12 +48,14 @@ sealed trait EmbedModel extends Logging {
 
 object EmbedModel {
   case class OnnxEmbedModel(
-      env: OrtEnvironment,
-      session: OrtSession,
-      tokenizer: HuggingFaceTokenizer,
-      dim: Int,
-      inputTensorNames: List[String],
-      prompt: PromptConfig
+                             env: OrtEnvironment,
+                             session: OrtSession,
+                             tokenizer: HuggingFaceTokenizer,
+                             dim: Int,
+                             inputTensorNames: List[String],
+                             prompt: PromptConfig,
+                             poolingType: PoolingType,
+                             normalize: Boolean
   ) extends EmbedModel {
     override val batchSize = 16
     override def encodeBatch(batch: List[String]): IO[Array[Array[Float]]] = IO {
@@ -72,10 +75,14 @@ object EmbedModel {
         case "task_id" => OnnxTensor.createTensor(env, LongBuffer.wrap(Array(4L)), Array(1L))
         case other     => throw Exception(s"input $other not supported")
       }
-      val args       = inputTensorNames.zip(argsList).toMap
-      val result     = session.run(args.asJava)
-      val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
-      val normalized = EmbedPooling.mean(tensor, tokenLengths, dim)
+      val args   = inputTensorNames.zip(argsList).toMap
+      val result = session.run(args.asJava)
+      val tensor = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
+      val normalized = poolingType match {
+        case PoolingType.MeanPooling => EmbedPooling.mean(tensor, tokenLengths, dim, normalize)
+        case PoolingType.CLSPooling  => EmbedPooling.cls(tensor, tokenLengths, dim, normalize)
+      }
+
       result.close()
       args.values.foreach(_.close())
       normalized
@@ -97,12 +104,14 @@ object EmbedModel {
         prompt: PromptConfig,
         ttidNeeded: Boolean = true,
         threads: Int = ONNX_THREADS_DEFAULT,
-        seqlen: Int = 512
+        seqlen: Int = 512,
+        pooling: PoolingType,
+        normalize: Boolean
     ): Resource[IO, OnnxEmbedModel] = for {
       isGPUBuild <- Resource.eval(IO(GPUUtils.isGPUBuild()))
       _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
       model <- Resource.make(
-        IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen))
+        IO(createUnsafe(model, dic, dim, prompt, ttidNeeded, isGPUBuild, threads, seqlen, pooling, normalize))
       )(e => e.close())
     } yield {
       model
@@ -116,7 +125,9 @@ object EmbedModel {
         ttidNeeded: Boolean = true,
         gpu: Boolean = false,
         threads: Int = ONNX_THREADS_DEFAULT,
-        seqlen: Int = 512
+        seqlen: Int = 512,
+        pooling: PoolingType,
+        normalize: Boolean
     ) = {
       val tokenizer = HuggingFaceTokenizer.newInstance(
         dic,
@@ -130,17 +141,11 @@ object EmbedModel {
       if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
       if (gpu) opts.addCUDA(0)
 
-//      val modelFile = new RandomAccessFile(model.toFile, "r")
-//      val channel   = modelFile.getChannel
-//      val buffer    = channel.map(MapMode.READ_ONLY, 0, channel.size())
       val session = env.createSession(model.toString, opts)
-      // val size      = FileUtils.byteCountToDisplaySize(channel.size())
       val inputs  = session.getInputNames.asScala.toList
       val outputs = session.getOutputNames.asScala.toList
       logger.info(s"Loaded ONNX model (inputs=$inputs outputs=$outputs dim=$dim)")
-      // channel.close()
-      // modelFile.close()
-      OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt)
+      OnnxEmbedModel(env, session, tokenizer, dim, inputs, prompt, pooling, normalize)
     }
   }
 
