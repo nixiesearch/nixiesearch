@@ -25,6 +25,7 @@ class EmbeddingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
     ("Alibaba-NLP/gte-modernbert-base", 768),
     ("Snowflake/snowflake-arctic-embed-m-v2.0", 768),
     ("BAAI/bge-small-en-v1.5", 384),
+    ("BAAI/bge-m3", 1024),
     ("WhereIsAI/UAE-Large-V1", 1024),
     ("mixedbread-ai/mxbai-embed-large-v1", 1024),
     ("BAAI/bge-base-en", 768),

@@ -25,6 +25,7 @@ object InferenceConfig {
             case HuggingFaceHandle("nixiesearch", name) if name.contains("e5") => PromptConfig("passage: ", "query: ")
             case HuggingFaceHandle("intfloat", _)                              => PromptConfig("passage: ", "query: ")
             case HuggingFaceHandle("Snowflake", _)                             => PromptConfig(query = "query: ")
+            case HuggingFaceHandle("BAAI", "bge-m3")                           => PromptConfig()
             case HuggingFaceHandle("BAAI", x) if x.startsWith("bge") && x.contains("-zh-") =>
               PromptConfig(query = "为这个句子生成表示以用于检索相关文章：")
             case HuggingFaceHandle("BAAI", x) if x.startsWith("bge") && x.contains("-en-") =>
