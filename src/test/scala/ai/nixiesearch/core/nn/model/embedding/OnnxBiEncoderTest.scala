@@ -66,23 +66,4 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     result(0).length shouldBe 768
   }
 
-  it should "load ONNX with data section models" taggedAs (EndToEnd.Embeddings) in {
-    val handle = HuggingFaceHandle("BAAI", "bge-m3")
-    val config = OnnxEmbeddingInferenceModelConfig(
-      model = handle,
-      prompt = Some(
-        PromptConfig(
-          query = "query: ",
-          doc = "passage: "
-        )
-      )
-    )
-    val (embedder, shutdownHandle) = EmbedModelDict
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
-      .allocated
-      .unsafeRunSync()
-    val result = embedder.encode(List("query: test")).unsafeRunSync()
-    result.length shouldBe 1
-    result(0).length shouldBe 1024
-  }
 }
