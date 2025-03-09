@@ -48,14 +48,14 @@ sealed trait EmbedModel extends Logging {
 
 object EmbedModel {
   case class OnnxEmbedModel(
-                             env: OrtEnvironment,
-                             session: OrtSession,
-                             tokenizer: HuggingFaceTokenizer,
-                             dim: Int,
-                             inputTensorNames: List[String],
-                             prompt: PromptConfig,
-                             poolingType: PoolingType,
-                             normalize: Boolean
+      env: OrtEnvironment,
+      session: OrtSession,
+      tokenizer: HuggingFaceTokenizer,
+      dim: Int,
+      inputTensorNames: List[String],
+      prompt: PromptConfig,
+      poolingType: PoolingType,
+      normalize: Boolean
   ) extends EmbedModel {
     override val batchSize = 16
     override def encodeBatch(batch: List[String]): IO[Array[Array[Float]]] = IO {
