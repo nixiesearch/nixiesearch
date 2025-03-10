@@ -1,6 +1,8 @@
 package ai.nixiesearch.core.field
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
+import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch}
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
@@ -10,6 +12,7 @@ import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Json}
 import org.apache.lucene.document.{SortedSetDocValuesField, StoredField, StringField, Document as LuceneDocument}
 import org.apache.lucene.document.Field.Store
+import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
@@ -66,5 +69,8 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
     Right(TextListField(name, value))
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField =
+    TextField.sort(field, reverse, missing)
 
 }

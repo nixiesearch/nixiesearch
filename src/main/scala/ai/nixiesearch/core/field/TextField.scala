@@ -1,8 +1,10 @@
 package ai.nixiesearch.core.field
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
-import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
+import ai.nixiesearch.config.mapping.{FieldName, Language, SearchType, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch, SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
@@ -11,14 +13,9 @@ import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{
-  KnnFloatVectorField,
-  SortedDocValuesField,
-  StoredField,
-  StringField,
-  Document as LuceneDocument
-}
+import org.apache.lucene.document.{KnnFloatVectorField, SortedDocValuesField, StoredField, StringField, Document as LuceneDocument}
 import org.apache.lucene.index.VectorSimilarityFunction
+import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
@@ -43,7 +40,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     }
     if (spec.facet || spec.sort) {
       val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
-      buffer.add(new SortedDocValuesField(field.name, new BytesRef(field.value)))
+      buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
     }
     if (spec.filter || spec.facet) {
       buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
@@ -86,4 +83,12 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     Right(TextField(name, value))
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+    val sortField = new SortField(field.name, SortField.Type.STRING, reverse)
+    sortField.setMissingValue(
+      MissingValue.of(min = SortField.STRING_FIRST, max = SortField.STRING_LAST, reverse, missing)
+    )
+    sortField
+  }
 }

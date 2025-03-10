@@ -171,7 +171,6 @@ object IndexMapping extends Logging {
 
     def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(WildcardName, StringName)] = {
       val fieldNames   = fields.map(_.name)
-      val stringFields = fieldNames.collect { case s: StringName => s }
       for {
         wildcard <- fieldNames.collect { case wc: WildcardName => wc }
         string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string.name)

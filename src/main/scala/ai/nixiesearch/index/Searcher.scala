@@ -1,13 +1,17 @@
 package ai.nixiesearch.index
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
+import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC}
 import ai.nixiesearch.api.SearchRoute.{
   RAGRequest,
   RAGResponse,
   SearchRequest,
   SearchResponse,
+  SortPredicate,
   SuggestRequest,
   SuggestResponse
 }
+import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
@@ -15,14 +19,17 @@ import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.search.{
   IndexSearcher,
   MultiCollectorManager,
   ScoreDoc,
+  Sort,
+  SortField,
   TopDocs,
+  TopFieldCollectorManager,
   TopScoreDocCollectorManager,
   TotalHits,
   Query as LuceneQuery
@@ -43,6 +50,7 @@ import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
+import org.apache.lucene.document.LatLonDocValuesField
 
 import scala.collection.mutable
 import language.experimental.namedTuples
@@ -110,7 +118,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
           .map(_.flatten)
     }
     searcher      <- getReadersOrFail().map(_.searcher)
-    fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size))
+    fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size, request.sort))
     mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets)))
     mergedTopDocs <- reciprocalRank(fieldTopDocs.map(_.docs))
     aggs          <- aggregate(index.mapping, mergedFacets, request.aggs)
@@ -194,13 +202,52 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case Some(other) => IO.raiseError(UserError(s"Cannot search over non-text field $field"))
     }
 
-  def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int): IO[FieldTopDocs] = for {
-    topCollector   <- IO.pure(new TopScoreDocCollectorManager(size, size))
-    facetCollector <- IO.pure(new FacetsCollectorManager())
-    collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
-    results        <- IO(searcher.search(query, collector))
-  } yield {
-    FieldTopDocs(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
+  def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int, sort: List[SortPredicate]): IO[FieldTopDocs] =
+    for {
+      topCollector <- sort match {
+        case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
+        case nel =>
+          nel
+            .map(pred => makeSortField(pred))
+            .sequence
+            .map(sorts => new TopFieldCollectorManager(new Sort(sorts*), size, null, Integer.MAX_VALUE))
+      }
+      facetCollector <- IO.pure(new FacetsCollectorManager())
+      collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
+      results        <- IO(searcher.search(query, collector))
+    } yield {
+      FieldTopDocs(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
+    }
+
+  def makeSortField(by: SortPredicate): IO[SortField] = {
+    index.mapping.fieldSchema(by.field.name) match {
+      case Some(schema) if !schema.sort =>
+        IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
+      case Some(s: IntFieldSchema)      => IO.pure(IntField.sort(s.name, by.reverse, by.missing))
+      case Some(s: BooleanFieldSchema)  => IO.pure(BooleanField.sort(s.name, by.reverse, by.missing))
+      case Some(s: DateFieldSchema)     => IO.pure(DateField.sort(s.name, by.reverse, by.missing))
+      case Some(s: LongFieldSchema)     => IO.pure(LongField.sort(s.name, by.reverse, by.missing))
+      case Some(s: DateTimeFieldSchema) => IO.pure(DateTimeField.sort(s.name, by.reverse, by.missing))
+      case Some(s: FloatFieldSchema)    => IO.pure(FloatField.sort(s.name, by.reverse, by.missing))
+      case Some(s: DoubleFieldSchema)   => IO.pure(DoubleField.sort(s.name, by.reverse, by.missing))
+      case Some(s: TextFieldSchema)     => IO.pure(TextField.sort(s.name, by.reverse, by.missing))
+      case Some(s: TextListFieldSchema) => IO.pure(TextListField.sort(s.name, by.reverse, by.missing))
+      case Some(s: GeopointFieldSchema) =>
+        by match {
+          case _: FieldValueSort =>
+            IO.raiseError(UserError(s"to sort by a geopoint, you need to pass lat and lon coordinates"))
+          case DistanceSort(field, missing, geopoint) =>
+            IO.pure(GeopointField.sort(field, missing, geopoint))
+        }
+
+      case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, by.reverse))
+      case None =>
+        val fieldNames = index.mapping.fields.keys.map(_.name).toList
+        IO.raiseError(
+          UserError(s"cannot sort by '${by.field.name}' as it's missing in index schema (fields=$fieldNames)")
+        )
+    }
+
   }
 
   case class ShardDoc(docid: Int, shardIndex: Int)

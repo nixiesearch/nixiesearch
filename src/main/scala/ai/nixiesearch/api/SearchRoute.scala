@@ -2,6 +2,7 @@ package ai.nixiesearch.api
 
 import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGResponseFrame, SearchResultsFrame}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.Last
+import ai.nixiesearch.api.SearchRoute.SortPredicate.{MissingValue, SortOrder}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.ASC
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
@@ -11,6 +12,7 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.LatLon
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
@@ -153,7 +155,8 @@ object SearchRoute {
       size: Int = 10,
       fields: List[FieldName] = Nil,
       aggs: Option[Aggs] = None,
-      rag: Option[RAGRequest] = None
+      rag: Option[RAGRequest] = None,
+      sort: List[SortPredicate] = Nil
   )
   object SearchRequest {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
@@ -169,8 +172,9 @@ object SearchRoute {
         }
         aggs <- c.downField("aggs").as[Option[Aggs]]
         rag  <- c.downField("rag").as[Option[RAGRequest]]
+        sort <- c.downField("sort").as[Option[List[SortPredicate]]]
       } yield {
-        SearchRequest(query, filters, size, fields, aggs, rag)
+        SearchRequest(query, filters, size, fields, aggs, rag, sort.getOrElse(Nil))
       }
     )
   }
@@ -304,7 +308,12 @@ object SearchRoute {
 
   sealed trait SortPredicate {
     def field: FieldName
+    def order: SortOrder
+    def missing: MissingValue
+
+    def reverse: Boolean = order == SortOrder.DESC
   }
+
   object SortPredicate {
     sealed trait SortOrder
     object SortOrder {
@@ -328,6 +337,13 @@ object SearchRoute {
       case object First extends MissingValue
       case object Last  extends MissingValue
 
+      def of[T](min: T, max: T, reverse: Boolean, missingValue: MissingValue): T = (missingValue, reverse) match {
+        case (First, false) => min
+        case (Last, false)  => max
+        case (First, true)  => max
+        case (Last, true)   => min
+      }
+
       given missingValueEncoder: Encoder[MissingValue] = Encoder.encodeString.contramap {
         case MissingValue.First => "first"
         case MissingValue.Last  => "last"
@@ -347,10 +363,11 @@ object SearchRoute {
 
     case class DistanceSort(
         field: FieldName,
-        order: SortOrder = SortOrder.ASC,
         missing: MissingValue = MissingValue.Last,
         geopoint: LatLon
-    ) extends SortPredicate
+    ) extends SortPredicate {
+      override def order: SortOrder = ASC
+    }
 
     given sortPredicateEncoder: Encoder[SortPredicate] = Encoder.instance {
       case sort: FieldValueSort =>
@@ -363,7 +380,6 @@ object SearchRoute {
       case sort: DistanceSort =>
         Json.obj(
           sort.field.name -> Json.obj(
-            "order"    -> SortOrder.sortOrderEncoder(sort.order),
             "missing"  -> MissingValue.missingValueEncoder(sort.missing),
             "geopoint" -> LatLon.latLonCodec(sort.geopoint)
           )
@@ -392,7 +408,7 @@ object SearchRoute {
                       geopoint match {
                         case None => FieldValueSort(StringName(field), order.getOrElse(ASC), missing.getOrElse(Last))
                         case Some(gp) =>
-                          DistanceSort(StringName(field), order.getOrElse(ASC), missing.getOrElse(Last), gp)
+                          DistanceSort(StringName(field), missing.getOrElse(Last), gp)
                       }
 
                     }

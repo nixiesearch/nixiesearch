@@ -83,6 +83,7 @@ scalacOptions ++= Seq(
 //  "-release:20",
   "-no-indent",
   "-experimental"
+//  "-Wall"
 )
 
 concurrentRestrictions in Global := Seq(Tags.limitAll(1))
