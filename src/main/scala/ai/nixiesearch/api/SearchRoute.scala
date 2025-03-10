@@ -3,7 +3,7 @@ package ai.nixiesearch.api
 import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGResponseFrame, SearchResultsFrame}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.Last
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{MissingValue, SortOrder}
-import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.ASC
+import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, Default}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SearchResponseFrame, SuggestRequest}
@@ -308,27 +308,27 @@ object SearchRoute {
 
   sealed trait SortPredicate {
     def field: FieldName
-    def order: SortOrder
-    def missing: MissingValue
-
-    def reverse: Boolean = order == SortOrder.DESC
+    // def missing: MissingValue
   }
 
   object SortPredicate {
     sealed trait SortOrder
     object SortOrder {
-      case object ASC  extends SortOrder
-      case object DESC extends SortOrder
+      case object ASC     extends SortOrder
+      case object DESC    extends SortOrder
+      case object Default extends SortOrder
 
       given sortOrderEncoder: Encoder[SortOrder] = Encoder.encodeString.contramap {
-        case ASC  => "asc"
-        case DESC => "desc"
+        case ASC     => "asc"
+        case DESC    => "desc"
+        case Default => "default"
       }
 
       given sortOrderDecoder: Decoder[SortOrder] = Decoder.decodeString.map(_.toLowerCase).emapTry {
-        case "asc"  => Success(SortOrder.ASC)
-        case "desc" => Success(SortOrder.DESC)
-        case other  => Failure(UserError(s"sorting ordering '$other' not supported, try asc/desc"))
+        case "asc"     => Success(SortOrder.ASC)
+        case "desc"    => Success(SortOrder.DESC)
+        case "default" => Success(SortOrder.Default)
+        case other     => Failure(UserError(s"sorting ordering '$other' not supported, try asc/desc/default"))
       }
     }
 
@@ -357,17 +357,14 @@ object SearchRoute {
     }
     case class FieldValueSort(
         field: FieldName,
-        order: SortOrder = SortOrder.ASC,
+        order: SortOrder = SortOrder.Default,
         missing: MissingValue = MissingValue.Last
     ) extends SortPredicate
 
     case class DistanceSort(
         field: FieldName,
-        missing: MissingValue = MissingValue.Last,
         geopoint: LatLon
-    ) extends SortPredicate {
-      override def order: SortOrder = ASC
-    }
+    ) extends SortPredicate
 
     given sortPredicateEncoder: Encoder[SortPredicate] = Encoder.instance {
       case sort: FieldValueSort =>
@@ -380,7 +377,6 @@ object SearchRoute {
       case sort: DistanceSort =>
         Json.obj(
           sort.field.name -> Json.obj(
-            "missing"  -> MissingValue.missingValueEncoder(sort.missing),
             "geopoint" -> LatLon.latLonCodec(sort.geopoint)
           )
         )
@@ -406,9 +402,10 @@ object SearchRoute {
                       geopoint <- c.downField(field).downField("geopoint").as[Option[LatLon]]
                     } yield {
                       geopoint match {
-                        case None => FieldValueSort(StringName(field), order.getOrElse(ASC), missing.getOrElse(Last))
+                        case None =>
+                          FieldValueSort(StringName(field), order.getOrElse(Default), missing.getOrElse(Last))
                         case Some(gp) =>
-                          DistanceSort(StringName(field), missing.getOrElse(Last), gp)
+                          DistanceSort(StringName(field), gp)
                       }
 
                     }

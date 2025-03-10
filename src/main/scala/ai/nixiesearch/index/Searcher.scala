@@ -1,7 +1,7 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
-import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC}
+import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
 import ai.nixiesearch.api.SearchRoute.{
   RAGRequest,
   RAGResponse,
@@ -16,6 +16,7 @@ import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
@@ -220,27 +221,40 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     }
 
   def makeSortField(by: SortPredicate): IO[SortField] = {
+    val reverse = by match {
+      case FieldValueSort(StringName("_score"), Default, _) => false
+      case FieldValueSort(StringName("_score"), ASC, _)     => true
+      case FieldValueSort(StringName("_score"), DESC, _)    => false
+      case FieldValueSort(_, ASC, _)                        => false
+      case FieldValueSort(_, Default, _)                    => false
+      case FieldValueSort(_, DESC, _)                       => true
+      case DistanceSort(_, _)                               => false
+    }
+    val missing = by match {
+      case FieldValueSort(_, _, missing) => missing
+      case DistanceSort(_, _)            => MissingValue.Last
+    }
     index.mapping.fieldSchema(by.field.name) match {
       case Some(schema) if !schema.sort =>
         IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
-      case Some(s: IntFieldSchema)      => IO.pure(IntField.sort(s.name, by.reverse, by.missing))
-      case Some(s: BooleanFieldSchema)  => IO.pure(BooleanField.sort(s.name, by.reverse, by.missing))
-      case Some(s: DateFieldSchema)     => IO.pure(DateField.sort(s.name, by.reverse, by.missing))
-      case Some(s: LongFieldSchema)     => IO.pure(LongField.sort(s.name, by.reverse, by.missing))
-      case Some(s: DateTimeFieldSchema) => IO.pure(DateTimeField.sort(s.name, by.reverse, by.missing))
-      case Some(s: FloatFieldSchema)    => IO.pure(FloatField.sort(s.name, by.reverse, by.missing))
-      case Some(s: DoubleFieldSchema)   => IO.pure(DoubleField.sort(s.name, by.reverse, by.missing))
-      case Some(s: TextFieldSchema)     => IO.pure(TextField.sort(s.name, by.reverse, by.missing))
-      case Some(s: TextListFieldSchema) => IO.pure(TextListField.sort(s.name, by.reverse, by.missing))
+      case Some(s: IntFieldSchema)      => IO.pure(IntField.sort(s.name, reverse, missing))
+      case Some(s: BooleanFieldSchema)  => IO.pure(BooleanField.sort(s.name, reverse, missing))
+      case Some(s: DateFieldSchema)     => IO.pure(DateField.sort(s.name, reverse, missing))
+      case Some(s: LongFieldSchema)     => IO.pure(LongField.sort(s.name, reverse, missing))
+      case Some(s: DateTimeFieldSchema) => IO.pure(DateTimeField.sort(s.name, reverse, missing))
+      case Some(s: FloatFieldSchema)    => IO.pure(FloatField.sort(s.name, reverse, missing))
+      case Some(s: DoubleFieldSchema)   => IO.pure(DoubleField.sort(s.name, reverse, missing))
+      case Some(s: TextFieldSchema)     => IO.pure(TextField.sort(s.name, reverse, missing))
+      case Some(s: TextListFieldSchema) => IO.pure(TextListField.sort(s.name, reverse, missing))
       case Some(s: GeopointFieldSchema) =>
         by match {
           case _: FieldValueSort =>
             IO.raiseError(UserError(s"to sort by a geopoint, you need to pass lat and lon coordinates"))
-          case DistanceSort(field, missing, geopoint) =>
-            IO.pure(GeopointField.sort(field, missing, geopoint))
+          case DistanceSort(field, geopoint) =>
+            IO.pure(GeopointField.sort(field, geopoint))
         }
 
-      case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, by.reverse))
+      case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, reverse))
       case None =>
         val fieldNames = index.mapping.fields.keys.map(_.name).toList
         IO.raiseError(

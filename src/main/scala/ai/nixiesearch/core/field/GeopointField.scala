@@ -60,13 +60,9 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
 
   def sort(
       field: FieldName,
-      missing: SortPredicate.MissingValue,
       geopoint: LatLon
-  ): SortField = {
-    val sortField = LatLonDocValuesField.newDistanceSort(field.name, geopoint.lat, geopoint.lon)
-    sortField.setMissingValue(MissingValue.of(Double.MinValue, Double.MaxValue, false, missing))
-    sortField
-  }
+  ): SortField =
+    LatLonDocValuesField.newDistanceSort(field.name, geopoint.lat, geopoint.lon)
 
   case class Geopoint(lat: Double, lon: Double)
   object Geopoint {

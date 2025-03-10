@@ -10,7 +10,7 @@ import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Json}
-import org.apache.lucene.document.{SortedSetDocValuesField, StoredField, StringField, Document as LuceneDocument}
+import org.apache.lucene.document.{SortedDocValuesField, SortedSetDocValuesField, StoredField, StringField, Document as LuceneDocument}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
@@ -33,9 +33,12 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
       if (spec.store) {
         buffer.add(new StoredField(field.name, item))
       }
-      if (spec.facet || spec.sort) {
-        val trimmed = if (item.length > MAX_FACET_SIZE) item.substring(0, MAX_FACET_SIZE) else item
+      lazy val trimmed = if (item.length > MAX_FACET_SIZE) item.substring(0, MAX_FACET_SIZE) else item
+      if (spec.facet) {
         buffer.add(new SortedSetDocValuesField(field.name, new BytesRef(trimmed)))
+      }
+      if (spec.sort) {
+        buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
       }
       if (spec.filter || spec.facet) {
         buffer.add(new StringField(field.name + RAW_SUFFIX, item, Store.NO))

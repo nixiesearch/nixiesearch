@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
-import org.apache.lucene.document.{Document, SortedNumericDocValuesField, StoredField}
+import org.apache.lucene.document.{Document, NumericDocValuesField, SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
@@ -23,8 +23,11 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
       buffer: Document,
       embeddings: Map[String, Array[Float]] = Map.empty
   ): Unit = {
-    if (spec.filter || spec.sort) {
+    if (spec.filter) {
       buffer.add(new org.apache.lucene.document.DoubleField(field.name, field.value, Store.NO))
+    }
+    if (spec.sort) {
+      buffer.add(new NumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(field.value)))
     }
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(field.value)))

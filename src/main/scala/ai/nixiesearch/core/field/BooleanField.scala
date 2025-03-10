@@ -8,7 +8,7 @@ import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
-import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 
@@ -23,9 +23,13 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
       buffer: LuceneDocument,
       embeddings: Map[String, Array[Float]] = Map.empty
   ): Unit = {
-    if (spec.filter || spec.sort) {
+    if (spec.filter) {
       buffer.add(new org.apache.lucene.document.IntField(field.name, toInt(field.value), Store.NO))
     }
+    if (spec.sort) {
+      buffer.add(new NumericDocValuesField(field.name, toInt(field.value)))
+    }
+
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, toInt(field.value)))
     }

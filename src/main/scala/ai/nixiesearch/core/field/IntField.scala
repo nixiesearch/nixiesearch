@@ -8,8 +8,14 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
-import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  NumericDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.document.Field.Store
+import org.apache.lucene.queries.function.docvalues.IntDocValues
 import org.apache.lucene.search.SortField
 
 case class IntField(name: String, value: Int) extends Field with NumericField
@@ -21,8 +27,11 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
       buffer: LuceneDocument,
       embeddings: Map[String, Array[Float]] = Map.empty
   ): Unit = {
-    if (spec.filter || spec.sort) {
+    if (spec.filter) {
       buffer.add(new org.apache.lucene.document.IntField(field.name, field.value, Store.NO))
+    }
+    if (spec.sort) {
+      buffer.add(new NumericDocValuesField(field.name, field.value))
     }
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, field.value))

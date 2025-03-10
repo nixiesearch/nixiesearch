@@ -112,9 +112,9 @@ object FieldSchema {
   case class GeopointFieldSchema(
       name: FieldName,
       store: Boolean = true,
+      sort: Boolean = false,
       filter: Boolean = false
   ) extends FieldSchema[GeopointField] {
-    def sort  = false
     def facet = false
   }
 
@@ -264,9 +264,10 @@ object FieldSchema {
     def geopointFieldSchemaDecoder(name: FieldName): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
         filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        GeopointFieldSchema(name, store, filter)
+        GeopointFieldSchema(name, store, sort, filter)
       }
     )
 
