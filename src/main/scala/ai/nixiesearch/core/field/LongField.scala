@@ -26,7 +26,7 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
       buffer.add(new org.apache.lucene.document.LongField(field.name, field.value, Store.NO))
     }
     if (spec.sort) {
-      buffer.add(new NumericDocValuesField(field.name, field.value))
+      buffer.add(new NumericDocValuesField(field.name + SORT_SUFFIX, field.value))
     }
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, field.value))
@@ -46,7 +46,7 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
-    val sortField = new SortField(field.name, SortField.Type.LONG, reverse)
+    val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.LONG, reverse)
     sortField.setMissingValue(MissingValue.of(min = Long.MinValue, max = Long.MaxValue, reverse, missing))
     sortField
 

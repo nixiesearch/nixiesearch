@@ -27,7 +27,7 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
       buffer.add(new org.apache.lucene.document.DoubleField(field.name, field.value, Store.NO))
     }
     if (spec.sort) {
-      buffer.add(new NumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(field.value)))
+      buffer.add(new NumericDocValuesField(field.name + SORT_SUFFIX, NumericUtils.doubleToSortableLong(field.value)))
     }
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(field.value)))
@@ -47,7 +47,7 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
-    val sortField = new SortField(field.name, SortField.Type.DOUBLE, reverse)
+    val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.DOUBLE, reverse)
     sortField.setMissingValue(MissingValue.of(min = Double.MinValue, max = Double.MaxValue, reverse, missing))
     sortField
   }

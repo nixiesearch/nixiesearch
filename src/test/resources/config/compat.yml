@@ -70,6 +70,6 @@ schema:
       geopoint:
         type: geopoint
         filter: true
-        sort: true
+        sort: false
 
 

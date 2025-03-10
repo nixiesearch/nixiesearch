@@ -36,7 +36,7 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
       buffer.add(new LatLonPoint(field.name, field.lat, field.lon))
     }
     if (spec.sort) {
-      buffer.add(new LatLonDocValuesField(field.name, field.lat, field.lon))
+      buffer.add(new LatLonDocValuesField(field.name + SORT_SUFFIX, field.lat, field.lon))
     }
   }
 
@@ -62,7 +62,7 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
       field: FieldName,
       geopoint: LatLon
   ): SortField =
-    LatLonDocValuesField.newDistanceSort(field.name, geopoint.lat, geopoint.lon)
+    LatLonDocValuesField.newDistanceSort(field.name + SORT_SUFFIX, geopoint.lat, geopoint.lon)
 
   case class Geopoint(lat: Double, lon: Double)
   object Geopoint {

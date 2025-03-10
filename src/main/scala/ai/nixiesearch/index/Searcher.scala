@@ -255,6 +255,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
         }
 
       case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, reverse))
+      case None if by.field.name == "_doc"   => IO.pure(new SortField(by.field.name, SortField.Type.DOC, reverse))
       case None =>
         val fieldNames = index.mapping.fields.keys.map(_.name).toList
         IO.raiseError(

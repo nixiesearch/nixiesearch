@@ -13,7 +13,13 @@ import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{KnnFloatVectorField, SortedDocValuesField, StoredField, StringField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  KnnFloatVectorField,
+  SortedDocValuesField,
+  StoredField,
+  StringField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.index.VectorSimilarityFunction
 import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
@@ -26,8 +32,6 @@ case class TextField(name: String, value: String) extends Field with TextLikeFie
 object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
-  val RAW_SUFFIX            = "$raw"
-  val SUGGEST_SUFFIX        = "$suggest"
 
   override def writeLucene(
       field: TextField,
@@ -42,8 +46,8 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
       val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
       buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
     }
-    if (spec.filter || spec.facet) {
-      buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
+    if (spec.filter) {
+      buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
     }
     spec.search match {
       case _: SemanticSearch | _: LexicalSearch =>

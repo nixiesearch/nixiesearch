@@ -31,7 +31,7 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
       buffer.add(new org.apache.lucene.document.IntField(field.name, field.value, Store.NO))
     }
     if (spec.sort) {
-      buffer.add(new NumericDocValuesField(field.name, field.value))
+      buffer.add(new NumericDocValuesField(field.name + SORT_SUFFIX, field.value))
     }
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, field.value))
@@ -51,7 +51,7 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
 
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): SortField = {
-    val sortField = new SortField(field.name, SortField.Type.INT, reverse)
+    val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.INT, reverse)
     sortField.setMissingValue(MissingValue.of(min = Int.MinValue, max = Int.MaxValue, reverse, missing))
     sortField
   }

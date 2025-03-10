@@ -316,7 +316,16 @@ object FieldSchema {
     given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] = deriveDecoder
     given boolFieldSchemaEncoder: Encoder[BooleanFieldSchema] = deriveEncoder
 
-    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = deriveDecoder
+    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = Decoder.instance(c =>
+      for {
+        name   <- c.downField("name").as[FieldName]
+        store  <- c.downField("store").as[Boolean]
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false)) // compat with 0.4
+        filter <- c.downField("filter").as[Boolean]
+      } yield {
+        GeopointFieldSchema(name, store, sort, filter)
+      }
+    )
     given geopointFieldSchemaEncoder: Encoder[GeopointFieldSchema] = deriveEncoder
 
     given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = deriveDecoder

@@ -34,7 +34,7 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
       buffer.add(new org.apache.lucene.document.FloatField(field.name, field.value, Store.NO))
     }
     if (spec.sort) {
-      buffer.add(new NumericDocValuesField(field.name, NumericUtils.floatToSortableInt(field.value)))
+      buffer.add(new NumericDocValuesField(field.name + SORT_SUFFIX, NumericUtils.floatToSortableInt(field.value)))
     }
     if (spec.facet) {
       buffer.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(field.value)))
@@ -54,7 +54,7 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
-    val sortField = new SortField(field.name, SortField.Type.FLOAT, reverse)
+    val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.FLOAT, reverse)
     sortField.setMissingValue(MissingValue.of(min = Float.MinValue, max = Float.MaxValue, reverse, missing))
     sortField
   }

@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.field
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch}
@@ -10,7 +11,13 @@ import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Json}
-import org.apache.lucene.document.{SortedDocValuesField, SortedSetDocValuesField, StoredField, StringField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  SortedDocValuesField,
+  SortedSetDocValuesField,
+  StoredField,
+  StringField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
@@ -19,7 +26,7 @@ import org.apache.lucene.util.BytesRef
 case class TextListField(name: String, value: List[String]) extends Field with TextLikeField
 
 object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List[String]] {
-  import TextField.{MAX_FACET_SIZE, RAW_SUFFIX, MAX_FIELD_SEARCH_SIZE}
+  import TextField.{MAX_FACET_SIZE, FILTER_SUFFIX, MAX_FIELD_SEARCH_SIZE}
 
   def apply(name: String, value: String, values: String*) = new TextListField(name, value +: values.toList)
 
@@ -38,10 +45,10 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
         buffer.add(new SortedSetDocValuesField(field.name, new BytesRef(trimmed)))
       }
       if (spec.sort) {
-        buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
+        buffer.add(new SortedDocValuesField(field.name + SORT_SUFFIX, new BytesRef(trimmed)))
       }
       if (spec.filter || spec.facet) {
-        buffer.add(new StringField(field.name + RAW_SUFFIX, item, Store.NO))
+        buffer.add(new StringField(field.name + FILTER_SUFFIX, item, Store.NO))
       }
       spec.search match {
         case _: LexicalSearch | _: HybridSearch =>
@@ -73,7 +80,12 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
 
-  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField =
-    TextField.sort(field, reverse, missing)
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+    val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.STRING, reverse)
+    sortField.setMissingValue(
+      MissingValue.of(min = SortField.STRING_FIRST, max = SortField.STRING_LAST, reverse, missing)
+    )
+    sortField
+  }
 
 }

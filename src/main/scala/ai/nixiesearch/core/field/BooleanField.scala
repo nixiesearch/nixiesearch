@@ -27,7 +27,7 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
       buffer.add(new org.apache.lucene.document.IntField(field.name, toInt(field.value), Store.NO))
     }
     if (spec.sort) {
-      buffer.add(new NumericDocValuesField(field.name, toInt(field.value)))
+      buffer.add(new NumericDocValuesField(field.name + SORT_SUFFIX, toInt(field.value)))
     }
 
     if (spec.facet) {

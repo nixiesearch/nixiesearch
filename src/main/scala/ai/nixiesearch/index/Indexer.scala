@@ -12,7 +12,7 @@ import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.*
 import ai.nixiesearch.core.codec.compat.{Nixiesearch101Codec, Nixiesearch912Codec}
 import ai.nixiesearch.core.field.*
-import ai.nixiesearch.core.field.TextField.RAW_SUFFIX
+import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
@@ -80,7 +80,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
         }
         all.add(buffer)
       })
-      val deleteIds = ids.map(id => new Term("_id" + RAW_SUFFIX, id))
+      val deleteIds = ids.map(id => new Term("_id" + FILTER_SUFFIX, id))
       writer.deleteDocuments(deleteIds.toSeq*)
       writer.addDocuments(all)
     }
@@ -192,7 +192,7 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
   }
 
   def delete(docid: String): IO[Unit] = IO {
-    writer.deleteDocuments(new Term("_id" + RAW_SUFFIX, docid))
+    writer.deleteDocuments(new Term("_id" + FILTER_SUFFIX, docid))
   }
 
   def delete(filters: Option[Filters]): IO[Int] = for {
