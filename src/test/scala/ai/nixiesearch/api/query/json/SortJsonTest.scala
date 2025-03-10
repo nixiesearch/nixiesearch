@@ -32,8 +32,18 @@ class SortJsonTest extends AnyFlatSpec with Matchers {
   }
 
   it should "decode geo sort" in {
-    val result = parse("""{"by": {"name": {"geopoint": {"lat": 1.0, "lon": 2.0}}}}""")
-    result shouldBe Right(DistanceSort(StringName("name"), geopoint = LatLon(1.0, 2.0)))
+    val result = parse("""{"by": {"name": {"lat": 1.0, "lon": 2.0}}}""")
+    result shouldBe Right(DistanceSort(StringName("name"), lat = 1.0, lon = 2.0))
+  }
+
+  it should "fail on partial geo sort" in {
+    val result = parse("""{"by": {"name": {"lat": 1.0}}}""")
+    result shouldBe a[Left[?, ?]]
+  }
+
+  it should "fail on ambiguous sort" in {
+    val result = parse("""{"by": {"name": {"lat": 1.0, "lon": 2.0, "order": "asc"}}}""")
+    result shouldBe a[Left[?, ?]]
   }
 
   it should "round-trip field sort" in {
@@ -41,7 +51,7 @@ class SortJsonTest extends AnyFlatSpec with Matchers {
   }
 
   it should "round-trip geo sort" in {
-    roundtrip(DistanceSort(StringName("name"), geopoint = LatLon(1.0, 2.0)))
+    roundtrip(DistanceSort(StringName("name"), lat = 1.0, lon = 2.0))
   }
 
   it should "decode full search request with sort clause" in {

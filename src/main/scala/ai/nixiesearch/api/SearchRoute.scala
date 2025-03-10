@@ -363,7 +363,8 @@ object SearchRoute {
 
     case class DistanceSort(
         field: FieldName,
-        geopoint: LatLon
+        lat: Double,
+        lon: Double
     ) extends SortPredicate
 
     given sortPredicateEncoder: Encoder[SortPredicate] = Encoder.instance {
@@ -377,7 +378,8 @@ object SearchRoute {
       case sort: DistanceSort =>
         Json.obj(
           sort.field.name -> Json.obj(
-            "geopoint" -> LatLon.latLonCodec(sort.geopoint)
+            "lat" -> Json.fromDoubleOrNull(sort.lat),
+            "lon" -> Json.fromDoubleOrNull(sort.lon)
           )
         )
     }
@@ -397,17 +399,22 @@ object SearchRoute {
                 obj.keys.toList match {
                   case field :: Nil =>
                     for {
-                      order    <- c.downField(field).downField("order").as[Option[SortOrder]]
-                      missing  <- c.downField(field).downField("missing").as[Option[MissingValue]]
-                      geopoint <- c.downField(field).downField("geopoint").as[Option[LatLon]]
-                    } yield {
-                      geopoint match {
-                        case None =>
-                          FieldValueSort(StringName(field), order.getOrElse(Default), missing.getOrElse(Last))
-                        case Some(gp) =>
-                          DistanceSort(StringName(field), gp)
+                      orderOption   <- c.downField(field).downField("order").as[Option[SortOrder]]
+                      missingOption <- c.downField(field).downField("missing").as[Option[MissingValue]]
+                      latOption     <- c.downField(field).downField("lat").as[Option[Double]]
+                      lonOption     <- c.downField(field).downField("lon").as[Option[Double]]
+                      sort <- (orderOption, missingOption, latOption, lonOption) match {
+                        case (None, None, Some(lat), Some(lon)) => Right(DistanceSort(StringName(field), lat, lon))
+                        case (None, Some(m), Some(_), Some(_)) =>
+                          Left(DecodingFailure(s"distance sort cannot have a 'missing' option, but got $m", c.history))
+                        case (Some(o), _, Some(_), Some(_)) =>
+                          Left(DecodingFailure(s"distance sort cannot have an 'order' option, but got $o", c.history))
+                        case (order, missing, None, None) =>
+                          Right(FieldValueSort(StringName(field), order.getOrElse(Default), missing.getOrElse(Last)))
+                        case _ => Left(DecodingFailure(s"cannot decode sort predicate $obj", c.history))
                       }
-
+                    } yield {
+                      sort
                     }
                   case field :: tail =>
                     Left(DecodingFailure(s"sort object cannot contain multiple keys $field and $tail", c.history))

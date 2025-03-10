@@ -228,11 +228,11 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       case FieldValueSort(_, ASC, _)                        => false
       case FieldValueSort(_, Default, _)                    => false
       case FieldValueSort(_, DESC, _)                       => true
-      case DistanceSort(_, _)                               => false
+      case DistanceSort(_, _, _)                            => false
     }
     val missing = by match {
       case FieldValueSort(_, _, missing) => missing
-      case DistanceSort(_, _)            => MissingValue.Last
+      case DistanceSort(_, _, _)         => MissingValue.Last
     }
     index.mapping.fieldSchema(by.field.name) match {
       case Some(schema) if !schema.sort =>
@@ -250,8 +250,8 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
         by match {
           case _: FieldValueSort =>
             IO.raiseError(UserError(s"to sort by a geopoint, you need to pass lat and lon coordinates"))
-          case DistanceSort(field, geopoint) =>
-            IO.pure(GeopointField.sort(field, geopoint))
+          case DistanceSort(field, lat, lon) =>
+            IO.pure(GeopointField.sort(field, lat, lon))
         }
 
       case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, reverse))

@@ -60,9 +60,10 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
 
   def sort(
       field: FieldName,
-      geopoint: LatLon
+      lat: Double,
+      lon: Double
   ): SortField =
-    LatLonDocValuesField.newDistanceSort(field.name + SORT_SUFFIX, geopoint.lat, geopoint.lon)
+    LatLonDocValuesField.newDistanceSort(field.name + SORT_SUFFIX, lat, lon)
 
   case class Geopoint(lat: Double, lon: Double)
   object Geopoint {
