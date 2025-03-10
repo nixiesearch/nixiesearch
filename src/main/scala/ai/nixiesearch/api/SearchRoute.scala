@@ -1,21 +1,28 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.api.SearchRoute.SearchResponseFrame.{RAGResponseFrame, SearchResultsFrame}
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.Last
+import ai.nixiesearch.api.SearchRoute.SortPredicate.{MissingValue, SortOrder}
+import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, Default}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SearchResponseFrame, SuggestRequest}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.filter.Predicate.LatLon
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.aggregate.AggregationResult
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
-import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject, syntax}
 import org.http4s.{
   Charset,
   Entity,
@@ -35,6 +42,8 @@ import fs2.Stream
 import io.circe.syntax.*
 import org.http4s.headers.`Content-Type`
 import io.circe.syntax.*
+
+import scala.util.{Failure, Success}
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   given documentCodec: Codec[Document]                 = Document.codecFor(searcher.index.mapping)
@@ -146,7 +155,8 @@ object SearchRoute {
       size: Int = 10,
       fields: List[FieldName] = Nil,
       aggs: Option[Aggs] = None,
-      rag: Option[RAGRequest] = None
+      rag: Option[RAGRequest] = None,
+      sort: List[SortPredicate] = Nil
   )
   object SearchRequest {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
@@ -162,8 +172,9 @@ object SearchRoute {
         }
         aggs <- c.downField("aggs").as[Option[Aggs]]
         rag  <- c.downField("rag").as[Option[RAGRequest]]
+        sort <- c.downField("sort").as[Option[List[SortPredicate]]]
       } yield {
-        SearchRequest(query, filters, size, fields, aggs, rag)
+        SearchRequest(query, filters, size, fields, aggs, rag, sort.getOrElse(Nil))
       }
     )
   }
@@ -295,4 +306,124 @@ object SearchRoute {
   given suggestResponseEncJson: EntityEncoder[IO, SuggestResponse] = jsonEncoderOf
   given suggestResponseDecJson: EntityDecoder[IO, SuggestResponse] = jsonOf
 
+  sealed trait SortPredicate {
+    def field: FieldName
+    // def missing: MissingValue
+  }
+
+  object SortPredicate {
+    sealed trait SortOrder
+    object SortOrder {
+      case object ASC     extends SortOrder
+      case object DESC    extends SortOrder
+      case object Default extends SortOrder
+
+      given sortOrderEncoder: Encoder[SortOrder] = Encoder.encodeString.contramap {
+        case ASC     => "asc"
+        case DESC    => "desc"
+        case Default => "default"
+      }
+
+      given sortOrderDecoder: Decoder[SortOrder] = Decoder.decodeString.map(_.toLowerCase).emapTry {
+        case "asc"     => Success(SortOrder.ASC)
+        case "desc"    => Success(SortOrder.DESC)
+        case "default" => Success(SortOrder.Default)
+        case other     => Failure(UserError(s"sorting ordering '$other' not supported, try asc/desc/default"))
+      }
+    }
+
+    sealed trait MissingValue
+    object MissingValue {
+      case object First extends MissingValue
+      case object Last  extends MissingValue
+
+      def of[T](min: T, max: T, reverse: Boolean, missingValue: MissingValue): T = (missingValue, reverse) match {
+        case (First, false) => min
+        case (Last, false)  => max
+        case (First, true)  => max
+        case (Last, true)   => min
+      }
+
+      given missingValueEncoder: Encoder[MissingValue] = Encoder.encodeString.contramap {
+        case MissingValue.First => "first"
+        case MissingValue.Last  => "last"
+      }
+
+      given missingValueDecoder: Decoder[MissingValue] = Decoder.decodeString.map(_.toLowerCase).emapTry {
+        case "first" => Success(MissingValue.First)
+        case "last"  => Success(MissingValue.Last)
+        case other   => Failure(UserError(s"missing value type '$other' not supported, try first/last"))
+      }
+    }
+    case class FieldValueSort(
+        field: FieldName,
+        order: SortOrder = SortOrder.Default,
+        missing: MissingValue = MissingValue.Last
+    ) extends SortPredicate
+
+    case class DistanceSort(
+        field: FieldName,
+        lat: Double,
+        lon: Double
+    ) extends SortPredicate
+
+    given sortPredicateEncoder: Encoder[SortPredicate] = Encoder.instance {
+      case sort: FieldValueSort =>
+        Json.obj(
+          sort.field.name -> Json.obj(
+            "order"   -> SortOrder.sortOrderEncoder(sort.order),
+            "missing" -> MissingValue.missingValueEncoder(sort.missing)
+          )
+        )
+      case sort: DistanceSort =>
+        Json.obj(
+          sort.field.name -> Json.obj(
+            "lat" -> Json.fromDoubleOrNull(sort.lat),
+            "lon" -> Json.fromDoubleOrNull(sort.lon)
+          )
+        )
+    }
+
+    given sortPredicateDecoder: Decoder[SortPredicate] = Decoder.instance { c =>
+      {
+        c.focus match {
+          case None => Left(DecodingFailure("sort object cannot be empty", c.history))
+          case Some(json) =>
+            json.fold(
+              jsonNull = Left(DecodingFailure("sort object cannot be null", c.history)),
+              jsonBoolean = _ => Left(DecodingFailure("sort object cannot be boolean", c.history)),
+              jsonNumber = _ => Left(DecodingFailure("sort object cannot be a number", c.history)),
+              jsonString = str => Right(FieldValueSort(StringName(str))),
+              jsonArray = _ => Left(DecodingFailure("sort object cannot be a list", c.history)),
+              jsonObject = obj =>
+                obj.keys.toList match {
+                  case field :: Nil =>
+                    for {
+                      orderOption   <- c.downField(field).downField("order").as[Option[SortOrder]]
+                      missingOption <- c.downField(field).downField("missing").as[Option[MissingValue]]
+                      latOption     <- c.downField(field).downField("lat").as[Option[Double]]
+                      lonOption     <- c.downField(field).downField("lon").as[Option[Double]]
+                      sort <- (orderOption, missingOption, latOption, lonOption) match {
+                        case (None, None, Some(lat), Some(lon)) => Right(DistanceSort(StringName(field), lat, lon))
+                        case (None, Some(m), Some(_), Some(_)) =>
+                          Left(DecodingFailure(s"distance sort cannot have a 'missing' option, but got $m", c.history))
+                        case (Some(o), _, Some(_), Some(_)) =>
+                          Left(DecodingFailure(s"distance sort cannot have an 'order' option, but got $o", c.history))
+                        case (order, missing, None, None) =>
+                          Right(FieldValueSort(StringName(field), order.getOrElse(Default), missing.getOrElse(Last)))
+                        case _ => Left(DecodingFailure(s"cannot decode sort predicate $obj", c.history))
+                      }
+                    } yield {
+                      sort
+                    }
+                  case field :: tail =>
+                    Left(DecodingFailure(s"sort object cannot contain multiple keys $field and $tail", c.history))
+                  case Nil => Left(DecodingFailure("sort object cannot be nil", c.history))
+                }
+            )
+        }
+
+      }
+    }
+  }
 }

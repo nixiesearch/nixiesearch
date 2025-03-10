@@ -1,11 +1,14 @@
 package ai.nixiesearch.core.field
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, IntFieldSchema}
+import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.codec.FieldCodec
 import io.circe.{ACursor, Decoder, Encoder, Json}
 import io.circe.Decoder.Result
 import org.apache.lucene.document.Document
+import org.apache.lucene.search.SortField
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -58,5 +61,8 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
     val days  = ChronoUnit.DAYS.between(epoch, date).toInt
     new DateField(name, days)
   }
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField =
+    IntField.sort(field, reverse, missing)
 
 }

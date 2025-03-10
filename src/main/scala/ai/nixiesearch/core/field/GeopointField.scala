@@ -1,14 +1,19 @@
 package ai.nixiesearch.core.field
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
+import ai.nixiesearch.api.filter.Predicate.LatLon
 import ai.nixiesearch.config.FieldSchema.GeopointFieldSchema
+import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
-import org.apache.lucene.document.{Document, LatLonPoint, StoredField}
+import org.apache.lucene.document.{Document, LatLonDocValuesField, LatLonPoint, StoredField}
 import org.apache.lucene.util.BytesRef
 import io.circe.generic.semiauto.*
+import org.apache.lucene.search.SortField
 
 import java.nio.ByteBuffer
 
@@ -30,6 +35,9 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
     if (spec.filter) {
       buffer.add(new LatLonPoint(field.name, field.lat, field.lon))
     }
+    if (spec.sort) {
+      buffer.add(new LatLonDocValuesField(field.name + SORT_SUFFIX, field.lat, field.lon))
+    }
   }
 
   override def readLucene(
@@ -49,6 +57,13 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
 
   override def encodeJson(field: GeopointField): Json =
     Json.obj("lat" -> Json.fromDoubleOrNull(field.lat), "lon" -> Json.fromDoubleOrNull(field.lon))
+
+  def sort(
+      field: FieldName,
+      lat: Double,
+      lon: Double
+  ): SortField =
+    LatLonDocValuesField.newDistanceSort(field.name + SORT_SUFFIX, lat, lon)
 
   case class Geopoint(lat: Double, lon: Double)
   object Geopoint {

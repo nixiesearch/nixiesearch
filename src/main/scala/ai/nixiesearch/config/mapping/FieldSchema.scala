@@ -112,9 +112,9 @@ object FieldSchema {
   case class GeopointFieldSchema(
       name: FieldName,
       store: Boolean = true,
+      sort: Boolean = false,
       filter: Boolean = false
   ) extends FieldSchema[GeopointField] {
-    def sort  = false
     def facet = false
   }
 
@@ -264,9 +264,10 @@ object FieldSchema {
     def geopointFieldSchemaDecoder(name: FieldName): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
       for {
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
         filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        GeopointFieldSchema(name, store, filter)
+        GeopointFieldSchema(name, store, sort, filter)
       }
     )
 
@@ -315,7 +316,16 @@ object FieldSchema {
     given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] = deriveDecoder
     given boolFieldSchemaEncoder: Encoder[BooleanFieldSchema] = deriveEncoder
 
-    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = deriveDecoder
+    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = Decoder.instance(c =>
+      for {
+        name   <- c.downField("name").as[FieldName]
+        store  <- c.downField("store").as[Boolean]
+        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false)) // compat with 0.4
+        filter <- c.downField("filter").as[Boolean]
+      } yield {
+        GeopointFieldSchema(name, store, sort, filter)
+      }
+    )
     given geopointFieldSchemaEncoder: Encoder[GeopointFieldSchema] = deriveEncoder
 
     given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = deriveDecoder

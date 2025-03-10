@@ -1,8 +1,10 @@
 package ai.nixiesearch.core.field
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
+import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
-import ai.nixiesearch.config.mapping.{Language, SearchType, SuggestSchema}
+import ai.nixiesearch.config.mapping.{FieldName, Language, SearchType, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch, SemanticSearch, SemanticSearchLikeType}
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
@@ -19,6 +21,7 @@ import org.apache.lucene.document.{
   Document as LuceneDocument
 }
 import org.apache.lucene.index.VectorSimilarityFunction
+import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
@@ -29,8 +32,6 @@ case class TextField(name: String, value: String) extends Field with TextLikeFie
 object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
-  val RAW_SUFFIX            = "$raw"
-  val SUGGEST_SUFFIX        = "$suggest"
 
   override def writeLucene(
       field: TextField,
@@ -43,10 +44,10 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     }
     if (spec.facet || spec.sort) {
       val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
-      buffer.add(new SortedDocValuesField(field.name, new BytesRef(field.value)))
+      buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
     }
-    if (spec.filter || spec.facet) {
-      buffer.add(new StringField(field.name + RAW_SUFFIX, field.value, Store.NO))
+    if (spec.filter) {
+      buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
     }
     spec.search match {
       case _: SemanticSearch | _: LexicalSearch =>
@@ -86,4 +87,12 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     Right(TextField(name, value))
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+    val sortField = new SortField(field.name, SortField.Type.STRING, reverse)
+    sortField.setMissingValue(
+      MissingValue.of(min = SortField.STRING_FIRST, max = SortField.STRING_LAST, reverse, missing)
+    )
+    sortField
+  }
 }

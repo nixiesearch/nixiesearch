@@ -1,7 +1,7 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.api.SearchRoute
-import ai.nixiesearch.api.SearchRoute.SearchRequest
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SortPredicate}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.{MatchAllQuery, Query}
@@ -22,10 +22,11 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       filters: Option[Filters] = None,
       aggs: Option[Aggs] = None,
       fields: List[String] = List("_id"),
+      sort: List[SortPredicate] = Nil,
       n: Int = 10
   ): List[String] = {
     searcher
-      .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs))
+      .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs, sort = sort))
       .unsafeRunSync()
       .hits
       .flatMap(_.fields.collect { case TextField(_, value) => value })
@@ -36,10 +37,11 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       filters: Option[Filters] = None,
       aggs: Option[Aggs] = None,
       fields: List[String] = List("_id"),
+      sort: List[SortPredicate] = Nil,
       n: Int = 10
   ): SearchRoute.SearchResponse = {
     searcher
-      .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs))
+      .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs, sort = sort))
       .unsafeRunSync()
   }
 

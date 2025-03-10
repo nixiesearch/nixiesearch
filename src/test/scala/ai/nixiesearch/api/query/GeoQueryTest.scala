@@ -9,37 +9,21 @@ import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.Distance.DistanceUnit.Kilometer
-import ai.nixiesearch.util.{Distance, SearchTest, TestInferenceConfig}
+import ai.nixiesearch.util.{CitiesDataset, Distance, SearchTest, TestInferenceConfig}
 import cats.effect.IO
 import org.scalatest.matchers.should.Matchers
 import fs2.io.readInputStream
 import io.circe.parser.*
 import cats.effect.unsafe.implicits.global
+
 import java.util.zip.GZIPInputStream
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
 class GeoQueryTest extends SearchTest with Matchers {
   override val inference = TestInferenceConfig.empty()
-  val mapping = IndexMapping(
-    name = IndexName("cities"),
-    fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
-      TextFieldSchema(StringName("city"), facet = true),
-      TextFieldSchema(StringName("country"), facet = true),
-      GeopointFieldSchema(StringName("location"), filter = true)
-    ),
-    store = LocalStoreConfig(MemoryLocation())
-  )
+  val mapping            = CitiesDataset.mapping
 
-  lazy val docs =
-    readInputStream(IO(new GZIPInputStream(getClass.getResourceAsStream("/datasets/cities/cities.json.gz"))), 1024)
-      .through(fs2.text.utf8.decode)
-      .through(fs2.text.lines)
-      .filter(_.nonEmpty)
-      .evalMap(line => IO.fromEither(decode[Document](line)))
-      .compile
-      .toList
-      .unsafeRunSync()
+  lazy val docs = CitiesDataset()
 
   it should "select cities close to berlin" in withIndex { index =>
     {
@@ -47,7 +31,7 @@ class GeoQueryTest extends SearchTest with Matchers {
         index.searchRaw(
           MatchAllQuery(),
           filters = Some(
-            Filters(include = Some(GeoDistancePredicate("location", LatLon(52.52, 13.4049), Distance(200, Kilometer))))
+            Filters(include = Some(GeoDistancePredicate("location", CitiesDataset.BERLIN, Distance(200, Kilometer))))
           ),
           fields = List("city"),
           n = 4

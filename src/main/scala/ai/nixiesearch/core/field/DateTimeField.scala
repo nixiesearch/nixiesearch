@@ -1,11 +1,14 @@
 package ai.nixiesearch.core.field
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.config.FieldSchema.DateTimeFieldSchema
+import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.codec.FieldCodec
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, Encoder, Json}
 import org.apache.lucene.document.Document
+import org.apache.lucene.search.SortField
 
 import java.time.{Instant, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
@@ -50,4 +53,7 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
   def writeString(millis: Long): String = {
     Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_INSTANT)
   }
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField =
+    LongField.sort(field, reverse, missing)
 }
