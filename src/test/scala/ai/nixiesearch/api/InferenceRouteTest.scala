@@ -1,5 +1,6 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
@@ -16,7 +17,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response =
         send[EmbeddingInferenceRequest, EmbeddingInferenceResponse](
-          InferenceRoute(index.indexer.index.models).routes,
+          InferenceRoute(index.indexer.index.models, Metrics()).routes,
           "http://localhost/inference/embedding/text",
           Some(EmbeddingInferenceRequest(List(EmbeddingDocument("hello world")))),
           Method.POST
@@ -29,7 +30,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response =
         send[CompletionRequest, CompletionResponse](
-          InferenceRoute(index.indexer.index.models).routes,
+          InferenceRoute(index.indexer.index.models, Metrics()).routes,
           "http://localhost/inference/completion/qwen2",
           Some(CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10)),
           Method.POST
@@ -42,7 +43,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response =
         send[CompletionRequest, String](
-          InferenceRoute(index.indexer.index.models).routes,
+          InferenceRoute(index.indexer.index.models, Metrics()).routes,
           "http://localhost/inference/completion/qwen2",
           Some(
             CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10, stream = true)

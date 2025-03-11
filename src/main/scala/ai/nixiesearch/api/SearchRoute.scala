@@ -18,24 +18,13 @@ import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.aggregate.AggregationResult
-import ai.nixiesearch.core.metrics.SearchMetrics
+import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject, syntax}
-import org.http4s.{
-  Charset,
-  Entity,
-  EntityDecoder,
-  EntityEncoder,
-  Headers,
-  HttpRoutes,
-  MediaType,
-  Request,
-  Response,
-  Status
-}
+import org.http4s.{Charset, Entity, EntityDecoder, EntityEncoder, Headers, HttpRoutes, MediaType, Request, Response, Status}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*
@@ -43,6 +32,7 @@ import fs2.Stream
 import io.circe.syntax.*
 import org.http4s.headers.`Content-Type`
 import io.circe.syntax.*
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 
 import scala.util.{Failure, Success}
 

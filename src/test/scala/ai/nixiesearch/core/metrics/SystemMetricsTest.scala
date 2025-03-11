@@ -18,7 +18,7 @@ class SystemMetricsTest extends AnyFlatSpec with Matchers {
   }
 
   it should "refresh system metrics" in {
-    val m = SystemMetrics()
+    val m = SystemMetrics(Metrics().registry)
     m.refresh().unsafeRunSync()
   }
 }

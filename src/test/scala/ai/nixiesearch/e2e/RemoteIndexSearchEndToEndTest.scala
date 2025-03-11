@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SearchRequest
 import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.config.mapping.IndexName
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.DatasetLoader
@@ -23,7 +24,7 @@ class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
   it should "write index to s3" taggedAs (EndToEnd.Index) in {
     val (models, modelsShutdown)   = Models.create(conf.inference, CacheConfig()).allocated.unsafeRunSync()
     val (master, masterShutdown)   = Index.forIndexing(mapping, models).allocated.unsafeRunSync()
-    val (indexer, indexerShutdown) = Indexer.open(master).allocated.unsafeRunSync()
+    val (indexer, indexerShutdown) = Indexer.open(master, Metrics()).allocated.unsafeRunSync()
     val docs = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
     indexer.addDocuments(docs).unsafeRunSync()
     indexer.flush().unsafeRunSync()
@@ -36,7 +37,7 @@ class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
   it should "search from s3" taggedAs (EndToEnd.Index) in {
     val (models, modelsShutdown)     = Models.create(conf.inference, CacheConfig()).allocated.unsafeRunSync()
     val (slave, slaveShutdown)       = Index.forSearch(mapping, models).allocated.unsafeRunSync()
-    val (searcher, searcherShutdown) = Searcher.open(slave).allocated.unsafeRunSync()
+    val (searcher, searcherShutdown) = Searcher.open(slave, Metrics()).allocated.unsafeRunSync()
     val response                     = searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
     response.hits.size shouldBe 10
     searcherShutdown.unsafeRunSync()

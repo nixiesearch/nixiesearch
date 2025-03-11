@@ -5,6 +5,7 @@ import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.util.{TestDocument, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -21,7 +22,7 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
       .allocated
       .unsafeRunSync()
 
-    val (searcher, searcherShutdown) = Searcher.open(localIndex).allocated.unsafeRunSync()
+    val (searcher, searcherShutdown) = Searcher.open(localIndex, Metrics()).allocated.unsafeRunSync()
     a[BackendError] shouldBe thrownBy {
       searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
 
@@ -38,11 +39,11 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
       .allocated
       .unsafeRunSync()
 
-    val (writer, writerShutdown) = Indexer.open(localIndex).allocated.unsafeRunSync()
+    val (writer, writerShutdown) = Indexer.open(localIndex, Metrics()).allocated.unsafeRunSync()
     writer.addDocuments(List(TestDocument())).unsafeRunSync()
     writer.flush().unsafeRunSync()
 
-    val (searcher, searcherShutdown) = Searcher.open(localIndex).allocated.unsafeRunSync()
+    val (searcher, searcherShutdown) = Searcher.open(localIndex, Metrics()).allocated.unsafeRunSync()
     val response                     = searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()
     response.hits.size shouldBe 1
     writerShutdown.unsafeRunSync()

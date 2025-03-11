@@ -2,15 +2,7 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
-import ai.nixiesearch.api.SearchRoute.{
-  RAGRequest,
-  RAGResponse,
-  SearchRequest,
-  SearchResponse,
-  SortPredicate,
-  SuggestRequest,
-  SuggestResponse
-}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SortPredicate, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
@@ -23,25 +15,14 @@ import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{
-  IndexSearcher,
-  MultiCollectorManager,
-  ScoreDoc,
-  Sort,
-  SortField,
-  TopDocs,
-  TopFieldCollectorManager,
-  TopScoreDocCollectorManager,
-  TotalHits,
-  Query as LuceneQuery
-}
+import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
 import cats.implicits.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
-import ai.nixiesearch.core.metrics.SearchMetrics
+import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
@@ -57,11 +38,9 @@ import org.apache.lucene.document.LatLonDocValuesField
 import scala.collection.mutable
 import language.experimental.namedTuples
 
-case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends Logging {
+case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics: Metrics) extends Logging {
 
   def name = index.mapping.name
-
-  val metrics = SearchMetrics(name.value)
 
   def sync(): IO[Unit] = for {
     readers      <- getReadersOrFail()
@@ -70,13 +49,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       newReaders <- Readers.reopen(readers.reader, ondiskSeqnum)
       _          <- readersRef.set(Some(newReaders))
       _          <- info(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
-      _          <- IO(metrics.docs.set(newReaders.reader.numDocs()))
     } yield {})
   } yield {}
 
   def suggest(request: SuggestRequest): IO[SuggestResponse] = for {
     start     <- IO(System.currentTimeMillis())
-    _         <- IO(metrics.activeQueries.inc())
+    _         <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
     suggester <- getReadersOrFail().map(_.suggester)
     fieldSuggestions <- Stream
       .emits(request.fields)
@@ -95,9 +73,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       .toList
     ranked <- SuggestionRanker().rank(fieldSuggestions, request)
     end    <- IO(System.currentTimeMillis())
-    _      <- IO(metrics.suggestTotal.inc())
-    _      <- IO(metrics.suggestTimeSeconds.inc((end - start) / 1000.0))
-    _      <- IO(metrics.activeQueries.dec())
+    _      <- IO(metrics.search.suggestTotal.labelValues(index.name.value).inc())
+    _      <- IO(metrics.search.suggestTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
+    _      <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
 
   } yield {
     SuggestResponse(
@@ -108,7 +86,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
     start <- IO(System.currentTimeMillis())
-    _     <- IO(metrics.activeQueries.inc())
+    _     <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
 
     queries <- request.query match {
       case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
@@ -137,9 +115,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     aggs          <- aggregate(index.mapping, mergedFacets, request.aggs)
     collected     <- collect(index.mapping, mergedTopDocs, request.fields)
     end           <- IO(System.currentTimeMillis())
-    _             <- IO(metrics.searchTimeSeconds.inc((end - start) / 1000.0))
-    _             <- IO(metrics.searchTotal.inc())
-    _             <- IO(metrics.activeQueries.dec())
+    _             <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
+    _             <- IO(metrics.search.searchTotal.labelValues(index.name.value).inc())
+    _             <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
   } yield {
     SearchResponse(
       took = end - start,
@@ -152,7 +130,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   def rag(docs: List[Document], request: RAGRequest): Stream[IO, RAGResponse] = {
     val start = System.currentTimeMillis()
     val stream = for {
-      _ <- Stream.eval(IO(metrics.activeQueries.inc()))
+      _ <- Stream.eval(IO(metrics.search.activeQueries.labelValues(index.name.value).inc()))
 
       prompt <- Stream.eval(
         index.models.generative.prompt(
@@ -175,9 +153,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       .through(StreamMark.pipe[RAGResponse](tail = tok => tok.copy(last = true)))
       .onFinalize(for {
         end <- IO(System.currentTimeMillis())
-        _   <- IO(metrics.ragTimeSeconds.inc((end - start) / 1000.0))
-        _   <- IO(metrics.ragTotal.inc())
-        _   <- IO(metrics.activeQueries.dec())
+        _   <- IO(metrics.search.ragTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
+        _   <- IO(metrics.search.ragTotal.labelValues(index.name.value).inc())
+        _   <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
       } yield {})
   }
 
@@ -423,12 +401,12 @@ object Searcher extends Logging {
   }
 
   case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
-  def open(index: Index): Resource[IO, Searcher] = {
+  def open(index: Index, metrics: Metrics): Resource[IO, Searcher] = {
     for {
 
       _          <- Resource.eval(info(s"opening index ${index.name.value}"))
       readersRef <- Resource.eval(Ref.of[IO, Option[Readers]](None))
-      searcher   <- Resource.make(IO.pure(Searcher(index, readersRef)))(s => s.close())
+      searcher   <- Resource.make(IO.pure(Searcher(index, readersRef, metrics)))(s => s.close())
     } yield {
       searcher
     }

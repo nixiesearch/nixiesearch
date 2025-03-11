@@ -4,17 +4,23 @@ import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, InferenceConfig}
 import ai.nixiesearch.core.Error.UserError
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.{Logging, PrintProgress}
 import ai.nixiesearch.index.{Indexer, Models}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{ApiIndexSourceArgs, FileIndexSourceArgs, KafkaIndexSourceArgs}
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
+  ApiIndexSourceArgs,
+  FileIndexSourceArgs,
+  KafkaIndexSourceArgs
+}
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import fs2.Stream
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.http4s.HttpRoutes
 
 object IndexMode extends Logging {
@@ -43,9 +49,10 @@ object IndexMode extends Logging {
           .fromOption(indexes.find(_.name.value == index))(UserError(s"index '${index} not found in mapping'"))
       )
       _       <- Resource.eval(debug(s"found index mapping for index '${indexMapping.name}'"))
+      metrics <- Resource.pure(Metrics())
       models  <- Models.create(inference, cacheConfig)
       index   <- Index.forIndexing(indexMapping, models)
-      indexer <- Indexer.open(index)
+      indexer <- Indexer.open(index, metrics)
     } yield {
       indexer
     }
@@ -69,23 +76,25 @@ object IndexMode extends Logging {
 
   def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = {
     val server = for {
-      _      <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API"))
-      models <- Models.create(config.inference, config.core.cache)
+      _       <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API"))
+      models  <- Models.create(config.inference, config.core.cache)
+      metrics <- Resource.pure(Metrics())
       indexers <- indexes
         .map(im =>
           for {
             index   <- Index.forIndexing(im, models)
-            indexer <- Indexer.open(index)
+            indexer <- Indexer.open(index, metrics)
             _       <- PeriodicFlushStream.run(index, indexer)
           } yield { indexer }
         )
         .sequence
+
       routes = List(
         indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes),
         List(HealthRoute().routes),
         List(AdminRoute(config).routes),
         List(MainRoute().routes),
-        List(MetricsRoute().routes)
+        List(MetricsRoute(metrics).routes)
       ).flatten.reduce(_ <+> _)
       api <- API.start(routes, source.host, source.port)
       _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)

@@ -11,6 +11,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.sync.LocalIndex
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import cats.effect.{IO, Resource}
@@ -51,8 +52,9 @@ object LocalNixie {
   def create(mapping: IndexMapping, inference: InferenceConfig): Resource[IO, LocalNixie] = for {
     models   <- Models.create(inference, CacheConfig())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), models)
-    indexer  <- Indexer.open(index)
-    searcher <- Searcher.open(index)
+    metrics  <- Resource.pure(Metrics())
+    indexer  <- Indexer.open(index, metrics)
+    searcher <- Searcher.open(index, metrics)
   } yield {
     LocalNixie(searcher, indexer)
   }

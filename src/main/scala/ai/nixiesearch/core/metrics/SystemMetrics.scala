@@ -4,6 +4,8 @@ import ai.nixiesearch.core.metrics.SystemMetrics.{DiskUsage, LoadAvg}
 import cats.effect.IO
 import com.sun.management.OperatingSystemMXBean
 import io.prometheus.metrics.core.metrics.Gauge
+import io.prometheus.metrics.instrumentation.jvm.JvmMetrics
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 
 import java.io.FileInputStream
 import java.lang.management.ManagementFactory
@@ -11,33 +13,39 @@ import java.nio.file.{FileSystems, Files, Paths}
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
-case class SystemMetrics() {
+case class SystemMetrics(registry: PrometheusRegistry) {
+  JvmMetrics.builder().register(registry)
+
   val os: OperatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean.asInstanceOf[OperatingSystemMXBean]
-  val cpuPercent = Gauge.builder().name("nixiesearch_os_cpu_percent").help("Percent CPU used by the OS").register()
-  val cpuLoad1   = Gauge.builder().name("nixiesearch_os_cpu_load1").help("1-minute system load average").register()
-  val cpuLoad5   = Gauge.builder().name("nixiesearch_os_cpu_load5").help("1-minute system load average").register()
-  val cpuLoad15  = Gauge.builder().name("nixiesearch_os_cpu_load15").help("1-minute system load average").register()
+  val cpuPercent =
+    Gauge.builder().name("nixiesearch_os_cpu_percent").help("Percent CPU used by the OS").register(registry)
+  val cpuLoad1 =
+    Gauge.builder().name("nixiesearch_os_cpu_load1").help("1-minute system load average").register(registry)
+  val cpuLoad5 =
+    Gauge.builder().name("nixiesearch_os_cpu_load5").help("1-minute system load average").register(registry)
+  val cpuLoad15 =
+    Gauge.builder().name("nixiesearch_os_cpu_load15").help("1-minute system load average").register(registry)
 
   val dataAvailableBytes = Gauge
     .builder()
     .name("nixiesearch_fs_data_available_bytes")
     .help("Available space on device")
     .labelNames("device")
-    .register()
+    .register(registry)
 
   val dataFreeBytes = Gauge
     .builder()
     .name("nixiesearch_fs_data_free_bytes")
     .help("Free space on device")
     .labelNames("device")
-    .register()
+    .register(registry)
 
   val dataSizeBytes = Gauge
     .builder()
     .name("nixiesearch_fs_data_size_bytes")
     .help("Size of the device")
     .labelNames("device")
-    .register()
+    .register(registry)
 
   def refresh(): IO[Unit] = for {
     _             <- IO(cpuPercent.set(os.getCpuLoad))

@@ -13,7 +13,7 @@ import ai.nixiesearch.core.codec.*
 import ai.nixiesearch.core.codec.compat.{Nixiesearch101Codec, Nixiesearch912Codec}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
-import ai.nixiesearch.core.metrics.IndexerMetrics
+import ai.nixiesearch.core.metrics.{IndexerMetrics, Metrics}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
@@ -26,14 +26,13 @@ import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
 import cats.implicits.*
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.lucene.search.MatchAllDocsQuery
 
 import language.experimental.namedTuples
 import scala.collection.mutable.ArrayBuffer
 
-case class Indexer(index: Index, writer: IndexWriter) extends Logging {
-
-  lazy val metrics = IndexerMetrics(index.name.value)
+case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends Logging {
 
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
@@ -163,10 +162,14 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
           _ <- debug(
             s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
           )
-          _      <- IO(metrics.flushTotal.inc())
+          _      <- IO(metrics.indexer.flushTotal.labelValues(index.name.value).inc())
           start  <- IO(System.currentTimeMillis())
           seqnum <- IO(writer.commit())
-          _      <- IO(metrics.flushTimeSeconds.inc((System.currentTimeMillis() - start) / 1000.0))
+          _ <- IO(
+            metrics.indexer.flushTimeSeconds
+              .labelValues(index.name.value)
+              .inc((System.currentTimeMillis() - start) / 1000.0)
+          )
           result <- seqnum match {
             case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
             case posSeqNum =>
@@ -228,10 +231,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
 }
 
 object Indexer extends Logging {
-  def open(index: Index): Resource[IO, Indexer] = {
+  def open(index: Index, metrics: Metrics): Resource[IO, Indexer] = {
     for {
       writer <- indexWriter(index.directory, index.mapping, index.mapping.config)
-      niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.flush().void)
+      niw    <- Resource.make(IO(Indexer(index, writer, metrics)))(i => i.flush().void)
     } yield {
       niw
     }
