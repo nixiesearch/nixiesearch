@@ -50,7 +50,8 @@ object SearchMode extends Logging {
       List(AdminRoute(config).routes),
       List(MainRoute().routes),
       List(TypicalErrorsRoute(searchers.map(_.index.name.value)).routes),
-      List(InferenceRoute(models).routes)
+      List(InferenceRoute(models).routes),
+      List(MetricsRoute().routes)
     ).flatten.reduce(_ <+> _)
     api <- API.start(routes, config.core.host, config.core.port)
     _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)

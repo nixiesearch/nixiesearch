@@ -1,6 +1,6 @@
 package ai.nixiesearch.main.subcommands
 
-import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute}
+import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute, MetricsRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, InferenceConfig}
 import ai.nixiesearch.core.Error.UserError
@@ -8,11 +8,7 @@ import ai.nixiesearch.core.{Logging, PrintProgress}
 import ai.nixiesearch.index.{Indexer, Models}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{
-  ApiIndexSourceArgs,
-  FileIndexSourceArgs,
-  KafkaIndexSourceArgs
-}
+import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.{ApiIndexSourceArgs, FileIndexSourceArgs, KafkaIndexSourceArgs}
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
@@ -88,7 +84,8 @@ object IndexMode extends Logging {
         indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes),
         List(HealthRoute().routes),
         List(AdminRoute(config).routes),
-        List(MainRoute().routes)
+        List(MainRoute().routes),
+        List(MetricsRoute().routes)
       ).flatten.reduce(_ <+> _)
       api <- API.start(routes, source.host, source.port)
       _   <- Resource.eval(Logo.lines.map(line => info(line)).sequence)

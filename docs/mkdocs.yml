@@ -165,6 +165,7 @@ nav:
             - Kubernetes: deployment/distributed/kubernetes.md
             - GPU support: deployment/distributed/gpu.md
             - Caching: reference/cache.md
+            - Prometheus monitoring: deployment/distributed/prometheus.md
     - Reference:
         - Config file: reference/config.md
         - CLI options:

@@ -36,7 +36,8 @@ object StandaloneMode extends Logging {
       List(AdminRoute(config).routes),
       List(MainRoute().routes),
       List(HealthRoute().routes),
-      List(InferenceRoute(models).routes)
+      List(InferenceRoute(models).routes),
+      List(MetricsRoute().routes)
     ).flatten.reduce(_ <+> _)
     server <- API.start(routes, config.core.host, config.core.port)
     _      <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
