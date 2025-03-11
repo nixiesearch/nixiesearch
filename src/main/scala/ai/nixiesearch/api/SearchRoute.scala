@@ -18,6 +18,7 @@ import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.aggregate.AggregationResult
+import ai.nixiesearch.core.metrics.SearchMetrics
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher

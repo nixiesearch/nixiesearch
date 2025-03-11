@@ -13,6 +13,7 @@ import ai.nixiesearch.core.codec.*
 import ai.nixiesearch.core.codec.compat.{Nixiesearch101Codec, Nixiesearch912Codec}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
+import ai.nixiesearch.core.metrics.IndexerMetrics
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
@@ -31,6 +32,8 @@ import language.experimental.namedTuples
 import scala.collection.mutable.ArrayBuffer
 
 case class Indexer(index: Index, writer: IndexWriter) extends Logging {
+
+  lazy val metrics = IndexerMetrics(index.name.value)
 
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
@@ -156,20 +159,31 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
     IO((writer.numRamDocs() > 0) || writer.hasDeletions || writer.hasUncommittedChanges).flatMap {
       case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
       case true =>
-        debug(
-          s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
-        ) *> IO(writer.commit()).flatMap {
-          case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
-          case seqnum =>
-            for {
-              _        <- info(s"index '${index.name.value}' commit, seqnum=$seqnum")
-              manifest <- index.master.createManifest(index.mapping, seqnum)
-              _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
-              _        <- index.master.writeManifest(manifest)
-            } yield {
-              true
-            }
+        for {
+          _ <- debug(
+            s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
+          )
+          _      <- IO(metrics.flushTotal.inc())
+          start  <- IO(System.currentTimeMillis())
+          seqnum <- IO(writer.commit())
+          _      <- IO(metrics.flushTimeSeconds.inc((System.currentTimeMillis() - start) / 1000.0))
+          result <- seqnum match {
+            case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+            case posSeqNum =>
+              for {
+                _        <- info(s"index '${index.name.value}' commit, seqnum=$posSeqNum")
+                manifest <- index.master.createManifest(index.mapping, posSeqNum)
+                _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
+                _        <- index.master.writeManifest(manifest)
+              } yield {
+                true
+              }
+
+          }
+        } yield {
+          result
         }
+
     }
   }
 

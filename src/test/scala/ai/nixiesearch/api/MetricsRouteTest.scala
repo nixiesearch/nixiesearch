@@ -17,5 +17,7 @@ class MetricsRouteTest extends AnyFlatSpec with Matchers {
     response.map(_.status.code) shouldBe Some(200)
     val text = response.get.as[String].unsafeRunSync().split('\n')
     text.length should be > 100
+    val nixieMetrics = text.filter(_.startsWith("nixiesearch"))
+    nixieMetrics.length should be > 1
   }
 }

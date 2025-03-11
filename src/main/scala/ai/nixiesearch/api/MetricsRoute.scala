@@ -1,5 +1,6 @@
 package ai.nixiesearch.api
 
+import ai.nixiesearch.core.metrics.SystemMetrics
 import cats.effect.IO
 import org.http4s.{Headers, HttpRoutes, MediaType, Response, Status}
 import org.http4s.dsl.io.*
@@ -16,15 +17,22 @@ import java.nio.ByteBuffer
 
 case class MetricsRoute(registry: PrometheusRegistry = PrometheusRegistry.defaultRegistry) {
   lazy val format = new PrometheusTextFormatWriter(false)
+  lazy val system = SystemMetrics()
 
   val routes = HttpRoutes.of[IO] { case GET -> Root / "metrics" =>
-    IO(
-      Response[IO](
-        status = Status.Ok,
-        headers = Headers(`Content-Type`(MediaType.text.plain)),
-        entity = Strict(ByteVector(writeMetrics()))
+    for {
+      _ <- system.refresh()
+      ok <- IO(
+        Response[IO](
+          status = Status.Ok,
+          headers = Headers(`Content-Type`(MediaType.text.plain)),
+          entity = Strict(ByteVector(writeMetrics()))
+        )
       )
-    )
+
+    } yield {
+      ok
+    }
   }
 
   def writeMetrics(): Array[Byte] = {

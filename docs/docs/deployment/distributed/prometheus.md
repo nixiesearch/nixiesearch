@@ -1,6 +1,29 @@
 # Prometheus metrics
 
-Nixiesearch exposes a [Prometheus](https://prometheus.io/docs/introduction/overview/)-compatible metrics exposed on the `/metrics` endpoint. The [same port as for REST API](../../reference/config.md#core-config) (8080 by default) is used for serving.
+Nixiesearch exposes a [Prometheus](https://prometheus.io/docs/introduction/overview/)-compatible metrics exposed on the `/metrics` endpoint. The [same port as for REST API](../../reference/config.md#core-config) (8080 by default) is used for serving. Raw metrics values can be inspected with the following cURL request:
+
+```shell
+curl http://localhost:8080/metrics
+```
+
+
+```
+# HELP jvm_threads_state Current count of threads by state
+# TYPE jvm_threads_state gauge
+jvm_threads_state{state="BLOCKED"} 0.0
+jvm_threads_state{state="NEW"} 0.0
+jvm_threads_state{state="RUNNABLE"} 6.0
+jvm_threads_state{state="TERMINATED"} 0.0
+jvm_threads_state{state="TIMED_WAITING"} 7.0
+jvm_threads_state{state="UNKNOWN"} 0.0
+jvm_threads_state{state="WAITING"} 14.0
+
+# HELP nixiesearch_fs_data_available_bytes Available space on device
+# TYPE nixiesearch_fs_data_available_bytes gauge
+nixiesearch_fs_data_available_bytes{device="/dev/mapper/private"} 3.1363534848E10
+nixiesearch_fs_data_available_bytes{device="/dev/nvme0n1p2"} 6.05224292352E11
+nixiesearch_fs_data_available_bytes{device="/dev/root"} 4.886433792E9
+```
 
 ## Collecting metrics
 

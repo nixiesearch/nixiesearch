@@ -41,6 +41,7 @@ import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, Se
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.metrics.SearchMetrics
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
 import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
@@ -60,6 +61,8 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
 
   def name = index.mapping.name
 
+  val metrics = SearchMetrics(name.value)
+
   def sync(): IO[Unit] = for {
     readers      <- getReadersOrFail()
     ondiskSeqnum <- index.seqnum.get
@@ -67,11 +70,13 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       newReaders <- Readers.reopen(readers.reader, ondiskSeqnum)
       _          <- readersRef.set(Some(newReaders))
       _          <- info(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
+      _          <- IO(metrics.docs.set(newReaders.reader.numDocs()))
     } yield {})
   } yield {}
 
   def suggest(request: SuggestRequest): IO[SuggestResponse] = for {
     start     <- IO(System.currentTimeMillis())
+    _         <- IO(metrics.activeQueries.inc())
     suggester <- getReadersOrFail().map(_.suggester)
     fieldSuggestions <- Stream
       .emits(request.fields)
@@ -89,6 +94,11 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
       .compile
       .toList
     ranked <- SuggestionRanker().rank(fieldSuggestions, request)
+    end    <- IO(System.currentTimeMillis())
+    _      <- IO(metrics.suggestTotal.inc())
+    _      <- IO(metrics.suggestTimeSeconds.inc((end - start) / 1000.0))
+    _      <- IO(metrics.activeQueries.dec())
+
   } yield {
     SuggestResponse(
       suggestions = ranked,
@@ -98,6 +108,8 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
     start <- IO(System.currentTimeMillis())
+    _     <- IO(metrics.activeQueries.inc())
+
     queries <- request.query match {
       case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
       case MatchQuery(field, query, operator) =>
@@ -125,6 +137,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     aggs          <- aggregate(index.mapping, mergedFacets, request.aggs)
     collected     <- collect(index.mapping, mergedTopDocs, request.fields)
     end           <- IO(System.currentTimeMillis())
+    _             <- IO(metrics.searchTimeSeconds.inc((end - start) / 1000.0))
+    _             <- IO(metrics.searchTotal.inc())
+    _             <- IO(metrics.activeQueries.dec())
   } yield {
     SearchResponse(
       took = end - start,
@@ -135,7 +150,10 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
   }
 
   def rag(docs: List[Document], request: RAGRequest): Stream[IO, RAGResponse] = {
+    val start = System.currentTimeMillis()
     val stream = for {
+      _ <- Stream.eval(IO(metrics.activeQueries.inc()))
+
       prompt <- Stream.eval(
         index.models.generative.prompt(
           request.model,
@@ -145,8 +163,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
           request.fields
         )
       )
-      _     <- Stream.eval(debug(s"prompt: ${prompt}"))
-      start <- Stream.eval(IO(System.currentTimeMillis()))
+      _ <- Stream.eval(debug(s"prompt: ${prompt}"))
       (token, took) <- index.models.generative
         .generate(request.model, prompt, request.maxResponseLength)
         .through(DurationStream.pipe(start))
@@ -154,7 +171,14 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]]) extends 
     } yield {
       RAGResponse(token = token, ts = now, took = took, last = false)
     }
-    stream.through(StreamMark.pipe[RAGResponse](tail = tok => tok.copy(last = true)))
+    stream
+      .through(StreamMark.pipe[RAGResponse](tail = tok => tok.copy(last = true)))
+      .onFinalize(for {
+        end <- IO(System.currentTimeMillis())
+        _   <- IO(metrics.ragTimeSeconds.inc((end - start) / 1000.0))
+        _   <- IO(metrics.ragTotal.inc())
+        _   <- IO(metrics.activeQueries.dec())
+      } yield {})
   }
 
   def fieldQuery(
