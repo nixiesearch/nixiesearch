@@ -6,6 +6,7 @@ import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.config.{CacheConfig, Config, InferenceConfig}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.sync.LocalIndex
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.util.SearchTest
@@ -47,8 +48,9 @@ object CompatUtil {
   def writeResource(path: String): Resource[IO, Searcher] = for {
     models   <- Models.create(inference, CacheConfig())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(DiskLocation(Paths.get(path))), models)
-    indexer  <- Indexer.open(index)
-    searcher <- Searcher.open(index)
+    metrics  <- Resource.pure(Metrics())
+    indexer  <- Indexer.open(index, metrics)
+    searcher <- Searcher.open(index, metrics)
     _        <- Resource.eval(indexer.addDocuments(docs))
     _        <- Resource.eval(indexer.flush())
     _        <- Resource.eval(indexer.index.sync())
@@ -60,7 +62,7 @@ object CompatUtil {
   def readResource(path: String): Resource[IO, Searcher] = for {
     models   <- Models.create(inference, CacheConfig())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(DiskLocation(Paths.get(path))), models)
-    searcher <- Searcher.open(index)
+    searcher <- Searcher.open(index, Metrics())
   } yield {
     searcher
   }

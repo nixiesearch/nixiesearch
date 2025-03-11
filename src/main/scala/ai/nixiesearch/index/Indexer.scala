@@ -13,6 +13,7 @@ import ai.nixiesearch.core.codec.*
 import ai.nixiesearch.core.codec.compat.{Nixiesearch101Codec, Nixiesearch912Codec}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
+import ai.nixiesearch.core.metrics.{IndexerMetrics, Metrics}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
@@ -25,12 +26,13 @@ import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
 import cats.implicits.*
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.lucene.search.MatchAllDocsQuery
 
 import language.experimental.namedTuples
 import scala.collection.mutable.ArrayBuffer
 
-case class Indexer(index: Index, writer: IndexWriter) extends Logging {
+case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends Logging {
 
   def addDocuments(docs: List[Document]): IO[Unit] = {
     for {
@@ -156,20 +158,35 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
     IO((writer.numRamDocs() > 0) || writer.hasDeletions || writer.hasUncommittedChanges).flatMap {
       case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
       case true =>
-        debug(
-          s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
-        ) *> IO(writer.commit()).flatMap {
-          case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
-          case seqnum =>
-            for {
-              _        <- info(s"index '${index.name.value}' commit, seqnum=$seqnum")
-              manifest <- index.master.createManifest(index.mapping, seqnum)
-              _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
-              _        <- index.master.writeManifest(manifest)
-            } yield {
-              true
-            }
+        for {
+          _ <- debug(
+            s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
+          )
+          _      <- IO(metrics.indexer.flushTotal.labelValues(index.name.value).inc())
+          start  <- IO(System.currentTimeMillis())
+          seqnum <- IO(writer.commit())
+          _ <- IO(
+            metrics.indexer.flushTimeSeconds
+              .labelValues(index.name.value)
+              .inc((System.currentTimeMillis() - start) / 1000.0)
+          )
+          result <- seqnum match {
+            case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+            case posSeqNum =>
+              for {
+                _        <- info(s"index '${index.name.value}' commit, seqnum=$posSeqNum")
+                manifest <- index.master.createManifest(index.mapping, posSeqNum)
+                _        <- info(s"generated manifest for files ${manifest.files.map(_.name).sorted}")
+                _        <- index.master.writeManifest(manifest)
+              } yield {
+                true
+              }
+
+          }
+        } yield {
+          result
         }
+
     }
   }
 
@@ -214,10 +231,10 @@ case class Indexer(index: Index, writer: IndexWriter) extends Logging {
 }
 
 object Indexer extends Logging {
-  def open(index: Index): Resource[IO, Indexer] = {
+  def open(index: Index, metrics: Metrics): Resource[IO, Indexer] = {
     for {
       writer <- indexWriter(index.directory, index.mapping, index.mapping.config)
-      niw    <- Resource.make(IO(Indexer(index, writer)))(i => i.flush().void)
+      niw    <- Resource.make(IO(Indexer(index, writer, metrics)))(i => i.flush().void)
     } yield {
       niw
     }
