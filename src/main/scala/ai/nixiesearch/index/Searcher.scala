@@ -2,7 +2,15 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
-import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SortPredicate, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{
+  RAGRequest,
+  RAGResponse,
+  SearchRequest,
+  SearchResponse,
+  SortPredicate,
+  SuggestRequest,
+  SuggestResponse
+}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
@@ -15,7 +23,18 @@ import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
+import org.apache.lucene.search.{
+  IndexSearcher,
+  MultiCollectorManager,
+  ScoreDoc,
+  Sort,
+  SortField,
+  TopDocs,
+  TopFieldCollectorManager,
+  TopScoreDocCollectorManager,
+  TotalHits,
+  Query as LuceneQuery
+}
 import cats.implicits.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
