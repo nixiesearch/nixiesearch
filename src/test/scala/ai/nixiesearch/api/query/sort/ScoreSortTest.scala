@@ -46,6 +46,4 @@ class ScoreSortTest extends SearchTest with Matchers {
     }
   }
 
-
-  
 }

@@ -18,7 +18,8 @@ class DistanceSortTest extends SearchTest with Matchers {
     {
       val response = index.searchRaw(
         fields = List("_id", "city"),
-        sort = List(DistanceSort(StringName("location"), lat = CitiesDataset.BERLIN.lat, lon = CitiesDataset.BERLIN.lon)),
+        sort =
+          List(DistanceSort(StringName("location"), lat = CitiesDataset.BERLIN.lat, lon = CitiesDataset.BERLIN.lon)),
         n = 4
       )
       response.hits.flatMap(_.fields.collect { case TextField("city", city) => city }) shouldBe List(

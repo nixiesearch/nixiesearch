@@ -8,7 +8,12 @@ import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
-import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  NumericDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 

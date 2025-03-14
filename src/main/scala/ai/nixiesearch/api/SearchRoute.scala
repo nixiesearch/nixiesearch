@@ -24,7 +24,18 @@ import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject, syntax}
-import org.http4s.{Charset, Entity, EntityDecoder, EntityEncoder, Headers, HttpRoutes, MediaType, Request, Response, Status}
+import org.http4s.{
+  Charset,
+  Entity,
+  EntityDecoder,
+  EntityEncoder,
+  Headers,
+  HttpRoutes,
+  MediaType,
+  Request,
+  Response,
+  Status
+}
 import org.http4s.dsl.io.*
 import org.http4s.circe.*
 import io.circe.generic.semiauto.*

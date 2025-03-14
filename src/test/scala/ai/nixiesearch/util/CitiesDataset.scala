@@ -17,7 +17,7 @@ import cats.effect.unsafe.implicits.global
 
 object CitiesDataset {
   val BERLIN = LatLon(52.52, 13.4049)
-  
+
   val mapping = IndexMapping(
     name = IndexName("cities"),
     fields = List(
