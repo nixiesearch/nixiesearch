@@ -45,7 +45,7 @@ libraryDependencies ++= Seq(
   "org.apache.commons"     % "commons-lang3"                          % "3.17.0",
   "ai.djl"                 % "api"                                    % djlVersion,
   "ai.djl.huggingface"     % "tokenizers"                             % djlVersion,
-  "com.github.luben"       % "zstd-jni"                               % "1.5.7-1",
+  "com.github.luben"       % "zstd-jni"                               % "1.5.7-2",
   "com.github.blemale"    %% "scaffeine"                              % "5.3.0",
   "com.hubspot.jinjava"    % "jinjava"                                % "2.7.4",
   "software.amazon.awssdk" % "s3"                                     % awsVersion,
