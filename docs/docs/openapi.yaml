@@ -1,16 +1,34 @@
 openapi: "3.0.0"
 info:
+  description: Nixiesearch API Reference documentation.
+  contact:
+    email: roman@nixiesearch.ai
   version: 1.0.0
-  title: Swagger Petstore
+  title: Nixiesearch
   license:
-    name: MIT
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-  - url: http://petstore.swagger.io/v1
+  - url: https://demo.nixiesearch.ai/v1
 paths:
+  /index:
+    get:
+      summary: List all available indexes on the current node.
+      operationId: listIndexes
+      tags:
+        - index
+      parameters:
+      responses:
+        200:
+          description: A list of indexes.
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Indexes"
   /pets:
     get:
       summary: List all pets
-      operationId: listPets
+      operationId: listIndexes
       tags:
         - pets
       parameters:
@@ -81,6 +99,27 @@ paths:
                 $ref: "#/components/schemas/Error"
 components:
   schemas:
+    Indexes:
+      type: object
+      properties:
+        indexes:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: "wip"
+                example: "my-index"
+              aliases:
+                type: array
+                items:
+                  type: string
+                  description:
+                  example: "index-alias"
+        total:
+          type: integer
+          example: 1
     Pet:
       required:
         - id
