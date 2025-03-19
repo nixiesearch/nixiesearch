@@ -56,7 +56,7 @@ libraryDependencies ++= Seq(
   "de.lhns"               %% "fs2-compress-gzip"                      % fs2CompressVersion,
   "de.lhns"               %% "fs2-compress-bzip2"                     % fs2CompressVersion,
   "de.lhns"               %% "fs2-compress-zstd"                      % fs2CompressVersion,
-  "org.apache.kafka"       % "kafka-clients"                          % "3.9.0",
+  "org.apache.kafka"       % "kafka-clients"                          % "4.0.0",
   "io.prometheus"          % "prometheus-metrics-core"                % prometheusVersion,
   "io.prometheus"          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
   "io.prometheus"          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion
