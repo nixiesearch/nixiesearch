@@ -24,7 +24,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
           Some(doc),
           Method.PUT
         )
-      response.status shouldBe "created"
+      response.status shouldBe "ok"
     }
   }
 
