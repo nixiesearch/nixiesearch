@@ -12,6 +12,8 @@ case class MappingRoute(index: Index) extends Route with Logging {
   import MappingRoute.given
 
   val routes = HttpRoutes.of[IO] {
+    case GET -> Root / "v1" / "index" / indexName if index.mapping.nameMatches(indexName) => Ok(index.mapping)
+    // legacy
     case GET -> Root / indexName / "_mapping" if index.mapping.nameMatches(indexName) => Ok(index.mapping)
   }
 }

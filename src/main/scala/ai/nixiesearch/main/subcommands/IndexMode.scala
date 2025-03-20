@@ -1,6 +1,6 @@
 package ai.nixiesearch.main.subcommands
 
-import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexRoute, MainRoute, MappingRoute, MetricsRoute}
+import ai.nixiesearch.api.{API, AdminRoute, HealthRoute, IndexModifyRoute, MainRoute, MappingRoute, MetricsRoute}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.{CacheConfig, Config, InferenceConfig}
 import ai.nixiesearch.core.Error.UserError
@@ -90,7 +90,7 @@ object IndexMode extends Logging {
         .sequence
 
       routes = List(
-        indexers.map(indexer => IndexRoute(indexer).routes <+> MappingRoute(indexer.index).routes),
+        indexers.map(indexer => IndexModifyRoute(indexer).routes <+> MappingRoute(indexer.index).routes),
         List(HealthRoute().routes),
         List(AdminRoute(config).routes),
         List(MainRoute().routes),

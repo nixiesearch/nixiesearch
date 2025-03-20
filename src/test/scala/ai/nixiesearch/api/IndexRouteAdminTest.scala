@@ -8,7 +8,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class IndexRouteAdminTest extends AnyFlatSpec with Matchers with SearchTest {
-  import IndexRoute.*
+  import IndexModifyRoute.*
   import ai.nixiesearch.util.HttpTest.*
   val docs = List(
     Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10))),
@@ -22,7 +22,7 @@ class IndexRouteAdminTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response2 =
         send[Unit, EmptyResponse](
-          IndexRoute(store.indexer).routes,
+          IndexModifyRoute(store.indexer).routes,
           "http://localhost/test/_flush",
           None,
           Method.POST
@@ -35,7 +35,7 @@ class IndexRouteAdminTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response2 =
         send[Unit, EmptyResponse](
-          IndexRoute(store.indexer).routes,
+          IndexModifyRoute(store.indexer).routes,
           "http://localhost/test/_merge",
           None,
           Method.POST

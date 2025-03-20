@@ -34,7 +34,7 @@ object StandaloneMode extends Logging {
     routes = List(
       searchers
         .flatMap(s => List(SearchRoute(s).routes, MappingRoute(s.index).routes, StatsRoute(s).routes)),
-      indexers.map(indexer => IndexRoute(indexer).routes),
+      indexers.map(indexer => IndexModifyRoute(indexer).routes),
       List(TypicalErrorsRoute(searchers.map(_.index.name.value)).routes),
       List(AdminRoute(config).routes),
       List(MainRoute().routes),

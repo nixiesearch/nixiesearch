@@ -14,6 +14,9 @@ case class AdminRoute(config: Config) extends Route {
   import AdminRoute.given
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "system" / "config" => Ok(config)
+    case GET -> Root / "index"             => Ok(IndexListResponse(config.schema.keys.toList))
+    // legacy
     case GET -> Root / "_config"  => Ok(config)
     case GET -> Root / "_indexes" => Ok(IndexListResponse(config.schema.keys.toList))
     case GET -> Root / "_indices" => Ok(IndexListResponse(config.schema.keys.toList))

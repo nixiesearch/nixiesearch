@@ -1,7 +1,7 @@
 package ai.nixiesearch.e2e
 
 import ai.nixiesearch.api.SearchRoute.{SuggestRequest, SuggestResponse}
-import ai.nixiesearch.api.{IndexRoute, SearchRoute}
+import ai.nixiesearch.api.{IndexModifyRoute, SearchRoute}
 import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.util.Tags.EndToEnd
@@ -27,7 +27,7 @@ class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with Search
   it should "load docs and suggest" taggedAs (EndToEnd.Index) in withIndex { nixie =>
     {
       lazy val docs = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping, 1000)
-      val indexApi  = IndexRoute(nixie.indexer)
+      val indexApi  = IndexModifyRoute(nixie.indexer)
       val searchApi = SearchRoute(nixie.searcher)
 
       val jsonPayload = docs.map(doc => doc.asJson.noSpaces).mkString("\n")

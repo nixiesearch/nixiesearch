@@ -1,3 +1,2 @@
-mkdocs-material[imaging] == 9.6.5
-neoteroi-mkdocs
+mkdocs-material[imaging] == 9.6.9
 mkdocs-table-reader-plugin
