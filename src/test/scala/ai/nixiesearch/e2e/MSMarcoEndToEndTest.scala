@@ -2,7 +2,7 @@ package ai.nixiesearch.e2e
 
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse}
 import ai.nixiesearch.api.query.MatchQuery
-import ai.nixiesearch.api.{IndexRoute, SearchRoute}
+import ai.nixiesearch.api.{IndexModifyRoute, SearchRoute}
 import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.Document
@@ -27,7 +27,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
 
   it should "load docs and search" taggedAs (EndToEnd.Index) in withIndex { nixie =>
     {
-      val indexApi  = IndexRoute(nixie.indexer)
+      val indexApi  = IndexModifyRoute(nixie.indexer)
       val searchApi = SearchRoute(nixie.searcher)
 
       val jsonPayload = docs.map(doc => doc.asJson.noSpaces).mkString("\n")

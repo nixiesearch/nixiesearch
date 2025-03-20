@@ -28,6 +28,7 @@ You can define each index in the `schema` block of the configuration:
 ```yaml
 schema:
   <your-index-name>:
+    alias: <list of aliases>
     config:
       <index configuration>
     store:
@@ -35,6 +36,9 @@ schema:
     fields:
       <field definitions>
 ```
+!! note
+    The index name is immutable, so choose it wisely. But you can always add an alias to address it using a new name.
+
 
 ### Index configuration
 
@@ -58,6 +62,7 @@ Fields:
 * `hnsw.m`: optional, int, default 16. How many links should HNSW index have? Larger value means better recall, but higher memory usage and bigger index. Common values are within 16-128 range.
 * `hnsw.efc`: optional, int, default 100. How many neighbors in the HNSW graph are explored during indexing. Bigger the value, better the recall, but slower the indexing speed.
 * `hnsw.workers`: optional, int, default = number of CPU cores. How many concurrent workers to use for index merges.
+
 
 ### Store configuration
 

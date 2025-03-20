@@ -55,24 +55,35 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case request @ POST -> Root / "v1" / "index" / indexName / "search"
+        if searcher.index.mapping.nameMatches(indexName) =>
+      search(request)
+
+    case request @ POST -> Root / "v1" / "index" / indexName / "suggest"
+        if searcher.index.mapping.nameMatches(indexName) =>
+      suggest(request)
+
+    // legacy
     case request @ POST -> Root / indexName / "_search" if searcher.index.mapping.nameMatches(indexName) =>
-      for {
-        request <- IO(request.entity.length).flatMap {
-          case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
-          case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
-          case Some(_) => request.as[SearchRequest]
-        }
-        response <- searchBlocking(request)
-      } yield {
-        Response[IO](
-          status = Status.Ok,
-          headers = Headers(`Content-Type`(new MediaType("application", "json"))),
-          entity = Entity.string(response.asJson.noSpaces, Charset.`UTF-8`)
-        )
-      }
+      search(request)
 
     case request @ POST -> Root / indexName / "_suggest" if searcher.index.mapping.nameMatches(indexName) =>
       suggest(request)
+  }
+
+  def search(request: Request[IO]): IO[Response[IO]] = for {
+    request <- IO(request.entity.length).flatMap {
+      case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
+      case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
+      case Some(_) => request.as[SearchRequest]
+    }
+    response <- searchBlocking(request)
+  } yield {
+    Response[IO](
+      status = Status.Ok,
+      headers = Headers(`Content-Type`(new MediaType("application", "json"))),
+      entity = Entity.string(response.asJson.noSpaces, Charset.`UTF-8`)
+    )
   }
 
   def suggest(request: Request[IO]): IO[Response[IO]] = for {

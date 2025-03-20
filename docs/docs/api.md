@@ -4,6 +4,12 @@ hide:
   - toc
   - title
 ---
+<style>
+  .md-grid {
+    max-width: 90%;
+  }
+</style>
+# REST API Reference
 
-<redoc spec-url="http://petstore.swagger.io/v2/swagger.json"></redoc>
-<script src="https://cdn.redoc.ly/redoc/v2.2.0/bundles/redoc.standalone.js"> </script>
+<redoc spec-url="/openapi.yaml" theme='{"nativeScrollbars": true, "rightPanel": {"width": "400px"}, "jsonSampleExpandLevel": "all"}'></redoc>
+<script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>

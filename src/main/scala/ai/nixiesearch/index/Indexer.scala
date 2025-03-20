@@ -1,6 +1,6 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.api.IndexRoute.DeleteResponse
+import ai.nixiesearch.api.IndexModifyRoute.DeleteResponse
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.FieldSchema.*
@@ -208,8 +208,12 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
     } yield {}
   }
 
-  def delete(docid: String): IO[Unit] = IO {
-    writer.deleteDocuments(new Term("_id" + FILTER_SUFFIX, docid))
+  def delete(docid: String): IO[Int] = for {
+    before <- IO(writer.getDocStats)
+    _      <- IO(writer.deleteDocuments(new Term("_id" + FILTER_SUFFIX, docid)))
+    after  <- IO(writer.getDocStats)
+  } yield {
+    before.numDocs - after.numDocs
   }
 
   def delete(filters: Option[Filters]): IO[Int] = for {

@@ -13,21 +13,28 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import fs2.Stream
 
-case class IndexRoute(indexer: Indexer) extends Route with Logging {
-  import IndexRoute.{given, *}
+case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
+  import IndexModifyRoute.{given, *}
+
+  def nameMatches(name: String): Boolean = indexer.index.mapping.nameMatches(name)
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case POST -> Root / indexName / "_flush" if indexer.index.mapping.nameMatches(indexName)           => flush()
-    case request @ POST -> Root / indexName / "_merge" if indexer.index.mapping.nameMatches(indexName) => merge(request)
-    case request @ PUT -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
-      index(request)
-    case request @ POST -> Root / indexName / "_index" if indexer.index.mapping.nameMatches(indexName) =>
-      index(request)
-    case request @ POST -> Root / indexName / "_delete" if indexer.index.mapping.nameMatches(indexName) =>
-      delete(request)
-    case request @ DELETE -> Root / indexName / "_delete" / docid if indexer.index.mapping.nameMatches(indexName) =>
-      delete(docid)
+    case POST -> Root / "v1" / "index" / indexName / "flush" if nameMatches(indexName)  => flush()
+    case request @ POST -> Root / "v1" / "index" / name / "merge" if nameMatches(name)  => merge(request)
+    case request @ POST -> Root / "v1" / "index" / name if nameMatches(name)            => index(request)
+    case request @ POST -> Root / "v1" / "index" / name / "delete" if nameMatches(name) => delete(request)
+    case DELETE -> Root / "v1" / "index" / name / "doc" / docid if nameMatches(name)    => delete(docid)
+    // legacy
+    case POST -> Root / indexName / "_flush" if nameMatches(indexName)            => deprecated() *> flush()
+    case request @ POST -> Root / indexName / "_merge" if nameMatches(indexName)  => deprecated() *> merge(request)
+    case request @ PUT -> Root / indexName / "_index" if nameMatches(indexName)   => deprecated() *> index(request)
+    case request @ POST -> Root / indexName / "_index" if nameMatches(indexName)  => deprecated() *> index(request)
+    case request @ POST -> Root / indexName / "_delete" if nameMatches(indexName) => deprecated() *> delete(request)
+    case request @ DELETE -> Root / indexName / "_delete" / docid if nameMatches(indexName) =>
+      deprecated() *> delete(docid)
   }
+
+  def deprecated(): IO[Unit] = warn("You're using deprecated API endpoint")
 
   def index(request: Request[IO]): IO[Response[IO]] = for {
     _        <- info(s"PUT /${indexer.index.name.value}/_index")
@@ -39,8 +46,8 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
 
   def delete(docid: String): IO[Response[IO]] = for {
     start    <- IO(System.currentTimeMillis())
-    _        <- IO(indexer.delete(docid))
-    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
+    deleted  <- indexer.delete(docid)
+    response <- Ok(DeleteResponse("ok", System.currentTimeMillis() - start, deleted))
   } yield {
     response
   }
@@ -57,17 +64,18 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
 
   private def indexDocStream(request: Stream[IO, Document]): IO[IndexResponse] = for {
     start <- IO(System.currentTimeMillis())
-    _ <- request
+    docs <- request
       .chunkN(64)
       .through(PrintProgress.tapChunk("indexed docs"))
-      .evalMap(chunk => {
+      .evalTap(chunk => {
         indexer.addDocuments(chunk.toList)
       })
+      .map(_.size)
       .compile
-      .drain
-      .flatTap(_ => info(s"completed indexing, took ${System.currentTimeMillis() - start}ms"))
+      .fold(0)(_ + _)
+      .flatTap(d => info(s"completed indexing $d docs, took ${System.currentTimeMillis() - start}ms"))
   } yield {
-    IndexResponse.withStartTime("created", start)
+    IndexResponse.withStartTime("ok", start, docs)
   }
 
   def flush(): IO[Response[IO]] = for {
@@ -92,10 +100,11 @@ case class IndexRoute(indexer: Indexer) extends Route with Logging {
 
 }
 
-object IndexRoute extends Logging {
-  case class IndexResponse(result: String, took: Int = 0)
+object IndexModifyRoute extends Logging {
+  case class IndexResponse(status: String, docs: Int, took: Int = 0)
   object IndexResponse {
-    def withStartTime(result: String, start: Long) = IndexResponse(result, (System.currentTimeMillis() - start).toInt)
+    def withStartTime(status: String, start: Long, docs: Int) =
+      IndexResponse(status, (System.currentTimeMillis() - start).toInt)
   }
   given indexResponseCodec: Codec[IndexResponse] = deriveCodec
 
@@ -127,7 +136,7 @@ object IndexRoute extends Logging {
   given mergeRequestCodec: Codec[MergeRequest]            = deriveCodec
   given mergeRequestJson: EntityDecoder[IO, MergeRequest] = jsonOf
 
-  case class EmptyResponse(status: String, tool: Long)
+  case class EmptyResponse(status: String, took: Long)
   given okResponseCodec: Codec[EmptyResponse]               = deriveCodec
   given okResponseJsonEnc: EntityEncoder[IO, EmptyResponse] = jsonEncoderOf
   given okResponseJson: EntityDecoder[IO, EmptyResponse]    = jsonOf
