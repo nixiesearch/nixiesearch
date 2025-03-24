@@ -1,9 +1,11 @@
 package ai.nixiesearch.e2e
 
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.ModelFileCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.{Query, Raw}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.util.Tags.EndToEnd
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -35,7 +37,7 @@ class EmbeddingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
   it should "load the model and embed" taggedAs (EndToEnd.Embeddings) in {
     forAll(models) { (model, dims) =>
       {
-        val result = EmbeddingInferenceEndToEndTest.embed(model, "query: test")
+        val result = EmbeddingInferenceEndToEndTest.embed(model, "test")
         result.length shouldBe dims
       }
     }
@@ -47,11 +49,11 @@ object EmbeddingInferenceEndToEndTest {
     val parts  = model.split("/")
     val handle = HuggingFaceHandle(parts(0), parts(1))
     val config = OnnxEmbeddingInferenceModelConfig(model = handle)
-    val (embedder, shutdownHandle) = EmbedModelDict
+    val (embedder, shutdownHandle) = OnnxEmbedModel
       .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
-    val result = embedder.encode(List(text)).unsafeRunSync()
+    val result = embedder.encode(Raw, List(text)).unsafeRunSync()
     shutdownHandle.unsafeRunSync()
     result(0)
   }

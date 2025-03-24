@@ -1,6 +1,9 @@
 # Text embedding inference
 
-Text embeddings map your text inputs into a numerical representation in such a way, so a query and relevant document embeddings should be close in the cosine similarity space.
+Text embeddings map your text inputs into a numerical representation in such a way, so a query and relevant document embeddings should be close in the cosine similarity space. Multiple embeddings providers are supported:
+
+* [Local inference with Sentence-Transformers and ONNX](embeddings/sbert.md) - Any [SBERT](https://sbert.net)-compatible embedding model with local inference using [ONNX](https://onnxruntime.ai) runtime.
+* [OpenAI](embeddings/openai.md) - Using external [OpenAI](https://platform.openai.com/docs/api-reference/embeddings/create)-compatible APIs to compute embeddings.
 
 ## Configuration file
 
@@ -11,6 +14,15 @@ inference:
   embedding:
     your-model-name:
       model: intfloat/e5-small-v2
+```
+
+You can also use OpenAI or any other API-based embedding provider:
+```yaml
+inference:
+  embedding:
+    your-model-name:
+      provider: openai
+      model: text-embedding-3-small
 ```
 
 A full configuration looks like this:
@@ -30,9 +42,9 @@ inference:
 
 Fields:
 
-* `provider`: *optional*, *string*. As for `v0.3.0`, only the `onnx` provider is supported.
+* `provider`: *optional*, *string*. As for `v0.5.0`, only the `onnx` and `openai` providers are supported. Default - auto-detected.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](../../reference/url.md) for more details on how to load your model.
-* `prompt`: *optional*. A document and query prefixes for asymmetrical models.
+* `prompt`: *optional*. A document and query prefixes for asymmetrical models. Default - auto-detected.
 
 See [inference.embedding config file reference](../../reference/config.md#ml-inference) for all advanced options of the ONNX provider.
 

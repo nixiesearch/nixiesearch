@@ -1,21 +1,12 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.{
-  OnnxEmbeddingInferenceModelConfig,
-  OnnxModelFile
-}
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
-  LlamacppInferenceModelConfig,
-  LlamacppParams
-}
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.PoolingType.MeanPooling
-import ai.nixiesearch.config.InferenceConfig.{
-  CompletionInferenceModelConfig,
-  EmbeddingInferenceModelConfig,
-  PromptConfig
-}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{LlamacppInferenceModelConfig, LlamacppParams}
+import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig, PromptConfig}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig.OnnxModelFile
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.PoolingType.MeanPooling
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.parse as parseYaml
@@ -36,8 +27,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
       InferenceConfig(
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
-            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = Some(PromptConfig(doc = "passage: ", query = "query: "))
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
           )
         )
       )
@@ -54,8 +44,7 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
       InferenceConfig(
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
-            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = None
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
           )
         )
       )
@@ -75,8 +64,8 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            pooling = Some(MeanPooling),
-            prompt = None,
+            pooling = MeanPooling,
+            prompt = PromptConfig.E5,
             normalize = false
           )
         )
@@ -92,8 +81,8 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         |    model: nixiesearch/e5-small-v2-onnx
         |    file: test.onnx
         |    prompt:
-        |      doc: "passage: {doc}"
-        |      query: "query: {query}"
+        |      doc: "passage: "
+        |      query: "query: "
         |""".stripMargin
     val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
     decoded shouldBe Right(
@@ -101,8 +90,9 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = Some(PromptConfig(doc = "passage: {doc}", query = "query: {query}")),
-            file = Some(OnnxModelFile("test.onnx"))
+            prompt = PromptConfig.E5,
+            file = Some(OnnxModelFile("test.onnx")),
+            pooling = MeanPooling
           )
         )
       )
@@ -117,9 +107,6 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         |    file:
         |      base: test.onnx
         |      data: test.onnx_data
-        |    prompt:
-        |      doc: "passage: {doc}"
-        |      query: "query: {query}"
         |""".stripMargin
     val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
     decoded shouldBe Right(
@@ -127,8 +114,9 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-            prompt = Some(PromptConfig(doc = "passage: {doc}", query = "query: {query}")),
-            file = Some(OnnxModelFile("test.onnx", Some("test.onnx_data")))
+            prompt = PromptConfig.E5,
+            file = Some(OnnxModelFile("test.onnx", Some("test.onnx_data"))),
+            pooling = MeanPooling
           )
         )
       )
