@@ -2,7 +2,7 @@ package ai.nixiesearch.e2e
 
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.ModelFileCache
-import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.{Query, Raw}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
@@ -37,7 +37,7 @@ class EmbeddingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
   it should "load the model and embed" taggedAs (EndToEnd.Embeddings) in {
     forAll(models) { (model, dims) =>
       {
-        val result = EmbeddingInferenceEndToEndTest.embed(model, "query: test")
+        val result = EmbeddingInferenceEndToEndTest.embed(model, "test")
         result.length shouldBe dims
       }
     }
@@ -53,7 +53,7 @@ object EmbeddingInferenceEndToEndTest {
       .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
-    val result = embedder.encode(Query, List(text)).unsafeRunSync()
+    val result = embedder.encode(Raw, List(text)).unsafeRunSync()
     shutdownHandle.unsafeRunSync()
     result(0)
   }

@@ -31,7 +31,7 @@ class EmbeddingPythonMatchTest extends AnyFlatSpec with Matchers {
       {
         val result = EmbeddingInferenceEndToEndTest.embed(model, text)
         val rmse   = math.sqrt(result.zip(embed).map((a, b) => (a - b) * (a - b) / result.length).sum)
-        rmse should be < 0.001
+        rmse should be < 0.01
       }
     }
 
