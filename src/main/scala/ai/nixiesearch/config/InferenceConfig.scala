@@ -4,6 +4,17 @@ import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, Em
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{
+  OnnxEmbeddingInferenceModelConfig,
+  onnxEmbeddingConfigDecoder,
+  onnxEmbeddingConfigEncoder
+}
+import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel
+import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{
+  OpenAIEmbeddingInferenceModelConfig,
+  openAIEmbeddingConfigDecoder,
+  openAIEmbeddingConfigEncoder
+}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -18,12 +29,13 @@ case class InferenceConfig(
 object InferenceConfig {
   case class PromptConfig(doc: String = "", query: String = "")
   object PromptConfig extends Logging {
+    val E5 = PromptConfig("passage: ", "query: ")
     def apply(model: ModelHandle): PromptConfig = {
       model match {
         case hf: HuggingFaceHandle =>
           hf match {
-            case HuggingFaceHandle("nixiesearch", name) if name.contains("e5") => PromptConfig("passage: ", "query: ")
-            case HuggingFaceHandle("intfloat", _)                              => PromptConfig("passage: ", "query: ")
+            case HuggingFaceHandle("nixiesearch", name) if name.contains("e5") => E5
+            case HuggingFaceHandle("intfloat", _)                              => E5
             case HuggingFaceHandle("Snowflake", _)                             => PromptConfig(query = "query: ")
             case HuggingFaceHandle("BAAI", "bge-m3")                           => PromptConfig()
             case HuggingFaceHandle("BAAI", x) if x.startsWith("bge") && x.contains("-zh-") =>
@@ -79,100 +91,9 @@ object InferenceConfig {
     )
   }
 
-  sealed trait EmbeddingInferenceModelConfig
+  trait EmbeddingInferenceModelConfig
 
-  object EmbeddingInferenceModelConfig {
-    case class OnnxModelFile(base: String, data: Option[String] = None)
-    object OnnxModelFile {
-      given onnxModelFileEncoder: Encoder[OnnxModelFile] = Encoder.instance {
-        case OnnxModelFile(base, None) => Json.fromString(base)
-        case OnnxModelFile(base, Some(data)) =>
-          Json.obj("base" -> Json.fromString(base), "data" -> Json.fromString(data))
-      }
-
-      given onnxModelDecoder: Decoder[OnnxModelFile] = Decoder.instance(c =>
-        c.as[String] match {
-          case Right(value) => Right(OnnxModelFile(value))
-          case Left(_) =>
-            for {
-              base <- c.downField("base").as[String]
-              data <- c.downField("data").as[Option[String]]
-            } yield {
-              OnnxModelFile(base, data)
-            }
-        }
-      )
-    }
-    case class OnnxEmbeddingInferenceModelConfig(
-        model: ModelHandle,
-        file: Option[OnnxModelFile] = None,
-        prompt: Option[PromptConfig] = None,
-        pooling: Option[PoolingType] = None,
-        normalize: Boolean = true,
-        maxTokens: Int = 512,
-        batchSize: Int = 32
-    ) extends EmbeddingInferenceModelConfig
-
-    sealed trait PoolingType
-    object PoolingType extends Logging {
-      case object MeanPooling extends PoolingType
-      case object CLSPooling  extends PoolingType
-
-      def apply(handle: ModelHandle) = handle match {
-        case hf: HuggingFaceHandle =>
-          hf match {
-            case HuggingFaceHandle("Alibaba-NLP", _)   => CLSPooling
-            case HuggingFaceHandle("Snowflake", _)     => CLSPooling
-            case HuggingFaceHandle("mixedbread-ai", _) => CLSPooling
-            case _                                     => MeanPooling
-          }
-        case LocalModelHandle(dir) =>
-          logger.warn("When using local non-HF model, we cannot guess the embedding pooling type")
-          logger.warn(
-            "Using 'mean' by default, but if you're using GTE/Snowflake embeddings, you need to set inference.embedding.<model>.pooling=cls"
-          )
-          MeanPooling
-      }
-
-      given poolingTypeEncoder: Encoder[PoolingType] = Encoder.encodeString.contramap {
-        case MeanPooling => "mean"
-        case CLSPooling  => "cls"
-      }
-
-      given poolingTypeDecoder: Decoder[PoolingType] = Decoder.decodeString.emapTry {
-        case "mean" => Success(MeanPooling)
-        case "cls"  => Success(CLSPooling)
-        case other  => Failure(UserError(s"only cls/mean pooling types supported, but got '$other'"))
-      }
-    }
-
-    case class OpenAIEmbeddingInferenceModelConfig(model: String) extends EmbeddingInferenceModelConfig
-
-    given onnxEmbeddingConfigEncoder: Encoder[OnnxEmbeddingInferenceModelConfig] = deriveEncoder
-    given onnxEmbeddingConfigDecoder: Decoder[OnnxEmbeddingInferenceModelConfig] = Decoder.instance(c =>
-      for {
-        model     <- c.downField("model").as[ModelHandle]
-        file      <- c.downField("file").as[Option[OnnxModelFile]]
-        seqlen    <- c.downField("max_tokens").as[Option[Int]]
-        prompt    <- c.downField("prompt").as[Option[PromptConfig]]
-        batchSize <- c.downField("batch_size").as[Option[Int]]
-        pooling   <- c.downField("pooling").as[Option[PoolingType]]
-        normalize <- c.downField("normalize").as[Option[Boolean]]
-      } yield {
-        OnnxEmbeddingInferenceModelConfig(
-          model,
-          file = file,
-          prompt = prompt,
-          maxTokens = seqlen.getOrElse(512),
-          batchSize = batchSize.getOrElse(32),
-          pooling = pooling,
-          normalize = normalize.getOrElse(true)
-        )
-      }
-    )
-
-    given openAIEmbeddingConfigEncoder: Encoder[OpenAIEmbeddingInferenceModelConfig] = deriveEncoder
-    given openAIEmbeddingConfigDecoder: Decoder[OpenAIEmbeddingInferenceModelConfig] = deriveDecoder
+  object EmbeddingInferenceModelConfig extends Logging {
 
     given embedInferenceModelConfigEncoder: Encoder[EmbeddingInferenceModelConfig] = Encoder.instance {
       case e: OnnxEmbeddingInferenceModelConfig =>
@@ -186,8 +107,18 @@ object InferenceConfig {
         case Left(err)             => Left(err)
         case Right(Some("onnx"))   => onnxEmbeddingConfigDecoder.tryDecode(c)
         case Right(Some("openai")) => openAIEmbeddingConfigDecoder.tryDecode(c)
-        case Right(None)           => onnxEmbeddingConfigDecoder.tryDecode(c)
-        case Right(other)          => Left(DecodingFailure(s"provider $other not supported", c.history))
+        case Right(None) =>
+          c.downField("model").as[Option[String]] match {
+            case Left(err) => Left(err)
+            case Right(Some(model)) if OpenAIEmbedModel.SUPPORTED_MODELS.contains(model) =>
+              logger.debug(
+                s"model $model looks like an OpenAI model (please override with provider: smth if detection went wrong"
+              )
+              openAIEmbeddingConfigDecoder.tryDecode(c)
+            case Right(_) => onnxEmbeddingConfigDecoder.tryDecode(c)
+          }
+
+        case Right(other) => Left(DecodingFailure(s"provider $other not supported", c.history))
       }
     )
 

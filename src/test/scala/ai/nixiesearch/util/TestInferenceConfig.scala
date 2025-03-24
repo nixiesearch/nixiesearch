@@ -1,11 +1,11 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.config.InferenceConfig
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, PromptConfig}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 
 object TestInferenceConfig {
   def full() = InferenceConfig(
@@ -17,13 +17,7 @@ object TestInferenceConfig {
     ),
     embedding = Map(
       ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
-        model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-        prompt = Some(
-          PromptConfig(
-            query = "query: ",
-            doc = "doc: "
-          )
-        )
+        model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
       )
     )
   )
@@ -32,13 +26,7 @@ object TestInferenceConfig {
   def apply() = InferenceConfig(
     embedding = Map(
       ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
-        model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-        prompt = Some(
-          PromptConfig(
-            query = "query: ",
-            doc = "doc: "
-          )
-        )
+        model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
       )
     )
   )

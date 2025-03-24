@@ -1,21 +1,13 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.InferenceRoute.{
-  CompletionFrame,
-  CompletionRequest,
-  CompletionResponse,
-  EmbeddingInferenceRequest,
-  EmbeddingInferenceResponse,
-  EmbeddingOutput,
-  PromptType,
-  requestJson
-}
+import ai.nixiesearch.api.InferenceRoute.{CompletionFrame, CompletionRequest, CompletionResponse, EmbeddingInferenceRequest, EmbeddingInferenceResponse, EmbeddingOutput, PromptType, requestJson}
 import ai.nixiesearch.api.InferenceRoute.PromptType.{Document, Query, Raw}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.index.Models
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.metrics.{InferenceMetrics, Metrics}
 import ai.nixiesearch.core.nn.ModelRef
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.util.{DurationStream, StreamMark}
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder, Json}
@@ -80,14 +72,15 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
     docs <- IO(
       request.input.map(doc =>
         doc.`type` match {
-          case Some(PromptType.Document) => model.prompt.doc + doc
-          case Some(PromptType.Query)    => model.prompt.query + doc
-          case Some(PromptType.Raw)      => doc.text
-          case None                      => doc.text
+          // hack until we migrate to openai spec
+          // case Some(PromptType.Document) => model.prompt.doc + doc
+          // case Some(PromptType.Query)    => model.prompt.query + doc
+          case Some(PromptType.Raw) => doc.text
+          case _                    => doc.text
         }
       )
     )
-    results <- models.embedding.cache.getOrEmbedAndCache(modelRef, docs, model.encode)
+    results <- models.embedding.cache.getOrEmbedAndCache(modelRef, TaskType.Raw, docs, model.encode)
     finish  <- IO(System.currentTimeMillis())
     _       <- IO(metrics.inference.embedTimeSeconds.labelValues(modelRef.name).inc((finish - start) / 1000.0))
   } yield {

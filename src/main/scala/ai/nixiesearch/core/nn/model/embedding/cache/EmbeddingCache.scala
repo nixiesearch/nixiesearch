@@ -3,6 +3,7 @@ package ai.nixiesearch.core.nn.model.embedding.cache
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.cache.EmbeddingCache.CacheKey
 import cats.effect.IO
 
@@ -19,14 +20,15 @@ trait EmbeddingCache {
 
   def getOrEmbedAndCache(
       handle: ModelRef,
+      task: TaskType,
       docs: List[String],
-      embed: List[String] => IO[Array[Array[Float]]]
+      embed: (TaskType, List[String]) => IO[Array[Array[Float]]]
   ): IO[Array[Array[Float]]] =
     for {
       keys                              <- IO(docs.map(doc => CacheKey(handle = handle, string = doc)))
       cached                            <- get(keys)
       (nonCachedIndices, nonCachedDocs) <- selectUncached(cached, keys.toArray)
-      nonCachedEmbeddings               <- embed(nonCachedDocs.toList.map(_.string))
+      nonCachedEmbeddings               <- embed(task, nonCachedDocs.toList.map(_.string))
       _                                 <- put(nonCachedDocs.toList, nonCachedEmbeddings)
       merged                            <- mergeCachedUncached(cached, nonCachedIndices, nonCachedEmbeddings)
     } yield {

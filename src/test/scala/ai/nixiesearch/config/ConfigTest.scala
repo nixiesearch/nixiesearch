@@ -2,7 +2,6 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
-import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
@@ -20,6 +19,8 @@ import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
+
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
@@ -32,13 +33,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         inference = InferenceConfig(
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
-              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-              prompt = Some(
-                PromptConfig(
-                  doc = "passage: ",
-                  query = "query: "
-                )
-              )
+              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
             )
           )
         ),
@@ -87,13 +82,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         inference = InferenceConfig(
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
-              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-              prompt = Some(
-                PromptConfig(
-                  doc = "passage: ",
-                  query = "query: "
-                )
-              )
+              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
             )
           )
         ),
@@ -168,13 +157,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         inference = InferenceConfig(
           embedding = Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
-              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
-              prompt = Some(
-                PromptConfig(
-                  doc = "passage: ",
-                  query = "query: "
-                )
-              )
+              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
             )
           )
         ),
