@@ -4,6 +4,7 @@ Text embeddings map your text inputs into a numerical representation in such a w
 
 * [Local inference with Sentence-Transformers and ONNX](embeddings/sbert.md) - Any [SBERT](https://sbert.net)-compatible embedding model with local inference using [ONNX](https://onnxruntime.ai) runtime.
 * [OpenAI](embeddings/openai.md) - Using external [OpenAI](https://platform.openai.com/docs/api-reference/embeddings/create)-compatible APIs to compute embeddings.
+* [Cohere](embeddings/cohere.md) - Using [Cohere v2/embed](https://docs.cohere.com/reference/embed) APIs for embeddings. 
 
 ## Configuration file
 
@@ -42,7 +43,7 @@ inference:
 
 Fields:
 
-* `provider`: *optional*, *string*. As for `v0.5.0`, only the `onnx` and `openai` providers are supported. Default - auto-detected.
+* `provider`: *optional*, *string*. As for `v0.5.0`, only the `onnx`, `openai` and `cohere` providers are supported. Default - auto-detected.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](../../reference/url.md) for more details on how to load your model.
 * `prompt`: *optional*. A document and query prefixes for asymmetrical models. Default - auto-detected.
 

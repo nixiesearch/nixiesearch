@@ -4,17 +4,10 @@ import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, Em
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
-import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{
-  OnnxEmbeddingInferenceModelConfig,
-  onnxEmbeddingConfigDecoder,
-  onnxEmbeddingConfigEncoder
-}
+import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{CohereEmbeddingInferenceModelConfig, cohereEmbeddingConfigDecoder, cohereEmbeddingConfigEncoder}
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{OnnxEmbeddingInferenceModelConfig, onnxEmbeddingConfigDecoder, onnxEmbeddingConfigEncoder}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel
-import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{
-  OpenAIEmbeddingInferenceModelConfig,
-  openAIEmbeddingConfigDecoder,
-  openAIEmbeddingConfigEncoder
-}
+import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{OpenAIEmbeddingInferenceModelConfig, openAIEmbeddingConfigDecoder, openAIEmbeddingConfigEncoder}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -100,6 +93,8 @@ object InferenceConfig {
         Json.obj("provider" -> Json.fromString("onnx")).deepMerge(onnxEmbeddingConfigEncoder(e))
       case e: OpenAIEmbeddingInferenceModelConfig =>
         Json.obj("provider" -> Json.fromString("openai")).deepMerge(openAIEmbeddingConfigEncoder(e))
+      case e: CohereEmbeddingInferenceModelConfig =>
+        Json.obj("provider" -> Json.fromString("cohere")).deepMerge(cohereEmbeddingConfigEncoder(e))
     }
 
     given embedInferenceModelConfigDecoder: Decoder[EmbeddingInferenceModelConfig] = Decoder.instance(c =>
@@ -107,6 +102,7 @@ object InferenceConfig {
         case Left(err)             => Left(err)
         case Right(Some("onnx"))   => onnxEmbeddingConfigDecoder.tryDecode(c)
         case Right(Some("openai")) => openAIEmbeddingConfigDecoder.tryDecode(c)
+        case Right(Some("cohere")) => cohereEmbeddingConfigDecoder.tryDecode(c)
         case Right(None) =>
           c.downField("model").as[Option[String]] match {
             case Left(err) => Left(err)

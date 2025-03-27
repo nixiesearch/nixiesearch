@@ -132,6 +132,28 @@ Parameters:
 * **dimensions**: optional, int, default empty. For [matryoshka](https://huggingface.co/blog/matryoshka) models, how many dimensions to return.
 * **batch_size**: optional, int, default 32. Batch size for calls with many documents.
 
+
+#### Cohere models
+
+Example of a full configuration:
+
+```yaml
+inference:
+  embedding:
+    <model-name>:
+      provider: cohere
+      model: embed-english-v3.0
+      timeout: 2000ms
+      endpoint: "https://api.cohere.com/"
+      batch_size: 32
+```
+
+Parameters:
+
+* **timeout**: optional, duration, default 2s. External APIs might be slow sometimes.
+* **retry**: optional, string, default "https://api.cohere.com/". You can use alternative API or EU-specific endpoint.
+* **batch_size**: optional, int, default 32. Batch size for calls with many documents.
+
 ### LLM completion models
 
 Example of a full configuration:
