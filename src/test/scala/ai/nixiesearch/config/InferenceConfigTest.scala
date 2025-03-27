@@ -1,12 +1,21 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{LlamacppInferenceModelConfig, LlamacppParams}
-import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig, PromptConfig}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
+  LlamacppInferenceModelConfig,
+  LlamacppParams
+}
+import ai.nixiesearch.config.InferenceConfig.{
+  CompletionInferenceModelConfig,
+  EmbeddingInferenceModelConfig,
+  PromptConfig
+}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
+import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig.OnnxModelFile
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.PoolingType.MeanPooling
+import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.parse as parseYaml
@@ -45,6 +54,43 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
         embedding = Map(
           ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
             model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
+          )
+        )
+      )
+    )
+  }
+  it should "parse openai embedding" in {
+    val text =
+      """embedding:
+        |  small:
+        |    model: text-embedding-3-small
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OpenAIEmbeddingInferenceModelConfig(
+            model = "text-embedding-3-small"
+          )
+        )
+      )
+    )
+  }
+  it should "parse cohere embedding" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: cohere
+        |    model: embed-english-v3.0
+        |    batch_size: 128
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> CohereEmbeddingInferenceModelConfig(
+            model = "embed-english-v3.0",
+            batchSize = 128
           )
         )
       )
