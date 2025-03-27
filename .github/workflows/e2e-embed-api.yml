@@ -1,0 +1,47 @@
+name: "E2E: API embedding models tests"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+env:
+  AWS_ACCESS_KEY_ID: foo
+  AWS_SECRET_ACCESS_KEY: bar
+  COHERE_KEY: ${{ secrets.COHERE_KEY }}
+  OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+
+jobs:
+  build:
+    timeout-minutes: 20
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        include:
+          - jvm: 21
+            platform: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        lfs: 'true'
+
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.ivy2
+          ~/.sbt
+          ~/.m2
+          ~/.cache
+          ~/work/nixiesearch/nixiesearch/cache
+          /tmp/nixiesearch
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+
+    - name: Set up JDK
+      uses: actions/setup-java@v1
+      with:
+        distribution: 'adopt-hotspot'
+        java-version: ${{ matrix.jvm }}
+
+    - name: Run tests
+      run: sbt -mem 5000 'testOnly --  -n e2e-api-embed'
