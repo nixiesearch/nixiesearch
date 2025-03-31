@@ -53,7 +53,7 @@ object EmbeddingInferenceEndToEndTest {
       .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
-    val result = embedder.encode(Raw, List(text)).unsafeRunSync()
+    val result = embedder.encode(Raw, List(text)).compile.toList.unsafeRunSync()
     shutdownHandle.unsafeRunSync()
     result(0)
   }

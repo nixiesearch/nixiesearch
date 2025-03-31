@@ -1,5 +1,7 @@
 package ai.nixiesearch.core.nn.model.embedding.providers
 
+import ai.nixiesearch.config.EmbedCacheConfig
+import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
@@ -24,8 +26,12 @@ import org.http4s.{AuthScheme, Credentials, EntityDecoder, EntityEncoder, Header
 import scala.concurrent.duration.FiniteDuration
 
 case class OpenAIEmbedModel(client: Client[IO], endpoint: Uri, key: String, config: OpenAIEmbeddingInferenceModelConfig)
-    extends EmbedModel
+    extends EmbedModelProvider
     with Logging {
+  override val model: String    = config.model
+  override val provider: String = "openai"
+  override val batchSize        = config.batchSize
+
   override def encodeBatch(task: TaskType, docs: List[String]): IO[Array[Array[Float]]] = for {
     start <- IO(System.currentTimeMillis())
     request <- IO(
@@ -50,9 +56,6 @@ case class OpenAIEmbedModel(client: Client[IO], endpoint: Uri, key: String, conf
     response.data.map(_.embedding).toArray
   }
 
-  override def close(): IO[Unit] = info("closing openai embedding client")
-
-  override def batchSize: Int = config.batchSize
 }
 
 object OpenAIEmbedModel extends Logging {
@@ -68,7 +71,8 @@ object OpenAIEmbedModel extends Logging {
       // retry: Int = 1,
       endpoint: String = DEFAULT_ENDPOINT,
       dimensions: Option[Int] = None,
-      batchSize: Int = 32
+      batchSize: Int = 32,
+      cache: EmbedCacheConfig = MemoryCacheConfig()
   ) extends EmbeddingInferenceModelConfig
 
   given openAIEmbeddingConfigEncoder: Encoder[OpenAIEmbeddingInferenceModelConfig] = deriveEncoder
@@ -81,6 +85,7 @@ object OpenAIEmbedModel extends Logging {
       endpoint   <- c.downField("endpoint").as[Option[String]]
       dimensions <- c.downField("dimensions").as[Option[Int]]
       batchSize  <- c.downField("batch_size").as[Option[Int]]
+      cache      <- c.downField("cache").as[Option[EmbedCacheConfig]]
     } yield {
       OpenAIEmbeddingInferenceModelConfig(
         model = model,
@@ -88,7 +93,8 @@ object OpenAIEmbedModel extends Logging {
         // retry = retry.getOrElse(1),
         endpoint = endpoint.getOrElse(DEFAULT_ENDPOINT),
         dimensions = dimensions,
-        batchSize = batchSize.getOrElse(32)
+        batchSize = batchSize.getOrElse(32),
+        cache = cache.getOrElse(MemoryCacheConfig())
       )
     }
   )

@@ -35,5 +35,13 @@ Practical end-to-end recipes about typical search engine maintenance tasks.
     Rapid up- and down-scaling based on cluster load.
     
     [:octicons-arrow-right-24: Auto-scaling](autoscaling.md)
+  
+- :material-arrow-split-horizontal:{ .lg .middle } __Offline indexing__
+
+    ---
+
+    Batch offline full reindexing without interfering with your live search cluster.
+
+    [:octicons-arrow-right-24: Full reindexing](indexing.md)
 
 </div>

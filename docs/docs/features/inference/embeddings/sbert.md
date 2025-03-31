@@ -51,6 +51,20 @@ inference:
       file: model_opt2_QInt8.onnx
 ```
 
+To enable caching for frequent strings, use the `cache` option. See [Embedding caching](cache.md) for more details.
+
+```yaml
+inference:
+  embedding:
+    # Used for semantic retrieval
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      cache:
+        memory:
+          max_size: 1024 # cache top-N most popular embeddings
+```
+
+
 ## Converting your own model
 
 You can use the [nixiesearch/onnx-convert](https://github.com/nixiesearch/onnx-convert) to convert yur own model:

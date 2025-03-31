@@ -1,5 +1,6 @@
 package ai.nixiesearch.config
 
+import ai.nixiesearch.config.EmbedCacheConfig.{MemoryCacheConfig, NoCache}
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
   LlamacppInferenceModelConfig,
   LlamacppParams
@@ -91,6 +92,53 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
           ModelRef("small") -> CohereEmbeddingInferenceModelConfig(
             model = "embed-english-v3.0",
             batchSize = 128
+          )
+        )
+      )
+    )
+  }
+
+  it should "parse cohere embedding with no embed cache" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: cohere
+        |    model: embed-english-v3.0
+        |    batch_size: 128
+        |    cache: false
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> CohereEmbeddingInferenceModelConfig(
+            model = "embed-english-v3.0",
+            batchSize = 128,
+            cache = NoCache
+          )
+        )
+      )
+    )
+  }
+  it should "parse cohere embedding with inmem embed cache" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: cohere
+        |    model: embed-english-v3.0
+        |    batch_size: 128
+        |    cache:
+        |      memory:
+        |        max_size: 1000
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> CohereEmbeddingInferenceModelConfig(
+            model = "embed-english-v3.0",
+            batchSize = 128,
+            cache = MemoryCacheConfig(1000)
           )
         )
       )

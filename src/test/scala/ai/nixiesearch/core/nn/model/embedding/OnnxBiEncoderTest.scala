@@ -25,7 +25,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
-    val query = embedder.encode(Query, "How many people live in Berlin?").unsafeRunSync()
+    val query = embedder.encode(Query, List("How many people live in Berlin?")).compile.toList.unsafeRunSync()
     val docs = embedder
       .encode(
         Document,
@@ -34,10 +34,10 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
           "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."
         )
       )
-      .unsafeRunSync()
-    val d1 = CosineDistance.dist(query, docs(0))
+      .compile.toList.unsafeRunSync()
+    val d1 = CosineDistance.dist(query.head, docs(0))
     d1 shouldBe 0.53f +- 0.02
-    val d2 = CosineDistance.dist(query, docs(1))
+    val d2 = CosineDistance.dist(query.head, docs(1))
     d2 shouldBe 0.73f +- 0.02
     shutdownHandle.unsafeRunSync()
   }
@@ -49,7 +49,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
       .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated
       .unsafeRunSync()
-    val result = embedder.encode(Query, List("test")).unsafeRunSync()
+    val result = embedder.encode(Query, List("test")).compile.toList.unsafeRunSync()
     result.length shouldBe 1
     result(0).length shouldBe 768
     shutdownHandle.unsafeRunSync()

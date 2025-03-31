@@ -39,8 +39,8 @@ object APIEmbedEndToEndTest {
         CohereEmbedModel.create(CohereEmbeddingInferenceModelConfig(model = model)).allocated.unsafeRunSync()
       case other => throw Exception("nope")
     }
-    val result = embed.encode(Raw, text).unsafeRunSync()
+    val result = embed.encode(Raw, List(text)).compile.toList.unsafeRunSync()
     shutdown.unsafeRunSync()
-    result
+    result.head
   }
 }

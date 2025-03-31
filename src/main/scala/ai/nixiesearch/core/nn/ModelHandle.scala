@@ -8,6 +8,7 @@ import scala.util.{Failure, Success}
 sealed trait ModelHandle {
   def name: String
   def asList: List[String]
+  def toURL: String
 }
 
 object ModelHandle {
@@ -16,11 +17,11 @@ object ModelHandle {
   case class HuggingFaceHandle(ns: String, name: String) extends ModelHandle {
     override def asList: List[String] = List(ns, name)
 
-    override def toString: String = s"hf://$ns/$name"
+    override def toURL: String = s"hf://$ns/$name"
   }
 
   case class LocalModelHandle(dir: String) extends ModelHandle {
-    override def toString: String     = s"file://$dir"
+    override def toURL: String        = s"file://$dir"
     override def name: String         = dir
     override def asList: List[String] = List(dir)
   }

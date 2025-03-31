@@ -1,7 +1,8 @@
 package ai.nixiesearch.core.nn.model.embedding.providers
 
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
-import ai.nixiesearch.config.IndexCacheConfig.EmbeddingCacheConfig
+import ai.nixiesearch.config.EmbedCacheConfig
+import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
 import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, PromptConfig}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
@@ -10,7 +11,7 @@ import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict.{CONFIG_FILE, TransformersConfig, info, logger}
-import ai.nixiesearch.core.nn.model.embedding.cache.HeapEmbeddingCache
+import ai.nixiesearch.core.nn.model.embedding.cache.MemoryCachedEmbedModel
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig.OnnxModelFile
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{OnnxEmbeddingInferenceModelConfig, PoolingType}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
@@ -25,6 +26,7 @@ import fs2.io.file.Path as Fs2Path
 import io.circe.{Decoder, Encoder, Json}
 import io.circe.parser.*
 import io.circe.generic.semiauto.*
+
 import java.nio.LongBuffer
 import java.nio.file.{Path, Files as NIOFiles}
 import scala.jdk.CollectionConverters.*
@@ -38,8 +40,10 @@ case class OnnxEmbedModel(
     dim: Int,
     inputTensorNames: List[String],
     config: OnnxEmbeddingInferenceModelConfig
-) extends EmbedModel {
-  override def batchSize = config.batchSize
+) extends EmbedModelProvider {
+  override val model: String    = config.model.asList.mkString("/")
+  override val provider: String = "onnx"
+  override val batchSize        = config.batchSize
 
   override def encodeBatch(task: TaskType, batch: List[String]): IO[Array[Array[Float]]] = IO {
     val formatted = task match {
@@ -76,10 +80,6 @@ case class OnnxEmbedModel(
     normalized
   }
 
-  override def close(): IO[Unit] = IO {
-    logger.debug(s"closing ONNX session $session")
-    session.close()
-  }
 }
 
 object OnnxEmbedModel extends Logging {
@@ -92,7 +92,8 @@ object OnnxEmbedModel extends Logging {
       file: Option[OnnxModelFile] = None,
       normalize: Boolean = true,
       maxTokens: Int = 512,
-      batchSize: Int = 32
+      batchSize: Int = 32,
+      cache: EmbedCacheConfig = MemoryCacheConfig()
   ) extends EmbeddingInferenceModelConfig
   object OnnxEmbeddingInferenceModelConfig {
     case class OnnxModelFile(base: String, data: Option[String] = None)
@@ -121,8 +122,6 @@ object OnnxEmbedModel extends Logging {
     def apply(model: ModelHandle) =
       new OnnxEmbeddingInferenceModelConfig(model, pooling = PoolingType(model), prompt = PromptConfig(model))
   }
-
-
 
   def createHuggingface(
       handle: HuggingFaceHandle,
@@ -231,7 +230,7 @@ object OnnxEmbedModel extends Logging {
     _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
     model <- Resource.make(
       IO(createUnsafe(model, dic, dim, isGPUBuild, threads, config))
-    )(e => e.close())
+    )(e => debug(s"closing ONNX session ${config.model}") *> IO(e.session.close()))
   } yield {
     model
   }
@@ -274,6 +273,7 @@ object OnnxEmbedModel extends Logging {
       batchSize <- c.downField("batch_size").as[Option[Int]]
       pooling   <- c.downField("pooling").as[Option[PoolingType]]
       normalize <- c.downField("normalize").as[Option[Boolean]]
+      cache     <- c.downField("cache").as[Option[EmbedCacheConfig]]
     } yield {
       OnnxEmbeddingInferenceModelConfig(
         model,
@@ -282,7 +282,8 @@ object OnnxEmbedModel extends Logging {
         maxTokens = seqlen.getOrElse(512),
         batchSize = batchSize.getOrElse(32),
         pooling = pooling.getOrElse(PoolingType(model)),
-        normalize = normalize.getOrElse(true)
+        normalize = normalize.getOrElse(true),
+        cache = cache.getOrElse(MemoryCacheConfig())
       )
     }
   )

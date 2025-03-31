@@ -4,10 +4,22 @@ import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, Em
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
-import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{CohereEmbeddingInferenceModelConfig, cohereEmbeddingConfigDecoder, cohereEmbeddingConfigEncoder}
-import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{OnnxEmbeddingInferenceModelConfig, onnxEmbeddingConfigDecoder, onnxEmbeddingConfigEncoder}
+import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{
+  CohereEmbeddingInferenceModelConfig,
+  cohereEmbeddingConfigDecoder,
+  cohereEmbeddingConfigEncoder
+}
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{
+  OnnxEmbeddingInferenceModelConfig,
+  onnxEmbeddingConfigDecoder,
+  onnxEmbeddingConfigEncoder
+}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel
-import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{OpenAIEmbeddingInferenceModelConfig, openAIEmbeddingConfigDecoder, openAIEmbeddingConfigEncoder}
+import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{
+  OpenAIEmbeddingInferenceModelConfig,
+  openAIEmbeddingConfigDecoder,
+  openAIEmbeddingConfigEncoder
+}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -84,7 +96,9 @@ object InferenceConfig {
     )
   }
 
-  trait EmbeddingInferenceModelConfig
+  trait EmbeddingInferenceModelConfig {
+    def cache: EmbedCacheConfig
+  }
 
   object EmbeddingInferenceModelConfig extends Logging {
 

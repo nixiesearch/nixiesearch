@@ -93,6 +93,7 @@ inference:
       batch_size: 32
       pooling: mean
       normalize: true
+      cache: false
       prompt:
         query: "query: "
         doc: "passage: "
@@ -108,6 +109,7 @@ Fields:
 * `batch_size`: *optional*, *int*, default `32`. Computing embeddings is a highly parallel task, and doing it in big chunks is much more effective than one by one. For CPUs there are usually no gains of batch sizes beyong 32, but on GPUs you can go up to 1024.
 * `pooling`: *optional*, `cls`/`mean`, default auto. Which pooling method use to compute sentence embeddings. This is model specific and Nixiesearch tries to guess it automatically. See the [list of supported embeddings models](../features/inference/embeddings/sbert.md) to know if it can be detected automatically. If your model is not on the list, consult the model doc on its pooling method.
 * `normalize`: *optional*, *bool*, default `true`. Should embeddings be L2-normalized? With normalized embeddings it becomes possible to use a faster dot-product based aKNN search.
+* `cache`: *optional*, *bool* or [CacheSettings](#embedding-caching). Default `memory.max_size=32768`. Cache top-N LRU embeddings in RAM. See [Embedding caching](#embedding-caching) for more details.  
 
 #### OpenAI models
 
@@ -123,6 +125,8 @@ inference:
       endpoint: "https://api.openai.com/"
       dimensions: null
       batch_size: 32
+      cache: false
+
 ```
 
 Parameters:
@@ -131,6 +135,7 @@ Parameters:
 * **retry**: optional, string, default "https://api.openai.com/". You can use alternative API or EU-specific endpoint.
 * **dimensions**: optional, int, default empty. For [matryoshka](https://huggingface.co/blog/matryoshka) models, how many dimensions to return.
 * **batch_size**: optional, int, default 32. Batch size for calls with many documents.
+* **cache**: optional, bool or [CacheSettings](#embedding-caching). Default `memory.max_size=32768`. Cache top-N LRU embeddings in RAM. See [Embedding caching](#embedding-caching) for more details.
 
 
 #### Cohere models
@@ -146,6 +151,7 @@ inference:
       timeout: 2000ms
       endpoint: "https://api.cohere.com/"
       batch_size: 32
+      cache: false
 ```
 
 Parameters:
@@ -153,6 +159,28 @@ Parameters:
 * **timeout**: optional, duration, default 2s. External APIs might be slow sometimes.
 * **retry**: optional, string, default "https://api.cohere.com/". You can use alternative API or EU-specific endpoint.
 * **batch_size**: optional, int, default 32. Batch size for calls with many documents.
+* **cache**: optional, bool or [CacheSettings](#embedding-caching). Default `memory.max_size=32768`. Cache top-N LRU embeddings in RAM. See [Embedding caching](#embedding-caching) for more details.
+
+#### Embedding caching
+
+Each [embedding model](#embedding-models) has a `cache` section, which controls [embedding caching](../features/inference/embeddings/cache.md).
+
+```yaml
+inference:
+  embedding:
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      cache:
+        memory:
+          max_size: 32768
+```
+
+Parameters:
+
+* **cache**, optional, bool or object. Default `memory.max_size=32768`. Which cache implementation to use.
+* **cache.memory.max_size**, optional, int, default 32768. How many string-embedding pairs to keep in the LRU cache.
+
+Nixiesearch currently supports only `memory` embedding cache, [Redis caching](../features/inference/embeddings/cache.md#redis-cache) is planned.
 
 ### LLM completion models
 

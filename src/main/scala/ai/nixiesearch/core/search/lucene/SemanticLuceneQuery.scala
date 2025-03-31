@@ -3,6 +3,7 @@ package ai.nixiesearch.core.search.lucene
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
@@ -18,7 +19,7 @@ object SemanticLuceneQuery {
       filter: Option[Filters],
       mapping: IndexMapping
   ): IO[List[LuceneQuery]] = for {
-    queryEmbed <- encoders.encodeQuery(model, query)
+    queryEmbed <- encoders.encode(model, TaskType.Query, query)
     filterOption <- filter match {
       case Some(f) => f.toLuceneQuery(mapping)
       case None    => IO.none

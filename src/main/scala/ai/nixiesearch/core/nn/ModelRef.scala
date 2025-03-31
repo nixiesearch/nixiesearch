@@ -2,6 +2,9 @@ package ai.nixiesearch.core.nn
 
 import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 
+/** A text model indentifier from a config file.
+  * @param name
+  */
 case class ModelRef(name: String)
 
 object ModelRef {
