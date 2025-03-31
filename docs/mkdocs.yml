@@ -145,6 +145,7 @@ nav:
           - Overview: features/inference/overview.md
           - Embeddings:
               - Overview: features/inference/embeddings.md
+              - Caching: features/inference/embeddings/cache.md
               - Supported models:
                   - Sentence Transformers: features/inference/embeddings/sbert.md
                   - OpenAI: features/inference/embeddings/openai.md
@@ -160,7 +161,7 @@ nav:
                 - Local directory: deployment/distributed/persistence/local.md
                 - In-memory: deployment/distributed/persistence/inmem.md
             - Indexing:
-                - deployment/distributed/indexing/index.md
+                - Overview: deployment/distributed/indexing/overview.md
                 - Apache Kafka: deployment/distributed/indexing/kafka.md
                 - File: deployment/distributed/indexing/file.md
             - Kubernetes: deployment/distributed/kubernetes.md
@@ -189,6 +190,7 @@ nav:
       - Schema migrations: tutorial/schema.md
       - Upgrades: tutorial/upgrade.md
       - Auto-scaling: tutorial/autoscaling.md
+      - Offline reindexing: tutorial/indexing.md
   - Demo: https://demo.nixiesearch.ai/
   - Blog: https://nixiesearch.substack.com/
   - Slack: https://communityinviter.com/apps/nixiesearch/nixiesearch

@@ -15,6 +15,7 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
 import ai.nixiesearch.core.metrics.{IndexerMetrics, Metrics}
 import ai.nixiesearch.core.nn.ModelRef
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
 import ai.nixiesearch.index.sync.Index
@@ -144,7 +145,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
             .toList
             .flatTraverse(batch =>
               encoders
-                .encodeDocuments(field.model, batch)
+                .encode(field.model, TaskType.Document, batch)
                 .flatMap(embeddings => IO(batch.zip(embeddings)))
             )
         } yield {

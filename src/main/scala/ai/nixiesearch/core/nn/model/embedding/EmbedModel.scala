@@ -25,29 +25,17 @@ import java.nio.channels.FileChannel.MapMode
 import java.nio.file.Path
 
 trait EmbedModel extends Logging {
+  def model: String
+  def provider: String
   def batchSize: Int
 
-  def encode(task: TaskType, doc: String): IO[Array[Float]] = encodeBatch(task, List(doc)).flatMap {
-    case x if x.length == 1 => IO(x(0))
-    case _                  => IO.raiseError(BackendError(s"got empty embedding for doc '$doc'"))
-  }
-  def encode(task: TaskType, docs: List[String]): IO[Array[Array[Float]]] = Stream
-    .emits(docs)
-    .chunkN(batchSize)
-    .evalMap(batch => encodeBatch(task, batch.toList).map(batch => Chunk.array(batch)))
-    .unchunks
-    .compile
-    .toList
-    .map(_.toArray)
-
-  protected def encodeBatch(task: TaskType, batch: List[String]): IO[Array[Array[Float]]]
-  def close(): IO[Unit]
+  def encode(task: TaskType, docs: List[String]): Stream[IO, Array[Float]]
 }
 
 object EmbedModel {
-  enum TaskType {
-    case Document extends TaskType
-    case Query    extends TaskType
-    case Raw      extends TaskType
+  enum TaskType(val name: String) {
+    case Document extends TaskType("doc")
+    case Query    extends TaskType("query")
+    case Raw      extends TaskType("raw")
   }
 }

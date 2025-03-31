@@ -1,6 +1,15 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.InferenceRoute.{CompletionFrame, CompletionRequest, CompletionResponse, EmbeddingInferenceRequest, EmbeddingInferenceResponse, EmbeddingOutput, PromptType, requestJson}
+import ai.nixiesearch.api.InferenceRoute.{
+  CompletionFrame,
+  CompletionRequest,
+  CompletionResponse,
+  EmbeddingInferenceRequest,
+  EmbeddingInferenceResponse,
+  EmbeddingOutput,
+  PromptType,
+  requestJson
+}
 import ai.nixiesearch.api.InferenceRoute.PromptType.{Document, Query, Raw}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.index.Models
@@ -80,7 +89,7 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
         }
       )
     )
-    results <- models.embedding.cache.getOrEmbedAndCache(modelRef, TaskType.Raw, docs, model.encode)
+    results <- models.embedding.encode(modelRef, TaskType.Raw, docs)
     finish  <- IO(System.currentTimeMillis())
     _       <- IO(metrics.inference.embedTimeSeconds.labelValues(modelRef.name).inc((finish - start) / 1000.0))
   } yield {

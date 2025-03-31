@@ -1,5 +1,7 @@
 package ai.nixiesearch.core.nn.model.embedding.providers
 
+import ai.nixiesearch.config.EmbedCacheConfig
+import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel
@@ -23,9 +25,11 @@ import org.http4s.headers.{Accept, Authorization, `Content-Type`}
 import scala.concurrent.duration.FiniteDuration
 
 case class CohereEmbedModel(client: Client[IO], endpoint: Uri, key: String, config: CohereEmbeddingInferenceModelConfig)
-    extends EmbedModel
+    extends EmbedModelProvider
     with Logging {
-  override def batchSize: Int = config.batchSize
+  override val batchSize: Int   = config.batchSize
+  override val model: String    = config.model
+  override val provider: String = "cohere"
 
   override protected def encodeBatch(task: EmbedModel.TaskType, batch: List[String]): IO[Array[Array[Float]]] = for {
     start <- IO(System.currentTimeMillis())
@@ -62,7 +66,6 @@ case class CohereEmbedModel(client: Client[IO], endpoint: Uri, key: String, conf
     response.embeddings.float
   }
 
-  override def close(): IO[Unit] = info("closing openai embedding client")
 }
 
 object CohereEmbedModel extends Logging {
@@ -99,7 +102,8 @@ object CohereEmbedModel extends Logging {
       timeout: FiniteDuration = 2.seconds,
       // retry: Int = 1,
       endpoint: String = DEFAULT_ENDPOINT,
-      batchSize: Int = 32
+      batchSize: Int = 32,
+      cache: EmbedCacheConfig = MemoryCacheConfig()
   ) extends EmbeddingInferenceModelConfig
 
   given cohereEmbeddingConfigEncoder: Encoder[CohereEmbeddingInferenceModelConfig] = deriveEncoder
@@ -111,13 +115,15 @@ object CohereEmbedModel extends Logging {
       // retry      <- c.downField("retry").as[Option[Int]]
       endpoint  <- c.downField("endpoint").as[Option[String]]
       batchSize <- c.downField("batch_size").as[Option[Int]]
+      cache     <- c.downField("cache").as[Option[EmbedCacheConfig]]
     } yield {
       CohereEmbeddingInferenceModelConfig(
         model = model,
         timeout = timeout.getOrElse(2.seconds),
         // retry = retry.getOrElse(1),
         endpoint = endpoint.getOrElse(DEFAULT_ENDPOINT),
-        batchSize = batchSize.getOrElse(32)
+        batchSize = batchSize.getOrElse(32),
+        cache = cache.getOrElse(MemoryCacheConfig())
       )
     }
   )

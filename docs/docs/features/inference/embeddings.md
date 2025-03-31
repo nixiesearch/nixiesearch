@@ -34,18 +34,22 @@ inference:
     your-model-name:
       provider: onnx
       model: intfloat/e5-small-v2
+      cache:
+        memory:
+          max_size: 32768
       prompt: # (1)
         query: "query: "
         doc: "passage: "
 ```
 
-1. Nixiesearch can correctly guess the prompt format for all the moder
+1. Nixiesearch can correctly guess the prompt format for all the [supported models](embeddings/sbert.md)
 
 Fields:
 
 * `provider`: *optional*, *string*. As for `v0.5.0`, only the `onnx`, `openai` and `cohere` providers are supported. Default - auto-detected.
 * `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](../../reference/url.md) for more details on how to load your model.
 * `prompt`: *optional*. A document and query prefixes for asymmetrical models. Default - auto-detected.
+* `cache`: *optional*. As computing embeddings is latency heavy operation, caching can be used for frequent strings. See [Embedding caching](embeddings/cache.md) for more details.
 
 See [inference.embedding config file reference](../../reference/config.md#ml-inference) for all advanced options of the ONNX provider.
 
