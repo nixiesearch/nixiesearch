@@ -9,10 +9,10 @@ project/project
 project/target
 target/
 .venv
-.cache
 docs/site
 .run
 indices
 indexes
-cache
+/cache
+/docs/.cache
 llama.log
