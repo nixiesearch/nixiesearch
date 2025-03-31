@@ -33,7 +33,7 @@ jobs:
           ~/.cache
           ~/work/nixiesearch/nixiesearch/cache
           /tmp/nixiesearch
-        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+        key: ${{ runner.os }}-sbt-x2-${{ hashFiles('**/build.sbt') }}
 
     - name: Set up JDK
       uses: actions/setup-java@v1
