@@ -5,7 +5,8 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.Loglevel
 import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode}
-import ai.nixiesearch.util.GPUUtils
+import ai.nixiesearch.util.{EnvVars, GPUUtils}
+import ai.nixiesearch.util.analytics.AnalyticsReporter
 import cats.effect.std.Env
 import cats.effect.{ExitCode, IO, IOApp}
 import ch.qos.logback.classic.{Level, LoggerContext}
@@ -15,16 +16,21 @@ import fs2.Stream
 object Main extends IOApp with Logging {
   override def run(args: List[String]): IO[ExitCode] = for {
     _      <- info(s"Staring Nixiesearch: ${Logo.version}")
+    _      <- IO(System.setProperty("ai.djl.offline", "true")) // too slow
     opts   <- CliConfig.load(args)
     _      <- changeLogbackLevel(opts.loglevel)
-    env    <- Env[IO].entries.map(_.toMap)
+    env    <- EnvVars.load()
     config <- Config.load(opts.config, env)
     _      <- gpuChecks(config)
-    _ <- opts match {
-      case s: StandaloneArgs => StandaloneMode.run(s, config)
-      case s: SearchArgs     => SearchMode.run(s, config)
-      case s: IndexArgs      => IndexMode.run(s, config)
-    }
+    _ <- AnalyticsReporter
+      .create(config, opts.mode)
+      .use(_ =>
+        opts match {
+          case s: StandaloneArgs => StandaloneMode.run(s, config)
+          case s: SearchArgs     => SearchMode.run(s, config)
+          case s: IndexArgs      => IndexMode.run(s, config)
+        }
+      )
   } yield {
     ExitCode.Success
   }

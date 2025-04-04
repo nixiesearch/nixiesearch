@@ -1,7 +1,7 @@
 package ai.nixiesearch.source
 
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.KafkaIndexSourceArgs
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.KafkaIndexSourceArgs
 import ai.nixiesearch.util.Tags.EndToEnd
 import ai.nixiesearch.util.{TestDocument, TestIndexMapping}
 import org.apache.kafka.clients.admin.{Admin, AdminClientConfig, NewTopic}

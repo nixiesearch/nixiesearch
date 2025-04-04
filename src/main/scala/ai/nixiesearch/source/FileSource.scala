@@ -2,7 +2,7 @@ package ai.nixiesearch.source
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream}
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.FileIndexSourceArgs
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
 

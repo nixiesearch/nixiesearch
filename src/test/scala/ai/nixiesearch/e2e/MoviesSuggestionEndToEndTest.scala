@@ -5,7 +5,7 @@ import ai.nixiesearch.api.{IndexModifyRoute, SearchRoute}
 import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.util.Tags.EndToEnd
-import ai.nixiesearch.util.{DatasetLoader, SearchTest}
+import ai.nixiesearch.util.{DatasetLoader, EnvVars, SearchTest}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -19,7 +19,7 @@ import java.io.File
 class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd = System.getProperty("user.dir")
   lazy val conf =
-    Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml"), Map.empty).unsafeRunSync()
+    Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping                        = conf.schema(IndexName.unsafe("movies"))
   val docs                                = Nil
   override def inference: InferenceConfig = conf.inference

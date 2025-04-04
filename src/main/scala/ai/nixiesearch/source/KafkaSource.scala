@@ -2,7 +2,7 @@ package ai.nixiesearch.source
 
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging}
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.KafkaIndexSourceArgs
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.KafkaIndexSourceArgs
 import ai.nixiesearch.source.KafkaSource.Consumer
 import cats.effect.IO
 import com.google.common.collect.Lists

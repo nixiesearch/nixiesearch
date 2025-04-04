@@ -8,6 +8,7 @@ import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.Loglevel
+import ai.nixiesearch.util.{BooleanEnv, EnvVars}
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
 import cats.effect.std.Env
@@ -80,7 +81,7 @@ object Config extends Logging {
     }
   }
 
-  def load(path: URL, env: Map[String, String]): IO[Config] = for {
+  def load(path: URL, env: EnvVars): IO[Config] = for {
     text   <- URLReader.bytes(path).through(fs2.text.utf8.decode).compile.fold("")(_ + _)
     config <- load(text, env)
     _      <- info(s"Loaded config: $path")
@@ -88,11 +89,11 @@ object Config extends Logging {
     config
   }
 
-  def load(path: File, env: Map[String, String]): IO[Config] = load(LocalURL(path.toPath), env)
+  def load(path: File, env: EnvVars): IO[Config] = load(LocalURL(path.toPath), env)
 
   case class EnvOverride(name: String, lens: (Config, String) => IO[Config]) {
-    def patch(config: Config, env: Map[String, String]): IO[Config] = {
-      env.get(name) match {
+    def patch(config: Config, env: EnvVars): IO[Config] = {
+      env.string(name) match {
         case None        => IO.pure(config)
         case Some(value) => lens(config, value).flatTap(_ => info(s"substituted env var $name=$value"))
       }
@@ -114,10 +115,17 @@ object Config extends Logging {
       (config, level) =>
         IO.fromEither(Loglevel.tryDecode(level).toEither)
           .map(level => config.copy(core = config.core.copy(loglevel = level)))
+    ),
+    EnvOverride(
+      "NIXIESEARCH_CORE_TELEMETRY",
+      (config, enabled) =>
+        BooleanEnv
+          .parse(enabled)
+          .map(toggle => config.copy(core = config.core.copy(telemetry = config.core.telemetry.copy(usage = toggle))))
     )
   )
 
-  def load(text: String, env: Map[String, String]): IO[Config] = for {
+  def load(text: String, env: EnvVars): IO[Config] = for {
     yaml        <- IO.fromEither(parse(text))
     decoded     <- IO.fromEither(yaml.as[Config])
     substituted <- overrides.foldLeftM(decoded)((config, envOverride) => envOverride.patch(config, env))

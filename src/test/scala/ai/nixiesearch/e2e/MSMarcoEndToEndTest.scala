@@ -7,7 +7,7 @@ import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.util.Tags.EndToEnd
-import ai.nixiesearch.util.{DatasetLoader, SearchTest}
+import ai.nixiesearch.util.{DatasetLoader, EnvVars, SearchTest}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -20,7 +20,7 @@ import scodec.bits.ByteVector
 
 class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml"), Map.empty).unsafeRunSync()
+  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("msmarco"))
   lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json", mapping, 1000)
   override def inference: InferenceConfig = conf.inference

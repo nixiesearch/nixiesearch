@@ -4,8 +4,9 @@ import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.*
-import ai.nixiesearch.main.CliConfig.CliArgs.{IndexSourceArgs, *}
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.*
+import ai.nixiesearch.main.CliConfig.{IndexSourceArgs, *}
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
 import ai.nixiesearch.source.SourceOffset
 import ai.nixiesearch.source.SourceOffset.Latest
@@ -134,28 +135,27 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 }
 
 object CliConfig extends Logging {
-  sealed trait CliArgs {
+  enum CliArgs(val mode: String) {
     def config: URL
     def loglevel: Loglevel
-  }
-  object CliArgs {
-    case class StandaloneArgs(config: URL, loglevel: Loglevel = INFO)                     extends CliArgs
-    case class IndexArgs(config: URL, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs
-    case class SearchArgs(config: URL, loglevel: Loglevel = INFO)                         extends CliArgs
 
-    enum IndexSourceArgs {
-      case ApiIndexSourceArgs(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSourceArgs
-      case FileIndexSourceArgs(url: URL, index: String, recursive: Boolean = false, endpoint: Option[String] = None)
-          extends IndexSourceArgs
-      case KafkaIndexSourceArgs(
-          index: String,
-          brokers: List[String],
-          topic: String,
-          groupId: String,
-          offset: Option[SourceOffset],
-          options: Option[Map[String, String]] = None
-      ) extends IndexSourceArgs
-    }
+    case StandaloneArgs(config: URL, loglevel: Loglevel = INFO)                     extends CliArgs("standalone")
+    case IndexArgs(config: URL, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs("index")
+    case SearchArgs(config: URL, loglevel: Loglevel = INFO)                         extends CliArgs("search")
+  }
+
+  enum IndexSourceArgs {
+    case ApiIndexSourceArgs(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSourceArgs
+    case FileIndexSourceArgs(url: URL, index: String, recursive: Boolean = false, endpoint: Option[String] = None)
+        extends IndexSourceArgs
+    case KafkaIndexSourceArgs(
+        index: String,
+        brokers: List[String],
+        topic: String,
+        groupId: String,
+        offset: Option[SourceOffset],
+        options: Option[Map[String, String]] = None
+    ) extends IndexSourceArgs
   }
 
   enum Loglevel {
