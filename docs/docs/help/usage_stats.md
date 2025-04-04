@@ -16,12 +16,12 @@ Here’s what we do collect:
 * **Performance Metrics** – Timings and counters from key parts of the codebase.
 * **Critical Error Reports** – Stack traces and details about serious crashes or bugs that haven’t been reported yet.
 
-Here’s what we don’t collect:
+Here’s what we **don’t** collect:
 
-* Your IP address and your location
-* Any identifying info about you or your organization
-* The actual data stored in your collections
-* Names, fields and URLs in the configuration
+* Your **IP address** and your **location**
+* Any identifying info about you or **your organization**
+* The actual **data** stored in your indexes
+* **Names, fields and URLs** in the configuration
 
 ## How We Anonymize Data
 
@@ -131,9 +131,7 @@ You can turn off usage data collection in a few ways:
 * Set the `NIXIESEARCH_CORE_TELEMETRY` [environment variable](../reference/config.md#environment-variables-overrides) to `false`
 * Set `core.telemetry: false` in your [config file](../reference/config.md)
 
-Any of these will stop Nixiesearch from sending telemetry.
-
-If you do disable it, we’d love to hear your thoughts on why - Feel free to share feedback in [our slack](../help/contact.md)!
+Any of these will stop Nixiesearch from sending telemetry. If you do disable it, we’d love to hear your thoughts on why - Feel free to share feedback in [our slack](../help/contact.md)!
 
 ## Want Your Data Deleted?
 
