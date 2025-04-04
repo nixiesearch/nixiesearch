@@ -182,6 +182,7 @@ nav:
     - Help:
         - Support: help/support.md
         - Contact us: help/contact.md
+        - Usage statistics: help/usage_stats.md
 
   - API Reference: api.md
   - Tutorials:

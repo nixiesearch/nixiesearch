@@ -6,7 +6,7 @@ hide:
 ---
 <style>
   .md-grid {
-    max-width: 90%;
+    max-width: 100%;
   }
 </style>
 # REST API Reference

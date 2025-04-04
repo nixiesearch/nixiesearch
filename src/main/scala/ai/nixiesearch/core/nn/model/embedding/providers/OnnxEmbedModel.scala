@@ -243,22 +243,26 @@ object OnnxEmbedModel extends Logging {
       threads: Int = ONNX_THREADS_DEFAULT,
       config: OnnxEmbeddingInferenceModelConfig
   ) = {
+    val startTime = System.currentTimeMillis()
     val tokenizer = HuggingFaceTokenizer.newInstance(
       dic,
       Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> config.maxTokens.toString).asJava
     )
-
-    val env  = OrtEnvironment.getEnvironment("sbert")
-    val opts = new SessionOptions()
+    val tokenizerFinishTime = System.currentTimeMillis()
+    val env                 = OrtEnvironment.getEnvironment("sbert")
+    val opts                = new SessionOptions()
     opts.setIntraOpNumThreads(threads)
     opts.setOptimizationLevel(OptLevel.ALL_OPT)
     if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
     if (gpu) opts.addCUDA(0)
 
-    val session = env.createSession(model.toString, opts)
-    val inputs  = session.getInputNames.asScala.toList
-    val outputs = session.getOutputNames.asScala.toList
-    logger.info(s"Loaded ONNX model (inputs=$inputs outputs=$outputs dim=$dim)")
+    val session           = env.createSession(model.toString, opts)
+    val inputs            = session.getInputNames.asScala.toList
+    val outputs           = session.getOutputNames.asScala.toList
+    val sessionFinishTime = System.currentTimeMillis()
+    logger.info(
+      s"Loaded ONNX model: inputs=$inputs outputs=$outputs dim=$dim tokenizer=${tokenizerFinishTime - startTime}ms session=${sessionFinishTime - tokenizerFinishTime}ms"
+    )
     OnnxEmbedModel(env, session, tokenizer, dim, inputs, config)
   }
 

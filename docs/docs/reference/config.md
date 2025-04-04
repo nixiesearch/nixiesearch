@@ -9,6 +9,7 @@ core:
   host: 0.0.0.0 # optional, default=0.0.0.0
   port: 8080 # optional, default=8080
   loglevel: info # optional, default info
+  telemetry: true # optional, default true
 ```
 
 ### Environment variables overrides
@@ -18,8 +19,26 @@ Core config settings can be overridden with env variables:
 * `NIXIESEARCH_CORE_HOST`: overrides `core.host` 
 * `NIXIESEARCH_CORE_PORT`: overrides `core.port`
 * `NIXIESEARCH_CORE_LOGLEVEL`: overrides `core.loglevel`
+* `NIXIESEARCH_CORE_TELEMETRY`: overrides `core.telemetry`
 
 Loglevel can also be set from the [command-line flags](../reference/cli/standalone.md). Env overrides always have higher priority than config values.
+
+### Telemetry configuration
+
+You can opt-out of [anonymous usage telemetry collection](../help/usage_stats.md) by setting the `core.telemetry: false` option:
+
+```yaml
+core:
+  telemetry: false
+```
+
+This is possible to also have a fine-grained control over telemetry parts from a config file (like error stack traces and performance metrics). But currently we only collect usage telemetry:
+
+```yaml
+core:
+  telemetry:
+    usage: false
+```
 
 ## Index mapping
 

@@ -455,6 +455,22 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         500:
           $ref: '#/components/responses/ServerError'
+  /v1/system/telemetry:
+    get:
+      summary: Get usage telemetry payload
+      description: Render a preview of an anonymous telemetry payload. See [Anonymous Usage Statistics](/help/usage_stats) for more details
+      operationId: telemetry
+      tags:
+        - System
+      responses:
+        200:
+          description: "OK: Nixiesearch telemetry payload in JSON format"
+          content:
+            application/json:
+              schema:
+                type: object
+                description: JSON payload with current telemetry payload
+
   /v1/system/config:
     get:
       summary: Get active configuration

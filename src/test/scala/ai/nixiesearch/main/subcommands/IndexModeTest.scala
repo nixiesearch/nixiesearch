@@ -8,7 +8,7 @@ import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.FileIndexSourceArgs
 import ai.nixiesearch.source.FileSource
 import ai.nixiesearch.util.TestInferenceConfig
 import org.scalatest.flatspec.AnyFlatSpec

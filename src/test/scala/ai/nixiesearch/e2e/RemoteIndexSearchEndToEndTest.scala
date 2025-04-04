@@ -7,7 +7,7 @@ import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.index.sync.Index
-import ai.nixiesearch.util.DatasetLoader
+import ai.nixiesearch.util.{DatasetLoader, EnvVars}
 import ai.nixiesearch.util.Tags.EndToEnd
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -18,7 +18,7 @@ import java.io.File
 class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
   lazy val pwd = System.getProperty("user.dir")
   lazy val conf =
-    Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-dist.yaml"), Map.empty).unsafeRunSync()
+    Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-dist.yaml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
 
   it should "write index to s3" taggedAs (EndToEnd.Index) in {

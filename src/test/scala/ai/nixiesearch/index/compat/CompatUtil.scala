@@ -9,7 +9,7 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.sync.LocalIndex
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
-import ai.nixiesearch.util.SearchTest
+import ai.nixiesearch.util.{EnvVars, SearchTest}
 import cats.effect.{IO, Resource}
 import cats.effect.unsafe.implicits.global
 import org.apache.lucene.codecs.Codec
@@ -19,7 +19,7 @@ import java.nio.file.Paths
 
 object CompatUtil {
   lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/compat.yml"), Map.empty).unsafeRunSync()
+  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/compat.yml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("all_types"))
   lazy val inference: InferenceConfig = conf.inference
   lazy val docs = List(

@@ -1,7 +1,7 @@
 package ai.nixiesearch.main
 
 import ai.nixiesearch.config.URL.{LocalURL, S3URL}
-import ai.nixiesearch.main.CliConfig.CliArgs.IndexSourceArgs.FileIndexSourceArgs
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.FileIndexSourceArgs
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.Loglevel.*
 import org.scalatest.flatspec.AnyFlatSpec
