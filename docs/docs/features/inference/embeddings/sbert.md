@@ -67,7 +67,7 @@ inference:
 
 ## Converting your own model
 
-You can use the [nixiesearch/onnx-convert](https://github.com/nixiesearch/onnx-convert) to convert yur own model:
+You can use the [nixiesearch/onnx-convert](https://github.com/nixiesearch/onnx-convert) to convert your own model:
 
 ```bash
 python convert.py --model_id intfloat/multilingual-e5-large --optimize 2 --quantize QInt8
