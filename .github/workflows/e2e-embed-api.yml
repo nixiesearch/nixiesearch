@@ -8,8 +8,6 @@ on:
 env:
   AWS_ACCESS_KEY_ID: foo
   AWS_SECRET_ACCESS_KEY: bar
-  COHERE_KEY: ${{ secrets.COHERE_KEY }}
-  OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
 
 jobs:
   build:
@@ -42,4 +40,7 @@ jobs:
         java-version: ${{ matrix.jvm }}
 
     - name: Run tests
+      env:
+        COHERE_KEY: ${{ secrets.COHERE_KEY }}
+        OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
       run: sbt -mem 5000 'testOnly --  -n e2e-api-embed'
