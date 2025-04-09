@@ -3,6 +3,7 @@ package ai.nixiesearch.core.nn.model.embedding.providers
 import ai.nixiesearch.config.EmbedCacheConfig
 import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
 import ai.nixiesearch.config.InferenceConfig.EmbeddingInferenceModelConfig
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
@@ -135,6 +136,7 @@ object CohereEmbedModel extends Logging {
         Exception("COHERE_KEY env var is missing - how should we authenticate?")
       )
     )
+    _        <- Resource.eval(IO.whenA(key.length < 10)(IO.raiseError(UserError(s"Cohere API key too short: '$key'"))))
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(config.endpoint)))
     _        <- Resource.eval(info(s"Started Cohere embedding client, model=${config.model}"))
   } yield {
