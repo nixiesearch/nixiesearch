@@ -19,6 +19,7 @@ import org.http4s.circe.*
 
 import scala.concurrent.duration.*
 import ai.nixiesearch.config.mapping.DurationJson.given
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import org.http4s.headers.{Authorization, `Content-Type`}
 import org.http4s.{AuthScheme, Credentials, EntityDecoder, EntityEncoder, Headers, MediaType, Method, Request, Uri}
@@ -116,6 +117,11 @@ object OpenAIEmbedModel extends Logging {
     key <- Resource.eval(
       IO.fromOption(Option(System.getenv("OPENAI_KEY")))(
         Exception("OPENAI_KEY env var is missing - how should we authenticate?")
+      )
+    )
+    _ <- Resource.eval(
+      IO.whenA(!key.startsWith("sk"))(
+        IO.raiseError(UserError(s"wrong format of OpenAI key: it must start with 'sk-', but got '$key'"))
       )
     )
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(config.endpoint)))
