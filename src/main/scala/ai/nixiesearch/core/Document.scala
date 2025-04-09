@@ -197,7 +197,6 @@ object Document {
         case None =>
           val result = value.toList
             .map(json => json.foldWith(ArrayParser(field, mapping)))
-            .tapEach(x => logger.info(x.toString))
             .reduceLeftOption {
               case (Left(err), _)       => Left(err)
               case (_, Left(err))       => Left(err)

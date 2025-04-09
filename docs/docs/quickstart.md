@@ -57,7 +57,7 @@ For this guide we'll use a [MSRD: Movie Search Ranking Dataset](https://github.c
 You can download the dataset and unpack it with the following command:
 
 ```shell
-$> curl -L -o movies.jsonl https://nixiesearch.ai/data/movies.jsonl 
+curl -L -o movies.jsonl https://nixiesearch.ai/data/movies.jsonl 
 ```
 
 ## Index schema
@@ -140,7 +140,7 @@ After you start the Nixiesearch service in the `standalone` mode listening on po
 Nixiesearch uses a similar API semantics as Elasticsearch, so to upload docs for indexing, you need to make a HTTP PUT request to the `/<index-name>/_index` endpoint:
 
 ```shell
-curl -XPUT -d @movies.jsonl http://localhost:8080/movies/_index
+curl -XPOST -d @movies.jsonl http://localhost:8080/v1/index/movies
 ```
 
 ```json
@@ -161,7 +161,7 @@ To perform a single-field hybrid search over our newly-created `movies` index, r
 
 ```shell
 curl -XPOST -d '{"query": {"match": {"title":"matrix"}},"fields": ["title"], "size":3}'\
-   http://localhost:8080/movies/_search
+   http://localhost:8080/v1/index/movies/search
 ```
 
 ```json    
