@@ -1,0 +1,28 @@
+inference:
+  embedding:
+    e5-small:
+      model: intfloat/e5-small-v2
+schema:
+  movies: # index name
+    fields:
+      title: # field name
+        type: text
+        search:
+          type: hybrid
+          model: e5-small
+        language: en # language is needed for lexical search
+        suggest: true
+      overview:
+        type: text
+        search:
+          type: hybrid
+          model: e5-small
+        language: en
+      genres:
+        type: text[]
+        filter: true
+        facet: true
+      year:
+        type: int
+        filter: true
+        facet: true
