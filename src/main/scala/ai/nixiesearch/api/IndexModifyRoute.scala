@@ -104,7 +104,7 @@ object IndexModifyRoute extends Logging {
   case class IndexResponse(status: String, docs: Int, took: Int = 0)
   object IndexResponse {
     def withStartTime(status: String, start: Long, docs: Int) =
-      IndexResponse(status, (System.currentTimeMillis() - start).toInt)
+      IndexResponse(status, docs = docs, took = (System.currentTimeMillis() - start).toInt)
   }
   given indexResponseCodec: Codec[IndexResponse] = deriveCodec
 
