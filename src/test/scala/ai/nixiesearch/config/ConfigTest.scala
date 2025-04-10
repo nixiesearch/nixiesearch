@@ -73,6 +73,12 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "parse quickstart config" in {
+    val yaml   = IOUtils.resourceToString("/config/quickstart.yml", StandardCharsets.UTF_8)
+    val parsed = parse(yaml).flatMap(_.as[Config])
+    parsed shouldBe a[Right[?, ?]]
+  }
+
   it should "parse distributed config" in {
     val yaml   = IOUtils.resourceToString("/config/distributed.yml", StandardCharsets.UTF_8)
     val parsed = parse(yaml).flatMap(_.as[Config])
