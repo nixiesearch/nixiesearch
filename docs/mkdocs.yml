@@ -149,6 +149,7 @@ nav:
               - Supported models:
                   - Sentence Transformers: features/inference/embeddings/sbert.md
                   - OpenAI: features/inference/embeddings/openai.md
+                  - Cohere: features/inference/embeddings/cohere.md
           - Completions: features/inference/completions.md
     - Deployment:
         - Overview: deployment/overview.md
