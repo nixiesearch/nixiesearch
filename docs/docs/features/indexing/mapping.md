@@ -100,11 +100,13 @@ schema:
   movies:
     fields:
       title:
+        type: text
         search: 
           type: lexical
         language: en
         suggest: false
       overview:
+        type: text
         search: # now semantic search!
           type: semantic
           model: e5-small # a name of the model in the inference section
@@ -113,9 +115,6 @@ inference:
     # the model used to embed documents
     e5-small:
       model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        doc: "passage: "
-        query: "query: "
 
 ```
 
@@ -128,6 +127,7 @@ schema:
   movies:
     fields:
       title:
+        type: text
         search: 
           type: lexical # a short syntax
         language: en    # optional, default: generic
@@ -144,6 +144,7 @@ schema:
   movies:
     fields:
       title:
+        type: text
         search: 
           type: semantic          
           model: e5-small # a model name from the inference section
@@ -157,10 +158,6 @@ inference:
   embedding:
     e5-small:
       model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        doc: "passage: "
-        query: "query: "
-
 ```
 
 Nixiesearch supports both [self-hosted ONNX embedding models](../inference/embeddings.md) and [external embedding APIs](../inference/embeddings.md).
@@ -174,21 +171,16 @@ schema:
   movies:
     fields:
       title:
+        type: text
         language: en              # optional, default: generic
         search: 
           type: hybrid            # a longer syntax
           model: e5-small         # a ref to the inference model name
-          prefix:                 # optional prompt prefix
-            query: "query: "      # query prefix
-            document: "passage: " # document prefix
 
 inference:
   embedding:
     e5-small:
       model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        doc: "passage: "
-        query: "query: "
 ```
 
 For hybrid retrieval, Nixiesearch performs two search queries in parallel for both methods, and then mixes search results with [Reciprocal Rank Fusion](../search/overview.md#hybrid-search-with-reciprocal-rank-fusion).
@@ -219,7 +211,7 @@ In the index mapping above we marked `year` and `in-theaters` fields as sortable
 
 !!! warning
 
-    Image field support is planned for the `v0.3` release.
+    Image field support is planned for the `v0.7` release.
 
 ## Mapping options
 
@@ -272,9 +264,6 @@ inference:
     # Used for semantic retrieval
     e5-small:
       model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        doc: "passage: "
-        query: "query: "
   completion:
     # Used for summarization
     qwen2:
