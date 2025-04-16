@@ -76,7 +76,6 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
           buffer.add(s)
         })
     })
-    val br = 1
   }
 
   override def readLucene(
