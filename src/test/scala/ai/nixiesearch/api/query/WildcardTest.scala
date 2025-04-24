@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query
 
-import ai.nixiesearch.api.query.MatchQuery.Operator
+import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MultiMatchQuery}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}

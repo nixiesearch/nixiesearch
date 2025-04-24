@@ -29,9 +29,9 @@ object Document {
         case f @ DoubleField(name, value)   => (name, DoubleField.encodeJson(f))
         case f @ IntField(name, value)      => (name, IntField.encodeJson(f))
         case f @ LongField(name, value)     => (name, LongField.encodeJson(f))
-        case f @ TextField(name, value)     => (name, TextField.encodeJson(f))
+        case f @ TextField(name, value, _)     => (name, TextField.encodeJson(f))
         case f @ BooleanField(name, value)  => (name, BooleanField.encodeJson(f))
-        case f @ TextListField(name, value) => (name, TextListField.encodeJson(f))
+        case f @ TextListField(name, value, _) => (name, TextListField.encodeJson(f))
         case f @ GeopointField(name, _, _)  => (name, GeopointField.encodeJson(f))
       }
       Json.fromJsonObject(JsonObject.fromIterable(fields))

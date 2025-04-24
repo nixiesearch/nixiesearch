@@ -25,8 +25,7 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
   override def writeLucene(
       field: BooleanField,
       spec: BooleanFieldSchema,
-      buffer: LuceneDocument,
-      embeddings: Map[String, Array[Float]] = Map.empty
+      buffer: LuceneDocument
   ): Unit = {
     if (spec.filter) {
       buffer.add(new org.apache.lucene.document.IntField(field.name, toInt(field.value), Store.NO))

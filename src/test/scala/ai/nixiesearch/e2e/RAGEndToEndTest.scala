@@ -1,8 +1,8 @@
 package ai.nixiesearch.e2e
 
 import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponse}
-import ai.nixiesearch.api.query.MatchQuery
 import ai.nixiesearch.api.SearchRoute
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexName

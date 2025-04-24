@@ -1,11 +1,18 @@
-package ai.nixiesearch.api.query
+package ai.nixiesearch.api.query.retrieve
 
-import ai.nixiesearch.api.query.MatchQuery.Operator
-import ai.nixiesearch.api.query.MatchQuery.Operator.OR
-import io.circe.{Decoder, Encoder}
+import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
+import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator.OR
+import ai.nixiesearch.api.query.Query
+import ai.nixiesearch.config.mapping.IndexMapping
+import cats.effect.IO
 import io.circe.generic.semiauto.*
+import io.circe.{Decoder, Encoder}
+import org.apache.lucene.search
 
-case class MultiMatchQuery(query: String, fields: List[String], operator: Operator = OR) extends Query
+case class MultiMatchQuery(query: String, fields: List[String], operator: Operator = OR) extends RetrieveQuery {
+  override def compile(mapping: IndexMapping, filter: Option[Filters]): IO[search.Query] = ???
+}
 
 object MultiMatchQuery {
 

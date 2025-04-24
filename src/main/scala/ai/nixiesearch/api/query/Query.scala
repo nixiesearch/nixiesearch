@@ -1,9 +1,24 @@
 package ai.nixiesearch.api.query
 
+import ai.nixiesearch.api.SearchRoute.SortPredicate
+import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
+import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.index.Searcher.TopDocsWithFacets
+import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
+import org.apache.lucene.search.IndexSearcher
 
-trait Query extends Logging
+trait Query extends Logging {
+  def topDocs(
+      mapping: IndexMapping,
+      searcher: IndexSearcher,
+      sort: List[SortPredicate],
+      filter: Option[Filters],
+      size: Int
+  ): IO[TopDocsWithFacets]
+}
 
 object Query extends Logging {
 

@@ -2,19 +2,12 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
-import ai.nixiesearch.api.SearchRoute.{
-  RAGRequest,
-  RAGResponse,
-  SearchRequest,
-  SearchResponse,
-  SortPredicate,
-  SuggestRequest,
-  SuggestResponse
-}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SortPredicate, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.{Document, Field, Logging}
@@ -23,28 +16,16 @@ import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{
-  IndexSearcher,
-  MultiCollectorManager,
-  ScoreDoc,
-  Sort,
-  SortField,
-  TopDocs,
-  TopFieldCollectorManager,
-  TopScoreDocCollectorManager,
-  TotalHits,
-  Query as LuceneQuery
-}
+import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
 import cats.implicits.*
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch, SemanticSearch}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
-import ai.nixiesearch.index.Searcher.{FieldTopDocs, Readers}
+import ai.nixiesearch.index.Searcher.{TopDocsWithFacets, Readers}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.{DurationStream, StreamMark}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
@@ -80,9 +61,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       .evalMap(fieldName =>
         index.mapping.fieldSchema(fieldName) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
-          case Some(TextLikeFieldSchema(language = language, suggest = Some(schema))) =>
-            GeneratedSuggestions.fromField(fieldName, suggester, language.analyzer, request.query, request.count)
-          case Some(TextLikeFieldSchema(language = language, suggest = None)) =>
+          case Some(TextLikeFieldSchema(suggest = Some(schema))) =>
+            GeneratedSuggestions.fromField(fieldName, suggester, schema.analyze.analyzer, request.query, request.count)
+          case Some(TextLikeFieldSchema(suggest = None)) =>
             IO.raiseError(UserError(s"field '$fieldName' is not suggestable in mapping"))
           case Some(other) => IO.raiseError(UserError(s"cannot generate suggestions over field $other"))
 
@@ -129,7 +110,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     }
     searcher      <- getReadersOrFail().map(_.searcher)
     fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size, request.sort))
-    mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets)))
+    mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets), request.aggs))
     mergedTopDocs <- reciprocalRank(fieldTopDocs.map(_.docs))
     aggs          <- aggregate(index.mapping, mergedFacets, request.aggs)
     collected     <- collect(index.mapping, mergedTopDocs, request.fields)
@@ -224,7 +205,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       case Some(other) => IO.raiseError(UserError(s"Cannot search over non-text field $field"))
     }
 
-  def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int, sort: List[SortPredicate]): IO[FieldTopDocs] =
+  def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int, sort: List[SortPredicate]): IO[TopDocsWithFacets] =
     for {
       topCollector <- sort match {
         case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
@@ -238,53 +219,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
       results        <- IO(searcher.search(query, collector))
     } yield {
-      FieldTopDocs(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
+      TopDocsWithFacets(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
     }
 
-  def makeSortField(by: SortPredicate): IO[SortField] = {
-    val reverse = by match {
-      case FieldValueSort(StringName("_score"), Default, _) => false
-      case FieldValueSort(StringName("_score"), ASC, _)     => true
-      case FieldValueSort(StringName("_score"), DESC, _)    => false
-      case FieldValueSort(_, ASC, _)                        => false
-      case FieldValueSort(_, Default, _)                    => false
-      case FieldValueSort(_, DESC, _)                       => true
-      case DistanceSort(_, _, _)                            => false
-    }
-    val missing = by match {
-      case FieldValueSort(_, _, missing) => missing
-      case DistanceSort(_, _, _)         => MissingValue.Last
-    }
-    index.mapping.fieldSchema(by.field.name) match {
-      case Some(schema) if !schema.sort =>
-        IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
-      case Some(s: IntFieldSchema)      => IO.pure(IntField.sort(s.name, reverse, missing))
-      case Some(s: BooleanFieldSchema)  => IO.pure(BooleanField.sort(s.name, reverse, missing))
-      case Some(s: DateFieldSchema)     => IO.pure(DateField.sort(s.name, reverse, missing))
-      case Some(s: LongFieldSchema)     => IO.pure(LongField.sort(s.name, reverse, missing))
-      case Some(s: DateTimeFieldSchema) => IO.pure(DateTimeField.sort(s.name, reverse, missing))
-      case Some(s: FloatFieldSchema)    => IO.pure(FloatField.sort(s.name, reverse, missing))
-      case Some(s: DoubleFieldSchema)   => IO.pure(DoubleField.sort(s.name, reverse, missing))
-      case Some(s: TextFieldSchema)     => IO.pure(TextField.sort(s.name, reverse, missing))
-      case Some(s: TextListFieldSchema) => IO.pure(TextListField.sort(s.name, reverse, missing))
-      case Some(s: GeopointFieldSchema) =>
-        by match {
-          case _: FieldValueSort =>
-            IO.raiseError(UserError(s"to sort by a geopoint, you need to pass lat and lon coordinates"))
-          case DistanceSort(field, lat, lon) =>
-            IO.pure(GeopointField.sort(field, lat, lon))
-        }
-
-      case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, reverse))
-      case None if by.field.name == "_doc"   => IO.pure(new SortField(by.field.name, SortField.Type.DOC, reverse))
-      case None =>
-        val fieldNames = index.mapping.fields.keys.map(_.name).toList
-        IO.raiseError(
-          UserError(s"cannot sort by '${by.field.name}' as it's missing in index schema (fields=$fieldNames)")
-        )
-    }
-
-  }
 
   case class ShardDoc(docid: Int, shardIndex: Int)
 
@@ -354,6 +291,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     docs <- IO {
       val docs = top.scoreDocs.map(doc => {
         val visitor = DocumentVisitor(mapping, fields)
+
         reader.storedFields().document(doc.doc, visitor)
         visitor.asDocument(doc.score)
       })
@@ -419,7 +357,7 @@ object Searcher extends Logging {
     }
   }
 
-  case class FieldTopDocs(docs: TopDocs, facets: FacetsCollector)
+  case class TopDocsWithFacets(docs: TopDocs, facets: FacetsCollector)
   def open(index: Index, metrics: Metrics): Resource[IO, Searcher] = {
     for {
 

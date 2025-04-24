@@ -1,7 +1,7 @@
 package ai.nixiesearch.e2e
 
 import ai.nixiesearch.api.SearchRoute.SearchRequest
-import ai.nixiesearch.api.query.MatchAllQuery
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.config.{CacheConfig, Config}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.metrics.Metrics

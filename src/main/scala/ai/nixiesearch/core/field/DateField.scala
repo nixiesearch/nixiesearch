@@ -33,10 +33,9 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
   override def writeLucene(
       field: DateField,
       spec: DateFieldSchema,
-      buffer: Document,
-      embeddings: Map[String, Array[Float]]
+      buffer: Document
   ): Unit = {
-    IntField.writeLucene(IntField(field.name, field.value), spec.asInt, buffer, embeddings)
+    IntField.writeLucene(IntField(field.name, field.value), spec.asInt, buffer)
   }
 
   override def encodeJson(field: DateField): Json = Json.fromString(writeString(field.value))

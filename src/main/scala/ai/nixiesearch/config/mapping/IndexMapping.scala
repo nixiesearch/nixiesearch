@@ -10,7 +10,6 @@ import cats.implicits.*
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, fieldNameDecoder}
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.nn.ModelHandle

@@ -1,6 +1,6 @@
 package ai.nixiesearch.api
 
-import ai.nixiesearch.api.query.MatchQuery
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError

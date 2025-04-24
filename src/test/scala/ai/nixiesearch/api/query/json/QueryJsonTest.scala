@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query.json
 
-import ai.nixiesearch.api.query.{MatchAllQuery, MultiMatchQuery, Query}
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MultiMatchQuery}
+import ai.nixiesearch.api.query.Query
 import io.circe.parser.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

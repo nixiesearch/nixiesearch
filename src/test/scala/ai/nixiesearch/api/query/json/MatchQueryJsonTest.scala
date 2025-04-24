@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.query.json
 
-import ai.nixiesearch.api.query.MatchQuery
-import ai.nixiesearch.api.query.MatchQuery.Operator.AND
+import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator.AND
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import io.circe.parser.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

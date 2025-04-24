@@ -11,7 +11,8 @@ import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOpt
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.LatLon
-import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.api.query.Query
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}

@@ -2,7 +2,6 @@ package ai.nixiesearch.core.search.lucene
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.config.mapping.SearchType.ModelPrefix
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict

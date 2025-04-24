@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.query.json
 
 import ai.nixiesearch.api.SearchRoute.SearchRequest
-import ai.nixiesearch.api.query.MatchQuery
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

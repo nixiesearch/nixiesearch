@@ -5,7 +5,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.{FieldName, Language, SearchType, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.{LexicalSearch, NoSearch, SemanticSearch, SemanticSearchLikeType}
+import ai.nixiesearch.config.mapping.SearchType.*
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec
@@ -27,7 +27,9 @@ import org.apache.lucene.util.BytesRef
 
 import java.util.UUID
 
-case class TextField(name: String, value: String) extends Field with TextLikeField
+case class TextField(name: String, value: String, embedding: Option[Array[Float]] = None)
+    extends Field
+    with TextLikeField
 
 object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
   val MAX_FACET_SIZE        = 1024
@@ -36,8 +38,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
   override def writeLucene(
       field: TextField,
       spec: TextFieldSchema,
-      buffer: LuceneDocument,
-      embeddings: Map[String, Array[Float]]
+      buffer: LuceneDocument
   ): Unit = {
     if (spec.store) {
       buffer.add(new StoredField(field.name, field.value))
@@ -49,25 +50,20 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     if (spec.filter) {
       buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
     }
-    spec.search match {
-      case _: SemanticSearch | _: LexicalSearch =>
-        val trimmed =
-          if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
-          else field.value
-        buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
+    if (spec.search.lexical.isDefined) {
+      val trimmed =
+        if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
+        else field.value
+      buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
+    }
 
-      case _ => //
-    }
-    spec.search match {
-      case SemanticSearchLikeType(model) =>
-        embeddings.get(field.value) match {
-          case Some(encoded) =>
-            buffer.add(new KnnFloatVectorField(field.name, encoded, VectorSimilarityFunction.COSINE))
-          case None => // wtf
-        }
-      case _ =>
-      //
-    }
+    spec.search.semantic.foreach(conf =>
+      field.embedding match {
+        case Some(embed) => buffer.add(new KnnFloatVectorField(field.name, embed, VectorSimilarityFunction.COSINE))
+        case None        => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
+      }
+    )
+
     spec.suggest.foreach(schema => {
       SuggestCandidates
         .fromString(schema, field.name, field.value)
@@ -83,7 +79,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
       spec: TextFieldSchema,
       value: String
   ): Either[FieldCodec.WireDecodingError, TextField] =
-    Right(TextField(name, value))
+    Right(TextField(name, value, None))
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
 

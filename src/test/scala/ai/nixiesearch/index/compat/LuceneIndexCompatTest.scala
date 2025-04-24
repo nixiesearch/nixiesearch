@@ -6,7 +6,7 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.{BoolPredicate, TermPredicate}
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.AndPredicate
-import ai.nixiesearch.api.query.MatchAllQuery
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import org.scalatest.BeforeAndAfterAll

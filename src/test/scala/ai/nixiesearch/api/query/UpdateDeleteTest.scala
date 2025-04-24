@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}

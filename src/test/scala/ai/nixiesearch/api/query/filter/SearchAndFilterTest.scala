@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
-import ai.nixiesearch.api.query.MatchQuery
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation

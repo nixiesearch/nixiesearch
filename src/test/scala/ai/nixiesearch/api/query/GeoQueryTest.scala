@@ -2,6 +2,7 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.{GeoBoundingBoxPredicate, GeoDistancePredicate, LatLon}
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation

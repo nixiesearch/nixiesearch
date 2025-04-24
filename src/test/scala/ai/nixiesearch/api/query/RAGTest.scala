@@ -2,6 +2,7 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponseFrame}
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Document

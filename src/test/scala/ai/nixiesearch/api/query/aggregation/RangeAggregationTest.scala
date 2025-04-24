@@ -5,7 +5,7 @@ import ai.nixiesearch.api.aggregation.Aggregation.RangeAggregation
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
-import ai.nixiesearch.api.query.MultiMatchQuery
+import ai.nixiesearch.api.query.retrieve.MultiMatchQuery
 import ai.nixiesearch.config.FieldSchema.{
   DateFieldSchema,
   DateTimeFieldSchema,

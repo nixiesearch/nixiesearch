@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.codec
 
 import ai.nixiesearch.api.SearchRoute.SearchRequest
-import ai.nixiesearch.api.query.MatchAllQuery
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName}
@@ -32,6 +32,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
     fields = List(
       TextFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("title")),
+      TextFieldSchema(StringName("title_nonstore"), store = false),
       TextListFieldSchema(StringName("title2")),
       TextFieldSchema(FieldName.parse("str_*").toOption.get),
       IntFieldSchema(StringName("count")),
@@ -86,6 +87,34 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
           StringName("geo"),
           StringName("date"),
           StringName("datetime")
+        )
+      )
+      val docs           = store.searcher.search(request).unsafeRunSync()
+      val actualFields   = docs.hits.head.fields.sortBy(_.name)
+      val expectedFields = (source.fields :+ FloatField("_score", 1.0)).sortBy(_.name)
+      actualFields shouldBe expectedFields
+    }
+  }
+  // should fail
+  it should "fail on nonstore fields" in withIndex { store =>
+    {
+      val source =
+        Document(
+          List(
+            TextField("_id", "1"),
+            TextField("title_nonstore", "foo")
+          )
+        )
+      store.indexer.addDocuments(List(source)).unsafeRunSync()
+      store.indexer.flush().unsafeRunSync()
+      store.indexer.index.sync().unsafeRunSync()
+      store.searcher.sync().unsafeRunSync()
+
+      val request = SearchRequest(
+        MatchAllQuery(),
+        fields = List(
+          StringName("_id"),
+          StringName("title_nonstore")
         )
       )
       val docs           = store.searcher.search(request).unsafeRunSync()

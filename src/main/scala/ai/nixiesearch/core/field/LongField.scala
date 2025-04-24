@@ -19,8 +19,7 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
   override def writeLucene(
       field: LongField,
       spec: LongFieldSchema,
-      buffer: Document,
-      embeddings: Map[String, Array[Float]] = Map.empty
+      buffer: Document
   ): Unit = {
     if (spec.filter) {
       buffer.add(new org.apache.lucene.document.LongField(field.name, field.value, Store.NO))

@@ -21,6 +21,7 @@ import cats.effect.kernel.Resource
 import cats.implicits.*
 import fs2.io.file.Files
 import fs2.io.file.Path as Fs2Path
+import fs2.Stream
 import io.circe.Decoder
 import io.circe.parser.decode
 import io.circe.generic.semiauto.*
@@ -38,7 +39,7 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging 
       case None           => IO.raiseError(UserError(s"cannot get embedding model $name"))
       case Some(embedder) => embedder.encode(task, texts).compile.toList
     }
-
+  
 }
 
 object EmbedModelDict extends Logging {

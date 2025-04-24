@@ -17,7 +17,7 @@ trait FieldCodec[T <: Field, S <: FieldSchema[T], U] extends Logging {
   val SORT_SUFFIX    = "$sort"
   val SUGGEST_SUFFIX = "$suggest"
 
-  def writeLucene(field: T, spec: S, buffer: LuceneDocument, embeddings: Map[String, Array[Float]]): Unit
+  def writeLucene(field: T, spec: S, buffer: LuceneDocument): Unit
   def readLucene(name: String, spec: S, value: U): Either[WireDecodingError, T]
   def encodeJson(field: T): Json
 

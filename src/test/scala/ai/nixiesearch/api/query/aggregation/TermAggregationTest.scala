@@ -4,7 +4,7 @@ import ai.nixiesearch.api.aggregation.Aggregation.TermAggregation
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
-import ai.nixiesearch.api.query.{MatchAllQuery, MultiMatchQuery}
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MultiMatchQuery}
 import ai.nixiesearch.config.FieldSchema.{
   DateFieldSchema,
   DateTimeFieldSchema,

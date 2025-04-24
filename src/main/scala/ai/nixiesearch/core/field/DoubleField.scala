@@ -20,8 +20,7 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
   override def writeLucene(
       field: DoubleField,
       spec: DoubleFieldSchema,
-      buffer: Document,
-      embeddings: Map[String, Array[Float]] = Map.empty
+      buffer: Document
   ): Unit = {
     if (spec.filter) {
       buffer.add(new org.apache.lucene.document.DoubleField(field.name, field.value, Store.NO))

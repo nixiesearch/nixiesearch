@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query
 
-import ai.nixiesearch.api.query.MatchQuery.Operator
+import ai.nixiesearch.api.query.retrieve.{MatchQuery, MultiMatchQuery}
+import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}

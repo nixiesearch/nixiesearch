@@ -4,7 +4,6 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, LexicalSearch}
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec
@@ -12,6 +11,7 @@ import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Json}
 import org.apache.lucene.document.{
+  KnnFloatVectorField,
   SortedDocValuesField,
   SortedSetDocValuesField,
   StoredField,
@@ -19,11 +19,14 @@ import org.apache.lucene.document.{
   Document as LuceneDocument
 }
 import org.apache.lucene.document.Field.Store
+import org.apache.lucene.index.VectorSimilarityFunction
 import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
-case class TextListField(name: String, value: List[String]) extends Field with TextLikeField
+case class TextListField(name: String, value: List[String], embeddings: Option[List[Array[Float]]] = None)
+    extends Field
+    with TextLikeField
 
 object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List[String]] {
   import TextField.{MAX_FACET_SIZE, FILTER_SUFFIX, MAX_FIELD_SEARCH_SIZE}
@@ -33,8 +36,7 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
   override def writeLucene(
       field: TextListField,
       spec: TextListFieldSchema,
-      buffer: LuceneDocument,
-      embeddings: Map[String, Array[Float]]
+      buffer: LuceneDocument
   ): Unit = {
     field.value.foreach(item => {
       if (spec.store) {
@@ -50,13 +52,18 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
       if (spec.filter || spec.facet) {
         buffer.add(new StringField(field.name + FILTER_SUFFIX, item, Store.NO))
       }
-      spec.search match {
-        case _: LexicalSearch | _: HybridSearch =>
-          val trimmed = if (item.length > MAX_FIELD_SEARCH_SIZE) item.substring(0, MAX_FIELD_SEARCH_SIZE) else item
-          buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
-        case _ =>
-        // ignore
+      if (spec.search.lexical.isDefined) {
+        val searchTrimmed = if (item.length > MAX_FIELD_SEARCH_SIZE) item.substring(0, MAX_FIELD_SEARCH_SIZE) else item
+        buffer.add(new org.apache.lucene.document.TextField(field.name, searchTrimmed, Store.NO))
       }
+      for {
+        conf          <- spec.search.semantic
+        embeds        <- field.embeddings
+        (text, embed) <- field.value.zip(embeds)
+      } {
+        buffer.add(new KnnFloatVectorField(field.name, embed, VectorSimilarityFunction.COSINE))
+      }
+
       spec.suggest.foreach(schema => {
         field.value.foreach(value => {
           SuggestCandidates

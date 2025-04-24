@@ -2,9 +2,8 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL.LocalURL
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.Loglevel
@@ -67,11 +66,8 @@ object Config extends Logging {
   def validateModelRefs(config: Config): List[String] = {
     val indexRefs = config.schema.values
       .flatMap(mapping =>
-        mapping.fields.values.collect {
-          case field @ TextListFieldSchema(_, SemanticSearchLikeType(ref), _, _, _, _, _, _) =>
-            field.name -> ref
-          case field @ TextFieldSchema(_, SemanticSearchLikeType(ref), _, _, _, _, _, _) =>
-            field.name -> ref
+        mapping.fields.values.flatMap { case field: TextLikeFieldSchema[?] =>
+          field.search.semantic.map(p => field.name -> p.model)
         }
       )
       .toList

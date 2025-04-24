@@ -27,8 +27,7 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
   override def writeLucene(
       field: FloatField,
       spec: FloatFieldSchema,
-      buffer: LuceneDocument,
-      embeddings: Map[String, Array[Float]] = Map.empty
+      buffer: LuceneDocument
   ): Unit = {
     if (spec.filter) {
       buffer.add(new org.apache.lucene.document.FloatField(field.name, field.value, Store.NO))
