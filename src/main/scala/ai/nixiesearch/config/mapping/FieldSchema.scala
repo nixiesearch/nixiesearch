@@ -1,7 +1,7 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.mapping.SearchType.QuantStore
-import ai.nixiesearch.config.mapping.{FieldName, Language, SearchType, SuggestSchema}
+import ai.nixiesearch.config.mapping.SearchParams.QuantStore
+import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
@@ -28,7 +28,7 @@ sealed trait FieldSchema[T <: Field] {
 
 object FieldSchema {
   sealed trait TextLikeFieldSchema[T <: TextLikeField] extends FieldSchema[T] {
-    def search: SearchType
+    def search: SearchParams
     def suggest: Option[SuggestSchema]
   }
 
@@ -36,10 +36,10 @@ object FieldSchema {
     def unapply(
         f: TextLikeFieldSchema[? <: Field]
     ): Option[
-      NamedTuple[("name", "search", "suggest"), (FieldName, SearchType, Option[SuggestSchema])]
+      NamedTuple[("name", "search", "suggest"), (FieldName, SearchParams, Option[SuggestSchema])]
     ] = {
       Some(
-        NamedTuple[("name", "search", "suggest"), (FieldName, SearchType, Option[SuggestSchema])](
+        NamedTuple[("name", "search", "suggest"), (FieldName, SearchParams, Option[SuggestSchema])](
           (f.name, f.search, f.suggest)
         )
       )
@@ -48,24 +48,24 @@ object FieldSchema {
   }
 
   case class TextFieldSchema(
-      name: FieldName,
-      search: SearchType = SearchType(),
-      store: Boolean = true,
-      sort: Boolean = false,
-      facet: Boolean = false,
-      filter: Boolean = false,
-      suggest: Option[SuggestSchema] = None
+                              name: FieldName,
+                              search: SearchParams = SearchParams(),
+                              store: Boolean = true,
+                              sort: Boolean = false,
+                              facet: Boolean = false,
+                              filter: Boolean = false,
+                              suggest: Option[SuggestSchema] = None
   ) extends TextLikeFieldSchema[TextField]
       with FieldSchema[TextField]
 
   case class TextListFieldSchema(
-      name: FieldName,
-      search: SearchType = SearchType(),
-      store: Boolean = true,
-      sort: Boolean = false,
-      facet: Boolean = false,
-      filter: Boolean = false,
-      suggest: Option[SuggestSchema] = None
+                                  name: FieldName,
+                                  search: SearchParams = SearchParams(),
+                                  store: Boolean = true,
+                                  sort: Boolean = false,
+                                  facet: Boolean = false,
+                                  filter: Boolean = false,
+                                  suggest: Option[SuggestSchema] = None
   ) extends TextLikeFieldSchema[TextListField]
       with FieldSchema[TextListField]
 
@@ -139,12 +139,12 @@ object FieldSchema {
   }
 
   object yaml {
-    import SearchType.given
+    import SearchParams.given
     import SuggestSchema.yaml.given
 
     def textFieldSchemaDecoder(name: FieldName): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
-        search <- c.downField("search").as[Option[SearchType]]
+        search <- c.downField("search").as[Option[SearchParams]]
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
         facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
@@ -160,7 +160,7 @@ object FieldSchema {
       } yield {
         TextFieldSchema(
           name = name,
-          search = search.getOrElse(SearchType()),
+          search = search.getOrElse(SearchParams()),
           store = store,
           sort = sort,
           facet = facet,
@@ -171,7 +171,7 @@ object FieldSchema {
     )
     def textListFieldSchemaDecoder(name: FieldName): Decoder[TextListFieldSchema] = Decoder.instance(c =>
       for {
-        search <- c.downField("search").as[Option[SearchType]]
+        search <- c.downField("search").as[Option[SearchParams]]
         store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
         sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
         facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
@@ -188,7 +188,7 @@ object FieldSchema {
       } yield {
         TextListFieldSchema(
           name = name,
-          search = search.getOrElse(SearchType()),
+          search = search.getOrElse(SearchParams()),
           store = store,
           sort = sort,
           facet = facet,
@@ -303,7 +303,7 @@ object FieldSchema {
   }
 
   object json {
-    import SearchType.given
+    import SearchParams.given
     import SuggestSchema.json.given
 
     given textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder

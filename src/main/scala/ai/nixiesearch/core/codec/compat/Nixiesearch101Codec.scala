@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.codec.compat
 
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
-import ai.nixiesearch.config.mapping.SearchType.{QuantStore, SemanticSearchParams}
+import ai.nixiesearch.config.mapping.SearchParams.{QuantStore, SemanticParams}
 import ai.nixiesearch.config.mapping.{FieldName, IndexConfig, IndexMapping}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging

@@ -2,6 +2,7 @@ package ai.nixiesearch.api.query.json
 
 import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
 import ai.nixiesearch.api.query.retrieve.MultiMatchQuery
+import ai.nixiesearch.api.query.retrieve.MultiMatchQuery.{BestFieldsQuery, MostFieldsQuery}
 import io.circe.parser.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

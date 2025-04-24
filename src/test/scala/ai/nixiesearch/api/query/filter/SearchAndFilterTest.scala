@@ -6,13 +6,13 @@ import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
 
 class SearchAndFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
@@ -20,7 +20,7 @@ class SearchAndFilterTest extends SearchTest with Matchers {
     fields = List(
       TextFieldSchema(StringName("_id"), filter = true),
       TextFieldSchema(StringName("color"), filter = true),
-      TextFieldSchema(StringName("title"), search = LexicalSearch())
+      TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams())))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

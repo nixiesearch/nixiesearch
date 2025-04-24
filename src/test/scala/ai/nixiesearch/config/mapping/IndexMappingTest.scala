@@ -2,15 +2,15 @@ package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.config.mapping.IndexConfig.MappingConfig
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearch
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
+
 import scala.util.Try
 import io.circe.syntax.*
 import io.circe.parser.*
@@ -43,10 +43,13 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val mapping = IndexMapping(
       name = IndexName("foo"),
       alias = List(Alias("bar")),
-      config = IndexConfig(mapping = MappingConfig(dynamic = true)),
+      config = IndexConfig(),
       fields = Map(
-        StringName("text") -> TextFieldSchema(StringName("text"), search = SemanticSearch(ModelRef("text"))),
-        StringName("int")  -> IntFieldSchema(StringName("int"), facet = true)
+        StringName("text") -> TextFieldSchema(
+          StringName("text"),
+          search = SearchParams(lexical = Some(LexicalParams()))
+        ),
+        StringName("int") -> IntFieldSchema(StringName("int"), facet = true)
       )
     )
     val json    = mapping.asJson.noSpaces
@@ -58,10 +61,13 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
     val mapping = IndexMapping(
       name = IndexName("foo"),
       alias = List(Alias("bar")),
-      config = IndexConfig(mapping = MappingConfig(dynamic = true)),
+      config = IndexConfig(),
       fields = Map(
-        StringName("text") -> TextFieldSchema(StringName("text"), search = SemanticSearch(ModelRef("text"))),
-        StringName("int")  -> IntFieldSchema(StringName("int"), facet = true)
+        StringName("text") -> TextFieldSchema(
+          StringName("text"),
+          search = SearchParams(lexical = Some(LexicalParams()))
+        ),
+        StringName("int") -> IntFieldSchema(StringName("int"), facet = true)
       )
     )
     val schemaOK = mapping.fieldSchemaOf[IntFieldSchema]("int")

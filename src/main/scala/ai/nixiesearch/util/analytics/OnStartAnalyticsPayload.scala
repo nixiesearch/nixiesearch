@@ -12,7 +12,7 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.mapping.{FieldName, IndexName, SearchType}
+import ai.nixiesearch.config.mapping.{FieldName, IndexName, SearchParams}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.main.Logo
@@ -137,7 +137,7 @@ object OnStartAnalyticsPayload {
   def hash(value: String): String = DigestUtils.md5Hex(value)
   def hash(value: Path): Path     = Paths.get(hash(value.toString))
 
-  def hash(search: SearchType): SearchType = search.copy(
+  def hash(search: SearchParams): SearchParams = search.copy(
     semantic = search.semantic.map(s => s.copy(model = ModelRef(hash(s.model.name))))
   )
 

@@ -4,8 +4,8 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
-import ai.nixiesearch.config.mapping.{FieldName, Language, SearchType, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.*
+import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
+import ai.nixiesearch.config.mapping.SearchParams.*
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec

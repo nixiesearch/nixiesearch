@@ -31,7 +31,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs, sort = sort))
       .unsafeRunSync()
       .hits
-      .flatMap(_.fields.collect { case TextField(_, value) => value })
+      .flatMap(_.fields.collect { case TextField(_, value, _) => value })
   }
 
   def searchRaw(

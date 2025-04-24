@@ -9,9 +9,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, Memor
 import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
-import ai.nixiesearch.config.mapping.SearchType.{ModelPrefix, SemanticSearch}
-import ai.nixiesearch.config.mapping.SuggestSchema.Lemmatize
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,6 +17,7 @@ import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 
 import java.nio.charset.StandardCharsets
@@ -54,11 +53,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title") -> TextFieldSchema(
                 name = StringName("title"),
-                search = SemanticSearch(model = ModelRef("text"))
+                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
               ),
               StringName("desc") -> TextFieldSchema(
                 name = StringName("desc"),
-                search = SemanticSearch(model = ModelRef("text"))
+                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
               ),
               StringName("price") -> IntFieldSchema(
                 name = StringName("price"),
@@ -102,7 +101,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title") -> TextFieldSchema(
                 name = StringName("title"),
-                search = SemanticSearch(model = ModelRef("text"))
+                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
               )
             ),
             store = DistributedStoreConfig(
@@ -177,22 +176,22 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title1") -> TextFieldSchema(
                 name = StringName("title1"),
-                search = SemanticSearch(model = ModelRef("text")),
+                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text")))),
                 suggest = Some(SuggestSchema())
               ),
               StringName("title2") -> TextFieldSchema(
                 name = StringName("title2"),
-                language = English,
-                search = SemanticSearch(model = ModelRef("text")),
+                search = SearchParams(
+                  semantic = Some(SemanticParams(model = ModelRef("text"))),
+                  lexical = Some(LexicalParams(analyze = English))
+                ),
                 suggest = Some(
-                  SuggestSchema(
-                    lemmatize = Some(Lemmatize(LocalURL(Paths.get("/path/to/lemmas.csv"))))
-                  )
+                  SuggestSchema()
                 )
               ),
               StringName("desc") -> TextFieldSchema(
                 name = StringName("desc"),
-                search = SemanticSearch(model = ModelRef("text"))
+                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
               ),
               StringName("price") -> IntFieldSchema(
                 name = StringName("price"),

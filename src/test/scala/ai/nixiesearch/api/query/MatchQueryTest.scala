@@ -2,6 +2,7 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.retrieve.{MatchQuery, MultiMatchQuery}
 import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
+import ai.nixiesearch.api.query.retrieve.MultiMatchQuery.BestFieldsQuery
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
@@ -19,20 +20,6 @@ class MatchQueryTest extends SearchTest with Matchers {
     {
       val docs = index.search(MatchQuery("title", "pajama"))
       docs shouldBe List("3")
-    }
-  }
-
-  it should "select docs for a multi-term query and AND" in withIndex { index =>
-    {
-      val docs = index.search(MultiMatchQuery("white pajama", List("title"), Operator.AND))
-      docs shouldBe Nil
-    }
-  }
-
-  it should "select docs for a multi-term query and OR" in withIndex { index =>
-    {
-      val docs = index.search(MultiMatchQuery("white pajama", List("title"), Operator.OR))
-      docs shouldBe List("2", "3")
     }
   }
 

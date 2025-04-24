@@ -20,7 +20,7 @@ class MatchAllQueryTest extends SearchTest with Matchers {
     {
       val request = SearchRequest(query = MatchAllQuery())
       val docs    = index.searcher.search(request).unsafeRunSync()
-      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text, _) => text })
       ids shouldBe List("1", "2", "3")
     }
   }
@@ -29,7 +29,7 @@ class MatchAllQueryTest extends SearchTest with Matchers {
     {
       val request = SearchRequest(query = MatchAllQuery(), size = 1)
       val docs    = index.searcher.search(request).unsafeRunSync()
-      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text, _) => text })
       ids shouldBe List("1")
     }
   }

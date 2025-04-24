@@ -1,7 +1,7 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.mapping.SearchType.QuantStore.Float32
-import ai.nixiesearch.config.mapping.SearchType.{SemanticSearchParams, LexicalSearchParams}
+import ai.nixiesearch.config.mapping.SearchParams.QuantStore.Float32
+import ai.nixiesearch.config.mapping.SearchParams.{SemanticParams, LexicalParams}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
@@ -10,12 +10,12 @@ import io.circe.generic.semiauto.*
 
 import scala.util.{Failure, Success}
 
-case class SearchType(lexical: Option[LexicalSearchParams] = None, semantic: Option[SemanticSearchParams] = None)
+case class SearchParams(lexical: Option[LexicalParams] = None, semantic: Option[SemanticParams] = None)
 
-object SearchType {
-  case class LexicalSearchParams(analyze: Language = Language.Generic)
+object SearchParams {
+  case class LexicalParams(analyze: Language = Language.Generic)
 
-  case class SemanticSearchParams(
+  case class SemanticParams(
       model: ModelRef,
       ef: Int = 10,
       m: Int = 10,
@@ -37,8 +37,8 @@ object SearchType {
     case QuantStore.Int4.alias    => Success(QuantStore.Int4)
     case other                    => Failure(UserError(s"cannot decode quant method $other"))
   }
-  given embeddingSearchParamsEncoder: Encoder[SemanticSearchParams] = deriveEncoder
-  given embeddingSearchParamsDecoder: Decoder[SemanticSearchParams] = Decoder.instance(c =>
+  given embeddingSearchParamsEncoder: Encoder[SemanticParams] = deriveEncoder
+  given embeddingSearchParamsDecoder: Decoder[SemanticParams] = Decoder.instance(c =>
     for {
       model    <- c.downField("model").as[ModelRef]
       ef       <- c.downField("ef").as[Option[Int]]
@@ -46,7 +46,7 @@ object SearchType {
       workers  <- c.downField("workers").as[Option[Int]]
       quantize <- c.downField("quantize").as[Option[QuantStore]]
     } yield {
-      SemanticSearchParams(
+      SemanticParams(
         model = model,
         ef = ef.getOrElse(32),
         m = m.getOrElse(16),
@@ -56,25 +56,25 @@ object SearchType {
     }
   )
 
-  given lexicalSearchParamsEncoder: Encoder[LexicalSearchParams] = deriveEncoder
-  given lexicalSearchParamsDecoder: Decoder[LexicalSearchParams] = Decoder.instance(c =>
+  given lexicalSearchParamsEncoder: Encoder[LexicalParams] = deriveEncoder
+  given lexicalSearchParamsDecoder: Decoder[LexicalParams] = Decoder.instance(c =>
     for {
       analyze <- c.downField("analyze").as[Option[Language]]
     } yield {
-      LexicalSearchParams(analyze = analyze.getOrElse(Language.Generic))
+      LexicalParams(analyze = analyze.getOrElse(Language.Generic))
     }
   )
-  given searchTypeEncoder: Encoder[SearchType] = deriveEncoder
-  given searchTypeDecoder: Decoder[SearchType] = Decoder.instance(c =>
+  given searchTypeEncoder: Encoder[SearchParams] = deriveEncoder
+  given searchTypeDecoder: Decoder[SearchParams] = Decoder.instance(c =>
     c.as[Boolean] match {
       case Left(_) =>
         for {
-          lexical  <- c.downField("lexical").as[Option[LexicalSearchParams]]
-          semantic <- c.downField("semantic").as[Option[SemanticSearchParams]]
+          lexical  <- c.downField("lexical").as[Option[LexicalParams]]
+          semantic <- c.downField("semantic").as[Option[SemanticParams]]
         } yield {
-          SearchType(lexical, semantic)
+          SearchParams(lexical, semantic)
         }
-      case Right(false) => Right(SearchType(None, None))
+      case Right(false) => Right(SearchParams(None, None))
       case Right(true) =>
         Left(DecodingFailure(s"unexpected search settings 'true': please set lexical/semantic params", c.history))
     }

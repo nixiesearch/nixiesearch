@@ -4,26 +4,21 @@ import ai.nixiesearch.api.aggregation.Aggregation.TermAggregation
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
-import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  IntFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
+import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.util.Try
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
 
 class TermAggregationTest extends SearchTest with Matchers {
 
@@ -31,7 +26,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(StringName("_id"), filter = true),
-      TextFieldSchema(StringName("title"), search = LexicalSearch()),
+      TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(StringName("color"), filter = true, facet = true),
       TextListFieldSchema(StringName("size"), filter = true, facet = true),
       IntFieldSchema(StringName("count"), facet = true),
@@ -129,7 +124,7 @@ class TermAggregationTest extends SearchTest with Matchers {
 
   it should "aggregate by color when searching" in withIndex { index =>
     {
-      val query  = MultiMatchQuery("socks", List("title"))
+      val query  = MatchQuery("socks", "title")
       val result = index.searchRaw(query = query, aggs = Some(Aggs(Map("color" -> TermAggregation("color", 10)))))
       result.aggs shouldBe Map(
         "color" -> TermAggregationResult(List(TermCount("red", 2), TermCount("black", 1), TermCount("white", 1)))
@@ -151,7 +146,7 @@ class TermAggregationTest extends SearchTest with Matchers {
 
   it should "select nothing on too narrow query" in withIndex { index =>
     {
-      val query  = MultiMatchQuery("nope", List("title"))
+      val query  = MatchQuery("nope", "title")
       val result = index.searchRaw(query = query, aggs = Some(Aggs(Map("color" -> TermAggregation("color", 10)))))
       result.aggs shouldBe Map("color" -> TermAggregationResult(List()))
     }

@@ -37,7 +37,7 @@ class GeoQueryTest extends SearchTest with Matchers {
           fields = List("city"),
           n = 4
         )
-      response.hits.flatMap(_.fields.collect { case TextField("city", city) => city }) shouldBe List(
+      response.hits.flatMap(_.fields.collect { case TextField("city", city, _) => city }) shouldBe List(
         "Varnsdorf",
         "Berlin",
         "Leipzig",
@@ -58,7 +58,7 @@ class GeoQueryTest extends SearchTest with Matchers {
           fields = List("city"),
           n = 4
         )
-      response.hits.flatMap(_.fields.collect { case TextField("city", city) => city }) shouldBe List(
+      response.hits.flatMap(_.fields.collect { case TextField("city", city, _) => city }) shouldBe List(
         "Berlin",
         "Potsdam",
         "Cottbus"
