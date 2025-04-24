@@ -18,7 +18,7 @@ import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
 import cats.effect.{IO, Resource}
-import cats.implicits.*
+import cats.syntax.all.*
 import fs2.Stream
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.http4s.HttpRoutes

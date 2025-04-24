@@ -7,13 +7,14 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class MultiMatchQueryJsonTest extends AnyFlatSpec with Matchers {
-  it should "decode multi-match" in {
+  it should "decode multi-match default" in {
     val decoded = decode[MultiMatchQuery]("""{"query":"foo","fields":["a","b"]}""")
-    decoded shouldBe Right(MultiMatchQuery("foo", List("a", "b")))
+    decoded shouldBe Right(BestFieldsQuery("foo", List("a", "b")))
   }
 
-  it should "decode multi-match with operator" in {
-    val decoded = decode[MultiMatchQuery]("""{"query":"foo","fields":["a","b"],"operator":"and"}""")
-    decoded shouldBe Right(MultiMatchQuery("foo", List("a", "b"), Operator.AND))
+  it should "decode multi-match with type" in {
+    val decoded = decode[MultiMatchQuery]("""{"query":"foo","fields":["a","b"],"type":"most_fields"}""")
+    decoded shouldBe Right(MostFieldsQuery("foo", List("a", "b")))
   }
+
 }

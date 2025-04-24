@@ -11,7 +11,7 @@ import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import cats.effect.{IO, Resource}
-import cats.implicits.*
+import cats.syntax.all.*
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.http4s.server.Server
 

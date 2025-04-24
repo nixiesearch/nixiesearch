@@ -2,7 +2,15 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
-import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SortPredicate, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{
+  RAGRequest,
+  RAGResponse,
+  SearchRequest,
+  SearchResponse,
+  SortPredicate,
+  SuggestRequest,
+  SuggestResponse
+}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
@@ -16,8 +24,19 @@ import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.DirectoryReader
-import org.apache.lucene.search.{IndexSearcher, MultiCollectorManager, ScoreDoc, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
-import cats.implicits.*
+import org.apache.lucene.search.{
+  IndexSearcher,
+  MultiCollectorManager,
+  ScoreDoc,
+  Sort,
+  SortField,
+  TopDocs,
+  TopFieldCollectorManager,
+  TopScoreDocCollectorManager,
+  TotalHits,
+  Query as LuceneQuery
+}
+import cats.syntax.all.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
@@ -85,39 +104,24 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   }
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
-    start <- IO(System.currentTimeMillis())
-    _     <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
-
-    queries <- request.query match {
-      case MatchAllQuery() => MatchAllLuceneQuery.create(request.filters, index.mapping)
-      case MatchQuery(field, query, operator) =>
-
-        fieldQuery(index.mapping, request.filters, field, query, operator.occur, request.size, index.models.embedding)
-      case MultiMatchQuery(query, fields, operator) =>
-        fields
-          .traverse(field =>
-            fieldQuery(
-              index.mapping,
-              request.filters,
-              field,
-              query,
-              operator.occur,
-              request.size,
-              index.models.embedding
-            )
-          )
-          .map(_.flatten)
-    }
-    searcher      <- getReadersOrFail().map(_.searcher)
-    fieldTopDocs  <- queries.traverse(query => searchField(searcher, query, request.size, request.sort))
-    mergedFacets  <- IO(MergedFacetCollector(fieldTopDocs.map(_.facets), request.aggs))
-    mergedTopDocs <- reciprocalRank(fieldTopDocs.map(_.docs))
-    aggs          <- aggregate(index.mapping, mergedFacets, request.aggs)
-    collected     <- collect(index.mapping, mergedTopDocs, request.fields)
-    end           <- IO(System.currentTimeMillis())
-    _             <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
-    _             <- IO(metrics.search.searchTotal.labelValues(index.name.value).inc())
-    _             <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
+    start    <- IO(System.currentTimeMillis())
+    _        <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
+    searcher <- getReadersOrFail().map(_.searcher)
+    mergedTopDocs <- request.query.topDocs(
+      index.mapping,
+      searcher,
+      request.sort,
+      request.filters,
+      index.models.embedding,
+      request.aggs,
+      request.size
+    )
+    aggs      <- aggregate(index.mapping, mergedTopDocs.facets, request.aggs)
+    collected <- collect(index.mapping, mergedTopDocs.docs, request.fields)
+    end       <- IO(System.currentTimeMillis())
+    _         <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
+    _         <- IO(metrics.search.searchTotal.labelValues(index.name.value).inc())
+    _         <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
   } yield {
     SearchResponse(
       took = end - start,
@@ -159,97 +163,8 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       } yield {})
   }
 
-  def fieldQuery(
-      mapping: IndexMapping,
-      filter: Option[Filters],
-      field: String,
-      query: String,
-      operator: Occur,
-      size: Int,
-      encoders: EmbedModelDict
-  ): IO[List[LuceneQuery]] =
-    mapping.fieldSchema(field) match {
-      case None => IO.raiseError(UserError(s"Cannot search over undefined field $field"))
-      case Some(TextLikeFieldSchema(search = LexicalSearch(), language = language)) =>
-        LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-      case Some(TextLikeFieldSchema(search = SemanticSearch(modelRef))) =>
-        SemanticLuceneQuery
-          .create(
-            encoders = encoders,
-            model = modelRef,
-            query = query,
-            field = field,
-            size = size,
-            filter = filter,
-            mapping = mapping
-          )
-
-      case Some(TextLikeFieldSchema(search = HybridSearch(modelRef), language = language)) =>
-        for {
-          x1 <- LexicalLuceneQuery.create(field, query, filter, language, mapping, operator)
-          x2 <- SemanticLuceneQuery
-            .create(
-              encoders = encoders,
-              model = modelRef,
-              query = query,
-              field = field,
-              size = size,
-              filter = filter,
-              mapping = mapping
-            )
-
-        } yield {
-          x1 ++ x2
-        }
-
-      case Some(other) => IO.raiseError(UserError(s"Cannot search over non-text field $field"))
-    }
-
-  def searchField(searcher: IndexSearcher, query: LuceneQuery, size: Int, sort: List[SortPredicate]): IO[TopDocsWithFacets] =
-    for {
-      topCollector <- sort match {
-        case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
-        case nel =>
-          nel
-            .map(pred => makeSortField(pred))
-            .sequence
-            .map(sorts => new TopFieldCollectorManager(new Sort(sorts*), size, null, Integer.MAX_VALUE))
-      }
-      facetCollector <- IO.pure(new FacetsCollectorManager())
-      collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
-      results        <- IO(searcher.search(query, collector))
-    } yield {
-      TopDocsWithFacets(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
-    }
 
 
-  case class ShardDoc(docid: Int, shardIndex: Int)
-
-  val K = 60.0f
-
-  def reciprocalRank(topDocs: List[TopDocs]): IO[TopDocs] = topDocs match {
-    case head :: Nil => IO.pure(head)
-    case Nil         => IO.raiseError(BackendError(s"cannot merge zero query results"))
-    case list =>
-      IO {
-        val docScores = mutable.Map[ShardDoc, Float]()
-        for {
-          ranking           <- list
-          (scoreDoc, index) <- ranking.scoreDocs.zipWithIndex
-        } {
-          val doc   = ShardDoc(scoreDoc.doc, scoreDoc.shardIndex)
-          val score = docScores.getOrElse(doc, 0.0f)
-          docScores.put(doc, (score + 1.0f / (K + index)))
-        }
-        val topDocs = docScores.toList
-          .sortBy(-_._2)
-          .map { case (doc, score) =>
-            new ScoreDoc(doc.docid, score, doc.shardIndex)
-          }
-          .toArray
-        new TopDocs(new TotalHits(topDocs.length, Relation.EQUAL_TO), topDocs)
-      }
-  }
 
   def aggregate(
       mapping: IndexMapping,

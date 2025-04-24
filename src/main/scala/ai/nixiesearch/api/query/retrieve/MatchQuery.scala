@@ -6,6 +6,7 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.mapping.{IndexMapping, Language}
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.AnalyzedIterator
 import cats.effect.IO
 import io.circe.generic.semiauto.*
@@ -19,32 +20,19 @@ import org.apache.lucene.search.BooleanClause.Occur
 import scala.util.{Failure, Success}
 
 case class MatchQuery(field: String, query: String, operator: Operator = OR) extends RetrieveQuery {
-  override def compile(mapping: IndexMapping, filter: Option[Filters]): IO[search.Query] = {
-    val analyzer = mapping.analyzer.getWrappedAnalyzer(field)
-    filter match {
-      case None =>
-        IO(fieldQuery(field, query, analyzer, operator.occur))
-      case Some(f) =>
-        f.toLuceneQuery(mapping).flatMap {
-          case Some(filterQuery) =>
-            IO {
-              val outerQuery = new BooleanQuery.Builder()
-              outerQuery.add(new BooleanClause(filterQuery, Occur.FILTER))
-              outerQuery.add(new BooleanClause(fieldQuery(field, query, analyzer, operator.occur), Occur.MUST))
-              outerQuery.build()
-            }
-          case None =>
-            IO(fieldQuery(field, query, analyzer, operator.occur))
-        }
+  override def compile(mapping: IndexMapping, filter: Option[Filters], encoders: EmbedModelDict): IO[search.Query] =
+    for {
+      analyzer <- IO(mapping.analyzer.getWrappedAnalyzer(field))
+      builder  <- IO.pure(new BooleanQuery.Builder())
+      _ <- IO(
+        AnalyzedIterator(analyzer, field, query).foreach(term =>
+          builder.add(new BooleanClause(new TermQuery(new Term(field, term)), operator.occur))
+        )
+      )
+      result <- applyFilters(mapping, builder.build(), filter)
+    } yield {
+      result
     }
-
-  }
-  private def fieldQuery(field: String, query: String, analyzer: Analyzer, occur: Occur): LuceneQuery = {
-    val fieldQuery = new BooleanQuery.Builder()
-    AnalyzedIterator(analyzer, field, query)
-      .foreach(term => fieldQuery.add(new BooleanClause(new TermQuery(new Term(field, term)), occur)))
-    fieldQuery.build()
-  }
 }
 
 object MatchQuery {

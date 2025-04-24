@@ -12,7 +12,7 @@ import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.util.DocumentEmbedder.EmbedTarget
 import cats.effect.IO
 import fs2.Stream
-import cats.implicits.*
+import cats.syntax.all.*
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

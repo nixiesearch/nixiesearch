@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.GeopointField.Geopoint
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json, JsonNumber, JsonObject}
-import cats.implicits.*
+import cats.syntax.all.*
 import io.circe.Decoder.{Result, resultInstance}
 
 import java.util.UUID

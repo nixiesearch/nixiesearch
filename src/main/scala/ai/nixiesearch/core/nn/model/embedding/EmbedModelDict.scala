@@ -18,7 +18,7 @@ import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIE
 import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.implicits.*
+import cats.syntax.all.*
 import fs2.io.file.Files
 import fs2.io.file.Path as Fs2Path
 import fs2.Stream

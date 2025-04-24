@@ -16,7 +16,6 @@ import ai.nixiesearch.core.metrics.{IndexerMetrics, Metrics}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
-import ai.nixiesearch.core.search.lucene.MatchAllLuceneQuery
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.DocumentEmbedder
 import cats.effect.{IO, Resource}
@@ -26,7 +25,7 @@ import org.apache.lucene.store.Directory
 import org.apache.lucene.document.Document as LuceneDocument
 
 import java.util
-import cats.implicits.*
+import cats.syntax.all.*
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.lucene.search.MatchAllDocsQuery
 

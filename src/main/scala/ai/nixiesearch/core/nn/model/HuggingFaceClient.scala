@@ -19,7 +19,7 @@ import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
 import scala.concurrent.duration.*
 import io.circe.syntax.*
 import io.circe.parser.*
-import cats.implicits.*
+import cats.syntax.all.*
 
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}

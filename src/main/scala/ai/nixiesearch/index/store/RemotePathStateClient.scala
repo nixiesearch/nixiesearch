@@ -11,7 +11,7 @@ import fs2.io.file.Files
 import fs2.io.{readInputStream, writeOutputStream}
 import fs2.io.file.Path
 import io.circe.parser.*
-import cats.implicits.*
+import cats.syntax.all.*
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Path as JPath

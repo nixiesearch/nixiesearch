@@ -54,7 +54,6 @@ class Nixiesearch101Codec(parent: Codec, mapping: IndexMapping)
                       new Lucene99HnswScalarQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, 7, false, 0, null)
                     case QuantStore.Int4 =>
                       new Lucene99HnswScalarQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, 4, true, 0, null)
-
                   }
                   cache.put(field, fmt)
                   fmt

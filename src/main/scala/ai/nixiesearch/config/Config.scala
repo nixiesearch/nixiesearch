@@ -12,7 +12,7 @@ import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
 import cats.effect.std.Env
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
-import cats.implicits.*
+import cats.syntax.all.*
 import io.circe.generic.semiauto.*
 
 import language.experimental.namedTuples
@@ -66,8 +66,10 @@ object Config extends Logging {
   def validateModelRefs(config: Config): List[String] = {
     val indexRefs = config.schema.values
       .flatMap(mapping =>
-        mapping.fields.values.flatMap { case field: TextLikeFieldSchema[?] =>
-          field.search.semantic.map(p => field.name -> p.model)
+        mapping.fields.values.flatMap {
+          case field: TextLikeFieldSchema[?] =>
+            field.search.semantic.map(p => field.name -> p.model)
+          case _ => None
         }
       )
       .toList

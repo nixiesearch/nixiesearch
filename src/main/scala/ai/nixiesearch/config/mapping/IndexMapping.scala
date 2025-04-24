@@ -5,7 +5,7 @@ import ai.nixiesearch.config.{EmbedCacheConfig, FieldSchema, StoreConfig}
 import ai.nixiesearch.core.{Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
-import cats.implicits.*
+import cats.syntax.all.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*

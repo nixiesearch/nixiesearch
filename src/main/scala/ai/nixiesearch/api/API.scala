@@ -11,7 +11,7 @@ import org.http4s.{HttpApp, HttpRoutes, Response}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.middleware.{ErrorAction, Logger}
-import cats.implicits.*
+import cats.syntax.all.*
 import org.typelevel.ci.CIString
 
 import scala.concurrent.duration.Duration
