@@ -1,11 +1,5 @@
 # Nixiesearch JSON document format
 
-!!! note
-
-    TODO: add cURL example of adding docs to NXS
-
-    TODO: Note on offline/online ingestion
-
 Nixiesearch does not have a strict incoming JSON document schema: any format is probably OK while it can be processed using the existing [index mapping](mapping.md).
 
 ## Document identifier
@@ -15,7 +9,7 @@ Each Nixiesearch-indexed document is expected (but not required) to have a globa
 * if JSON document has a special `_id` field defined, then it is used as an identifier.
 * if the `_id` field is missing in the document payload, then a UUID-based random identifier is generated automatically.
  
-Internally the document id is a sequence of bytes, and any real JSON type of the `_id` field will be automatically mapped to the internal id representation.
+Internally the document id is a sequence of bytes, and any real JSON type of the `_id` field (like string and number) will be automatically mapped to the internal id representation.
 
 This is an exampe of a good `_id` field:
 
@@ -59,7 +53,7 @@ Compared to Elasticsearch/Solr, Nixiesearch has a distinction between repeated a
 * based on a field type, more specific and optimized data structures can be used.
 * when returning a stored field, a JSON response field types can follow the index mapping. In other words, not all returned fields are arrays (like in Elasticsearch), and only the ones being defined as repeated.
 
-As for version `0.0.3` Nixiesearch only supports repeated [textual fields](types/basic.md).
+As for version `0.6.0` Nixiesearch only supports repeated [textual fields](types/basic.md).
 
 For example, the following document:
 

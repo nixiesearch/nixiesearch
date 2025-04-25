@@ -4,9 +4,14 @@ Nixiesearch has a Lucene-inspired query DSL with multiple search operators.
 
 > To search over a field, make sure that this field is marked as searchable in [index mapping](../../features/indexing/mapping.md).
 
+Unlike Elastic/OpenSearch query DSL, Nixiesearch has a distinction between search operators and filters:
+
+* Search operators affect document relevance scores (like [semantic](semantic.md) and [match](match.md))
+* Filters only include/exclude documents. See [Filters](../filter.md) for more details. 
+
 ## Search operators
 
-Currently three search operators are supported:
+Nixiesearch supports following search operators:
 
 * [match](#match): search over a single field
 * [multi_match](#multi_match): search over multiple fields

@@ -1,9 +1,5 @@
 # Field types
 
-!!! note
-
-    TODO: unfold types to per-type page
-
 Nixiesearch supports following field types:
 
 * [text fields](#text-fields): `text`, `text[]`.
