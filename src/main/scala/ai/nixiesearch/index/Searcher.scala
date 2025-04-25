@@ -15,6 +15,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSor
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
+import ai.nixiesearch.api.query.rerank.RRFQuery
 import ai.nixiesearch.api.query.retrieve.{KnnQuery, MatchAllQuery, MatchQuery, MultiMatchQuery, SemanticQuery}
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.FieldName.StringName
@@ -111,6 +112,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     query = request.query match {
       case q @ KnnQuery(k = None)      => q.copy(k = Some(request.size))
       case q @ SemanticQuery(k = None) => q.copy(k = Some(request.size))
+      case q @ RRFQuery(window = None) => q.copy(window = Some(request.size))
       case other                       => other
     }
     mergedTopDocs <- query.topDocs(

@@ -8,7 +8,7 @@ import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
 import org.apache.lucene.search.Query
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 
 case class SemanticQuery(field: String, query: String, k: Option[Int] = None) extends RetrieveQuery {
@@ -31,12 +31,26 @@ case class SemanticQuery(field: String, query: String, k: Option[Int] = None) ex
 object SemanticQuery {
   given semanticQueryEncoder: Encoder[SemanticQuery] = deriveEncoder
   given semanticQueryDecoder: Decoder[SemanticQuery] = Decoder.instance(c =>
-    for {
-      field <- c.downField("field").as[String]
-      query <- c.downField("query").as[String]
-      k     <- c.downField("k").as[Option[Int]]
-    } yield {
-      SemanticQuery(field, query, k)
+    c.value.asObject match {
+      case Some(obj) =>
+        obj.keys.toList match {
+          case list if list.contains("field") =>
+            for {
+              field <- c.downField("field").as[String]
+              query <- c.downField("query").as[String]
+              k     <- c.downField("k").as[Option[Int]]
+            } yield {
+              SemanticQuery(field, query, k)
+            }
+          case head :: Nil =>
+            for {
+              value <- c.downField(head).as[String]
+            } yield {
+              SemanticQuery(head, value)
+            }
+          case other => Left(DecodingFailure(s"cannot decode semantic query", c.history))
+        }
+      case None => Left(DecodingFailure(s"Semantic query should be a JSON object", c.history))
     }
   )
 }

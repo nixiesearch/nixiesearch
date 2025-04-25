@@ -11,9 +11,9 @@ import org.apache.lucene.search.{ScoreDoc, TopDocs, TotalHits}
 
 import scala.collection.mutable
 
-case class RRFQuery(queries: List[Query], k: Float = 60.0f) extends RerankQuery {
+case class RRFQuery(queries: List[Query], k: Float = 60.0f, window: Option[Int] = None) extends RerankQuery {
 
-  override def combine(docs: List[TopDocs]): IO[TopDocs] = docs match {
+  override def combine(docs: List[TopDocs], size: Int): IO[TopDocs] = docs match {
     case head :: Nil => IO.pure(head)
     case Nil         => IO.raiseError(BackendError(s"cannot merge zero query results"))
     case list =>
@@ -32,6 +32,7 @@ case class RRFQuery(queries: List[Query], k: Float = 60.0f) extends RerankQuery 
           .map { case (doc, score) =>
             new ScoreDoc(doc.docid, score, doc.shardIndex)
           }
+          .take(size)
           .toArray
         new TopDocs(new TotalHits(topDocs.length, Relation.EQUAL_TO), topDocs)
       }
@@ -47,8 +48,9 @@ object RRFQuery {
     for {
       queries <- c.downField("queries").as[List[Query]]
       k       <- c.downField("k").as[Option[Float]]
+      window  <- c.downField("rank_window_size").as[Option[Int]]
     } yield {
-      RRFQuery(queries = queries, k = k.getOrElse(60.0))
+      RRFQuery(queries = queries, k = k.getOrElse(60.0), window = window)
     }
   )
 }

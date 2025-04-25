@@ -74,25 +74,15 @@ schema:
     fields:
       title: # field name
         type: text
-        search: 
-          type: hybrid
-          model: e5-small
-        language: en # language is needed for lexical search
+        search:
+          lexical: # build lexical index
+            analyze: english
+          semantic: # and a vector search index also
+            model: e5-small
         suggest: true
       overview:
         type: text
-        search:
-          type: hybrid
-          model: e5-small
-        language: en
-      genres:
-        type: text[]
-        filter: true
-        facet: true
-      year:
-        type: int
-        filter: true
-        facet: true
+        search: false
 ```
 
 !!! note 
@@ -147,7 +137,7 @@ curl -XPOST -d @movies.jsonl http://localhost:8080/v1/index/movies
 {"result":"created","took":8256}
 ```
 
-As Nixiesearch is running an LLM embedding model inference inside, indexing large document corpus on CPU may take a while.
+As Nixiesearch is running a local embedding model inference inside, indexing large document corpus on CPU may take a while. Optionally you can use API-based embedding providers like [OpenAI](features/inference/embeddings/openai.md) and [Cohere](features/inference/embeddings/cohere.md).
 
 !!! note
 
@@ -157,53 +147,120 @@ As Nixiesearch is running an LLM embedding model inference inside, indexing larg
 
 Query DSL in Nixiesearch is inspired but not compatible with the JSON syntax used in [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html)/[OpenSearch](https://opensearch.org/docs/latest/query-dsl/index/) Query DSL. 
 
-To perform a single-field hybrid search over our newly-created `movies` index, run the following cURL command:
+To perform a single-field lexical search over our newly-created `movies` index, run the following cURL command:
 
 ```shell
-curl -XPOST -d '{"query": {"match": {"title":"matrix"}},"fields": ["title"], "size":3}'\
-   http://localhost:8080/v1/index/movies/search
+curl -XPOST http://localhost:8080/v1/index/movies/search \
+  -H "Content-Type: application/json" \
+  -d '{ 
+    "query": { 
+      "match": { 
+        "title": "batman" 
+      } 
+    }, 
+    "fields": ["title"], 
+    "size": 5
+  }'
 ```
+
+You will get the following response:
 
 ```json    
 {
   "took": 1,
   "hits": [
     {
-      "_id": "605",
-      "title": "The Matrix Revolutions",
-      "_score": 0.016666668
+      "_id": "414906",
+      "title": "The Batman",
+      "_score": 3.0470526
     },
     {
-      "_id": "604",
-      "title": "The Matrix Reloaded",
-      "_score": 0.016393442
+      "_id": "272",
+      "title": "Batman Begins",
+      "_score": 2.4646688
     },
     {
-      "_id": "624860",
-      "title": "The Matrix Resurrections",
+      "_id": "324849",
+      "title": "The Lego Batman Movie",
+      "_score": 2.0691848
+    },
+    {
+      "_id": "209112",
+      "title": "Batman v Superman: Dawn of Justice",
+      "_score": 1.5664694
+    }
+  ],
+  "aggs": {},
+  "ts": 1745590547587
+}
+```
+
+Let's go deeper and perform hybrid search query, by mixing lexical (using [match query](features/search/query.md#match)) and semantic (using [semantic query](features/search/query.md)) with [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf):
+
+```shell
+curl -XPOST http://localhost:8080/v1/index/movies/search \
+  -H "Content-Type: application/json" \
+  -d '{ 
+    "query": {
+      "rrf": {
+        "queries": [
+          {"match": {"title": "batman"}},
+          {"semantic": {"title": "batman nolan"}}
+        ],
+        "rank_window_size": 20
+      } 
+    }, 
+    "fields": ["title"], 
+    "size": 5
+  }'
+```
+
+And we also got a "The Dark Knight" movie!
+
+```json
+{
+  "took": 8,
+  "hits": [
+    {
+      "_id": "414906",
+      "title": "The Batman",
+      "_score": 0.033333335
+    },
+    {
+      "_id": "272",
+      "title": "Batman Begins",
+      "_score": 0.032786883
+    },
+    {
+      "_id": "209112",
+      "title": "Batman v Superman: Dawn of Justice",
+      "_score": 0.031257633
+    },
+    {
+      "_id": "324849",
+      "title": "The Lego Batman Movie",
+      "_score": 0.031054404
+    },
+    {
+      "_id": "155",
+      "title": "The Dark Knight",
       "_score": 0.016129032
     }
   ],
   "aggs": {},
-  "ts": 1722441735886
+  "ts": 1745590503193
 }
 ```
 
 This query performed a hybrid search:
 
-* for lexical search, it built and executed a Lucene query of `title:matrix`
-* for semantic search, it computed an LLM embedding of the query `matrix` and performed a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
+* for lexical search, it built and executed a Lucene query of `title:batman`
+* for semantic search, it computed an LLM embedding of the query `batman nolan` and performed a-kNN search over document embeddings, stored in [Lucene HNSW index](https://lucene.apache.org/core/9_1_0/core/org/apache/lucene/util/hnsw/HnswGraphSearcher.html).
 * combined results of both searches into a single ranking with the [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf).
 
 !!! note
 
     Learn more about searching in the [Search](features/search/overview.md) section.
-
-## Web UI
-
-Nixiesearch has a basic search web UI available as `http://localhost:8080/_ui` URL.
-
-![web ui](https://www.nixiesearch.ai/img/webui.png)
 
 ## Next steps
 
