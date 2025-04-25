@@ -22,10 +22,10 @@ schema:
       title:
         type: text
         search:
-          type: lexical
+          lexical: {}
         suggest: true
       overview:
         type: text
         search:
-          type: lexical
+          lexical: {}
         suggest: true

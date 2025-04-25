@@ -11,7 +11,7 @@ import org.apache.lucene.search.Query
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 
-case class SemanticQuery(field: String, query: String, k: Option[Int]) extends RetrieveQuery {
+case class SemanticQuery(field: String, query: String, k: Option[Int] = None) extends RetrieveQuery {
   override def compile(
       mapping: IndexMapping,
       maybeFilter: Option[Filters],

@@ -2,7 +2,7 @@ package ai.nixiesearch.e2e
 
 import ai.nixiesearch.api.SearchRoute.{RAGRequest, SearchRequest, SearchResponse}
 import ai.nixiesearch.api.SearchRoute
-import ai.nixiesearch.api.query.retrieve.MatchQuery
+import ai.nixiesearch.api.query.retrieve.{MatchQuery, SemanticQuery}
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexName
@@ -32,7 +32,7 @@ class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       val searchApi = SearchRoute(nixie.searcher)
 
       val searchRequest = SearchRequest(
-        MatchQuery("title", "matrix"),
+        query = SemanticQuery("title", "matrix"),
         fields = List(StringName("title"), StringName("overview")),
         rag = Some(
           RAGRequest(

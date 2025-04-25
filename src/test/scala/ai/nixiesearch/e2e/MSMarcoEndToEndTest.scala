@@ -19,8 +19,9 @@ import org.http4s.{Entity, Method, Request, Uri}
 import scodec.bits.ByteVector
 
 class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
-  lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml"), EnvVars(Map.empty)).unsafeRunSync()
+  lazy val pwd = System.getProperty("user.dir")
+  lazy val conf =
+    Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("msmarco"))
   lazy val docs    = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/msmarco/msmarco.json", mapping, 1000)
   override def inference: InferenceConfig = conf.inference
@@ -40,9 +41,9 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       indexApi.flush().unsafeRunSync()
       nixie.searcher.sync().unsafeRunSync()
 
-      val searchRequest = SearchRequest(MatchQuery("text", "manhattan"))
+      val searchRequest = SearchRequest(MatchQuery("text", "Spice Girls"))
       val response      = searchApi.searchBlocking(searchRequest).unsafeRunSync()
-      response.hits.size shouldBe 10
+      response.hits.size shouldBe 4
     }
   }
 }
