@@ -12,7 +12,6 @@ import org.apache.lucene.search.{ScoreDoc, TopDocs, TotalHits}
 import scala.collection.mutable
 
 case class RRFQuery(queries: List[Query], k: Float = 60.0f) extends RerankQuery {
-  val K = 60.0f
 
   override def combine(docs: List[TopDocs]): IO[TopDocs] = docs match {
     case head :: Nil => IO.pure(head)
@@ -26,7 +25,7 @@ case class RRFQuery(queries: List[Query], k: Float = 60.0f) extends RerankQuery 
         } {
           val doc   = ShardDoc(scoreDoc.doc, scoreDoc.shardIndex)
           val score = docScores.getOrElse(doc, 0.0f)
-          docScores.put(doc, (score + 1.0f / (K + index)))
+          docScores.put(doc, (score + 1.0f / (k + index)))
         }
         val topDocs = docScores.toList
           .sortBy(-_._2)

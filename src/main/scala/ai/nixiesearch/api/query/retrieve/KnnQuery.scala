@@ -10,8 +10,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 import org.apache.lucene.search.{KnnFloatVectorQuery, Query}
 
-case class KnnQuery(field: String, query_vector: Array[Float], k: Int = 10, num_candidates: Int = 10)
-    extends RetrieveQuery {
+case class KnnQuery(field: String, query_vector: Array[Float], k: Option[Int]) extends RetrieveQuery {
   override def compile(
       mapping: IndexMapping,
       maybeFilter: Option[Filters],
@@ -25,13 +24,13 @@ case class KnnQuery(field: String, query_vector: Array[Float], k: Int = 10, num_
         IO.raiseError(UserError(s"field '$field' is not lexically searchable, check the index mapping"))
       case other => IO.raiseError(UserError(s"field '$field' is not a text field"))
     }
-
+    realK = k.getOrElse(10)
     result <- maybeFilter match {
-      case None => IO(new KnnFloatVectorQuery(field, query_vector, k))
+      case None => IO(new KnnFloatVectorQuery(field, query_vector, realK))
       case Some(filters) =>
         filters.toLuceneQuery(mapping).map {
-          case Some(luceneFilters) => new KnnFloatVectorQuery(field, query_vector, k, luceneFilters)
-          case None                => new KnnFloatVectorQuery(field, query_vector, k)
+          case Some(luceneFilters) => new KnnFloatVectorQuery(field, query_vector, realK, luceneFilters)
+          case None                => new KnnFloatVectorQuery(field, query_vector, realK)
         }
     }
   } yield {
@@ -43,12 +42,11 @@ object KnnQuery {
   given knnQueryEncoder: Encoder[KnnQuery] = deriveEncoder
   given knnQueryDecoder: Decoder[KnnQuery] = Decoder.instance(c =>
     for {
-      field         <- c.downField("field").as[String]
-      queryVector   <- c.downField("query_vector").as[Array[Float]]
-      k             <- c.downField("k").as[Option[Int]]
-      numCandidates <- c.downField("num_candidates").as[Option[Int]]
+      field       <- c.downField("field").as[String]
+      queryVector <- c.downField("query_vector").as[Array[Float]]
+      k           <- c.downField("k").as[Option[Int]]
     } yield {
-      KnnQuery(field, queryVector, k.getOrElse(10), numCandidates.getOrElse(10))
+      KnnQuery(field, queryVector, k)
     }
   )
 }

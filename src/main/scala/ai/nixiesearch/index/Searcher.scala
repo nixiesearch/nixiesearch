@@ -15,7 +15,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSor
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.*
-import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
+import ai.nixiesearch.api.query.retrieve.{KnnQuery, MatchAllQuery, MatchQuery, MultiMatchQuery, SemanticQuery}
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.{Document, Field, Logging}
@@ -53,6 +53,7 @@ import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
 import org.apache.lucene.document.LatLonDocValuesField
+
 import scala.jdk.CollectionConverters.*
 import scala.collection.mutable
 import language.experimental.namedTuples
@@ -107,7 +108,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     start   <- IO(System.currentTimeMillis())
     _       <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
     readers <- getReadersOrFail()
-    mergedTopDocs <- request.query.topDocs(
+    query = request.query match {
+      case q @ KnnQuery(k = None)      => q.copy(k = Some(request.size))
+      case q @ SemanticQuery(k = None) => q.copy(k = Some(request.size))
+      case other                       => other
+    }
+    mergedTopDocs <- query.topDocs(
       index.mapping,
       readers,
       request.sort,
