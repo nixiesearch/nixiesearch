@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
+import ai.nixiesearch.api.query.retrieve.MultiMatchQuery.BestFieldsQuery
 import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.{FieldName, SearchParams}
@@ -28,8 +29,8 @@ class WildcardTest extends SearchTest with Matchers {
 
   it should "accept and search wildcard fields" in withIndex { index =>
     {
-      val docs = index.search(MatchQuery("foo", "field_*", Operator.OR))
-      docs shouldBe List("3", "2", "1")
+      val docs = index.search(BestFieldsQuery("foo", List(FieldName.unsafe("field_*"))))
+      docs shouldBe List("1", "2", "3")
     }
   }
 

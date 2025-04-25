@@ -16,8 +16,6 @@ import cats.effect.unsafe.implicits.global
 import scala.language.implicitConversions
 import scala.compiletime.uninitialized
 
-class Lucene912IndexCompatTest extends LuceneIndexCompatTest("lucene9.12")
-
 class Lucene101IndexCompatTest extends LuceneIndexCompatTest("lucene10.1")
 
 abstract class LuceneIndexCompatTest(name: String) extends AnyFlatSpec with Matchers with BeforeAndAfterAll {

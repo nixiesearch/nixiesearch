@@ -5,7 +5,13 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, IntFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  IntFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
@@ -124,7 +130,7 @@ class TermAggregationTest extends SearchTest with Matchers {
 
   it should "aggregate by color when searching" in withIndex { index =>
     {
-      val query  = MatchQuery("socks", "title")
+      val query  = MatchQuery("title", "socks")
       val result = index.searchRaw(query = query, aggs = Some(Aggs(Map("color" -> TermAggregation("color", 10)))))
       result.aggs shouldBe Map(
         "color" -> TermAggregationResult(List(TermCount("red", 2), TermCount("black", 1), TermCount("white", 1)))
@@ -146,7 +152,7 @@ class TermAggregationTest extends SearchTest with Matchers {
 
   it should "select nothing on too narrow query" in withIndex { index =>
     {
-      val query  = MatchQuery("nope", "title")
+      val query  = MatchQuery("title", "nope")
       val result = index.searchRaw(query = query, aggs = Some(Aggs(Map("color" -> TermAggregation("color", 10)))))
       result.aggs shouldBe Map("color" -> TermAggregationResult(List()))
     }

@@ -322,7 +322,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
             )
           )
         ),
-        query = MatchQuery("socks", "title")
+        query = MatchQuery("title","socks")
       )
       result.aggs shouldBe Map(
         "count" -> RangeAggregationResult(

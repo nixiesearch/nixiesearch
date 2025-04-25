@@ -7,13 +7,13 @@ import io.circe.parser.*
 
 class BoolQueryJsonTest extends AnyFlatSpec with Matchers {
   it should "decode sample query" in {
-    val str     = """{"bool": {"should": [{"match": {"foo": "bar"}}]}}"""
+    val str     = """{"should": [{"match": {"foo": "bar"}}]}"""
     val decoded = decode[BoolQuery](str)
     decoded shouldBe Right(BoolQuery(should = List(MatchQuery("foo", "bar"))))
   }
 
   it should "fail on no args" in {
-    val str     = """{"bool": {"should": []}}"""
+    val str     = """{"should": []}"""
     val decoded = decode[BoolQuery](str)
     decoded shouldBe a[Left[?, ?]]
   }

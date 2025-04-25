@@ -17,16 +17,21 @@ case class BoolQuery(
     must: List[RetrieveQuery] = Nil,
     must_not: List[RetrieveQuery] = Nil
 ) extends RetrieveQuery {
-  override def compile(mapping: IndexMapping, maybeFilter: Option[Filters], encoders: EmbedModelDict): IO[Query] = for {
+  override def compile(
+      mapping: IndexMapping,
+      maybeFilter: Option[Filters],
+      encoders: EmbedModelDict,
+      fields: List[String]
+  ): IO[Query] = for {
     builder <- IO.pure(new BooleanQuery.Builder())
     _ <- should.traverse(
-      _.compile(mapping, maybeFilter, encoders).map(q => builder.add(new BooleanClause(q, Occur.SHOULD)))
+      _.compile(mapping, maybeFilter, encoders, fields).map(q => builder.add(new BooleanClause(q, Occur.SHOULD)))
     )
     _ <- must.traverse(
-      _.compile(mapping, maybeFilter, encoders).map(q => builder.add(new BooleanClause(q, Occur.MUST)))
+      _.compile(mapping, maybeFilter, encoders, fields).map(q => builder.add(new BooleanClause(q, Occur.MUST)))
     )
     _ <- must_not.traverse(
-      _.compile(mapping, maybeFilter, encoders).map(q => builder.add(new BooleanClause(q, Occur.MUST_NOT)))
+      _.compile(mapping, maybeFilter, encoders, fields).map(q => builder.add(new BooleanClause(q, Occur.MUST_NOT)))
     )
     result <- applyFilters(mapping, builder.build(), maybeFilter)
   } yield {
@@ -41,9 +46,8 @@ object BoolQuery {
       should  <- c.downField("should").as[Option[List[RetrieveQuery]]]
       must    <- c.downField("must").as[Option[List[RetrieveQuery]]]
       mustNot <- c.downField("must_not").as[Option[List[RetrieveQuery]]]
-      _ <- (should, must, mustNot) match {
-        case (None, None, None) => Left(DecodingFailure("bool query should have at least single predicate", c.history))
-        case (Some(Nil), Some(Nil), Some(Nil)) =>
+      _ <- List(should, must, mustNot).flatMap(_.toList.flatten) match {
+        case Nil =>
           Left(DecodingFailure("bool query should have at least single predicate", c.history))
         case _ => Right(0)
       }

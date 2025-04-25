@@ -8,16 +8,18 @@ schema:
       title: # field name
         type: text
         search:
-          type: hybrid
-          model: e5-small
-        language: en # language is needed for lexical search
+          lexical: # we want to have a lexical index
+            analyze: en
+          semantic: # and also a semantic one
+            model: e5-small
         suggest: true
       overview:
         type: text
         search:
-          type: hybrid
-          model: e5-small
-        language: en
+          lexical:
+            analyze: en
+          semantic:
+            model: e5-small
       genres:
         type: text[]
         filter: true

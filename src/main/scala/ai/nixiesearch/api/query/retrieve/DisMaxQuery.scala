@@ -12,8 +12,13 @@ import cats.syntax.all.*
 import scala.jdk.CollectionConverters.*
 
 case class DisMaxQuery(queries: List[RetrieveQuery], tie_breaker: Float = 0.0) extends RetrieveQuery {
-  override def compile(mapping: IndexMapping, maybeFilter: Option[Filters], encoders: EmbedModelDict): IO[Query] = for {
-    luceneQueries <- queries.traverse(_.compile(mapping, maybeFilter, encoders))
+  override def compile(
+      mapping: IndexMapping,
+      maybeFilter: Option[Filters],
+      encoders: EmbedModelDict,
+      fields: List[String]
+  ): IO[Query] = for {
+    luceneQueries <- queries.traverse(_.compile(mapping, maybeFilter, encoders, fields))
     result <- applyFilters(mapping, new DisjunctionMaxQuery(luceneQueries.asJavaCollection, tie_breaker), maybeFilter)
   } yield {
     result

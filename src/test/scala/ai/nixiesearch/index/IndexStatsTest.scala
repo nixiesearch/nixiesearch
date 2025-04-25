@@ -57,10 +57,12 @@ class IndexStatsTest extends SearchTest with Matchers {
               "title",
               0,
               false,
-              "NONE",
+              "DOCS_AND_FREQS_AND_POSITIONS",
               Map(
                 "PerFieldKnnVectorsFormat.format" -> "Lucene99HnswVectorsFormat",
-                "PerFieldKnnVectorsFormat.suffix" -> "0"
+                "PerFieldKnnVectorsFormat.suffix" -> "0",
+                "PerFieldPostingsFormat.format"   -> "Lucene101",
+                "PerFieldPostingsFormat.suffix"   -> "0"
               ),
               384,
               "FLOAT32",

@@ -7,24 +7,35 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.index.Searcher
-import ai.nixiesearch.index.Searcher.TopDocsWithFacets
+import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import ai.nixiesearch.config.mapping.FieldName.*
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
 import org.apache.lucene.search.BooleanClause.Occur
-import org.apache.lucene.search.{BooleanClause, BooleanQuery, IndexSearcher, MultiCollectorManager, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager}
+import org.apache.lucene.search.{
+  BooleanClause,
+  BooleanQuery,
+  IndexSearcher,
+  MultiCollectorManager,
+  Sort,
+  SortField,
+  TopDocs,
+  TopFieldCollectorManager,
+  TopScoreDocCollectorManager
+}
 
 trait RetrieveQuery extends Query {
   def compile(
       mapping: IndexMapping,
       maybeFilter: Option[Filters],
-      encoders: EmbedModelDict
+      encoders: EmbedModelDict,
+      fields: List[String]
   ): IO[org.apache.lucene.search.Query]
 
   def applyFilters(
@@ -44,16 +55,24 @@ trait RetrieveQuery extends Query {
     case None => IO.pure(luceneQuery)
   }
 
+  def expandFields(candidates: List[FieldName], all: Set[String]): List[String] = {
+    candidates.flatMap {
+      case s: StringName if all.contains(s.name) => List(s.name)
+      case w: WildcardName                       => all.filter(f => w.matches(f))
+      case _                                     => Nil
+    }
+  }
+
   override def topDocs(
       mapping: IndexMapping,
-      searcher: IndexSearcher,
+      readers: Readers,
       sort: List[SortPredicate],
       maybeFilter: Option[Filters],
       encoders: EmbedModelDict,
       aggs: Option[Aggs],
       size: Int
   ): IO[TopDocsWithFacets] = for {
-    luceneQueryWithFilters <- compile(mapping, maybeFilter, encoders)
+    luceneQueryWithFilters <- compile(mapping, maybeFilter, encoders, readers.fields)
     topCollector <- sort match {
       case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
       case nel =>
@@ -64,7 +83,7 @@ trait RetrieveQuery extends Query {
     }
     facetCollector <- IO.pure(new FacetsCollectorManager())
     collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
-    results        <- IO(searcher.search(luceneQueryWithFilters, collector))
+    results        <- IO(readers.searcher.search(luceneQueryWithFilters, collector))
   } yield {
     TopDocsWithFacets(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
   }

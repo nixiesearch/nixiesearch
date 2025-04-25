@@ -12,12 +12,17 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 
 case class SemanticQuery(field: String, query: String, k: Int = 10, num_candidates: Int = 10) extends RetrieveQuery {
-  override def compile(mapping: IndexMapping, maybeFilter: Option[Filters], encoders: EmbedModelDict): IO[Query] = for {
+  override def compile(
+      mapping: IndexMapping,
+      maybeFilter: Option[Filters],
+      encoders: EmbedModelDict,
+      fields: List[String]
+  ): IO[Query] = for {
     schema <- IO
       .fromOption(mapping.fieldSchemaOf[TextLikeFieldSchema[?]](field))(UserError(s"no mapping for field $field"))
     semantic       <- IO.fromOption(schema.search.semantic)(UserError(s"field $field search type is not semantic"))
     queryEmbedding <- encoders.encode(semantic.model, TaskType.Query, query)
-    result         <- KnnQuery(field, queryEmbedding, k, num_candidates).compile(mapping, maybeFilter, encoders)
+    result         <- KnnQuery(field, queryEmbedding, k, num_candidates).compile(mapping, maybeFilter, encoders, fields)
   } yield {
     result
   }

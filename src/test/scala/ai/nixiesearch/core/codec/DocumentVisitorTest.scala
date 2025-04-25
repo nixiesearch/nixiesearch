@@ -25,6 +25,8 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
+import scala.util.Try
+
 class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val docs = Nil
   val mapping = IndexMapping(
@@ -117,10 +119,8 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
           StringName("title_nonstore")
         )
       )
-      val docs           = store.searcher.search(request).unsafeRunSync()
-      val actualFields   = docs.hits.head.fields.sortBy(_.name)
-      val expectedFields = (source.fields :+ FloatField("_score", 1.0)).sortBy(_.name)
-      actualFields shouldBe expectedFields
+      val docs = Try(store.searcher.search(request).unsafeRunSync())
+      docs.isFailure shouldBe true
     }
   }
 }

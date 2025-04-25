@@ -11,7 +11,7 @@ import org.apache.lucene.search.{ScoreDoc, TopDocs, TotalHits}
 
 import scala.collection.mutable
 
-case class RRFQuery(queries: List[Query]) extends RerankQuery {
+case class RRFQuery(queries: List[Query], k: Float = 60.0f) extends RerankQuery {
   val K = 60.0f
 
   override def combine(docs: List[TopDocs]): IO[TopDocs] = docs match {
@@ -44,5 +44,12 @@ object RRFQuery {
   case class ShardDoc(docid: Int, shardIndex: Int)
 
   given rrfQueryEncoder: Encoder[RRFQuery] = deriveEncoder
-  given rrfQueryDecoder: Decoder[RRFQuery] = deriveDecoder
+  given rrfQueryDecoder: Decoder[RRFQuery] = Decoder.instance(c =>
+    for {
+      queries <- c.downField("queries").as[List[Query]]
+      k       <- c.downField("k").as[Option[Float]]
+    } yield {
+      RRFQuery(queries = queries, k = k.getOrElse(60.0))
+    }
+  )
 }

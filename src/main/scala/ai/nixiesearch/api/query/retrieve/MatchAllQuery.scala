@@ -11,7 +11,12 @@ import org.apache.lucene.search
 import org.apache.lucene.search.MatchAllDocsQuery
 
 case class MatchAllQuery() extends RetrieveQuery {
-  override def compile(mapping: IndexMapping, filter: Option[Filters], encoders: EmbedModelDict): IO[search.Query] =
+  override def compile(
+      mapping: IndexMapping,
+      filter: Option[Filters],
+      encoders: EmbedModelDict,
+      fields: List[String]
+  ): IO[search.Query] =
     applyFilters(mapping, new MatchAllDocsQuery(), filter)
 }
 

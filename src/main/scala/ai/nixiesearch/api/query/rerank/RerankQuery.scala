@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.index.Searcher
-import ai.nixiesearch.index.Searcher.TopDocsWithFacets
+import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import cats.effect.IO
 import io.circe.{Decoder, Encoder}
 import org.apache.lucene.search
@@ -22,16 +22,16 @@ trait RerankQuery extends Query {
 
   override def topDocs(
       mapping: IndexMapping,
-      searcher: IndexSearcher,
+      readers: Readers,
       sort: List[SearchRoute.SortPredicate],
       filter: Option[Filters],
       encoders: EmbedModelDict,
       aggs: Option[Aggs],
       size: Int
   ): IO[Searcher.TopDocsWithFacets] = for {
-    queryTopDocs <- queries.traverse(_.topDocs(mapping, searcher, sort, filter, encoders, aggs,size))
-    facets <- IO(MergedFacetCollector(queryTopDocs.map(_.facets), aggs))
-    merged <- combine(queryTopDocs.map(_.docs))
+    queryTopDocs <- queries.traverse(_.topDocs(mapping, readers, sort, filter, encoders, aggs, size))
+    facets       <- IO(MergedFacetCollector(queryTopDocs.map(_.facets), aggs))
+    merged       <- combine(queryTopDocs.map(_.docs))
   } yield {
     TopDocsWithFacets(merged, facets)
   }

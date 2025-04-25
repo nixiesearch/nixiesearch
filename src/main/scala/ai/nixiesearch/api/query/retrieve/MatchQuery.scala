@@ -4,7 +4,9 @@ import MatchQuery.Operator
 import MatchQuery.Operator.OR
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
+import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.mapping.{IndexMapping, Language}
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.AnalyzedIterator
@@ -20,8 +22,20 @@ import org.apache.lucene.search.BooleanClause.Occur
 import scala.util.{Failure, Success}
 
 case class MatchQuery(field: String, query: String, operator: Operator = OR) extends RetrieveQuery {
-  override def compile(mapping: IndexMapping, filter: Option[Filters], encoders: EmbedModelDict): IO[search.Query] =
+  override def compile(
+      mapping: IndexMapping,
+      filter: Option[Filters],
+      encoders: EmbedModelDict,
+      fields: List[String]
+  ): IO[search.Query] =
     for {
+      schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
+      _ <- schema match {
+        case t: TextLikeFieldSchema[?] if t.search.lexical.nonEmpty => IO.unit
+        case t: TextLikeFieldSchema[?] =>
+          IO.raiseError(UserError(s"field '$field' is not lexically searchable, check the index mapping"))
+        case other => IO.raiseError(UserError(s"field '$field' is not a text field"))
+      }
       analyzer <- IO(mapping.analyzer.getWrappedAnalyzer(field))
       builder  <- IO.pure(new BooleanQuery.Builder())
       _ <- IO(

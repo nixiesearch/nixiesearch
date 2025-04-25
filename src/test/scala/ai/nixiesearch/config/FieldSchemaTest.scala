@@ -80,7 +80,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     result shouldBe Right(
       TextFieldSchema(
         name = StringName("field"),
-        search = SearchParams(lexical = Some(LexicalParams(analyze = Language.Generic))),
+        search = SearchParams(),
         store = true,
         filter = false,
         facet = false,
@@ -102,7 +102,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     result shouldBe Right(
       TextFieldSchema(
         name = StringName("field"),
-        search = SearchParams(lexical = Some(LexicalParams(analyze = Language.Generic))),
+        search = SearchParams(),
         store = true,
         filter = false,
         facet = false,

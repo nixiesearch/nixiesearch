@@ -1,7 +1,7 @@
 package ai.nixiesearch.api.query.retrieve
 
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
 import org.apache.lucene.search.Query
@@ -10,19 +10,34 @@ import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 
 sealed trait MultiMatchQuery extends RetrieveQuery {
   def query: String
-  def fields: List[String]
+  def fields: List[FieldName]
 }
 
 object MultiMatchQuery {
-  case class BestFieldsQuery(query: String, fields: List[String], tie_breaker: Option[Float] = None)
+  case class BestFieldsQuery(query: String, fields: List[FieldName], tie_breaker: Option[Float] = None)
       extends MultiMatchQuery {
-    override def compile(mapping: IndexMapping, maybeFilter: Option[Filters], encoders: EmbedModelDict): IO[Query] =
-      DisMaxQuery(queries = fields.map(field => MatchQuery(field, query)), tie_breaker.getOrElse(0.0))
-        .compile(mapping, maybeFilter, encoders)
+    override def compile(
+        mapping: IndexMapping,
+        maybeFilter: Option[Filters],
+        encoders: EmbedModelDict,
+        allfields: List[String]
+    ): IO[Query] = {
+      val expandedFields = expandFields(fields, allfields.toSet)
+      DisMaxQuery(queries = expandedFields.map(field => MatchQuery(field, query)), tie_breaker.getOrElse(0.0f))
+        .compile(mapping, maybeFilter, encoders, allfields)
+    }
   }
-  case class MostFieldsQuery(query: String, fields: List[String]) extends MultiMatchQuery {
-    override def compile(mapping: IndexMapping, maybeFilter: Option[Filters], encoders: EmbedModelDict): IO[Query] =
-      BoolQuery(should = fields.map(field => MatchQuery(field, query))).compile(mapping, maybeFilter, encoders)
+  case class MostFieldsQuery(query: String, fields: List[FieldName]) extends MultiMatchQuery {
+    override def compile(
+        mapping: IndexMapping,
+        maybeFilter: Option[Filters],
+        encoders: EmbedModelDict,
+        allfields: List[String]
+    ): IO[Query] = {
+      val expandedFields = expandFields(fields, allfields.toSet)
+      BoolQuery(should = expandedFields.map(field => MatchQuery(field, query)))
+        .compile(mapping, maybeFilter, encoders, allfields)
+    }
   }
 
   given bestFieldsQueryCodec: Codec[BestFieldsQuery] = deriveCodec

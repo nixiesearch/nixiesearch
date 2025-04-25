@@ -8,7 +8,7 @@ import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQ
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
-import ai.nixiesearch.index.Searcher.TopDocsWithFacets
+import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.apache.lucene.search.IndexSearcher
@@ -16,7 +16,7 @@ import org.apache.lucene.search.IndexSearcher
 trait Query extends Logging {
   def topDocs(
       mapping: IndexMapping,
-      searcher: IndexSearcher,
+      readers: Readers,
       sort: List[SortPredicate],
       filter: Option[Filters],
       encoders: EmbedModelDict,

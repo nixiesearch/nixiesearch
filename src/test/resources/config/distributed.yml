@@ -27,5 +27,5 @@ schema:
       title:
         type: text
         search:
-          type: semantic
-          model: text
+          semantic:
+            model: text

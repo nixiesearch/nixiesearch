@@ -1,15 +1,17 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
+import ai.nixiesearch.config.CoreConfig.TelemetryConfig
+import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
-import ai.nixiesearch.config.StoreConfig.DistributedStoreConfig
+import ai.nixiesearch.config.StoreConfig.{DistributedStoreConfig, LocalStoreConfig}
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.URL.LocalURL
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
+import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -17,9 +19,13 @@ import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.IndexConfig.FlushConfig
 import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.PoolingType.MeanPooling
+import ai.nixiesearch.main.CliConfig.Loglevel.INFO
 
+import scala.concurrent.duration.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
@@ -30,40 +36,32 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     parsed shouldBe Right(
       Config(
         inference = InferenceConfig(
-          embedding = Map(
+          Map(
             ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
-              model = ModelHandle.HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
+              HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")
             )
-          )
+          ),
+          Map()
         ),
-        indexer = IndexerConfig(),
-        core = CoreConfig(
-          host = Hostname("0.0.0.0"),
-          port = Port(8080),
-          cache = CacheConfig(
-            dir = "/cache"
-          )
-        ),
-        searcher = SearcherConfig(),
+        core = CoreConfig(CacheConfig("/cache"), Hostname("0.0.0.0"), Port(8080)),
         schema = Map(
-          IndexName.unsafe("helloworld") -> IndexMapping(
-            name = IndexName.unsafe("helloworld"),
-            alias = Nil,
+          IndexName("helloworld") -> IndexMapping(
+            name = IndexName("helloworld"),
+            config = IndexConfig(FlushConfig(5.seconds)),
             fields = Map(
-              StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title") -> TextFieldSchema(
-                name = StringName("title"),
-                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+                StringName("title"),
+                SearchParams(None, Some(SemanticParams(ModelRef("text"))))
               ),
               StringName("desc") -> TextFieldSchema(
-                name = StringName("desc"),
-                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+                StringName("desc"),
+                SearchParams(None, Some(SemanticParams(ModelRef("text"))))
               ),
-              StringName("price") -> IntFieldSchema(
-                name = StringName("price"),
-                filter = true,
-                facet = true,
-                sort = true
+              StringName("price") -> IntFieldSchema(StringName("price"), true, true, true, true),
+              StringName("_id") -> TextFieldSchema(
+                StringName("_id"),
+                SearchParams(None, None),
+                filter = true
               )
             )
           )

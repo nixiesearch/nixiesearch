@@ -31,14 +31,19 @@ case class IndexMapping(
 
   val analyzer = PerFieldAnalyzer(new KeywordAnalyzer(), this)
 
-  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = fields.collectFirst {
-    case (field, schema) if field.matches(name) => schema
+  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
+    fields.collectFirst {
+      case (field, schema) if field.matches(name) => schema
+    }
   }
 
-  def fieldSchemaOf[S <: FieldSchema[? <: Field]](name: String)(using manifest: scala.reflect.ClassTag[S]): Option[S] =
+  def fieldSchemaOf[S <: FieldSchema[? <: Field]](
+      name: String
+  )(using manifest: scala.reflect.ClassTag[S]): Option[S] = {
     fields.collectFirst {
       case (field, schema: S) if field.matches(name) => schema
     }
+  }
 
   def nameMatches(value: String): Boolean = {
     (name.value == value) || alias.contains(Alias(value))

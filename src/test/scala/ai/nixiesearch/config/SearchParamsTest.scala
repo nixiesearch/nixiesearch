@@ -18,7 +18,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
     val yaml =
       """type: text
         |search:
-        |  lexical:
+        |  lexical: {}
         |""".stripMargin
     val result = decodeYaml(yaml)
     result shouldBe Right(
@@ -30,7 +30,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
     val yaml =
       """type: text
         |search:
-        |  lexical:
+        |  lexical: {}
         |  semantic:
         |    model: text
         |""".stripMargin
@@ -65,6 +65,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
 
   def decodeYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {
     implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder(StringName("field"))
-    parse(yaml).flatMap(_.as[FieldSchema[? <: Field]])
+    val decoded = parse(yaml) 
+    decoded.flatMap(_.as[FieldSchema[? <: Field]])
   }
 }

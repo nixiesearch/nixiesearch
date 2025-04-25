@@ -23,7 +23,7 @@ import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
-import org.apache.lucene.index.DirectoryReader
+import org.apache.lucene.index.{DirectoryReader, IndexReader}
 import org.apache.lucene.search.{
   IndexSearcher,
   MultiCollectorManager,
@@ -44,7 +44,7 @@ import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
-import ai.nixiesearch.index.Searcher.{TopDocsWithFacets, Readers}
+import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.{DurationStream, StreamMark}
 import org.apache.lucene.facet.{FacetsCollector, FacetsCollectorManager}
@@ -53,7 +53,7 @@ import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
 import org.apache.lucene.document.LatLonDocValuesField
-
+import scala.jdk.CollectionConverters.*
 import scala.collection.mutable
 import language.experimental.namedTuples
 
@@ -104,12 +104,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   }
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
-    start    <- IO(System.currentTimeMillis())
-    _        <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
-    searcher <- getReadersOrFail().map(_.searcher)
+    start   <- IO(System.currentTimeMillis())
+    _       <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
+    readers <- getReadersOrFail()
     mergedTopDocs <- request.query.topDocs(
       index.mapping,
-      searcher,
+      readers,
       request.sort,
       request.filters,
       index.models.embedding,
@@ -163,9 +163,6 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       } yield {})
   }
 
-
-
-
   def aggregate(
       mapping: IndexMapping,
       collector: FacetsCollector,
@@ -202,11 +199,11 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       top: TopDocs,
       fields: List[FieldName]
   ): IO[List[Document]] = for {
-    reader <- getReadersOrFail().map(_.reader)
+    reader  <- getReadersOrFail().map(_.reader)
+    visitor <- DocumentVisitor.create(mapping, fields)
     docs <- IO {
       val docs = top.scoreDocs.map(doc => {
-        val visitor = DocumentVisitor(mapping, fields)
-
+        visitor.reset()
         reader.storedFields().document(doc.doc, visitor)
         visitor.asDocument(doc.score)
       })
@@ -237,7 +234,13 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
 }
 
 object Searcher extends Logging {
-  case class Readers(reader: DirectoryReader, searcher: IndexSearcher, suggester: SuggestIndexSearcher, seqnum: Long) {
+  case class Readers(
+      reader: DirectoryReader,
+      searcher: IndexSearcher,
+      suggester: SuggestIndexSearcher,
+      seqnum: Long,
+      fields: List[String]
+  ) {
     def close(): IO[Unit] = IO(reader.close())
   }
   object Readers {
@@ -250,9 +253,10 @@ object Searcher extends Logging {
             searcher   <- IO(new IndexSearcher(reader))
             suggester  <- IO(new SuggestIndexSearcher(reader))
             diskSeqnum <- index.seqnum.get
+            fields     <- IO(getFields(searcher.getIndexReader))
             _          <- info(s"opened index reader for index '${index.name.value}', seqnum=${diskSeqnum}")
           } yield {
-            Some(Readers(reader, searcher, suggester, diskSeqnum))
+            Some(Readers(reader, searcher, suggester, diskSeqnum, fields))
           }
 
       }
@@ -267,8 +271,13 @@ object Searcher extends Logging {
       }
       searcher  <- IO(new IndexSearcher(reader))
       suggester <- IO(new SuggestIndexSearcher(reader))
+      fields    <- IO(getFields(searcher.getIndexReader))
     } yield {
-      Readers(reader, searcher, suggester, newSeqnum)
+      Readers(reader, searcher, suggester, newSeqnum, fields)
+    }
+
+    def getFields(reader: IndexReader): List[String] = {
+      reader.leaves().asScala.toList.flatMap(_.reader().getFieldInfos.iterator().asScala.map(_.name)).distinct
     }
   }
 

@@ -17,8 +17,8 @@ object SearchParams {
 
   case class SemanticParams(
       model: ModelRef,
-      ef: Int = 10,
-      m: Int = 10,
+      ef: Int = 32,
+      m: Int = 16,
       workers: Int = Runtime.getRuntime.availableProcessors(),
       quantize: QuantStore = Float32
   )
@@ -71,6 +71,11 @@ object SearchParams {
         for {
           lexical  <- c.downField("lexical").as[Option[LexicalParams]]
           semantic <- c.downField("semantic").as[Option[SemanticParams]]
+          _ <- c.downField("type").as[Option[String]] match {
+            case Left(err)        => Left(err)
+            case Right(None)      => Right({})
+            case Right(Some(tpe)) => Left(DecodingFailure(s"you use old search options format", c.history))
+          }
         } yield {
           SearchParams(lexical, semantic)
         }
