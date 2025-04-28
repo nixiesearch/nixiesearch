@@ -11,7 +11,7 @@ import ai.nixiesearch.core.field.GeopointField.Geopoint
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json, JsonNumber, JsonObject}
 import cats.syntax.all.*
 import io.circe.Decoder.{Result, resultInstance}
-
+import io.circe.generic.semiauto.*
 import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -25,14 +25,14 @@ object Document {
   def encoderFor(mapping: IndexMapping): Encoder[Document] =
     Encoder.instance(doc => {
       val fields = doc.fields.map {
-        case f @ FloatField(name, value)    => (name, FloatField.encodeJson(f))
-        case f @ DoubleField(name, value)   => (name, DoubleField.encodeJson(f))
-        case f @ IntField(name, value)      => (name, IntField.encodeJson(f))
-        case f @ LongField(name, value)     => (name, LongField.encodeJson(f))
+        case f @ FloatField(name, value)       => (name, FloatField.encodeJson(f))
+        case f @ DoubleField(name, value)      => (name, DoubleField.encodeJson(f))
+        case f @ IntField(name, value)         => (name, IntField.encodeJson(f))
+        case f @ LongField(name, value)        => (name, LongField.encodeJson(f))
         case f @ TextField(name, value, _)     => (name, TextField.encodeJson(f))
-        case f @ BooleanField(name, value)  => (name, BooleanField.encodeJson(f))
+        case f @ BooleanField(name, value)     => (name, BooleanField.encodeJson(f))
         case f @ TextListField(name, value, _) => (name, TextListField.encodeJson(f))
-        case f @ GeopointField(name, _, _)  => (name, GeopointField.encodeJson(f))
+        case f @ GeopointField(name, _, _)     => (name, GeopointField.encodeJson(f))
       }
       Json.fromJsonObject(JsonObject.fromIterable(fields))
     })
@@ -164,6 +164,11 @@ object Document {
             case Left(err)    => Left(DecodingFailure(s"cannot decode geopoint field $fieldName for $value", Nil))
             case Right(value) => Right(List(GeopointField(fieldName, value.lat, value.lon)))
           }
+        case Some(text: TextFieldSchema) =>
+          value.toJson.as[TextEmbedding] match {
+            case Left(err)    => Left(DecodingFailure(s"cannot decode text field $fieldName for $value", Nil))
+            case Right(value) => Right(List(TextField(fieldName, value.text, Some(value.embedding))))
+          }
         case Some(other) =>
           Left(DecodingFailure(s"field $fieldName cannot be parsed from json object '$value'", Nil))
         case None =>
@@ -213,5 +218,8 @@ object Document {
 
       }
   }
+
+  case class TextEmbedding(text: String, embedding: Array[Float])
+  given textEmbeddingCodec: Codec[TextEmbedding] = deriveCodec
 
 }

@@ -116,4 +116,41 @@ schema:
     fields:
       - tracks.name:
           type: text[]
+
 ```
+
+## Pre-embedded text fields
+
+By default, for [text fields](types/text.md) Nixiesearch expends a `JSON string` as a document field type, and handles the embedding process internally. Consider the following index schema:
+
+```yaml
+inference:
+  embedding:
+    my-model:
+      model: intfloat/e5-small-v2
+schema:
+  my-index:
+    fields:
+      title:
+        type: text
+        search:
+          semantic: 
+            model: my-model
+```
+
+So for a JSON document of:
+
+```json
+{"title": "cookies"}
+```
+
+Nixiesearch will run an embedding inference for a model `intfloat/e5-small-v2`. In a case when you already have text embeddings for documents, you can skip the inference process altogether by providing field text and embedding at the same time:
+
+```json
+{"title": {"text": "cookies", "embedding": [1,2,3]}}
+```
+
+So a text field has two possible ingestion formats:
+
+* `JSON string`: when embedding inference handled by the server
+* `JSON obj` with two fields of `text: string` and `embedding: array[float]` when embedding inference is skipped.

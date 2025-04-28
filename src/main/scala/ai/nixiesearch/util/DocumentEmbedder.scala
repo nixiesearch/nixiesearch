@@ -38,6 +38,9 @@ case class DocumentEmbedder(
           cache.get(field.name) match {
             case Some(Some(model)) =>
               field match {
+                case text: TextField if text.embedding.isDefined =>
+                  // fast path for pre-embedded docs
+                  text
                 case text: TextField =>
                   embeds.get(EmbedTarget(model, text.value)) match {
                     case Some(embed) => text.copy(embedding = Some(embed))

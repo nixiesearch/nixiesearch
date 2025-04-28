@@ -32,6 +32,7 @@ case class TextField(name: String, value: String, embedding: Option[Array[Float]
     with TextLikeField
 
 object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
+  
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
 
