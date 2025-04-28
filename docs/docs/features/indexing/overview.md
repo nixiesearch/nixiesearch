@@ -2,10 +2,10 @@
 
 Nixiesearch index is just a regular index like in [Elastic](https://www.elastic.co/blog/what-is-an-elasticsearch-index)/[OpenSearch](https://docs.opensearch.org)/[SOLR](https://solr.apache.org/), but with the following differences:
 
-* Indexes are created by defining their schemas in a [config file](../../reference/config.md). It is deliberately not possible to create an index using [REST API](../../api.md), as Nixiesearch instances are immutable.
-* Index always has a [strict schema](mapping.md) defined. Schemaless approach is user-friendly, but you will eventually have 10 different ways to store a boolean field, like it happens MongoDB 🫠.
+* Indexes are created by defining their schemas in a [config file](../../reference/config.md). It is deliberately not possible to create an index at runtime using [REST API](../../api.md), as Nixiesearch instances have an immutable configuration.
+* Index always has a [strict schema](mapping.md) defined. Schemaless approach is user-friendly, but you will eventually have 10 different ways to store a boolean field, like it usually happens in MongoDB 🫠.
 
-To add a set of documents to an index, you need to perform two steps:
+To add a set of documents to an index, you need to perform these two steps:
 
 * define an [index mapping](#index-mapping) [in a config file](mapping.md). Nixiesearch is a strongly-typed document storage system, so [dynamic mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-mapping.html) is not supported.
 * write documents to the index, either with push-based REST API or with pull-based stream ingestion.
@@ -36,18 +36,18 @@ In the example above we defined an index `my-first-index` with two fields title 
 
 Each field definition in a static mapping has two groups of settings:
 
-* Field type specific parameters - like how it's going to be searched for text fields.
-* Global parameters - is this field filterable, facetable and sortable.
+* Field type specific parameters - like how it's going to be searched for text fields. In the example above we only allowed `lexical` search over the `title` field. See [the mapping reference for text fields](mapping.md#semantic-search) to see how to enable semantic and hybrid search.
+* Global parameters - is this field can be stored, filtered, faceted and sorted.
 
 Go to [the mapping reference](mapping.md) section for more details on all field parameters.
 
 ## Writing documents to an index
 
-Internally Nixiesearch implements a pull-based indexing - the service itself asks for a next chunk of documents from an upstream source.
+Internally Nixiesearch implements a pull-based indexing - the service itself asks for a next chunk of documents from an upstream source. See [File-based indexing](../../deployment/distributed/indexing/file.md) and [Stream indexing from Apache Kafka](../../deployment/distributed/indexing/kafka.md) for more examples on this approach.
 
 ![push pull](../../img/pullpush.png)
 
-For convenience, Nixiesearch can emulate a push-based approach via [REST API](../../api.md) - your app should send a payload with documents and wait for an acknowledgement.
+For convenience, Nixiesearch can emulate a push-based approach via [REST API](../../api.md) you probably got used with other search engines - your app should submit a JSON payload with documents and wait for an acknowledgement.
 
 ### Starting Nixiesearch
 
@@ -111,3 +111,7 @@ Where `<your-local-dir>` is a directory containing the `conf.yml` config file an
 
 
 See [index CLI reference](../../reference/cli/index.md) and [Supported URL formats](../../reference/url.md) for more details.
+
+### Next steps
+
+In the next section, learn how you can create an [index mapping](mapping.md).

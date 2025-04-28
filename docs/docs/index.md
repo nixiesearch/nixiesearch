@@ -41,9 +41,10 @@ When your search cluster is red again when you accidentally send a wrong JSON to
 * **Uber**:  [Lucene: Uber’s Search Platform Version Upgrade](https://www.uber.com/en-NL/blog/lucene-version-upgrade/).
 * **Amazon**: [E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE).
 * **Doordash**: [Introducing DoorDash’s in-house search engine](https://careers.doordash.com/blog/introducing-doordashs-in-house-search-engine/).
+
 ![doordash design](img/doordash.gif)
 
-Nixiesearch was inspired by these search engines, but is [open-source](#license). Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
+Nixiesearch was inspired by these search engines, but is fully [open-source](#license) (with no paid addons and enterprise tier). Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
 
 ![immutable config diagram](img/reindex.gif)
 
@@ -101,7 +102,7 @@ Run the Nixiesearch [docker container](https://hub.docker.com/r/nixiesearch/nixi
 docker run -itp 8080:8080 -v .:/data nixiesearch/nixiesearch:latest standalone -c /data/config.yml
 ```
 
-If you see the ASCII-art logo, then the server is ready to serve requests:
+If you see a cool ASCII-art logo, then the server is ready to serve requests:
 
 ```text
 - Local index movies opened
@@ -128,15 +129,19 @@ curl -XPOST -d @movies.jsonl http://localhost:8080/v1/index/movies
 {"result":"created","took":8256}
 ```
 
-Ans dend the simple lexical search [match](features/search/query.md#match) query:
+And send a hybrid search request mixing a lexical [match](features/search/query/retrieve/match.md) and [semantic](features/search/query/retrieve/semantic.md) query with the [RRF](features/search/query/rank/rrf.md) ranking:
 
 ```shell
 curl -XPOST http://localhost:8080/v1/index/movies/search \
   -H "Content-Type: application/json" \
   -d '{ 
-    "query": { 
-      "match": { 
-        "title": "batman" 
+    "query": {
+      "rrf": {
+        "queries": [
+          {"match": {"title": "batman"}},
+          {"semantic": {"title": "batman nolan"}}
+        ],
+        "rank_window_size": 20
       } 
     }, 
     "fields": ["title"], 
@@ -146,37 +151,42 @@ curl -XPOST http://localhost:8080/v1/index/movies/search \
 
 And you get a response:
 
-```json    
+```json
 {
-  "took": 1,
+  "took": 8,
   "hits": [
     {
       "_id": "414906",
       "title": "The Batman",
-      "_score": 3.0470526
+      "_score": 0.033333335
     },
     {
       "_id": "272",
       "title": "Batman Begins",
-      "_score": 2.4646688
-    },
-    {
-      "_id": "324849",
-      "title": "The Lego Batman Movie",
-      "_score": 2.0691848
+      "_score": 0.032786883
     },
     {
       "_id": "209112",
       "title": "Batman v Superman: Dawn of Justice",
-      "_score": 1.5664694
+      "_score": 0.031257633
+    },
+    {
+      "_id": "324849",
+      "title": "The Lego Batman Movie",
+      "_score": 0.031054404
+    },
+    {
+      "_id": "155",
+      "title": "The Dark Knight",
+      "_score": 0.016129032
     }
   ],
   "aggs": {},
-  "ts": 1745590547587
+  "ts": 1745590503193
 }
 ```
 
-For more details and more complex queries, see a complete [Quickstart guide](quickstart.md).
+Nixiesearch can do much more, like [filtering](features/search/filter.md), [facets](features/search/facet.md), [autocomplete](features/autocomplete/index.md) and [RAG](features/search/rag.md) out of the box! For more details and more complex queries, see a complete [Quickstart guide](quickstart.md).
 
 
 ## License

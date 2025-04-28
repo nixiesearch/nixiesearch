@@ -6,6 +6,7 @@ To create an index mapping, create a block in the `schema` section of the [confi
 
 ```yaml
 schema:
+  # a first index
   movies:
     fields:
       title:
@@ -13,6 +14,7 @@ schema:
         search: 
           lexical:
             analyze: english
+  # a second index
   songs:
     fields:
       author:
@@ -72,19 +74,39 @@ Multiple field types are supported, so the `type` parameter can be one of the fo
 * [Text fields](#text-field-mapping): `text` and `text[]`. Unlike other Lucene-based search engines where all fields are implicitly repeatable, we distinguish between single and multi-value fields.
 * [Numerical fields](#numerical-fields): `int`, `long`, `double`, `float`, `bool`, `geopoint`. You cannot search over numerical fields (unless you treat them as strings), but you can [filter](../search/filter.md), [facet](../search/facet.md) and [sort](../search/sort.md)!
 * [Media fields](#media-fields): `image`. A special field type for [multi-modal search](types/images.md).
+* Date fields: `date` and `datetime`. 
 
 ### Wildcard fields
 
-You can use a `*` wildcard placeholder in field names to make schema a bit more dynamic:
+To allow more dynamism in index schema, you can use `*` wildcard placeholder in field names:
 
 ```yaml
 schema:
   movies:
     extra_*:
       type: text
+      search:
+        type: lexical
+        language: en
 ```
 
-Which will index documents with fields `extra_name` and `extra_type` as text. See [Query DSL > Wildcard queries](../search/query.md#wildcard-field-queries)
+So all fields matching the wildcard pattern are going to be treated according to the schema. Wildcard fields have minor limitations:
+
+* only a single `*` placeholder is allowed.
+* you cannot have a non-wildcard field defined matching a wildcard pattern (e.g. having both a regular `title_string` field and a wildcard `*_string` in the same index).
+
+Wildcard fields can be used in the `fields` block of search request to get multiple fields from the document at once:
+
+```json
+{
+  "query": {
+    "match_all": {}
+  },
+  "fields": ["extra_*"]
+}
+```
+
+The [`multi_match`](../search/query/retrieve/multi_match.md) search operator also supports matching over wildcard fields during search.
 
 ## Text field mapping
 

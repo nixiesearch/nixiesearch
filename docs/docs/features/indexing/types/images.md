@@ -1,3 +1,3 @@
 # Indexing images
 
-todo
+TODO: Planned for `v0.7.0`

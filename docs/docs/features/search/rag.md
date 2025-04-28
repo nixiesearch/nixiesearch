@@ -11,10 +11,7 @@ inference:
   embedding:
     # Used for semantic retrieval
     e5-small:
-      model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        doc: "passage: "
-        query: "query: "
+      model: intfloat/e5-small-v2
   completion:
     # Used for summarization
     qwen2:
@@ -30,22 +27,19 @@ schema:
       title:
         type: text
         search: 
-          type: semantic
-          model: e5-small
-        suggest: true
+          semantic:
+            model: e5-small
       overview:
         type: text
         search:
-          type: semantic
-          model: e5-small
-        suggest: true
+          semantic:
+            model: e5-small
 ```
 
 Where:
 
 * `model`: a Huggingface model handle in a format of `namespace`/`model-name`. 
 * `name`: name of this model you will reference in RAG search requests
-* `system` (optional): A system prompt for the model.
 
 Nixiesearch uses a default prompt format from the GGUF model.
 

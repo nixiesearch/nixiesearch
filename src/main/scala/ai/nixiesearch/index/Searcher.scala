@@ -109,11 +109,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     start   <- IO(System.currentTimeMillis())
     _       <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
     readers <- getReadersOrFail()
-    query = request.query match {
-      case q @ KnnQuery(k = None)      => q.copy(k = Some(request.size))
-      case q @ SemanticQuery(k = None) => q.copy(k = Some(request.size))
-      case q @ RRFQuery(window = None) => q.copy(window = Some(request.size))
-      case other                       => other
+    query <- request.query match {
+      case q @ KnnQuery(k = None)               => IO.pure(q.copy(k = Some(request.size)))
+      case q @ SemanticQuery(k = None)          => IO.pure(q.copy(k = Some(request.size)))
+      case q @ RRFQuery(window = None)          => IO.pure(q.copy(window = Some(request.size)))
+      case q: RRFQuery if request.sort.nonEmpty => IO.raiseError(UserError("RRF query does not support sorting"))
+      case other                                => IO.pure(other)
     }
     mergedTopDocs <- query.topDocs(
       index.mapping,

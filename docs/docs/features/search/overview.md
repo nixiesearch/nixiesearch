@@ -50,17 +50,13 @@ inference:
   embedding:
     # Used for semantic retrieval
     e5-small:
-      model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        doc: "passage: "
-        query: "query: "
+      model: intfloat/e5-small-v2
   completion:
     # Used for summarization
     qwen2:
       provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
-      prompt: qwen2
 
 schema:
   movies:
@@ -68,15 +64,13 @@ schema:
       title:
         type: text
         search: 
-          type: semantic
-          model: e5-small
-        suggest: true
+          semantic:
+            model: e5-small
       overview:
         type: text
         search: 
-          type: semantic
-          model: e5-small
-        suggest: true
+          semantic:
+            model: e5-small
 ```
 
 Here we use a [Qwen/Qwen2-0.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2-0.5B-Instruct-GGUF) model with explicitly defined filename (as there may be multiple GGUF model files in the repo).
@@ -132,7 +126,28 @@ As LLM inference is a costly operation, Nixiesearch supports a WebSocket respons
 
 ## Hybrid search with Reciprocal Rank Fusion
 
-When you search over multiple fields marked a [hybrid](../indexing/mapping.md) field, Nixiesearch does the following:
+When you search over [text fields](../indexing/types/text.md) marked as both `lexical` and `semantic` search capable in the index mapping, you can use the [`rrf`](query/rank/rrf.md) [ranking](query/overview.md) operator to fuse two search results into a single result list:
+
+
+```shell
+curl -XPOST http://localhost:8080/v1/index/movies/search \
+  -H "Content-Type: application/json" \
+  -d '{ 
+    "query": {
+      "rrf": {
+        "queries": [
+          {"match": {"title": "batman"}},
+          {"semantic": {"title": "batman nolan"}}
+        ],
+        "rank_window_size": 20
+      } 
+    }, 
+    "fields": ["title"], 
+    "size": 5
+  }'
+```
+
+While performing hybrid search, Nixiesearch does the following:
 
 1. Collects a separate per-field search result list for semantic and lexical retrieval methods.
 2. Merges N search results with RRF - [Reciprocal Rank Fusion](https://dl.acm.org/doi/10.1145/1571941.1572114).
@@ -146,6 +161,8 @@ RRF merging approach:
 * Final ranking is made by sorting merged document list by the combined score.
 
 Compared to traditional methods of combining multiple BM25 and cosine scores together, RRF does not depend on the scale and statistical distribution of the underlying scores - and can generate more stable results.
+
+See the [RRF ranker](query/rank/rrf.md) section for more details.
 
 ## Filters
 
@@ -169,10 +186,14 @@ To select a sub-set of documents for search, add `filters` directive to the [req
 Nixiesearch supports the following set of filter types:
 
 * [Term filters](filter.md#term-filters) - to match over text fields.
-* [Range filters](filter.md#range-filters) - to select over numeric `int`/`long`/`float`/`double` fields.
+* [Range filters](filter.md#range-filters) - to select over numeric `int`/`long`/`float`/`double`/`bool` fields.
 * [Compound boolean filters](filter.md#boolean-filters) - to combine multiple filter types within a single filter predicate.
 
 See [Filters DSL](filter.md) reference for more examples and details.
+
+!!! note
+
+    A field should be defined as `filter: true` to be used in filter expressions.
 
 ## Facets
 
@@ -217,5 +238,9 @@ Each facet aggregation adds an extra named section in the search response payloa
   }
 }
 ```
+
+!!! note
+
+    A field should be marked as `facet: true` to be used in facet aggregations.
 
 See a [Facet Aggregation DSL](facet.md) section in reference for more details.

@@ -129,21 +129,24 @@ nav:
           - Document format: features/indexing/format.md
           - Field types:
               - Overview: features/indexing/types/overview.md
-#              - Text and numbers: features/indexing/types/basic.md
-#              - Images: features/indexing/types/images.md
+              - Text: features/indexing/types/text.md
+              - Numeric: features/indexing/types/numeric.md
+              - Date: features/indexing/types/date.md
+              - Geolocation: features/indexing/types/geo.md
+              - Images: features/indexing/types/images.md
           - Language support: reference/languages.md
       - Search:
           - Overview: features/search/overview.md
           - Query DSL:
             - Overview: features/search/query/overview.md
             - Search:
-                - bool: features/search/query/retrieve/bool.md
-                - dis_max: features/search/query/retrieve/dis_max.md
-                - knn: features/search/query/retrieve/knn.md
                 - match: features/search/query/retrieve/match.md
-                - match_all: features/search/query/retrieve/match_all.md
                 - multi_match: features/search/query/retrieve/multi_match.md
                 - semantic: features/search/query/retrieve/semantic.md
+                - knn: features/search/query/retrieve/knn.md
+                - match_all: features/search/query/retrieve/match_all.md
+                - bool: features/search/query/retrieve/bool.md
+                - dis_max: features/search/query/retrieve/dis_max.md
             - Rank:
                 - RRF: features/search/query/rank/rrf.md
           - Filters: features/search/filter.md
