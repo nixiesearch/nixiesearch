@@ -27,6 +27,7 @@ object SearchParams {
     case Float32 extends QuantStore("float32")
     case Int8    extends QuantStore("int8")
     case Int4    extends QuantStore("int4")
+    case Int1    extends QuantStore("int1")
   }
 
   given quantStoreEncoder: Encoder[QuantStore] = Encoder.encodeString.contramap(_.alias)
@@ -35,6 +36,7 @@ object SearchParams {
     case QuantStore.Float32.alias => Success(QuantStore.Float32)
     case QuantStore.Int8.alias    => Success(QuantStore.Int8)
     case QuantStore.Int4.alias    => Success(QuantStore.Int4)
+    case QuantStore.Int1.alias    => Success(QuantStore.Int1)
     case other                    => Failure(UserError(s"cannot decode quant method $other"))
   }
   given embeddingSearchParamsEncoder: Encoder[SemanticParams] = deriveEncoder
