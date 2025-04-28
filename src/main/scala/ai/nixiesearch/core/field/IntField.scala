@@ -24,8 +24,7 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
   override def writeLucene(
       field: IntField,
       spec: IntFieldSchema,
-      buffer: LuceneDocument,
-      embeddings: Map[String, Array[Float]] = Map.empty
+      buffer: LuceneDocument
   ): Unit = {
     if (spec.filter) {
       buffer.add(new org.apache.lucene.document.IntField(field.name, field.value, Store.NO))

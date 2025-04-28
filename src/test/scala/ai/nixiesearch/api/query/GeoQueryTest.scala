@@ -2,6 +2,7 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.{GeoBoundingBoxPredicate, GeoDistancePredicate, LatLon}
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -36,7 +37,7 @@ class GeoQueryTest extends SearchTest with Matchers {
           fields = List("city"),
           n = 4
         )
-      response.hits.flatMap(_.fields.collect { case TextField("city", city) => city }) shouldBe List(
+      response.hits.flatMap(_.fields.collect { case TextField("city", city, _) => city }) shouldBe List(
         "Varnsdorf",
         "Berlin",
         "Leipzig",
@@ -57,7 +58,7 @@ class GeoQueryTest extends SearchTest with Matchers {
           fields = List("city"),
           n = 4
         )
-      response.hits.flatMap(_.fields.collect { case TextField("city", city) => city }) shouldBe List(
+      response.hits.flatMap(_.fields.collect { case TextField("city", city, _) => city }) shouldBe List(
         "Berlin",
         "Potsdam",
         "Cottbus"

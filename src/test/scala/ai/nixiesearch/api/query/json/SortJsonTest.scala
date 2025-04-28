@@ -5,8 +5,8 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSor
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.First
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.ASC
 import ai.nixiesearch.api.filter.Predicate.LatLon
-import ai.nixiesearch.api.query.MatchAllQuery
 import ai.nixiesearch.api.query.json.SortJsonTest.SortWrapper
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import io.circe.{Codec, Decoder}
 import org.scalatest.flatspec.AnyFlatSpec

@@ -1,30 +1,30 @@
 # Index mapping
 
-!!! note
-
-    TODO: add comparison to ES
-
 Index mapping is used to describe how you plan to search for documents in Nixiesearch. Each time a document arrives to the indexer, it iterates over all fields in the payload, and maps them to internal index structures.
 
 To create an index mapping, create a block in the `schema` section of the [config file](../../reference/config.md):
 
 ```yaml
 schema:
+  # a first index
   movies:
     fields:
       title:
         type: text
         search: 
-          type: lexical
+          lexical:
+            analyze: english
+  # a second index
   songs:
     fields:
       author:
         type: text
         search: 
-          type: lexical
+          lexical:
+            analyze: english
 ```
 
-In the index mapping above we defined two indexes `movies` and `songs` with a single text field.
+In the index mapping above we defined two indexes `movies` and `songs` with a single text field indexed for a traditional lexical search.
 
 !!! note
 
@@ -72,21 +72,41 @@ So by default all fields in Nixiesearch are:
 Multiple field types are supported, so the `type` parameter can be one of the following:
 
 * [Text fields](#text-field-mapping): `text` and `text[]`. Unlike other Lucene-based search engines where all fields are implicitly repeatable, we distinguish between single and multi-value fields.
-* [Numerical fields](#numerical-fields): `int`, `long`, `double`, `float`, `bool`. You cannot search over numerical fields (unless you treat them as strings), but you can [filter](../search/filter.md), [facet](../search/facet.md) and [sort](../search/sort.md)!
+* [Numerical fields](#numerical-fields): `int`, `long`, `double`, `float`, `bool`, `geopoint`. You cannot search over numerical fields (unless you treat them as strings), but you can [filter](../search/filter.md), [facet](../search/facet.md) and [sort](../search/sort.md)!
 * [Media fields](#media-fields): `image`. A special field type for [multi-modal search](types/images.md).
+* Date fields: `date` and `datetime`. 
 
 ### Wildcard fields
 
-You can use a `*` wildcard placeholder in field names to make schema a bit more dynamic:
+To allow more dynamism in index schema, you can use `*` wildcard placeholder in field names:
 
 ```yaml
 schema:
   movies:
     extra_*:
       type: text
+      search:
+        type: lexical
+        language: en
 ```
 
-Which will index documents with fields `extra_name` and `extra_type` as text. See [Query DSL > Wildcard queries](../search/query.md#wildcard-field-queries)
+So all fields matching the wildcard pattern are going to be treated according to the schema. Wildcard fields have minor limitations:
+
+* only a single `*` placeholder is allowed.
+* you cannot have a non-wildcard field defined matching a wildcard pattern (e.g. having both a regular `title_string` field and a wildcard `*_string` in the same index).
+
+Wildcard fields can be used in the `fields` block of search request to get multiple fields from the document at once:
+
+```json
+{
+  "query": {
+    "match_all": {}
+  },
+  "fields": ["extra_*"]
+}
+```
+
+The [`multi_match`](../search/query/retrieve/multi_match.md) search operator also supports matching over wildcard fields during search.
 
 ## Text field mapping
 
@@ -102,14 +122,14 @@ schema:
       title:
         type: text
         search: 
-          type: lexical
-        language: en
+          lexical: # make only lexical index
+            analyze: english
         suggest: false
       overview:
         type: text
         search: # now semantic search!
-          type: semantic
-          model: e5-small # a name of the model in the inference section
+          semantic:
+            model: e5-small # a name of the model in the inference section
 inference:
   embedding:
     # the model used to embed documents
@@ -120,7 +140,7 @@ inference:
 
 ### Lexical search
 
-To define a lexical-only search over a field, you mark it as `search: lexical` and optionally define a [target language](../../reference/languages.md):
+To define a lexical-only search over a field, you mark it as `search.lexical` and optionally define a [target language](../../reference/languages.md):
 
 ```yaml
 schema:
@@ -129,15 +149,21 @@ schema:
       title:
         type: text
         search: 
-          type: lexical # a short syntax
-        language: en    # optional, default: generic
+          lexical:
+            analyze: english # optional, default: generic
+      overview:
+        type: text
+        search:
+          lexical: {} # use default generic analyzer
 ```
 
-For a better search quality, it's advised for lexical search to define the `language` of the field: this way Nixiesearch will use a Lucene language-specific analyzer. By default, the `StandardAnalyzer` is used.
+For a better search quality, it's advised for lexical search to define the `analyze` of the field: this way Nixiesearch will use a Lucene language-specific analyzer. By default, the `StandardAnalyzer` is used.
+
+See all supported languages in the [supported languages](../../reference/languages.md) section.
 
 ### Semantic search
 
-To use an embedding-based semantic search, mark a text field as `search.type: semantic` and define [an embedding model](../inference/embeddings.md) to use:
+To use an embedding-based semantic search, mark a text field as `search.semantic` and define [an embedding model](../inference/embeddings.md) to use:
 
 ```yaml
 schema:
@@ -146,11 +172,8 @@ schema:
       title:
         type: text
         search: 
-          type: semantic          
-          model: e5-small # a model name from the inference section
-          prefix:                 # optional prompt prefix
-            query: "query: "      # query prefix
-            document: "passage: " # document prefix
+          semantic:          
+            model: e5-small # a model name from the inference section
 
 # each model you plan to use for embedding
 # should be explicitly defined
@@ -174,8 +197,10 @@ schema:
         type: text
         language: en              # optional, default: generic
         search: 
-          type: hybrid            # a longer syntax
-          model: e5-small         # a ref to the inference model name
+          semantic:      
+            model: e5-small         # a ref to the inference model name
+          lexical:
+            analyze: english
 
 inference:
   embedding:
@@ -217,13 +242,13 @@ In the index mapping above we marked `year` and `in-theaters` fields as sortable
 
 An index mapping can optionally also include many other index-specific settings like:
 
-* index alias: secondary name for an index
-* RAG settings: prompt template and GenAI model settings.
-* store: how index is stored and synchronized.
+* [index alias](#index-aliases): secondary name for an index
+* [RAG settings](#rag-settings): prompt template and GenAI model settings.
+* [store](#store-settings): how index is stored and synchronized.
 
 ### Index aliases
 
-Nixiesearch indexes cannot be easily renamed, but you can give them extra names as an alias:
+Nixiesearch indexes cannot be easily renamed (due to cluster state being immutable), but you can give them extra names as an alias:
 
 ```yaml
 schema:
@@ -270,7 +295,6 @@ inference:
       provider: llamacpp
       model: Qwen/Qwen2-0.5B-Instruct-GGUF
       file: qwen2-0_5b-instruct-q4_0.gguf
-      prompt: qwen2
     
 schema:
   movies:
@@ -278,14 +302,14 @@ schema:
       title:
         type: text
         search: 
-          type: semantic
-          model: e5-small
+          semantic:
+            model: e5-small
         suggest: true
       overview:
         type: text
         search: 
-          type: semantic
-          model: e5-small
+          semantic:
+            model: e5-small
         suggest: true
 ```
 
@@ -293,9 +317,8 @@ Where:
 
 * `model`: a Huggingface model handle in a format of `namespace`/`model-name`.
 * `file`: an optional model file name if there are multiple. By default Nixiesearch will pick the lexicographically first GGUF/ONNX file. 
-* `prompt`: a prompt format, either one of pre-defined ones like `qwen2` and `llama3`, or a raw prompt with `{user}` and `{system}` placeholders.
 * `name`: name of this model you will reference in RAG search requests
-* `system` (optional): A system prompt for the model.
+
 
 See [RAG reference](../search/rag.md) and [ML model inference](../inference/overview.md) sections for more details.
 

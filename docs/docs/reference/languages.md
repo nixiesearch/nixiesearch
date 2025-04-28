@@ -13,8 +13,8 @@ schema:
       title:
         type: text
         search: 
-          type: lexical
-        language: en # use an ISO-639-1 language code
+          lexical:
+            language: en # use an ISO-639-1 language code
 ```
 
 > If language is not defined, a special **default** language analyzer is used - no language specific transformations are done, only ICU tokenization.
@@ -78,3 +78,5 @@ Language support for semantic search fully depends on the embedding model used:
 * [intfloat/multilingual-e5-large](https://huggingface.co/intfloat/multilingual-e5-large): English, Chinese and all languages from [MIRACL dataset](https://huggingface.co/datasets/miracl/miracl)
 
 So if your target language is English, you can choose almost any model from the [MTEB leaderboard](https://huggingface.co/spaces/mteb/leaderboard) you like. For multilingual model, the [intfloat/multilingual-e5-large](https://huggingface.co/intfloat/multilingual-e5-large) is recommended.
+
+For a full overview of supported embedding models, see the [embedding inference](../features/inference/embeddings.md) section.

@@ -6,7 +6,7 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.{BoolPredicate, TermPredicate}
 import ai.nixiesearch.api.filter.Predicate.BoolPredicate.AndPredicate
-import ai.nixiesearch.api.query.MatchAllQuery
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.index.Searcher
 import cats.effect.IO
 import org.scalatest.BeforeAndAfterAll
@@ -15,8 +15,6 @@ import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
 import scala.language.implicitConversions
 import scala.compiletime.uninitialized
-
-class Lucene912IndexCompatTest extends LuceneIndexCompatTest("lucene9.12")
 
 class Lucene101IndexCompatTest extends LuceneIndexCompatTest("lucene10.1")
 

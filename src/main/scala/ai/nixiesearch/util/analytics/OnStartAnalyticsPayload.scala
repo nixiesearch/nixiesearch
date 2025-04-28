@@ -2,13 +2,17 @@ package ai.nixiesearch.util.analytics
 
 import ai.nixiesearch.config.{Config, StoreConfig}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.StoreConfig.{BlockStoreLocation, DistributedStoreConfig, LocalStoreConfig, LocalStoreLocation}
+import ai.nixiesearch.config.StoreConfig.{
+  BlockStoreLocation,
+  DistributedStoreConfig,
+  LocalStoreConfig,
+  LocalStoreLocation
+}
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
-import ai.nixiesearch.config.mapping.SearchType.{HybridSearch, SemanticSearch}
-import ai.nixiesearch.config.mapping.{FieldName, IndexName, SearchType}
+import ai.nixiesearch.config.mapping.{FieldName, IndexName, SearchParams}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.main.Logo
@@ -56,9 +60,9 @@ object OnStartAnalyticsPayload {
   }
 
   import Config.given
-  given systemCodec: Codec[SystemParams]             = deriveCodec
-  given payloadCodec: Codec[OnStartAnalyticsPayload] = deriveCodec
-  given payloadJson: EntityEncoder[IO,OnStartAnalyticsPayload] = jsonEncoderOf
+  given systemCodec: Codec[SystemParams]                        = deriveCodec
+  given payloadCodec: Codec[OnStartAnalyticsPayload]            = deriveCodec
+  given payloadJson: EntityEncoder[IO, OnStartAnalyticsPayload] = jsonEncoderOf
 
   def create(config: Config, mode: String): IO[OnStartAnalyticsPayload] = for {
     conf     <- IO(anonymizeConfig(config))
@@ -117,8 +121,8 @@ object OnStartAnalyticsPayload {
               case s: FloatFieldSchema    => s.copy(name = anonName)
               case s: LongFieldSchema     => s.copy(name = anonName)
               case s: DoubleFieldSchema   => s.copy(name = anonName)
-              case s: TextFieldSchema     => s.copy(name = anonName, search = hash(s.search))
-              case s: TextListFieldSchema => s.copy(name = anonName, search = hash(s.search))
+              case s: TextFieldSchema     => s.copy(name = anonName)
+              case s: TextListFieldSchema => s.copy(name = anonName)
               case s: BooleanFieldSchema  => s.copy(name = anonName)
               case s: GeopointFieldSchema => s.copy(name = anonName)
               case s: DateFieldSchema     => s.copy(name = anonName)
@@ -133,11 +137,9 @@ object OnStartAnalyticsPayload {
   def hash(value: String): String = DigestUtils.md5Hex(value)
   def hash(value: Path): Path     = Paths.get(hash(value.toString))
 
-  def hash(search: SearchType): SearchType = search match {
-    case s: SemanticSearch => s.copy(model = ModelRef(hash(s.model.name)))
-    case s: HybridSearch   => s.copy(model = ModelRef(hash(s.model.name)))
-    case other             => other
-  }
+  def hash(search: SearchParams): SearchParams = search.copy(
+    semantic = search.semantic.map(s => s.copy(model = ModelRef(hash(s.model.name))))
+  )
 
   def hash(loc: LocalStoreLocation): LocalStoreLocation = loc match {
     case DiskLocation(path) => DiskLocation(hash(path))

@@ -11,16 +11,15 @@ schema:
       text_semantic:
         type: text
         search:
-          type: semantic
-          model: text
+          semantic:
+            model: text
         facet: true
         filter: true
         sort: true
       text_lexical:
         type: text
         search:
-          type: lexical
-          model: text
+          lexical: {}
         facet: true
         filter: true
         sort: true
@@ -28,8 +27,7 @@ schema:
       text_array:
         type: text[]
         search:
-          type: lexical
-          model: text
+          lexical: {}
         facet: true
         filter: true
         sort: true

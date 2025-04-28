@@ -23,8 +23,7 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
   override def writeLucene(
       field: GeopointField,
       spec: GeopointFieldSchema,
-      buffer: Document,
-      embeddings: Map[String, Array[Float]] = Map.empty
+      buffer: Document
   ): Unit = {
     if (spec.store) {
       val buf = ByteBuffer.allocate(16)

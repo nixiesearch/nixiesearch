@@ -3,7 +3,7 @@ package ai.nixiesearch.api.query.sort
 import ai.nixiesearch.api.SearchRoute.SortPredicate.DistanceSort
 import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.util.{CitiesDataset, SearchTest, TestIndexMapping}
@@ -22,7 +22,7 @@ class DistanceSortTest extends SearchTest with Matchers {
           List(DistanceSort(StringName("location"), lat = CitiesDataset.BERLIN.lat, lon = CitiesDataset.BERLIN.lon)),
         n = 4
       )
-      response.hits.flatMap(_.fields.collect { case TextField("city", city) => city }) shouldBe List(
+      response.hits.flatMap(_.fields.collect { case TextField("city", city, _) => city }) shouldBe List(
         "Berlin",
         "Potsdam",
         "Cottbus",

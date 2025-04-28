@@ -26,7 +26,7 @@ import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, ConstantScoreQuery, TermQuery, Query as LuceneQuery}
-import cats.implicits.*
+import cats.syntax.all.*
 import io.circe.generic.semiauto.{deriveCodec, deriveEncoder}
 import org.apache.lucene.document.{IntField, LatLonDocValuesField, LatLonPoint, LatLonPointDistanceQuery, LongField}
 import io.circe.syntax.*

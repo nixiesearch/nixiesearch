@@ -4,7 +4,8 @@ import ai.nixiesearch.api.SearchRoute
 import ai.nixiesearch.api.SearchRoute.{SearchRequest, SortPredicate}
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.api.query.{MatchAllQuery, Query}
+import ai.nixiesearch.api.query.Query
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -30,7 +31,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs, sort = sort))
       .unsafeRunSync()
       .hits
-      .flatMap(_.fields.collect { case TextField(_, value) => value })
+      .flatMap(_.fields.collect { case TextField(_, value, _) => value })
   }
 
   def searchRaw(

@@ -271,7 +271,7 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
       Document.decoderFor(
         TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
       )
-    val ids = decode[Document]("""{"title":"foo"}""").map(_.fields.collectFirst { case TextField("_id", value) =>
+    val ids = decode[Document]("""{"title":"foo"}""").map(_.fields.collectFirst { case TextField("_id", value, _) =>
       value
     })
     ids should matchPattern { case Right(Some(_)) =>

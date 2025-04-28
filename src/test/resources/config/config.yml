@@ -19,13 +19,13 @@ schema:
       title:
         type: text
         search:
-          type: semantic
-          model: text
+          semantic:
+            model: text
       desc:
         type: text
-        search: # more advanced setup
-          type: semantic
-          model: text
+        search:
+          semantic:
+            model: text
       price:
         type: int # can be also float/long/double
         filter: true # all numeric fields are filterable

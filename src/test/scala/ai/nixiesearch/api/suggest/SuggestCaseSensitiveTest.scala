@@ -4,8 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SuggestRequest
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.NoSearch
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
@@ -18,7 +17,7 @@ class SuggestCaseSensitiveTest extends SearchTest with Matchers {
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(name = StringName("_id"), filter = true),
-      TextFieldSchema(name = StringName("title"), search = NoSearch, suggest = Some(SuggestSchema()))
+      TextFieldSchema(name = StringName("title"), search = SearchParams(), suggest = Some(SuggestSchema()))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )

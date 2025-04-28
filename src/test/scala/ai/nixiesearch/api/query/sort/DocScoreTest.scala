@@ -3,10 +3,9 @@ package ai.nixiesearch.api.query.sort
 import ai.nixiesearch.api.SearchRoute.SortPredicate.FieldValueSort
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.Last
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC}
-import ai.nixiesearch.api.query.MatchQuery
+import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}

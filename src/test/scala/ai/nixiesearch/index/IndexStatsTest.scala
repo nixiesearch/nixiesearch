@@ -4,8 +4,7 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.SearchType.HybridSearch
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SuggestSchema}
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.core.nn.ModelRef
@@ -14,8 +13,10 @@ import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
+
 import scala.language.implicitConversions
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
 
 class IndexStatsTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
@@ -24,7 +25,8 @@ class IndexStatsTest extends SearchTest with Matchers {
       TextFieldSchema(name = StringName("_id"), filter = true),
       TextFieldSchema(
         name = StringName("title"),
-        search = HybridSearch(ModelRef("text")),
+        search =
+          SearchParams(lexical = Some(LexicalParams()), semantic = Some(SemanticParams(model = ModelRef("text")))),
         suggest = Some(SuggestSchema())
       )
     ),
@@ -55,10 +57,12 @@ class IndexStatsTest extends SearchTest with Matchers {
               "title",
               0,
               false,
-              "NONE",
+              "DOCS_AND_FREQS_AND_POSITIONS",
               Map(
                 "PerFieldKnnVectorsFormat.format" -> "Lucene99HnswVectorsFormat",
-                "PerFieldKnnVectorsFormat.suffix" -> "0"
+                "PerFieldKnnVectorsFormat.suffix" -> "0",
+                "PerFieldPostingsFormat.format"   -> "Lucene101",
+                "PerFieldPostingsFormat.suffix"   -> "0"
               ),
               384,
               "FLOAT32",

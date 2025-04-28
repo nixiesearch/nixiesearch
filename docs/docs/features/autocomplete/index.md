@@ -15,7 +15,8 @@ my-index:
     title:
       type: text
       search: 
-        type: lexical
+        lexical:
+          analyze: english
       suggest: true
 ```
 
@@ -26,8 +27,9 @@ my-index:
   fields:
     title:
       type: text
-      search: 
-        type: lexical
+      search:
+        lexical:
+          analyze: english
       suggest:
         lowercase: false # should we down-case all suggestions?
         expand:
@@ -47,7 +49,7 @@ Suggest parameters are defined as follows:
 Suggest indices have a special `_suggest` endpoint you can use for autocomplete suggestion generation:
 
 ```shell
-curl -XPOST -d '{"query": "hel", "fields":["title"]}' http://localhost:8080/<index-name>/_suggest
+curl -XPOST -d '{"query": "hel", "fields":["title"]}' http://localhost:8080/v1/index/<index-name>/suggest
 ```
 
 A full suggest request JSON format:
@@ -56,13 +58,7 @@ A full suggest request JSON format:
 {
   "query": "hu",
   "fields": ["title"],
-  "count": 10,
-  "rerank": {
-    "rrf": {
-      "depth": 50,
-      "scale": 60
-    }
-  }
+  "count": 10
 }
 ```
 

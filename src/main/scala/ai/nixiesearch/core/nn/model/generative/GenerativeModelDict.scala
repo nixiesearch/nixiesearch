@@ -11,7 +11,7 @@ import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativ
 import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.util.GPUUtils
 import cats.effect.{IO, Resource}
-import cats.implicits.*
+import cats.syntax.all.*
 import fs2.io.file.Path as Fs2Path
 import fs2.Stream
 

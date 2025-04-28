@@ -1,7 +1,7 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SearchRequest
-import ai.nixiesearch.api.query.MatchAllQuery
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.util.{LocalNixie, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec

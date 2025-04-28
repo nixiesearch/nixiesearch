@@ -34,10 +34,9 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
   override def writeLucene(
       field: DateTimeField,
       spec: DateTimeFieldSchema,
-      buffer: Document,
-      embeddings: Map[String, Array[Float]]
+      buffer: Document
   ): Unit =
-    LongField.writeLucene(LongField(field.name, field.value), spec.asLong, buffer, embeddings)
+    LongField.writeLucene(LongField(field.name, field.value), spec.asLong, buffer)
 
   override def encodeJson(field: DateTimeField): Json = Json.fromString(writeString(field.value))
 

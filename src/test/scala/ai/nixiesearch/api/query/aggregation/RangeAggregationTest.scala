@@ -5,20 +5,11 @@ import ai.nixiesearch.api.aggregation.Aggregation.RangeAggregation
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
-import ai.nixiesearch.api.query.MultiMatchQuery
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema
-}
+import ai.nixiesearch.api.query.retrieve.{MatchQuery, MultiMatchQuery}
+import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.config.mapping.SearchType.LexicalSearch
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
@@ -26,15 +17,17 @@ import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
+
 import scala.util.Try
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
 
 class RangeAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
       TextFieldSchema(StringName("_id"), filter = true),
-      TextFieldSchema(StringName("title"), search = LexicalSearch()),
+      TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(StringName("color"), filter = true, facet = true),
       IntFieldSchema(StringName("count"), facet = true, filter = true),
       FloatFieldSchema(StringName("fcount"), facet = true),
@@ -329,7 +322,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
             )
           )
         ),
-        query = MultiMatchQuery("socks", List("title"))
+        query = MatchQuery("title","socks")
       )
       result.aggs shouldBe Map(
         "count" -> RangeAggregationResult(

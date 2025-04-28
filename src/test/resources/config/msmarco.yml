@@ -16,6 +16,7 @@ schema:
       text:
         type: text
         search:
-          type: hybrid
-          model: text
-          language: en
+          lexical:
+            analyze: en
+          semantic:
+            model: text

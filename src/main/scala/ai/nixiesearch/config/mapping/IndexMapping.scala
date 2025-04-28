@@ -5,12 +5,11 @@ import ai.nixiesearch.config.{EmbedCacheConfig, FieldSchema, StoreConfig}
 import ai.nixiesearch.core.{Field, Logging}
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
-import cats.implicits.*
+import cats.syntax.all.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, fieldNameDecoder}
-import ai.nixiesearch.config.mapping.SearchType.SemanticSearchLikeType
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.nn.ModelHandle
@@ -32,14 +31,19 @@ case class IndexMapping(
 
   val analyzer = PerFieldAnalyzer(new KeywordAnalyzer(), this)
 
-  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = fields.collectFirst {
-    case (field, schema) if field.matches(name) => schema
+  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
+    fields.collectFirst {
+      case (field, schema) if field.matches(name) => schema
+    }
   }
 
-  def fieldSchemaOf[S <: FieldSchema[? <: Field]](name: String)(using manifest: scala.reflect.ClassTag[S]): Option[S] =
+  def fieldSchemaOf[S <: FieldSchema[? <: Field]](
+      name: String
+  )(using manifest: scala.reflect.ClassTag[S]): Option[S] = {
     fields.collectFirst {
       case (field, schema: S) if field.matches(name) => schema
     }
+  }
 
   def nameMatches(value: String): Boolean = {
     (name.value == value) || alias.contains(Alias(value))

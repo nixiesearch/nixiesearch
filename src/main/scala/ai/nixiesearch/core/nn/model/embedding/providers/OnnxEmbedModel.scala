@@ -31,7 +31,7 @@ import java.nio.LongBuffer
 import java.nio.file.{Path, Files as NIOFiles}
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
-import cats.implicits.*
+import cats.syntax.all.*
 
 case class OnnxEmbedModel(
     env: OrtEnvironment,

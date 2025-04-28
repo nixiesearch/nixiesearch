@@ -3,9 +3,6 @@ inference:
     text:
       provider: onnx
       model: nixiesearch/e5-small-v2-onnx
-      prompt:
-        query: "query: "
-        doc: "passage: "
 
 
 searcher:
@@ -19,12 +16,12 @@ schema:
       title:
         type: text
         search:
-          type: semantic
-          model: text
+          semantic:
+            model: text
         suggest: true
       overview:
         type: text
         search:
-          type: semantic
-          model: text
+          semantic:
+            model: text
         suggest: true

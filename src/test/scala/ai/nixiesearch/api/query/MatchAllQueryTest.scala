@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.SearchRoute.SearchRequest
+import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
@@ -19,7 +20,7 @@ class MatchAllQueryTest extends SearchTest with Matchers {
     {
       val request = SearchRequest(query = MatchAllQuery())
       val docs    = index.searcher.search(request).unsafeRunSync()
-      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text, _) => text })
       ids shouldBe List("1", "2", "3")
     }
   }
@@ -28,7 +29,7 @@ class MatchAllQueryTest extends SearchTest with Matchers {
     {
       val request = SearchRequest(query = MatchAllQuery(), size = 1)
       val docs    = index.searcher.search(request).unsafeRunSync()
-      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text) => text })
+      val ids     = docs.hits.flatMap(_.fields.collect { case TextField(_, text, _) => text })
       ids shouldBe List("1")
     }
   }

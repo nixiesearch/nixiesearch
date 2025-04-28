@@ -1,8 +1,7 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, IntFieldSchema, TextFieldSchema}
-import ai.nixiesearch.config.mapping.{Language, SuggestSchema}
-import ai.nixiesearch.config.mapping.SearchType.NoSearch
+import ai.nixiesearch.config.mapping.{Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.config.mapping.SuggestSchema.Expand
 import ai.nixiesearch.core.Field
 import io.circe.Decoder
@@ -10,6 +9,7 @@ import io.circe.yaml.parser.parse
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
 
 class FieldSchemaTest extends AnyFlatSpec with Matchers {
   it should "decode text field schema" in {
@@ -23,7 +23,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     result shouldBe Right(
       TextFieldSchema(
         name = StringName("field"),
-        search = NoSearch,
+        search = SearchParams(),
         store = false,
         filter = true,
         facet = true
@@ -80,11 +80,10 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     result shouldBe Right(
       TextFieldSchema(
         name = StringName("field"),
-        search = NoSearch,
+        search = SearchParams(),
         store = true,
         filter = false,
         facet = false,
-        language = Language.Generic,
         suggest = Some(SuggestSchema())
       )
     )
@@ -95,7 +94,6 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
       """type: text
         |search: false
         |suggest:
-        |  lowercase: true
         |  expand:
         |    min-terms: 1
         |    max-terms: 5
@@ -104,14 +102,12 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
     result shouldBe Right(
       TextFieldSchema(
         name = StringName("field"),
-        search = NoSearch,
+        search = SearchParams(),
         store = true,
         filter = false,
         facet = false,
-        language = Language.Generic,
         suggest = Some(
           SuggestSchema(
-            lowercase = true,
             expand = Some(Expand(1, 5))
           )
         )

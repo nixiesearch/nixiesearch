@@ -23,8 +23,11 @@ import ai.nixiesearch.config.FieldSchema.{
   TextListFieldSchema
 }
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
+import cats.effect.IO
+import cats.syntax.all.*
 
 case class DocumentVisitor(
     mapping: IndexMapping,
@@ -34,6 +37,13 @@ case class DocumentVisitor(
     errors: ArrayBuffer[Exception] = ArrayBuffer.empty
 ) extends StoredFieldVisitor
     with Logging {
+
+  def reset() = {
+    collectedScalars.clear()
+    collectedTextList.clear()
+    errors.clear()
+  }
+
   override def needsField(fieldInfo: FieldInfo): Status =
     if ((fieldInfo.name == "_id") || fields.exists(_.matches(fieldInfo.name))) Status.YES else Status.NO
 
@@ -115,5 +125,19 @@ case class DocumentVisitor(
       List(FloatField("_score", score))
     )
     Document(fields)
+  }
+}
+
+object DocumentVisitor {
+  def create(mapping: IndexMapping, fields: List[FieldName]): IO[DocumentVisitor] = {
+    fields
+      .traverse(field =>
+        mapping.fieldSchema(field.name) match {
+          case None => IO.raiseError(UserError(s"field ${field.name} is not defined in mapping"))
+          case Some(mapping) if !mapping.store => IO.raiseError(UserError(s"field ${field.name} is not stored"))
+          case Some(other)                     => IO.pure(other)
+        }
+      )
+      .map(_ => new DocumentVisitor(mapping, fields))
   }
 }

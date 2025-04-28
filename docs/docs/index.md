@@ -18,7 +18,7 @@ Nixiesearch is a **modern search engine** that runs on [S3-compatible storage](d
 * **Decoupled [S3-based](deployment/distributed/persistence/s3.md) storage and compute**: There's nothing to break. You get risk-free [backups](tutorial/backup.md), [upgrades](tutorial/upgrade.md), [schema changes](tutorial/schema.md) and [auto-scaling](tutorial/autoscaling.md), all on a stateless index stored in S3.
 * **Pull indexing**: Supports both offline and online incremental indexing using an [Apache Spark based ETL process](features/indexing/overview.md). No more POSTing JSON blobs to prod cluster (and overloading it).
 * **No state inside the cluster**: All changes (settings, indexes, etc.) are just [config](reference/config.md) updates, which makes [blue-green deployments](tutorial/schema.md) of index changes a breeze.
-* **AI batteries included**: [Embedding](features/inference/embeddings.md) and [LLM inference](features/inference/completions.md), first class [RAG API](features/search/rag.md) support.
+* **AI batteries included**: fully local [Embedding](features/inference/embeddings.md) and [LLM inference](features/inference/completions.md), first class [RAG API](features/search/rag.md) support.
 
 ![NS design diagram](img/arch.png)
 
@@ -41,9 +41,10 @@ When your search cluster is red again when you accidentally send a wrong JSON to
 * **Uber**:  [Lucene: Uber’s Search Platform Version Upgrade](https://www.uber.com/en-NL/blog/lucene-version-upgrade/).
 * **Amazon**: [E-Commerce search at scale on Apache Lucene](https://www.youtube.com/watch?v=EkkzSLstSAE).
 * **Doordash**: [Introducing DoorDash’s in-house search engine](https://careers.doordash.com/blog/introducing-doordashs-in-house-search-engine/).
+
 ![doordash design](img/doordash.gif)
 
-Nixiesearch was inspired by these search engines, but is [open-source](#license). Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
+Nixiesearch was inspired by these search engines, but is fully [open-source](#license) (with no paid addons and enterprise tier). Decoupling search and storage makes ops simpler. Making your search configuration immutable makes it even more simple. 
 
 ![immutable config diagram](img/reindex.gif)
 
@@ -59,7 +60,7 @@ How it's different from popular search engines?
 Get the sample [MSRD: Movie Search Ranking Dataset](https://github.com/metarank/msrd) dataset:
 
 ```shell
-curl -o movies.jsonl.gz https://nixiesearch.ai/data/movies.jsonl
+curl -Lo movies.jsonl https://nixiesearch.ai/data/movies.jsonl
 ```
 
 ```text
@@ -82,20 +83,18 @@ schema:
       title: # field name
         type: text
         search: 
-          type: hybrid
-          model: e5-small
-        language: en # language is needed for lexical search
+          lexical: # build lexical index
+            analyze: english
+          semantic: # and a vector search index also
+            model: e5-small
         suggest: true
       overview:
         type: text
-        search: 
-          type: hybrid
-          model: e5-small
-        language: en
+        search: false
 ```
 
 1. We use [ONNX Runtime](https://onnxruntime.ai/) for local embedding inference. But you can also use any API-based SaaS embedding provider.
-2. Any [SBERT](https://sbert.net/)-compatible embedding model can be used, and you can [convert your own](https://github.com/nixiesearch/onnx-convert)
+2. Any [SBERT](https://sbert.net/)-compatible embedding model can be used, and you can [bring your own](https://github.com/nixiesearch/onnx-convert)
 
 Run the Nixiesearch [docker container](https://hub.docker.com/r/nixiesearch/nixiesearch):
 
@@ -103,66 +102,91 @@ Run the Nixiesearch [docker container](https://hub.docker.com/r/nixiesearch/nixi
 docker run -itp 8080:8080 -v .:/data nixiesearch/nixiesearch:latest standalone -c /data/config.yml
 ```
 
+If you see a cool ASCII-art logo, then the server is ready to serve requests:
+
 ```text
-a.nixiesearch.index.sync.LocalIndex$ - Local index movies opened
-ai.nixiesearch.index.Searcher$ - opening index movies
-a.n.main.subcommands.StandaloneMode$ - ███╗   ██╗██╗██╗  ██╗██╗███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
-a.n.main.subcommands.StandaloneMode$ - ████╗  ██║██║╚██╗██╔╝██║██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
-a.n.main.subcommands.StandaloneMode$ - ██╔██╗ ██║██║ ╚███╔╝ ██║█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
-a.n.main.subcommands.StandaloneMode$ - ██║╚██╗██║██║ ██╔██╗ ██║██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
-a.n.main.subcommands.StandaloneMode$ - ██║ ╚████║██║██╔╝ ██╗██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
-a.n.main.subcommands.StandaloneMode$ - ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
-a.n.main.subcommands.StandaloneMode$ -                                                                                
-o.h.ember.server.EmberServerBuilder - Ember-Server service bound to address: [::]:8080
+- Local index movies opened
+- opening index movies
+- ███╗   ██╗██╗██╗  ██╗██╗███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
+- ████╗  ██║██║╚██╗██╔╝██║██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
+- ██╔██╗ ██║██║ ╚███╔╝ ██║█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
+- ██║╚██╗██║██║ ██╔██╗ ██║██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
+- ██║ ╚████║██║██╔╝ ██╗██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
+- ╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+- version=0.5.0 jdk[build]=21.0.6+7-LTS jdk[runtime]=21+35-2513 arch=arm64 build=CPU
+- JVM args: -Xmx1g -verbose:gc --add-modules=jdk.incubator.vector
+-                                                                                
+- Ember-Server service bound to address: [::]:8080
 ```
 
-Build an index for a hybrid search:
+Let's submit the document corpus for indexing:
 
 ```shell
-curl -XPUT -d @movies.jsonl http://localhost:8080/movies/_index
+curl -XPOST -d @movies.jsonl http://localhost:8080/v1/index/movies
 ```
 
 ```json
 {"result":"created","took":8256}
 ```
 
-Send the search query:
+And send a hybrid search request mixing a lexical [match](features/search/query/retrieve/match.md) and [semantic](features/search/query/retrieve/semantic.md) query with the [RRF](features/search/query/rank/rrf.md) ranking:
 
 ```shell
-curl -XPOST -d '{"query": {"match": {"title":"matrix"}},"fields": ["title"], "size":3}'\
-   http://localhost:8080/movies/_search
+curl -XPOST http://localhost:8080/v1/index/movies/search \
+  -H "Content-Type: application/json" \
+  -d '{ 
+    "query": {
+      "rrf": {
+        "queries": [
+          {"match": {"title": "batman"}},
+          {"semantic": {"title": "batman nolan"}}
+        ],
+        "rank_window_size": 20
+      } 
+    }, 
+    "fields": ["title"], 
+    "size": 5
+  }'
 ```
 
-```json    
+And you get a response:
+
+```json
 {
-  "took": 1,
+  "took": 8,
   "hits": [
     {
-      "_id": "605",
-      "title": "The Matrix Revolutions",
-      "_score": 0.016666668
+      "_id": "414906",
+      "title": "The Batman",
+      "_score": 0.033333335
     },
     {
-      "_id": "604",
-      "title": "The Matrix Reloaded",
-      "_score": 0.016393442
+      "_id": "272",
+      "title": "Batman Begins",
+      "_score": 0.032786883
     },
     {
-      "_id": "624860",
-      "title": "The Matrix Resurrections",
+      "_id": "209112",
+      "title": "Batman v Superman: Dawn of Justice",
+      "_score": 0.031257633
+    },
+    {
+      "_id": "324849",
+      "title": "The Lego Batman Movie",
+      "_score": 0.031054404
+    },
+    {
+      "_id": "155",
+      "title": "The Dark Knight",
       "_score": 0.016129032
     }
   ],
   "aggs": {},
-  "ts": 1722441735886
+  "ts": 1745590503193
 }
 ```
 
-You can also open `http://localhost:8080/_ui` in your web browser for a basic web UI:
-
-![web ui](https://www.nixiesearch.ai/img/webui.png)
-
-For more details, see a complete [Quickstart guide](quickstart.md).
+Nixiesearch can do much more, like [filtering](features/search/filter.md), [facets](features/search/facet.md), [autocomplete](features/autocomplete/index.md) and [RAG](features/search/rag.md) out of the box! For more details and more complex queries, see a complete [Quickstart guide](quickstart.md).
 
 
 ## License
