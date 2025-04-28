@@ -3,7 +3,7 @@ package ai.nixiesearch.core
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName}
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.TestIndexMapping
 import io.circe.{Decoder, Json}
@@ -11,7 +11,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
+import ai.nixiesearch.config.mapping.SearchParams.SemanticParams
 import ai.nixiesearch.core.Document.JsonScalar.{JNumber, JString, JStringArray}
+import ai.nixiesearch.core.nn.ModelRef
 
 class DocumentJsonTest extends AnyFlatSpec with Matchers {
   it should "decode flat json documents" in {
@@ -398,6 +400,28 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     decode[Document](json) shouldBe Right(
       Document(List(TextField("_id", "a"), TextField("title", "foo"), DateTimeField("datetime", 1000)))
     )
+  }
+
+  it should "decode pre-embedded text fields" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(
+              StringName("title"),
+              search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+            )
+          )
+        )
+      )
+    val json = """{"_id": "a", "title": {"text": "foo", "embedding": [1,2,3]}}"""
+    decode[Document](json) should matchPattern {
+      case Right(
+            Document(List(TextField("_id", "a", _), TextField("title", "foo", Some(_))))
+          ) => // ok
+    }
   }
 
 }

@@ -27,7 +27,7 @@ schema:
         suggest: true   # build autocomplete suggestions based on that field
 ```
 
-## HNSW index parameters
+## Semantic index parameters
 
 When a text field has a semantic search enabled, there are a couple of parameters you can further configure:
 
@@ -53,6 +53,15 @@ Fields:
 * `workers` (optional, int, default is same as number of CPUs in the system): how many background workers to use for HNSW indexing operations.
 
 ## Operations on text fields
+
+### Document ingestion format
+
+When a document with a `text` field is ingested, Nixiesearch expects the document JSON payload for the field to be in either format:
+
+* `JSON string`: like `{"title":"cookies"}`, when text embedding is computed by the server
+* `JSON obj`: like `{"title": {"text":"cookies", "embedding": [1,2,3]}}` for pre-embedded documents. 
+
+See [pre-embedded text fields](../format.md#pre-embedded-text-fields) in the [Document format](../format.md) section for more details.
 
 ### Search
 
