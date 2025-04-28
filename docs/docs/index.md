@@ -31,6 +31,7 @@ Search is never easy, but Nixiesearch has your back. It takes care of the toughe
 
 * **Nixiesearch is not a database**, and was never meant to be. Nixiesearch is a search index for consumer-facing apps to find top-N most relevant documents for a query. For analytical cases consider using good old SQL with [Clickhouse](https://github.com/ClickHouse/ClickHouse) or [Snowflake](https://www.snowflake.com/en/).
 * **Not a tool to search for logs**. Log search is about throughput, and Nixiesearch is about relevance. If you plan to use Nixiesearch as a log storage system, please don't: consider [ELK](https://www.elastic.co/elastic-stack) or [Quickwit](https://github.com/quickwit-oss/quickwit) as better alternatives.
+* **Not meant for unstructured data**. Your unstructured documents do have an implicit internal schema, and knowing it in advance makes all the indexing magic much more efficient. [Elastic](https://www.elastic.co/), [Opensearch](https://opensearch.org/) and [SOLR](https://solr.apache.org/) are better choices in this case.
 
 ## The difference
 

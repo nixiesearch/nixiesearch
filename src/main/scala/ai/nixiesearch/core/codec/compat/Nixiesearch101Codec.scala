@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.codec.compat
 
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.mapping.SearchParams.QuantStore.Int1
 import ai.nixiesearch.config.mapping.SearchParams.{QuantStore, SemanticParams}
 import ai.nixiesearch.config.mapping.{FieldName, IndexConfig, IndexMapping}
 import ai.nixiesearch.core.Error.BackendError
@@ -55,6 +56,8 @@ class Nixiesearch101Codec(parent: Codec, mapping: IndexMapping)
                       new Lucene99HnswScalarQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, 7, false, 0, null)
                     case QuantStore.Int4 =>
                       new Lucene99HnswScalarQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, 4, true, 0, null)
+                    case QuantStore.Int1 =>
+                      new Lucene102HnswBinaryQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, null)
                   }
                   cache.put(field, fmt)
                   fmt
