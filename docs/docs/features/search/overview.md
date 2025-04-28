@@ -1,6 +1,6 @@
 # Search
 
-To search for documents indexed in Nixiesearch, you can use the following [request JSON format](request.md):
+To search for documents indexed in Nixiesearch, you can use the following [request JSON format](query/overview.md#search-request-format):
 
 ```json
 {
@@ -17,7 +17,7 @@ Where:
 
 * `<search-field-name>`: a text field marked as [searchable in the index mapping](../indexing/mapping.md)
 * `<query-string>`: a string to search for.
-* `multi_match`: one of the matching DSL rules. Check more examples of [Query DSL](query.md) in the reference.
+* `multi_match`: one of the matching DSL rules. Check more examples of [Query DSL](query/overview.md) in the reference.
 
 For such a search request, Nixiesearch will reply with a JSON response with top-N matching documents:
 
@@ -166,7 +166,7 @@ See the [RRF ranker](query/rank/rrf.md) section for more details.
 
 ## Filters
 
-To select a sub-set of documents for search, add `filters` directive to the [request JSON payload](request.md):
+To select a sub-set of documents for search, add `filters` directive to the [request JSON payload](query/overview.md#search-request-format):
 
 ```json
 {
@@ -199,7 +199,7 @@ See [Filters DSL](filter.md) reference for more examples and details.
 
 Facet count aggregation is useful for building a [faceted search](https://en.wikipedia.org/wiki/Faceted_search): for a search query apart from documents, response contains also a set of possible filter values (sorted by a number of documents this filter value will match).
 
-A [JSON search request](request.md) payload can be extended with the `aggs` parameter:
+A [JSON search request](query/overview.md#search-request-format) payload can be extended with the `aggs` parameter:
 
 ```json
 {

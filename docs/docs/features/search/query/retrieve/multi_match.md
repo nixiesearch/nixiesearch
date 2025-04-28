@@ -4,7 +4,7 @@ A `multi_match` query performs a **lexical** search over multiple  searchable **
 
 If you would like to search over a semantic-indexed field, consider a [`semantic`](semantic.md) and [`knn`](knn.md) search operators instead.
 
-An operator similar to [match](#match) but able to search multiple fields at once:
+An operator similar to [match](match.md) but able to search multiple fields at once:
 
 ```json
 {
@@ -22,7 +22,7 @@ An operator similar to [match](#match) but able to search multiple fields at onc
 
 Where:
 
-* `<field-name>`: is an existing field [marked as searchable](../../features/indexing/mapping.md).
+* `<field-name>`: is an existing field [marked as searchable](../../../indexing/mapping.md).
 * `<search-query>`: a search query string.
 * `operator`: optional, possible values: `"best_fields"`, `"most_fields"`, default `"best_fields"`. The way field scores are combined when multiple of them are matched at once. 
 

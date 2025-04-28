@@ -4,12 +4,40 @@ Nixiesearch has a Lucene-inspired query DSL with multiple search operators.
 
 !!! note
 
-    To search over a field, make sure that this field is marked as searchable in [index mapping](../../features/indexing/mapping.md).
+    To search over a field, make sure that this field is marked as searchable in [index mapping](../../indexing/mapping.md).
 
 Unlike Elastic/OpenSearch query DSL, Nixiesearch has a distinction between search operators and filters:
 
-* Search operators affect document relevance scores (like [semantic](semantic.md) and [match](match.md))
+* Search operators affect document relevance scores (like [semantic](retrieve/semantic.md) and [match](retrieve/match.md))
 * Filters only control how we include/exclude documents. See [Filters](../filter.md) for more details. 
+
+## Search request format
+
+Search request format is similar to existing Lucene-based search engines:
+
+```json
+{
+  "query": {
+    "match_all": {}
+  },
+  "fields": ["title", "desc"],
+  "size": 10,
+  "aggs": {
+    "color_counts": {"term": {"field": "color"}}
+  },
+  "filters": {
+    "include": {"term": {"field": "category", "value": "pants"}}
+  }
+}
+```
+
+Where fields are:
+
+* `query`: required, a search query operator. 
+* `fields`: optional (default: all stored fields), which document fields to return in the response payload. Note that these fields should be marked as `store: true` in [index mapping](../../indexing/mapping.md).
+* `size`: optional (default: 10), number of documents to return
+* `aggs`: optional, facet aggregations, see [Facets](../facet.md) for more examples.
+* `filters`: optional, include/exclude [filters](../filter.md) to select a sub-set of documents for searching.
 
 ## Search operators
 
@@ -30,7 +58,7 @@ Operators can be combined into a single query:
 
 !!! note 
 
-    All search operators can be combined with [filters](filter.md) to search over a subset of documents.
+    All search operators can be combined with [filters](../filter.md) to search over a subset of documents.
 
 ## Ranking operators
 
@@ -40,19 +68,3 @@ Nixiesearch supports the following list of rank operators:
 
 * [RRF](rank/rrf.md): Reciprocal Rank Fusion, merge two search results lists based on document position.
 
-
-
-
-### match_all
-
-A search operator matching all documents in an index. Useful when combining with [filters](filter.md) to search over a subset of documents.
-
-```json
-{
-  "query": {
-    "match_all": {}
-  }
-}
-```
-
-`match_all` operator has no parameters.

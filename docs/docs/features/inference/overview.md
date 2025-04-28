@@ -1,6 +1,6 @@
 # ML model inference
 
-Nixiesearch also exposes [embeddings](embeddings.md) and [LLM chat completions](completions.md) APIs. These APIs used internally for [semantic search](../search/query.md) and [RAG](../search/rag.md) tasks, but you can have a raw access to them. Typical use cases:
+Nixiesearch also exposes [embeddings](embeddings.md) and [LLM chat completions](completions.md) APIs. These APIs used internally for [semantic search](../search/query/retrieve/semantic.md) and [RAG](../search/rag.md) tasks, but you can have a raw access to them. Typical use cases:
 
 * adding an additional safety filter on top of RAG responses by prompting an LLM for `does {answer} answers the question {question}?`.
 * preventing LLM hallucinations by embedding both question and RAG answer and computing cosine similarity between them. Question and a proper answer should be close to each other.

@@ -4,7 +4,7 @@ This guide will show you how to run Nixiesearch in a [standalone](deployment/sta
 
 * start Nixiesearch in a [standalone](deployment/standalone.md) mode using Docker
 * [index](features/indexing/overview.md) a demo set of documents using [REST API](api.md)
-* run a couple of [search queries](features/search/query.md)
+* run a couple of [search queries](features/search/query/overview.md)
 
 ## Prerequisites
 
@@ -195,7 +195,7 @@ You will get the following response:
 }
 ```
 
-Let's go deeper and perform hybrid search query, by mixing lexical (using [match query](features/search/query.md#match)) and semantic (using [semantic query](features/search/query.md)) with [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf):
+Let's go deeper and perform hybrid search query, by mixing lexical (using [match query](features/search/query/retrieve/match.md)) and semantic (using [semantic query](features/search/query/retrieve/semantic.md)) with [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf):
 
 ```shell
 curl -XPOST http://localhost:8080/v1/index/movies/search \

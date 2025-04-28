@@ -32,6 +32,6 @@ Or a shorter version:
 
 Where:
 
-* `<field-name>`: is an existing field [marked as searchable](../../features/indexing/mapping.md) with lexical search support enabled.
+* `<field-name>`: is an existing field [marked as searchable](../../../indexing/mapping.md) with lexical search support enabled.
 * `<search-query>`: a search query string.
 * `operator`: optional, possible values: `"and"`, `"or"`. Default is "or". For lexical search, should documents contain all or some of the terms from the search query. For semantic search this parameter is ignored.

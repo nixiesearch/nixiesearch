@@ -53,7 +53,7 @@ Compared to Elasticsearch/Solr, Nixiesearch has a distinction between repeated a
 * based on a field type, more specific and optimized data structures can be used.
 * when returning a stored field, a JSON response field types can follow the index mapping. In other words, not all returned fields are arrays (like in Elasticsearch), and only the ones being defined as repeated.
 
-As for version `0.6.0` Nixiesearch only supports repeated [textual fields](types/basic.md).
+As for version `0.6.0` Nixiesearch only supports repeated [textual fields](types/text.md).
 
 For example, the following document:
 
