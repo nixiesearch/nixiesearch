@@ -8,6 +8,7 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.field.TextField
 import org.apache.lucene.backward_codecs.lucene912.Lucene912Codec
 import org.apache.lucene.codecs.lucene101.Lucene101Codec
+import org.apache.lucene.codecs.lucene102.Lucene102HnswBinaryQuantizedVectorsFormat
 import org.apache.lucene.codecs.{Codec, FilterCodec, KnnVectorsFormat, PostingsFormat}
 import org.apache.lucene.codecs.lucene99.{Lucene99HnswScalarQuantizedVectorsFormat, Lucene99HnswVectorsFormat}
 import org.apache.lucene.codecs.perfield.{PerFieldKnnVectorsFormat, PerFieldPostingsFormat}
@@ -27,7 +28,7 @@ class Nixiesearch101Codec(parent: Codec, mapping: IndexMapping)
     this(new Lucene101Codec(), null)
     logger.warn("empty codec constructor called, this should not happen!")
   }
-  val suggestPostingsFormat = new Completion101PostingsFormat(CompletionPostingsFormat.FSTLoadMode.AUTO)
+  val suggestPostingsFormat = new Completion101PostingsFormat()
 
   override def postingsFormat(): PostingsFormat = new PerFieldPostingsFormat {
     override def getPostingsFormatForField(field: String): PostingsFormat =
