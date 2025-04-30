@@ -114,18 +114,18 @@ object GenerativeModel {
             val stringifiedFields = doc.fields
               .filter(f => fields.isEmpty || fields.exists(_.matches(f.name)))
               .flatMap {
-                case f if f.name == "_id"       => None
-                case f if f.name == "_score"    => None
-                case IntField(name, value)      => Some(s"$name: $value")
-                case DateField(name, value)     => Some(s"$name: ${DateField.writeString(value)}")
-                case LongField(name, value)     => Some(s"$name: $value")
+                case f if f.name == "_id"          => None
+                case f if f.name == "_score"       => None
+                case IntField(name, value)         => Some(s"$name: $value")
+                case DateField(name, value)        => Some(s"$name: ${DateField.writeString(value)}")
+                case LongField(name, value)        => Some(s"$name: $value")
                 case TextField(name, value, _)     => Some(s"$name: $value")
-                case FloatField(name, value)    => Some(s"$name: $value")
-                case DoubleField(name, value)   => Some(s"$name: $value")
-                case BooleanField(name, value)  => Some(s"$name: $value")
-                case DateTimeField(name, value) => Some(s"$name: ${DateTimeField.writeString(value)}")
+                case FloatField(name, value)       => Some(s"$name: $value")
+                case DoubleField(name, value)      => Some(s"$name: $value")
+                case BooleanField(name, value)     => Some(s"$name: $value")
+                case DateTimeField(name, value)    => Some(s"$name: ${DateTimeField.writeString(value)}")
                 case TextListField(name, value, _) => Some(s"$name: ${value.mkString(", ")}")
-                case GeopointField(_, _, _)     => None
+                case GeopointField(_, _, _)        => None
               }
             stringifiedFields match {
               case Nil => ""

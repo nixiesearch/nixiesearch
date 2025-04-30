@@ -9,11 +9,7 @@ import ai.nixiesearch.core.{Logging, PrintProgress}
 import ai.nixiesearch.index.{Indexer, Models}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
-import ai.nixiesearch.main.CliConfig.IndexSourceArgs.{
-  ApiIndexSourceArgs,
-  FileIndexSourceArgs,
-  KafkaIndexSourceArgs
-}
+import ai.nixiesearch.main.CliConfig.IndexSourceArgs.{ApiIndexSourceArgs, FileIndexSourceArgs, KafkaIndexSourceArgs}
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}

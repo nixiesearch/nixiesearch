@@ -18,9 +18,10 @@ import java.io.File
 import java.nio.file.Paths
 
 object CompatUtil {
-  lazy val pwd     = System.getProperty("user.dir")
-  lazy val conf    = Config.load(new File(s"$pwd/src/test/resources/config/compat.yml"), EnvVars(Map.empty)).unsafeRunSync()
-  lazy val mapping = conf.schema(IndexName.unsafe("all_types"))
+  lazy val pwd = System.getProperty("user.dir")
+  lazy val conf =
+    Config.load(new File(s"$pwd/src/test/resources/config/compat.yml"), EnvVars(Map.empty)).unsafeRunSync()
+  lazy val mapping                    = conf.schema(IndexName.unsafe("all_types"))
   lazy val inference: InferenceConfig = conf.inference
   lazy val docs = List(
     Document(

@@ -9,7 +9,7 @@ sealed trait EmbedCacheConfig {}
 object EmbedCacheConfig {
   val DEFAULT_CACHE_SIZE = 32 * 1024
 
-  case object NoCache                                           extends EmbedCacheConfig
+  case object NoCache                                             extends EmbedCacheConfig
   case class MemoryCacheConfig(maxSize: Int = DEFAULT_CACHE_SIZE) extends EmbedCacheConfig
   // case class RedisCacheConfig()                         extends EmbedCacheConfig
 
@@ -45,7 +45,7 @@ object EmbedCacheConfig {
   )
 
   given embedCacheConfigEncoder: Encoder[EmbedCacheConfig] = Encoder.instance {
-    case NoCache            => Json.obj("none" -> Json.obj())
+    case NoCache              => Json.obj("none" -> Json.obj())
     case c: MemoryCacheConfig => Json.obj("inmem" -> heapCacheConfigEncoder(c))
   }
 }

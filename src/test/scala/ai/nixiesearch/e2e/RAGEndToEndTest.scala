@@ -22,7 +22,9 @@ import java.io.File
 class RAGEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
   lazy val pwd = System.getProperty("user.dir")
   lazy val conf =
-    Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config-rag.yaml"), EnvVars(Map.empty)).unsafeRunSync()
+    Config
+      .load(new File(s"$pwd/src/test/resources/datasets/movies/config-rag.yaml"), EnvVars(Map.empty))
+      .unsafeRunSync()
   lazy val mapping       = conf.schema(IndexName.unsafe("movies"))
   lazy val docs          = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
   override def inference = conf.inference
