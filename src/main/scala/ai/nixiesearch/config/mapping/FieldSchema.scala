@@ -48,24 +48,24 @@ object FieldSchema {
   }
 
   case class TextFieldSchema(
-                              name: FieldName,
-                              search: SearchParams = SearchParams(),
-                              store: Boolean = true,
-                              sort: Boolean = false,
-                              facet: Boolean = false,
-                              filter: Boolean = false,
-                              suggest: Option[SuggestSchema] = None
+      name: FieldName,
+      search: SearchParams = SearchParams(),
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false,
+      suggest: Option[SuggestSchema] = None
   ) extends TextLikeFieldSchema[TextField]
       with FieldSchema[TextField]
 
   case class TextListFieldSchema(
-                                  name: FieldName,
-                                  search: SearchParams = SearchParams(),
-                                  store: Boolean = true,
-                                  sort: Boolean = false,
-                                  facet: Boolean = false,
-                                  filter: Boolean = false,
-                                  suggest: Option[SuggestSchema] = None
+      name: FieldName,
+      search: SearchParams = SearchParams(),
+      store: Boolean = true,
+      sort: Boolean = false,
+      facet: Boolean = false,
+      filter: Boolean = false,
+      suggest: Option[SuggestSchema] = None
   ) extends TextLikeFieldSchema[TextListField]
       with FieldSchema[TextListField]
 

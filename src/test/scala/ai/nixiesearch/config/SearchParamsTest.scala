@@ -65,7 +65,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
 
   def decodeYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {
     implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder(StringName("field"))
-    val decoded = parse(yaml) 
+    val decoded                                            = parse(yaml)
     decoded.flatMap(_.as[FieldSchema[? <: Field]])
   }
 }

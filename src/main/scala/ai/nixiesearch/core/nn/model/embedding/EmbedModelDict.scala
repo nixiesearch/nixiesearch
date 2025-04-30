@@ -39,7 +39,7 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging 
       case None           => IO.raiseError(UserError(s"cannot get embedding model $name"))
       case Some(embedder) => embedder.encode(task, texts).compile.toList
     }
-  
+
 }
 
 object EmbedModelDict extends Logging {

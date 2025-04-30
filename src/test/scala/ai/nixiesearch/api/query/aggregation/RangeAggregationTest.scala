@@ -6,7 +6,15 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.retrieve.{MatchQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, LongFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  FloatFieldSchema,
+  IntFieldSchema,
+  LongFieldSchema,
+  TextFieldSchema
+}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
@@ -322,7 +330,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
             )
           )
         ),
-        query = MatchQuery("title","socks")
+        query = MatchQuery("title", "socks")
       )
       result.aggs shouldBe Map(
         "count" -> RangeAggregationResult(

@@ -34,7 +34,9 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
           "Berlin had a population of 3,520,031 registered inhabitants in an area of 891.82 square kilometers."
         )
       )
-      .compile.toList.unsafeRunSync()
+      .compile
+      .toList
+      .unsafeRunSync()
     val d1 = CosineDistance.dist(query.head, docs(0))
     d1 shouldBe 0.53f +- 0.02
     val d2 = CosineDistance.dist(query.head, docs(1))
