@@ -47,7 +47,7 @@ libraryDependencies ++= Seq(
   "ai.djl.huggingface"     % "tokenizers"                             % djlVersion,
   "com.github.luben"       % "zstd-jni"                               % "1.5.7-3",
   "com.github.blemale"    %% "scaffeine"                              % "5.3.0",
-  "com.hubspot.jinjava"    % "jinjava"                                % "2.7.4",
+  "com.hubspot.jinjava"    % "jinjava"                                % "2.8.0",
   "software.amazon.awssdk" % "s3"                                     % awsVersion,
   "co.fs2"                %% "fs2-core"                               % fs2Version,
   "co.fs2"                %% "fs2-io"                                 % fs2Version,
