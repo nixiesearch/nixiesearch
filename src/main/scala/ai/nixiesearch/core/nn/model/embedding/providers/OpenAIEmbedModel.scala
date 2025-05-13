@@ -21,6 +21,8 @@ import scala.concurrent.duration.*
 import ai.nixiesearch.config.mapping.DurationJson.given
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.util.ExpBackoffRetryPolicy
+import org.http4s.client.middleware.Retry
 import org.http4s.headers.{Authorization, `Content-Type`}
 import org.http4s.{AuthScheme, Credentials, EntityDecoder, EntityEncoder, Headers, MediaType, Method, Request, Uri}
 
@@ -69,7 +71,7 @@ object OpenAIEmbedModel extends Logging {
   case class OpenAIEmbeddingInferenceModelConfig(
       model: String,
       timeout: FiniteDuration = 2.seconds,
-      // retry: Int = 1,
+      retry: Int = 1,
       endpoint: String = DEFAULT_ENDPOINT,
       dimensions: Option[Int] = None,
       batchSize: Int = 32,
@@ -80,9 +82,9 @@ object OpenAIEmbedModel extends Logging {
 
   given openAIEmbeddingConfigDecoder: Decoder[OpenAIEmbeddingInferenceModelConfig] = Decoder.instance(c =>
     for {
-      model   <- c.downField("model").as[String]
-      timeout <- c.downField("timeout").as[Option[FiniteDuration]]
-      // retry      <- c.downField("retry").as[Option[Int]]
+      model      <- c.downField("model").as[String]
+      timeout    <- c.downField("timeout").as[Option[FiniteDuration]]
+      retry      <- c.downField("retry").as[Option[Int]]
       endpoint   <- c.downField("endpoint").as[Option[String]]
       dimensions <- c.downField("dimensions").as[Option[Int]]
       batchSize  <- c.downField("batch_size").as[Option[Int]]
@@ -91,7 +93,7 @@ object OpenAIEmbedModel extends Logging {
       OpenAIEmbeddingInferenceModelConfig(
         model = model,
         timeout = timeout.getOrElse(2.seconds),
-        // retry = retry.getOrElse(1),
+        retry = retry.getOrElse(1),
         endpoint = endpoint.getOrElse(DEFAULT_ENDPOINT),
         dimensions = dimensions,
         batchSize = batchSize.getOrElse(32),
@@ -114,6 +116,7 @@ object OpenAIEmbedModel extends Logging {
 
   def create(config: OpenAIEmbeddingInferenceModelConfig): Resource[IO, OpenAIEmbedModel] = for {
     client <- EmberClientBuilder.default[IO].withTimeout(10.seconds).build
+    retryClient = Retry[IO](ExpBackoffRetryPolicy(100.millis, 2.0, 4000.millis, config.retry))(client)
     key <- Resource.eval(
       IO.fromOption(Option(System.getenv("OPENAI_KEY")))(
         Exception("OPENAI_KEY env var is missing - how should we authenticate?")
@@ -127,7 +130,7 @@ object OpenAIEmbedModel extends Logging {
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(config.endpoint)))
     _        <- Resource.eval(info(s"Started OpenAI embedding client, model=${config.model}"))
   } yield {
-    OpenAIEmbedModel(client, endpoint, key, config)
+    OpenAIEmbedModel(retryClient, endpoint, key, config)
   }
 
 }

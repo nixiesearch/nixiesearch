@@ -33,13 +33,15 @@ inference:
       endpoint: "https://api.openai.com/"
       dimensions: null
       batch_size: 32
+      retry: 1
 ```
 
 Parameters:
 
 * **timeout**: optional, duration, default 2s. External APIs might be slow sometimes.  
-* **retry**: optional, string, default "https://api.openai.com/". You can use alternative API or EU-specific endpoint.
+* **endpoint**: optional, string, default "https://api.openai.com/". You can use alternative API or EU-specific endpoint.
 * **dimensions**: optional, int, default empty. For [matryoshka](https://huggingface.co/blog/matryoshka) models, how many dimensions to return.
 * **batch_size**: optional, int, default 32. Batch size for calls with many documents.
+* **retry**: optional, int, default 1. Number of retries to perform when API fails.
 
 See [Config file reference](../../../reference/config.md) for more details on creating a config file. 

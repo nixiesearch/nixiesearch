@@ -12,6 +12,7 @@ import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{
   EmbedRequest,
   EmbedResponse
 }
+import ai.nixiesearch.util.ExpBackoffRetryPolicy
 import cats.effect.{IO, Resource}
 import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.circe.*
@@ -20,6 +21,7 @@ import org.http4s.client.Client
 
 import scala.concurrent.duration.*
 import io.circe.generic.semiauto.*
+import org.http4s.client.middleware.{Retry, RetryPolicy}
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.headers.{Accept, Authorization, `Content-Type`}
 
@@ -101,7 +103,7 @@ object CohereEmbedModel extends Logging {
   case class CohereEmbeddingInferenceModelConfig(
       model: String,
       timeout: FiniteDuration = 2.seconds,
-      // retry: Int = 1,
+      retry: Int = 1,
       endpoint: String = DEFAULT_ENDPOINT,
       batchSize: Int = 32,
       cache: EmbedCacheConfig = MemoryCacheConfig()
@@ -111,9 +113,9 @@ object CohereEmbedModel extends Logging {
 
   given cohereEmbeddingConfigDecoder: Decoder[CohereEmbeddingInferenceModelConfig] = Decoder.instance(c =>
     for {
-      model   <- c.downField("model").as[String]
-      timeout <- c.downField("timeout").as[Option[FiniteDuration]]
-      // retry      <- c.downField("retry").as[Option[Int]]
+      model     <- c.downField("model").as[String]
+      timeout   <- c.downField("timeout").as[Option[FiniteDuration]]
+      retry     <- c.downField("retry").as[Option[Int]]
       endpoint  <- c.downField("endpoint").as[Option[String]]
       batchSize <- c.downField("batch_size").as[Option[Int]]
       cache     <- c.downField("cache").as[Option[EmbedCacheConfig]]
@@ -121,7 +123,7 @@ object CohereEmbedModel extends Logging {
       CohereEmbeddingInferenceModelConfig(
         model = model,
         timeout = timeout.getOrElse(2.seconds),
-        // retry = retry.getOrElse(1),
+        retry = retry.getOrElse(1),
         endpoint = endpoint.getOrElse(DEFAULT_ENDPOINT),
         batchSize = batchSize.getOrElse(32),
         cache = cache.getOrElse(MemoryCacheConfig())
@@ -131,6 +133,7 @@ object CohereEmbedModel extends Logging {
 
   def create(config: CohereEmbeddingInferenceModelConfig): Resource[IO, CohereEmbedModel] = for {
     client <- EmberClientBuilder.default[IO].withTimeout(10.seconds).build
+    retryClient = Retry[IO](ExpBackoffRetryPolicy(100.millis, 2.0, 4000.millis, config.retry))(client)
     key <- Resource.eval(
       IO.fromOption(Option(System.getenv("COHERE_KEY")))(
         Exception("COHERE_KEY env var is missing - how should we authenticate?")
@@ -140,6 +143,6 @@ object CohereEmbedModel extends Logging {
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(config.endpoint)))
     _        <- Resource.eval(info(s"Started Cohere embedding client, model=${config.model}"))
   } yield {
-    CohereEmbedModel(client, endpoint, key, config)
+    CohereEmbedModel(retryClient, endpoint, key, config)
   }
 }
