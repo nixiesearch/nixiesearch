@@ -11,7 +11,7 @@ docker run -it -e COHERE_API=<thekey> nixiesearch/nixiesearch <opts>
 
 ## Usage
 
-To define an Cohere embedding model in the config file, use the following snippet:
+To define a Cohere embedding model in the config file, use the following snippet:
 
 ```yaml
 inference:
@@ -32,11 +32,13 @@ inference:
       timeout: 2000ms
       endpoint: "https://api.cohere.com/"
       batch_size: 32
+      retry: 1
 ```
 
 Parameters:
 
 * **timeout**: optional, duration, default 2s. External APIs might be slow sometimes.
 * **batch_size**: optional, int, default 32. Batch size for calls with many documents.
+* **retry**: optional, int, default 1. Number of retries to perform when API fails.
 
 See [Config file reference](../../../reference/config.md) for more details on creating a config file. 
