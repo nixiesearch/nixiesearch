@@ -19,7 +19,7 @@ case class ExpBackoffRetryPolicy(
       failures: Int
   ): Option[FiniteDuration] = {
     if (RetryPolicy.defaultRetriable(request, response)) {
-      val millis = math.round(math.min(initialDelay.toMillis * multiplier, maxDuration.toMillis.toDouble))
+      val millis = math.round(math.min(initialDelay.toMillis * math.pow(multiplier, failures), maxDuration.toMillis.toDouble))
       if (failures < maxRetries) {
         Some(FiniteDuration(millis, TimeUnit.MILLISECONDS))
       } else {
