@@ -16,4 +16,10 @@ class SearchRequestTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "fail query decoding when it's broken" in {
+    val json    = """{"query": {"fuuu": {"text": "manhattan"}}, "fields": ["a","b"]}"""
+    val decoded = decode[SearchRequest](json)
+    decoded shouldBe a[Left[?, ?]]
+  }
+
 }

@@ -101,7 +101,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   } yield {
     SuggestResponse(
       suggestions = ranked,
-      took = System.currentTimeMillis() - start
+      took = 0.0f // filled later
     )
   }
 
@@ -133,7 +133,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     _         <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
   } yield {
     SearchResponse(
-      took = end - start,
+      took = 0, // filled later
       hits = collected,
       aggs = aggs,
       ts = end

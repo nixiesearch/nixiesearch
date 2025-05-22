@@ -73,26 +73,29 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   }
 
   def search(request: Request[IO]): IO[Response[IO]] = for {
-    request <- IO(request.entity.length).flatMap {
-      case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
-      case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
-      case Some(_) => request.as[SearchRequest]
-    }
-    response <- searchBlocking(request)
+    start    <- IO.pure(System.nanoTime())
+    decoded  <- request.as[SearchRequest]
+    response <- searchBlocking(decoded)
+    end      <- IO.pure(System.nanoTime())
   } yield {
+    val took = (end - start) / 1000000000.0f
     Response[IO](
       status = Status.Ok,
       headers = Headers(`Content-Type`(new MediaType("application", "json"))),
-      entity = Entity.string(response.asJson.noSpaces, Charset.`UTF-8`)
+      entity = Entity.string(response.copy(took = took).asJson.noSpaces, Charset.`UTF-8`)
     )
   }
 
   def suggest(request: Request[IO]): IO[Response[IO]] = for {
-    query    <- request.as[SuggestRequest]
-    _        <- info(s"suggest index='${searcher.index.name}' query=$query")
-    response <- searcher.suggest(query).flatMap(docs => Ok(docs))
+    start <- IO.pure(System.nanoTime())
+    query <- request.as[SuggestRequest]
+    _     <- info(s"suggest index='${searcher.index.name}' query=$query")
+
+    response <- searcher.suggest(query)
+    end      <- IO.pure(System.nanoTime())
+    payload  <- Ok(response.copy(took = (end - start) / 1000000000.0f))
   } yield {
-    response
+    payload
   }
 
   def searchStreaming(request: SearchRequest): Stream[IO, SearchResponseFrame] = for {
@@ -176,7 +179,10 @@ object SearchRoute {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
-        query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
+        query <- c.downField("query").focus match {
+          case None       => Right(MatchAllQuery())
+          case Some(json) => json.as[Query]
+        }
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]]
         fields <- c.downField("fields").as[Option[List[FieldName]]].map {
@@ -209,7 +215,7 @@ object SearchRoute {
   }
 
   case class SearchResponse(
-      took: Long,
+      took: Float,
       hits: List[Document],
       aggs: Map[String, AggregationResult],
       response: Option[String] = None,
@@ -306,7 +312,7 @@ object SearchRoute {
     )
   }
 
-  case class SuggestResponse(suggestions: List[Suggestion], took: Long)
+  case class SuggestResponse(suggestions: List[Suggestion], took: Float)
   object SuggestResponse {
     case class Suggestion(text: String, score: Float)
 

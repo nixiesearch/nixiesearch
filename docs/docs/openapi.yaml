@@ -358,20 +358,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  result:
-                    type: string
-                    description: A string with 'ok' on success
-                    example: ok
-                  docs:
-                    type: integer
-                    description: Number of documents inserted into the index.
-                    example: 42
-                  took:
-                    type: integer
-                    description: Number of milliseconds request processing took.
-                    example: 10
+                $ref: '#/components/schemas/IndexResponse'
         400:
           $ref: '#/components/responses/UserError'
         404:
@@ -538,6 +525,26 @@ paths:
 
 components:
   schemas:
+    IndexResponse:
+      type: object
+      description: Indexing response
+      properties:
+        result:
+          type: string
+          description: A string with 'ok' on success
+          example: ok
+        docs:
+          type: integer
+          description: Number of documents inserted into the index.
+          example: 42
+        took:
+          type: number
+          description: Number of seconds request processing took.
+          example: 0.0001
+
+
+
+
     SuggestRerankRRF:
       type: object
       description: Use RRF for suggestion mixing
@@ -613,7 +620,7 @@ components:
                 example: 1.0
         took:
           type: number
-          description: Time in millis server spent processing the request
+          description: Time in seconds server spent processing the request (including JSON parsing)
 
     MatchAllQuery:
       type: object
@@ -828,6 +835,18 @@ components:
       type: object
       description: Search response. A flat JSON with all requested documents fields and values.
       additionalProperties: true
+      properties:
+        took:
+          type: number
+          description: Number of seconds spend processing the request, including JSON parsing, search and fetch.
+          example: 0.000123
+        hits:
+          type: array
+          description: List of document fields.
+        ts:
+          type: number
+          description: Server timestamp
+          example: 1747921013000
 
     GeoBoxFilter:
       type: object
@@ -1049,8 +1068,8 @@ components:
           description: Number of documents deleted from the index.
           example: 42
         took:
-          type: integer
-          description: Number of milliseconds request processing took.
+          type: number
+          description: Number of seconds request processing took.
 
     EmptyResponse:
       type: object
@@ -1061,8 +1080,8 @@ components:
           description: "Request processing status"
           example: "ok"
         took:
-          type: integer
-          description: "How many milliseconds the request processing took"
+          type: number
+          description: "How many seconds the request processing took"
           example: 42
     Error:
       type: object
