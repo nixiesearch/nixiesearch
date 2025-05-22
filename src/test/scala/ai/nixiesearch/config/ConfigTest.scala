@@ -19,7 +19,7 @@ import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.config.mapping.IndexConfig.FlushConfig
+import ai.nixiesearch.config.mapping.IndexConfig.{FlushConfig, IndexerConfig}
 import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.PoolingType.MeanPooling
@@ -47,7 +47,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
         schema = Map(
           IndexName("helloworld") -> IndexMapping(
             name = IndexName("helloworld"),
-            config = IndexConfig(FlushConfig(5.seconds)),
+            config = IndexConfig(IndexerConfig(FlushConfig(5.seconds))),
             fields = Map(
               StringName("title") -> TextFieldSchema(
                 StringName("title"),
@@ -89,7 +89,6 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             )
           )
         ),
-        indexer = IndexerConfig(),
         searcher = SearcherConfig(),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(
@@ -164,7 +163,6 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             )
           )
         ),
-        indexer = IndexerConfig(),
         searcher = SearcherConfig(),
         schema = Map(
           IndexName.unsafe("helloworld") -> IndexMapping(

@@ -67,8 +67,10 @@ An example of index configuration:
 schema:
   index-name:
     config:
-      flush:
-        duration: 5s # how frequently new segments are created
+      indexer:
+        ramBufferSize: 512mb
+        flush:
+          duration: 5s # how frequently new segments are created
       hnsw:
         m: 16 # max number of node-node links in HNSW graph
         efc: 100 # beam width used while building the index
@@ -77,7 +79,8 @@ schema:
 
 Fields:
 
-* `flush.duration`: optional, duration, default `5s`. Index writer will periodically produce flush index segments (if there are new documents) with this interval.
+* `indexer.flush.duration`: optional, duration, default `5s`. Index writer will periodically produce flush index segments (if there are new documents) with this interval.
+* `indexer.ramBufferSize`: optional, size, default `512mb`. RAM buffer size for new segments.
 * `hnsw.m`: optional, int, default 16. How many links should HNSW index have? Larger value means better recall, but higher memory usage and bigger index. Common values are within 16-128 range.
 * `hnsw.efc`: optional, int, default 100. How many neighbors in the HNSW graph are explored during indexing. Bigger the value, better the recall, but slower the indexing speed.
 * `hnsw.workers`: optional, int, default = number of CPU cores. How many concurrent workers to use for index merges.

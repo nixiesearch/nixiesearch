@@ -189,8 +189,14 @@ object Indexer extends Logging {
 
   def indexWriter(directory: Directory, mapping: IndexMapping): Resource[IO, IndexWriter] =
     for {
-      codec  <- Resource.pure(Nixiesearch101Codec(mapping))
-      config <- Resource.eval(IO(new IndexWriterConfig(mapping.analyzer).setCodec(codec)))
+      codec <- Resource.pure(Nixiesearch101Codec(mapping))
+      config <- Resource.eval(
+        IO(
+          new IndexWriterConfig(mapping.analyzer)
+            .setCodec(codec)
+            .setRAMBufferSizeMB(mapping.config.indexer.ramBufferSize.mb.toDouble)
+        )
+      )
       _      <- Resource.eval(debug("opening IndexWriter"))
       writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()) *> debug("IndexWriter closed"))
     } yield {

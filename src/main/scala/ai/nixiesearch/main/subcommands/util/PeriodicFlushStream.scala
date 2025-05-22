@@ -12,7 +12,7 @@ object PeriodicFlushStream extends Logging {
       case false => IO.unit
       case true  => index.sync()
     })
-    .metered(index.mapping.config.flush.interval)
+    .metered(index.mapping.config.indexer.flush.interval)
     .compile
     .drain
     .background
