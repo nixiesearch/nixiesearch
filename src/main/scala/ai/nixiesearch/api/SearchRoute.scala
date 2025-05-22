@@ -73,7 +73,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   }
 
   def search(request: Request[IO]): IO[Response[IO]] = for {
-    start <- IO.pure(System.nanoTime())
+    start <- IO(System.nanoTime())
     decoded <- IO(request.entity.length).flatMap {
       case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
@@ -81,7 +81,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
     }
 
     response <- searchBlocking(decoded)
-    end      <- IO.pure(System.nanoTime())
+    end      <- IO(System.nanoTime())
   } yield {
     val took = (end - start) / 1000000000.0f
     Response[IO](
@@ -92,12 +92,12 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   }
 
   def suggest(request: Request[IO]): IO[Response[IO]] = for {
-    start <- IO.pure(System.nanoTime())
+    start <- IO(System.nanoTime())
     query <- request.as[SuggestRequest]
     _     <- info(s"suggest index='${searcher.index.name}' query=$query")
 
     response <- searcher.suggest(query)
-    end      <- IO.pure(System.nanoTime())
+    end      <- IO(System.nanoTime())
     payload  <- Ok(response.copy(took = (end - start) / 1000000000.0f))
   } yield {
     payload
