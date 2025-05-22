@@ -45,25 +45,26 @@ case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
   }
 
   def delete(docid: String): IO[Response[IO]] = for {
-    start    <- IO(System.currentTimeMillis())
+    start    <- IO(System.nanoTime())
     deleted  <- indexer.delete(docid)
-    response <- Ok(DeleteResponse("ok", System.currentTimeMillis() - start, deleted))
+    end      <- IO(System.nanoTime())
+    response <- Ok(DeleteResponse("ok", (end - start) / 1000000000.0f, deleted))
   } yield {
     response
   }
 
   def delete(request: Request[IO]): IO[Response[IO]] = for {
-    start    <- IO(System.currentTimeMillis())
+    start    <- IO(System.nanoTime())
     delete   <- request.as[DeleteRequest]
     deleted  <- indexer.delete(delete.filters)
-    end      <- IO(System.currentTimeMillis())
-    response <- Ok(DeleteResponse("ok", end - start, deleted))
+    end      <- IO(System.nanoTime())
+    response <- Ok(DeleteResponse("ok", (end - start) / 1000000000.0f, deleted))
   } yield {
     response
   }
 
   private def indexDocStream(request: Stream[IO, Document]): IO[IndexResponse] = for {
-    start <- IO(System.currentTimeMillis())
+    start <- IO(System.nanoTime())
     docs <- request
       .chunkN(64)
       .through(PrintProgress.tapChunk("indexed docs"))
@@ -73,21 +74,22 @@ case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
       .map(_.size)
       .compile
       .fold(0)(_ + _)
-      .flatTap(d => info(s"completed indexing $d docs, took ${System.currentTimeMillis() - start}ms"))
+      .flatTap(d => info(s"completed indexing $d docs, took ${(System.nanoTime() - start) / 1000000.0}ms"))
   } yield {
     IndexResponse.withStartTime("ok", start, docs)
   }
 
   def flush(): IO[Response[IO]] = for {
-    start    <- IO(System.currentTimeMillis())
+    start    <- IO(System.nanoTime())
     _        <- info(s"POST /${indexer.index.name.value}/_flush")
     _        <- indexer.flush()
     _        <- indexer.index.sync()
-    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
+    end      <- IO(System.nanoTime())
+    response <- Ok(EmptyResponse("ok", (end - start) / 1000000000.0f))
   } yield response
 
   def merge(request: Request[IO]): IO[Response[IO]] = for {
-    start <- IO(System.currentTimeMillis())
+    start <- IO(System.nanoTime())
     req <- request.entity.length match {
       case None | Some(0) => IO(MergeRequest(1))
       case Some(_)        => request.as[MergeRequest]
@@ -95,16 +97,17 @@ case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
     _        <- indexer.flush()
     _        <- indexer.merge(req.segments)
     _        <- indexer.index.sync()
-    response <- Ok(EmptyResponse("ok", System.currentTimeMillis() - start))
+    end      <- IO.pure(System.nanoTime())
+    response <- Ok(EmptyResponse("ok", (end - start) / 1000000000.0f))
   } yield response
 
 }
 
 object IndexModifyRoute extends Logging {
-  case class IndexResponse(status: String, docs: Int, took: Int = 0)
+  case class IndexResponse(status: String, docs: Int, took: Float = 0.0f)
   object IndexResponse {
     def withStartTime(status: String, start: Long, docs: Int) =
-      IndexResponse(status, docs = docs, took = (System.currentTimeMillis() - start).toInt)
+      IndexResponse(status, docs = docs, took = (System.nanoTime() - start) / 1000000000.0f)
   }
   given indexResponseCodec: Codec[IndexResponse] = deriveCodec
 
@@ -117,7 +120,7 @@ object IndexModifyRoute extends Logging {
     given deleteRequestDecoderJson: EntityEncoder[IO, DeleteRequest] = jsonEncoderOf
   }
 
-  case class DeleteResponse(status: String, took: Long, deleted: Int)
+  case class DeleteResponse(status: String, took: Float, deleted: Int)
 
   object DeleteResponse {
     given deleteResponseCodec: Codec[DeleteResponse]                   = deriveCodec
@@ -136,7 +139,7 @@ object IndexModifyRoute extends Logging {
   given mergeRequestCodec: Codec[MergeRequest]            = deriveCodec
   given mergeRequestJson: EntityDecoder[IO, MergeRequest] = jsonOf
 
-  case class EmptyResponse(status: String, took: Long)
+  case class EmptyResponse(status: String, took: Float)
   given okResponseCodec: Codec[EmptyResponse]               = deriveCodec
   given okResponseJsonEnc: EntityEncoder[IO, EmptyResponse] = jsonEncoderOf
   given okResponseJson: EntityDecoder[IO, EmptyResponse]    = jsonOf
