@@ -73,8 +73,13 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   }
 
   def search(request: Request[IO]): IO[Response[IO]] = for {
-    start    <- IO.pure(System.nanoTime())
-    decoded  <- request.as[SearchRequest]
+    start <- IO.pure(System.nanoTime())
+    decoded <- IO(request.entity.length).flatMap {
+      case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
+      case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
+      case Some(_) => request.as[SearchRequest]
+    }
+
     response <- searchBlocking(decoded)
     end      <- IO.pure(System.nanoTime())
   } yield {
@@ -179,10 +184,7 @@ object SearchRoute {
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
-        query <- c.downField("query").focus match {
-          case None       => Right(MatchAllQuery())
-          case Some(json) => json.as[Query]
-        }
+        query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]]
         fields <- c.downField("fields").as[Option[List[FieldName]]].map {
