@@ -5,7 +5,10 @@ import io.circe.{Decoder, Encoder}
 
 import scala.util.{Failure, Success}
 
-case class Size(value: Long, literal: String)
+case class Size(bytes: Long, literal: String) {
+  def kb: Long = math.round(bytes / 1024.0)
+  def mb: Long = math.round(bytes / (1024.0 * 1024.0))
+}
 
 object Size {
   def mb(value: Long)              = Size(value * 1024 * 1024L, s"$value mb")
