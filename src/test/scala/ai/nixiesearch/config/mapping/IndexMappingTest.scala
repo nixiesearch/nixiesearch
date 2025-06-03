@@ -85,7 +85,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         |    type: text
         |    search: false""".stripMargin
     val decoder = IndexMapping.yaml.indexMappingDecoder(IndexName("test"))
-    val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](decoder))
+    val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](using decoder))
     json shouldBe Right(
       IndexMapping(
         name = IndexName("test"),
@@ -109,7 +109,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         |    type: text
         |    search: false""".stripMargin
     val decoder = IndexMapping.yaml.indexMappingDecoder(IndexName("test"))
-    val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](decoder))
+    val json    = io.circe.yaml.parser.parse(yaml).flatMap(_.as[IndexMapping](using decoder))
     json shouldBe a[Left[?, ?]]
 
   }

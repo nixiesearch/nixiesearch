@@ -74,8 +74,6 @@ object LocalDirectory extends Logging {
                 }
                 .compile
                 .drain
-            case (ls, rs) if ls == rs =>
-              info(s"both local and remote for index '$indexName' are the same, skipping sync")
             case (ls, rs) if ls > rs =>
               Stream
                 .evalSeq(localManifest.diff(Some(remoteManifest)))
@@ -85,6 +83,8 @@ object LocalDirectory extends Logging {
                 }
                 .compile
                 .drain
+            case (ls, rs) =>
+              info(s"both local and remote for index '$indexName' are the same, skipping sync")
           }
         } yield {})
     }
