@@ -7,9 +7,9 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
-import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.cache.{CachedEmbedModel, MemoryCachedEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.{
@@ -48,7 +48,7 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging 
 }
 
 object EmbedModelDict extends Logging {
-  val CONFIG_FILE = "config.json"
+  
 
   case class TransformersConfig(hidden_size: Int, model_type: Option[String])
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder

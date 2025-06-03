@@ -7,15 +7,15 @@ import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, Pro
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
+import ai.nixiesearch.core.nn.huggingface.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
-import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
-import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict.{CONFIG_FILE, TransformersConfig, info, logger}
+import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict.{TransformersConfig, info, logger}
 import ai.nixiesearch.core.nn.model.embedding.cache.MemoryCachedEmbedModel
-import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig.OnnxModelFile
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{OnnxEmbeddingInferenceModelConfig, PoolingType}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.{EmbedModel, EmbedModelDict, EmbedPooling}
+import ai.nixiesearch.core.nn.onnx.OnnxModelFile
 import ai.nixiesearch.util.GPUUtils
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
@@ -83,7 +83,6 @@ case class OnnxEmbedModel(
 }
 
 object OnnxEmbedModel extends Logging {
-  val ONNX_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
 
   case class OnnxEmbeddingInferenceModelConfig(
       model: ModelHandle,
@@ -96,28 +95,6 @@ object OnnxEmbedModel extends Logging {
       cache: EmbedCacheConfig = MemoryCacheConfig()
   ) extends EmbeddingInferenceModelConfig
   object OnnxEmbeddingInferenceModelConfig {
-    case class OnnxModelFile(base: String, data: Option[String] = None)
-
-    object OnnxModelFile {
-      given onnxModelFileEncoder: Encoder[OnnxModelFile] = Encoder.instance {
-        case OnnxModelFile(base, None) => Json.fromString(base)
-        case OnnxModelFile(base, Some(data)) =>
-          Json.obj("base" -> Json.fromString(base), "data" -> Json.fromString(data))
-      }
-
-      given onnxModelDecoder: Decoder[OnnxModelFile] = Decoder.instance(c =>
-        c.as[String] match {
-          case Right(value) => Right(OnnxModelFile(value))
-          case Left(_) =>
-            for {
-              base <- c.downField("base").as[String]
-              data <- c.downField("data").as[Option[String]]
-            } yield {
-              OnnxModelFile(base, data)
-            }
-        }
-      )
-    }
 
     def apply(model: ModelHandle) =
       new OnnxEmbeddingInferenceModelConfig(model, pooling = PoolingType(model), prompt = PromptConfig(model))
@@ -129,9 +106,9 @@ object OnnxEmbedModel extends Logging {
       cache: ModelFileCache
   ): Resource[IO, EmbedModel] = for {
     hf <- HuggingFaceClient.create(cache)
-    (model, data, vocab, config) <- Resource.eval(for {
+    (model, vocab, config) <- Resource.eval(for {
       card      <- hf.model(handle)
-      modelFile <- chooseModelFile(card.siblings.map(_.rfilename), conf.file)
+      modelFile <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), conf.file)
       tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
         BackendError("Cannot find tokenizer.json in repo")
       )
@@ -146,7 +123,7 @@ object OnnxEmbedModel extends Logging {
         .getCached(handle, CONFIG_FILE)
         .flatMap(path => IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path))))
     } yield {
-      (modelPath, maybeModelDataPath, vocabPath, config)
+      (modelPath, vocabPath, config)
     })
     onnxEmbedder <- OnnxEmbedModel.create(
       model = model,
@@ -159,10 +136,10 @@ object OnnxEmbedModel extends Logging {
   }
   def createLocal(handle: LocalModelHandle, conf: OnnxEmbeddingInferenceModelConfig): Resource[IO, EmbedModel] = {
     for {
-      (model, modelData, vocab, config) <- Resource.eval(for {
+      (model, vocab, config) <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))
         files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
-        modelFile <- chooseModelFile(files, conf.file)
+        modelFile <- OnnxModelFile.chooseModelFile(files, conf.file)
         tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
           BackendError("cannot find tokenizer.json file in dir")
         )
@@ -171,7 +148,6 @@ object OnnxEmbedModel extends Logging {
       } yield {
         (
           path.toNioPath.resolve(modelFile.base),
-          modelFile.data.map(path.toNioPath.resolve),
           path.toNioPath.resolve(tokenizerFile),
           config
         )
@@ -185,38 +161,6 @@ object OnnxEmbedModel extends Logging {
     } yield {
       onnxEmbedder
     }
-  }
-
-  val DEFAULT_MODEL_FILES = Set(
-    "model_quantized.onnx",
-    "model_opt0_QInt8.onnx",
-    "model_opt2_QInt8.onnx",
-    "model.onnx"
-  )
-
-  val DEFAULT_MODEL_EXT = Set("onnx", "onnx_data")
-  def chooseModelFile(files: List[String], forced: Option[OnnxModelFile]): IO[OnnxModelFile] = {
-    forced match {
-      case Some(f) => IO.pure(f)
-      case None =>
-        files.filter(_.endsWith(".onnx")) match {
-          case Nil => IO.raiseError(UserError(s"no ONNX files found in the repo. files=$files"))
-          case base :: other =>
-            if (other.nonEmpty) {
-              logger.warn(s"multiple ONNX files found in the repo: choosing $base (and ignoring $other)")
-              logger.warn(
-                "If you want to use another ONNX file, please set inference.embedding.<name>.file with desired file name"
-              )
-            }
-            val dataFile = s"${base}_data"
-            if (files.contains(dataFile)) {
-              IO.pure(OnnxModelFile(base, Some(dataFile)))
-            } else {
-              IO.pure(OnnxModelFile(base))
-            }
-        }
-    }
-
   }
 
   def create(

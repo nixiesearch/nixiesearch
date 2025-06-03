@@ -1,7 +1,7 @@
 package ai.nixiesearch.e2e
 
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
-import ai.nixiesearch.core.nn.model.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.{Query, Raw}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel

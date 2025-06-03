@@ -4,8 +4,8 @@ import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, PromptConfig}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
-import ai.nixiesearch.core.nn.model.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.{Document, Query}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig

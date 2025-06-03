@@ -7,8 +7,8 @@ import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
+import ai.nixiesearch.core.nn.huggingface.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel
-import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.util.GPUUtils
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*

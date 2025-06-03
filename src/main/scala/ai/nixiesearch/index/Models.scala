@@ -1,7 +1,7 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
-import ai.nixiesearch.core.nn.model.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict
 import cats.effect.IO
