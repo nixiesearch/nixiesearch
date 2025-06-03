@@ -22,7 +22,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val handle = HuggingFaceHandle("sentence-transformers", "all-MiniLM-L6-v2")
     val config = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
+      .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
     val query = embedder.encode(Query, List("How many people live in Berlin?")).compile.toList.unsafeRunSync()
@@ -48,7 +48,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val handle = HuggingFaceHandle("intfloat", "multilingual-e5-base")
     val config = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
+      .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated
       .unsafeRunSync()
     val result = embedder.encode(Query, List("test")).compile.toList.unsafeRunSync()

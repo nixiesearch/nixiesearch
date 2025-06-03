@@ -48,9 +48,8 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging 
 }
 
 object EmbedModelDict extends Logging {
-  
 
-  case class TransformersConfig(hidden_size: Int, model_type: Option[String])
+  case class TransformersConfig(hidden_size: Int, model_type: Option[String] = None)
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder
 
   def create(
@@ -60,16 +59,9 @@ object EmbedModelDict extends Logging {
     for {
       encoders <- models.toList.map {
         case (name: ModelRef, conf: OnnxEmbeddingInferenceModelConfig) =>
-          conf.model match {
-            case handle: HuggingFaceHandle =>
-              OnnxEmbedModel
-                .createHuggingface(handle, conf, localFileCache)
-                .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
-            case handle: LocalModelHandle =>
-              OnnxEmbedModel
-                .createLocal(handle, conf)
-                .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
-          }
+          OnnxEmbedModel
+            .create(conf.model, conf, localFileCache)
+            .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
         case (name: ModelRef, conf: OpenAIEmbeddingInferenceModelConfig) =>
           OpenAIEmbedModel
             .create(conf)

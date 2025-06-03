@@ -50,7 +50,7 @@ object EmbeddingInferenceEndToEndTest {
     val handle = HuggingFaceHandle(parts(0), parts(1))
     val config = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
-      .createHuggingface(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
+      .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
     val result = embedder.encode(Raw, List(text)).compile.toList.unsafeRunSync()

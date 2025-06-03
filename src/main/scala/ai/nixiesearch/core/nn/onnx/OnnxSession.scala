@@ -7,6 +7,7 @@ import ai.nixiesearch.core.nn.ModelHandle
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.huggingface.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict.TransformersConfig
+import ai.nixiesearch.core.nn.onnx.OnnxConfig.Device
 import ai.onnxruntime.{OrtEnvironment, OrtLoggingLevel, OrtSession}
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
@@ -14,10 +15,16 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.circe.parser.*
 import fs2.io.file.Path as Fs2Path
+
 import scala.jdk.CollectionConverters.*
 import java.nio.file.{Files, Path}
 
-case class OnnxSession(env: OrtEnvironment, session: OrtSession, tokenizer: HuggingFaceTokenizer)
+case class OnnxSession(
+    env: OrtEnvironment,
+    session: OrtSession,
+    tokenizer: HuggingFaceTokenizer,
+    config: TransformersConfig
+)
 
 object OnnxSession extends Logging {
   val ONNX_THREADS_DEFAULT = Runtime.getRuntime.availableProcessors()
@@ -25,28 +32,22 @@ object OnnxSession extends Logging {
 
   def fromHandle(
       handle: ModelHandle,
-      file: Option[OnnxModelFile],
       cache: ModelFileCache,
-      gpu: Boolean = false,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      maxTokens: Int = 512
+      config: OnnxConfig
   ): Resource[IO, OnnxSession] = handle match {
-    case hf: HuggingFaceHandle => fromHuggingface(hf, file, cache, gpu, threads, maxTokens)
-    case l: LocalModelHandle   => fromLocal(l, file, gpu, threads, maxTokens)
+    case hf: HuggingFaceHandle => fromHuggingface(hf, cache, config)
+    case l: LocalModelHandle   => fromLocal(l, config)
   }
 
   def fromHuggingface(
       handle: HuggingFaceHandle,
-      file: Option[OnnxModelFile],
       cache: ModelFileCache,
-      gpu: Boolean = false,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      maxTokens: Int = 512
+      onnxConfig: OnnxConfig
   ): Resource[IO, OnnxSession] = for {
     hf <- HuggingFaceClient.create(cache)
-    (model, vocab, config) <- Resource.eval(for {
+    (model, vocab, modelConfig) <- Resource.eval(for {
       card      <- hf.model(handle)
-      modelFile <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), file)
+      modelFile <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), onnxConfig.file)
       tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
         BackendError("Cannot find tokenizer.json in repo")
       )
@@ -57,43 +58,40 @@ object OnnxSession extends Logging {
         case Some(data) => hf.getCached(handle, data).map(Option.apply)
       }
       vocabPath <- hf.getCached(handle, tokenizerFile)
-      config <- hf
+      modelConfig <- hf
         .getCached(handle, CONFIG_FILE)
         .flatMap(path => IO.fromEither(decode[TransformersConfig](Files.readString(path))))
 
     } yield {
-      (modelPath, vocabPath, config)
+      (modelPath, vocabPath, modelConfig)
     })
-    session <- create(model, vocab, gpu, threads, maxTokens)
+    session <- create(model, vocab, onnxConfig, modelConfig)
   } yield {
     session
   }
 
   def fromLocal(
       handle: LocalModelHandle,
-      file: Option[OnnxModelFile],
-      gpu: Boolean = false,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      maxTokens: Int = 512
+      onnxConfig: OnnxConfig
   ): Resource[IO, OnnxSession] = {
     for {
-      (model, vocab, config) <- Resource.eval(for {
+      (model, vocab, modelConfig) <- Resource.eval(for {
         path      <- IO(Fs2Path(handle.dir))
         files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
-        modelFile <- OnnxModelFile.chooseModelFile(files, file)
+        modelFile <- OnnxModelFile.chooseModelFile(files, onnxConfig.file)
         tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
           BackendError("cannot find tokenizer.json file in dir")
         )
-        _      <- info(s"loading $modelFile from $handle")
-        config <- IO.fromEither(decode[TransformersConfig](Files.readString(path.toNioPath.resolve(CONFIG_FILE))))
+        _           <- info(s"loading $modelFile from $handle")
+        modelConfig <- IO.fromEither(decode[TransformersConfig](Files.readString(path.toNioPath.resolve(CONFIG_FILE))))
       } yield {
         (
           path.toNioPath.resolve(modelFile.base),
           path.toNioPath.resolve(tokenizerFile),
-          config
+          modelConfig
         )
       })
-      session <- create(model, vocab, gpu, threads, maxTokens)
+      session <- create(model, vocab, onnxConfig, modelConfig)
     } yield {
       session
     }
@@ -102,33 +100,36 @@ object OnnxSession extends Logging {
   def create(
       model: Path,
       dic: Path,
-      gpu: Boolean = false,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      maxTokens: Int = 512
+      onnxConfig: OnnxConfig,
+      modelConfig: TransformersConfig
   ): Resource[IO, OnnxSession] =
-    Resource.make(IO(createUnsafe(model, dic, gpu, threads, maxTokens)))(sess =>
+    Resource.make(IO(createUnsafe(model, dic, onnxConfig, modelConfig)))(sess =>
       info("closing ONNX session") *> IO(sess.session.close())
     )
 
   def createUnsafe(
       model: Path,
       dic: Path,
-      gpu: Boolean = false,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      maxTokens: Int = 512
+      onnxConfig: OnnxConfig,
+      modelConfig: TransformersConfig
   ) = {
     val startTime = System.currentTimeMillis()
     val tokenizer = HuggingFaceTokenizer.newInstance(
       dic,
-      Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> maxTokens.toString).asJava
+      Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> onnxConfig.maxTokens.toString).asJava
     )
     val tokenizerFinishTime = System.currentTimeMillis()
     val env                 = OrtEnvironment.getEnvironment("nixiesearch")
     val opts                = new SessionOptions()
-    opts.setIntraOpNumThreads(threads)
+    onnxConfig.device match {
+      case Device.CPU(threads) =>
+        opts.setIntraOpNumThreads(threads)
+      case Device.CUDA(id) =>
+        opts.addCUDA(id)
+    }
+
     opts.setOptimizationLevel(OptLevel.ALL_OPT)
     if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
-    if (gpu) opts.addCUDA(0)
 
     val session           = env.createSession(model.toString, opts)
     val inputs            = session.getInputNames.asScala.toList
@@ -137,6 +138,6 @@ object OnnxSession extends Logging {
     logger.info(
       s"Loaded ONNX model: inputs=$inputs outputs=$outputs tokenizer=${tokenizerFinishTime - startTime}ms session=${sessionFinishTime - tokenizerFinishTime}ms"
     )
-    OnnxSession(env, session, tokenizer)
+    OnnxSession(env, session, tokenizer, modelConfig)
   }
 }

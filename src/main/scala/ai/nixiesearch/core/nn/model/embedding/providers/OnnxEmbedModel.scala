@@ -15,7 +15,9 @@ import ai.nixiesearch.core.nn.model.embedding.cache.MemoryCachedEmbedModel
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{OnnxEmbeddingInferenceModelConfig, PoolingType}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.{EmbedModel, EmbedModelDict, EmbedPooling}
-import ai.nixiesearch.core.nn.onnx.OnnxModelFile
+import ai.nixiesearch.core.nn.onnx.OnnxConfig.Device
+import ai.nixiesearch.core.nn.onnx.{OnnxConfig, OnnxModelFile, OnnxSession}
+import ai.nixiesearch.core.nn.onnx.OnnxSession.{CONFIG_FILE, ONNX_THREADS_DEFAULT}
 import ai.nixiesearch.util.GPUUtils
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
@@ -92,123 +94,134 @@ object OnnxEmbedModel extends Logging {
       normalize: Boolean = true,
       maxTokens: Int = 512,
       batchSize: Int = 32,
-      cache: EmbedCacheConfig = MemoryCacheConfig()
+      cache: EmbedCacheConfig = MemoryCacheConfig(),
+      device: Device = Device.CPU()
   ) extends EmbeddingInferenceModelConfig
+      with OnnxConfig
   object OnnxEmbeddingInferenceModelConfig {
 
     def apply(model: ModelHandle) =
       new OnnxEmbeddingInferenceModelConfig(model, pooling = PoolingType(model), prompt = PromptConfig(model))
   }
 
-  def createHuggingface(
-      handle: HuggingFaceHandle,
-      conf: OnnxEmbeddingInferenceModelConfig,
-      cache: ModelFileCache
-  ): Resource[IO, EmbedModel] = for {
-    hf <- HuggingFaceClient.create(cache)
-    (model, vocab, config) <- Resource.eval(for {
-      card      <- hf.model(handle)
-      modelFile <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), conf.file)
-      tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
-        BackendError("Cannot find tokenizer.json in repo")
-      )
-      _         <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
-      modelPath <- hf.getCached(handle, modelFile.base)
-      maybeModelDataPath <- modelFile.data match {
-        case None       => IO.none
-        case Some(data) => hf.getCached(handle, data).map(Option.apply)
-      }
-      vocabPath <- hf.getCached(handle, tokenizerFile)
-      config <- hf
-        .getCached(handle, CONFIG_FILE)
-        .flatMap(path => IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path))))
-    } yield {
-      (modelPath, vocabPath, config)
-    })
-    onnxEmbedder <- OnnxEmbedModel.create(
-      model = model,
-      dic = vocab,
-      dim = config.hidden_size,
-      config = conf
-    )
-  } yield {
-    onnxEmbedder
-  }
-  def createLocal(handle: LocalModelHandle, conf: OnnxEmbeddingInferenceModelConfig): Resource[IO, EmbedModel] = {
-    for {
-      (model, vocab, config) <- Resource.eval(for {
-        path      <- IO(Fs2Path(handle.dir))
-        files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
-        modelFile <- OnnxModelFile.chooseModelFile(files, conf.file)
-        tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
-          BackendError("cannot find tokenizer.json file in dir")
-        )
-        _      <- info(s"loading $modelFile from $handle")
-        config <- IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path.toNioPath.resolve(CONFIG_FILE))))
-      } yield {
-        (
-          path.toNioPath.resolve(modelFile.base),
-          path.toNioPath.resolve(tokenizerFile),
-          config
-        )
-      })
-      onnxEmbedder <- OnnxEmbedModel.create(
-        model = model,
-        dic = vocab,
-        dim = config.hidden_size,
-        config = conf
-      )
-    } yield {
-      onnxEmbedder
-    }
-  }
+//  def createHuggingface(
+//      handle: HuggingFaceHandle,
+//      conf: OnnxEmbeddingInferenceModelConfig,
+//      cache: ModelFileCache
+//  ): Resource[IO, EmbedModel] = for {
+//    hf <- HuggingFaceClient.create(cache)
+//    (model, vocab, config) <- Resource.eval(for {
+//      card      <- hf.model(handle)
+//      modelFile <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), conf.file)
+//      tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
+//        BackendError("Cannot find tokenizer.json in repo")
+//      )
+//      _         <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
+//      modelPath <- hf.getCached(handle, modelFile.base)
+//      maybeModelDataPath <- modelFile.data match {
+//        case None       => IO.none
+//        case Some(data) => hf.getCached(handle, data).map(Option.apply)
+//      }
+//      vocabPath <- hf.getCached(handle, tokenizerFile)
+//      config <- hf
+//        .getCached(handle, CONFIG_FILE)
+//        .flatMap(path => IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path))))
+//    } yield {
+//      (modelPath, vocabPath, config)
+//    })
+//    onnxEmbedder <- OnnxEmbedModel.create(
+//      model = model,
+//      dic = vocab,
+//      dim = config.hidden_size,
+//      config = conf
+//    )
+//  } yield {
+//    onnxEmbedder
+//  }
+//  def createLocal(handle: LocalModelHandle, conf: OnnxEmbeddingInferenceModelConfig): Resource[IO, EmbedModel] = {
+//    for {
+//      (model, vocab, config) <- Resource.eval(for {
+//        path      <- IO(Fs2Path(handle.dir))
+//        files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
+//        modelFile <- OnnxModelFile.chooseModelFile(files, conf.file)
+//        tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
+//          BackendError("cannot find tokenizer.json file in dir")
+//        )
+//        _      <- info(s"loading $modelFile from $handle")
+//        config <- IO.fromEither(decode[TransformersConfig](NIOFiles.readString(path.toNioPath.resolve(CONFIG_FILE))))
+//      } yield {
+//        (
+//          path.toNioPath.resolve(modelFile.base),
+//          path.toNioPath.resolve(tokenizerFile),
+//          config
+//        )
+//      })
+//      onnxEmbedder <- OnnxEmbedModel.create(
+//        model = model,
+//        dic = vocab,
+//        dim = config.hidden_size,
+//        config = conf
+//      )
+//    } yield {
+//      onnxEmbedder
+//    }
+//  }
 
   def create(
-      model: Path,
-      dic: Path,
-      dim: Int,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      config: OnnxEmbeddingInferenceModelConfig
-  ): Resource[IO, OnnxEmbedModel] = for {
-    isGPUBuild <- Resource.eval(IO(GPUUtils.isGPUBuild()))
-    _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
-    model <- Resource.make(
-      IO(createUnsafe(model, dic, dim, isGPUBuild, threads, config))
-    )(e => debug(s"closing ONNX session ${config.model}") *> IO(e.session.close()))
-  } yield {
-    model
+      handle: ModelHandle,
+      conf: OnnxEmbeddingInferenceModelConfig,
+      cache: ModelFileCache
+  ): Resource[IO, OnnxEmbedModel] = {
+    ??? /// OnnxSession.fromHandle(handle, cache, conf)
+
   }
 
-  def createUnsafe(
-      model: Path,
-      dic: Path,
-      dim: Int,
-      gpu: Boolean = false,
-      threads: Int = ONNX_THREADS_DEFAULT,
-      config: OnnxEmbeddingInferenceModelConfig
-  ) = {
-    val startTime = System.currentTimeMillis()
-    val tokenizer = HuggingFaceTokenizer.newInstance(
-      dic,
-      Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> config.maxTokens.toString).asJava
-    )
-    val tokenizerFinishTime = System.currentTimeMillis()
-    val env                 = OrtEnvironment.getEnvironment("sbert")
-    val opts                = new SessionOptions()
-    opts.setIntraOpNumThreads(threads)
-    opts.setOptimizationLevel(OptLevel.ALL_OPT)
-    if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
-    if (gpu) opts.addCUDA(0)
-
-    val session           = env.createSession(model.toString, opts)
-    val inputs            = session.getInputNames.asScala.toList
-    val outputs           = session.getOutputNames.asScala.toList
-    val sessionFinishTime = System.currentTimeMillis()
-    logger.info(
-      s"Loaded ONNX model: inputs=$inputs outputs=$outputs dim=$dim tokenizer=${tokenizerFinishTime - startTime}ms session=${sessionFinishTime - tokenizerFinishTime}ms"
-    )
-    OnnxEmbedModel(env, session, tokenizer, dim, inputs, config)
-  }
+//  def create(
+//      model: Path,
+//      dic: Path,
+//      dim: Int,
+//      threads: Int = ONNX_THREADS_DEFAULT,
+//      config: OnnxEmbeddingInferenceModelConfig
+//  ): Resource[IO, OnnxEmbedModel] = for {
+//    isGPUBuild <- Resource.eval(IO(GPUUtils.isGPUBuild()))
+//    _          <- Resource.eval(IO.whenA(isGPUBuild)(info(s"Embedding model scheduled for GPU inference")))
+//    model <- Resource.make(
+//      IO(createUnsafe(model, dic, dim, isGPUBuild, threads, config))
+//    )(e => debug(s"closing ONNX session ${config.model}") *> IO(e.session.close()))
+//  } yield {
+//    model
+//  }
+//
+//  def createUnsafe(
+//      model: Path,
+//      dic: Path,
+//      dim: Int,
+//      gpu: Boolean = false,
+//      threads: Int = ONNX_THREADS_DEFAULT,
+//      config: OnnxEmbeddingInferenceModelConfig
+//  ) = {
+//    val startTime = System.currentTimeMillis()
+//    val tokenizer = HuggingFaceTokenizer.newInstance(
+//      dic,
+//      Map("padding" -> "true", "truncation" -> "true", "modelMaxLength" -> config.maxTokens.toString).asJava
+//    )
+//    val tokenizerFinishTime = System.currentTimeMillis()
+//    val env                 = OrtEnvironment.getEnvironment("sbert")
+//    val opts                = new SessionOptions()
+//    opts.setIntraOpNumThreads(threads)
+//    opts.setOptimizationLevel(OptLevel.ALL_OPT)
+//    if (logger.isDebugEnabled) opts.setSessionLogLevel(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE)
+//    if (gpu) opts.addCUDA(0)
+//
+//    val session           = env.createSession(model.toString, opts)
+//    val inputs            = session.getInputNames.asScala.toList
+//    val outputs           = session.getOutputNames.asScala.toList
+//    val sessionFinishTime = System.currentTimeMillis()
+//    logger.info(
+//      s"Loaded ONNX model: inputs=$inputs outputs=$outputs dim=$dim tokenizer=${tokenizerFinishTime - startTime}ms session=${sessionFinishTime - tokenizerFinishTime}ms"
+//    )
+//    OnnxEmbedModel(env, session, tokenizer, dim, inputs, config)
+//  }
 
   given onnxEmbeddingConfigEncoder: Encoder[OnnxEmbeddingInferenceModelConfig] = deriveEncoder
 
@@ -222,6 +235,7 @@ object OnnxEmbedModel extends Logging {
       pooling   <- c.downField("pooling").as[Option[PoolingType]]
       normalize <- c.downField("normalize").as[Option[Boolean]]
       cache     <- c.downField("cache").as[Option[EmbedCacheConfig]]
+      device    <- c.downField("device").as[Option[Device]]
     } yield {
       OnnxEmbeddingInferenceModelConfig(
         model,
@@ -231,7 +245,8 @@ object OnnxEmbedModel extends Logging {
         batchSize = batchSize.getOrElse(32),
         pooling = pooling.getOrElse(PoolingType(model)),
         normalize = normalize.getOrElse(true),
-        cache = cache.getOrElse(MemoryCacheConfig())
+        cache = cache.getOrElse(MemoryCacheConfig()),
+        device = device.getOrElse(Device.CPU())
       )
     }
   )
