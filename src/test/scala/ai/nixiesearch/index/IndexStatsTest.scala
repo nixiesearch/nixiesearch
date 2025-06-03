@@ -66,7 +66,7 @@ class IndexStatsTest extends SearchTest with Matchers {
               ),
               384,
               "FLOAT32",
-              "COSINE"
+              "DOT_PRODUCT"
             ),
             FieldStats(
               "title$suggest",
