@@ -16,7 +16,7 @@ import java.io.{ByteArrayOutputStream, OutputStreamWriter}
 import java.nio.ByteBuffer
 
 case class MetricsRoute(metrics: Metrics) {
-  lazy val format = new PrometheusTextFormatWriter(false)
+  lazy val format = PrometheusTextFormatWriter.create()
 
   val routes = HttpRoutes.of[IO] { case GET -> Root / "metrics" =>
     for {
