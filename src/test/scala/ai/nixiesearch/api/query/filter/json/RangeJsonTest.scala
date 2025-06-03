@@ -35,7 +35,8 @@ class RangeJsonTest extends AnyFlatSpec with Matchers {
   }
 
   it should "encode gte/lte range" in {
-    val result = RangePredicate("price", Gte(10.0), Lte(100.0)).asJson(RangePredicate.rangePredicateEncoder).noSpaces
+    val result =
+      RangePredicate("price", Gte(10.0), Lte(100.0)).asJson(using RangePredicate.rangePredicateEncoder).noSpaces
     result shouldBe """{"price":{"gte":10.0,"lte":100.0}}"""
   }
 }

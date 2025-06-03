@@ -12,7 +12,12 @@ import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
 import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.cache.{CachedEmbedModel, MemoryCachedEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
-import ai.nixiesearch.core.nn.model.embedding.providers.{CohereEmbedModel, OnnxEmbedModel, OpenAIEmbedModel}
+import ai.nixiesearch.core.nn.model.embedding.providers.{
+  CohereEmbedModel,
+  EmbedModelProvider,
+  OnnxEmbedModel,
+  OpenAIEmbedModel
+}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
 import cats.effect
@@ -73,6 +78,10 @@ object EmbedModelDict extends Logging {
           CohereEmbedModel
             .create(conf)
             .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
+        case (name: ModelRef, other) =>
+          Resource.raiseError[IO, (ModelRef, EmbedModel), Throwable](
+            BackendError(s"Don't know how to init, $other embed model, this is a bug!")
+          )
       }.sequence
     } yield {
       EmbedModelDict(encoders.toMap)
