@@ -44,6 +44,7 @@ schema:
             m: 16
             quantize: float32
             workers: 4
+            distance: dot
 ```
 
 Fields:
@@ -51,6 +52,7 @@ Fields:
 * `ef` and `m`: HNSW index parameters. The higher these values, the better the search recall at the cost of performance.
 * `quantize` (optional, `float32`/`int8`/`int4`/`int1`, default `float32`): index quantization level. `int8` saves 4x RAM and disk but at the cost of worse recall.
 * `workers` (optional, int, default is same as number of CPUs in the system): how many background workers to use for HNSW indexing operations.
+* `distance` (optional, `dot`/`cosine`, default `dot`): which embedding distance function to use. `dot` is faster (and mathematically equals to `cosine`) if your embeddings are normalized (see [embedding inference](../../inference/embeddings.md#configuration-file) section for details) 
 
 ## Operations on text fields
 

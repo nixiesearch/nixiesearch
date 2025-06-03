@@ -60,8 +60,13 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
 
     spec.search.semantic.foreach(conf =>
       field.embedding match {
-        case Some(embed) => buffer.add(new KnnFloatVectorField(field.name, embed, VectorSimilarityFunction.COSINE))
-        case None        => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
+        case Some(embed) =>
+          val similarityFunction = conf.distance match {
+            case Distance.Cosine => VectorSimilarityFunction.COSINE
+            case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
+          }
+          buffer.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
+        case None => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
       }
     )
 
