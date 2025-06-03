@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.SearchParams.Distance
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec
@@ -57,11 +58,16 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
         buffer.add(new org.apache.lucene.document.TextField(field.name, searchTrimmed, Store.NO))
       }
       for {
-        conf          <- spec.search.semantic
+        conf <- spec.search.semantic
+        similarityFunction = conf.distance match {
+          case Distance.Cosine => VectorSimilarityFunction.COSINE
+          case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
+        }
+
         embeds        <- field.embeddings
         (text, embed) <- field.value.zip(embeds)
       } {
-        buffer.add(new KnnFloatVectorField(field.name, embed, VectorSimilarityFunction.COSINE))
+        buffer.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
       }
 
       spec.suggest.foreach(schema => {

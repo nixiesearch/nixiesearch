@@ -1,7 +1,8 @@
 package ai.nixiesearch.config.mapping
 
+import ai.nixiesearch.config.mapping.SearchParams.Distance.{Cosine, Dot}
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore.Float32
-import ai.nixiesearch.config.mapping.SearchParams.{SemanticParams, LexicalParams}
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
@@ -20,7 +21,8 @@ object SearchParams {
       ef: Int = 32,
       m: Int = 16,
       workers: Int = Runtime.getRuntime.availableProcessors(),
-      quantize: QuantStore = Float32
+      quantize: QuantStore = Float32,
+      distance: Distance = Dot
   )
 
   enum QuantStore(val alias: String) {
@@ -37,7 +39,17 @@ object SearchParams {
     case QuantStore.Int8.alias    => Success(QuantStore.Int8)
     case QuantStore.Int4.alias    => Success(QuantStore.Int4)
     case QuantStore.Int1.alias    => Success(QuantStore.Int1)
-    case other                    => Failure(UserError(s"cannot decode quant method $other"))
+    case other => Failure(UserError(s"cannot decode quant method '$other': we support int1/int4/int8/float32"))
+  }
+  enum Distance(val alias: String) {
+    case Cosine extends Distance("cosine")
+    case Dot    extends Distance("dot")
+  }
+  given distanceEncoder: Encoder[Distance] = Encoder.encodeString.contramap(_.alias)
+  given distanceDecoder: Decoder[Distance] = Decoder.decodeString.emapTry {
+    case Distance.Cosine.alias => Success(Cosine)
+    case Distance.Dot.alias    => Success(Dot)
+    case other                 => Failure(UserError(s"cannot decode distance function '$other': we support cosine/dot"))
   }
   given embeddingSearchParamsEncoder: Encoder[SemanticParams] = deriveEncoder
   given embeddingSearchParamsDecoder: Decoder[SemanticParams] = Decoder.instance(c =>
@@ -47,13 +59,15 @@ object SearchParams {
       m        <- c.downField("m").as[Option[Int]]
       workers  <- c.downField("workers").as[Option[Int]]
       quantize <- c.downField("quantize").as[Option[QuantStore]]
+      distance <- c.downField("distance").as[Option[Distance]]
     } yield {
       SemanticParams(
         model = model,
         ef = ef.getOrElse(32),
         m = m.getOrElse(16),
         workers = workers.getOrElse(Runtime.getRuntime.availableProcessors()),
-        quantize = quantize.getOrElse(Float32)
+        quantize = quantize.getOrElse(Float32),
+        distance = distance.getOrElse(Dot)
       )
     }
   )
