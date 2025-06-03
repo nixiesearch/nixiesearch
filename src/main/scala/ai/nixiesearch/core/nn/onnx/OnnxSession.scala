@@ -8,6 +8,7 @@ import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.huggingface.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict.TransformersConfig
 import ai.nixiesearch.core.nn.onnx.OnnxConfig.Device
+import ai.nixiesearch.util.GPUUtils
 import ai.onnxruntime.{OrtEnvironment, OrtLoggingLevel, OrtSession}
 import ai.onnxruntime.OrtSession.SessionOptions
 import ai.onnxruntime.OrtSession.SessionOptions.OptLevel
@@ -102,10 +103,13 @@ object OnnxSession extends Logging {
       dic: Path,
       onnxConfig: OnnxConfig,
       modelConfig: TransformersConfig
-  ): Resource[IO, OnnxSession] =
-    Resource.make(IO(createUnsafe(model, dic, onnxConfig, modelConfig)))(sess =>
+  ): Resource[IO, OnnxSession] = for {
+    session <- Resource.make(IO(createUnsafe(model, dic, onnxConfig, modelConfig)))(sess =>
       info("closing ONNX session") *> IO(sess.session.close())
     )
+  } yield {
+    session
+  }
 
   def createUnsafe(
       model: Path,

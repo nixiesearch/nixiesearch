@@ -16,6 +16,7 @@ object OnnxConfig {
   enum Device {
     case CPU(threads: Int = OnnxSession.ONNX_THREADS_DEFAULT) extends Device
     case CUDA(id: Int)                                        extends Device
+
   }
 
   given deviceEncoder: Encoder[Device] = Encoder.encodeString.contramap {
