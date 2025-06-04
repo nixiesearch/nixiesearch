@@ -1,20 +1,24 @@
 package ai.nixiesearch.core.nn.model.ranking
 
+import ai.nixiesearch.core.nn.ModelRef
 import cats.effect.IO
 import fs2.{Chunk, Stream}
 
-sealed trait RankModel {
+trait RankModel {
   def model: String
   def provider: String
   def batchSize: Int
 
-  def encode(query: String, docs: List[String]): IO[List[Float]] = Stream
+  def score(query: String, docs: List[String]): IO[List[Float]] = Stream
     .emits(docs)
     .chunkN(batchSize)
-    .evalMap(batch => encodeBatch(query, batch.toList).map(batch => Chunk.from(batch)))
+    .evalMap(batch => scoreBatch(query, batch.toList).map(batch => Chunk.from(batch)))
     .unchunks
     .compile
     .toList
 
-  def encodeBatch(query: String, docs: List[String]): IO[List[Float]]
+  def scoreBatch(query: String, docs: List[String]): IO[List[Float]]
+}
+
+object RankModel {
 }

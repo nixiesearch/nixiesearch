@@ -149,6 +149,7 @@ nav:
                 - dis_max: features/search/query/retrieve/dis_max.md
             - Rank:
                 - RRF: features/search/query/rank/rrf.md
+                - Cross-Encoders: features/search/query/rank/ce.md
           - Filters: features/search/filter.md
           - Facets: features/search/facet.md
           - Sorting: features/search/sort.md

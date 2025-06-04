@@ -17,7 +17,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.MergedFacetCollector
-import ai.nixiesearch.index.Searcher
+import ai.nixiesearch.index.{Models, Searcher}
 import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
@@ -27,31 +27,18 @@ import cats.syntax.all.*
 
 trait RerankQuery extends Query {
   def window: Option[Int]
-  def queries: List[Query]
-  def combine(docs: List[TopDocs], size: Int): IO[TopDocs]
 
-  override def topDocs(
-      mapping: IndexMapping,
-      readers: Readers,
-      sort: List[SearchRoute.SortPredicate],
-      filter: Option[Filters],
-      encoders: EmbedModelDict,
-      aggs: Option[Aggs],
-      size: Int
-  ): IO[Searcher.TopDocsWithFacets] = for {
-    queryTopDocs <- queries.traverse(_.topDocs(mapping, readers, sort, filter, encoders, aggs, window.getOrElse(size)))
-    facets       <- IO(MergedFacetCollector(queryTopDocs.map(_.facets), aggs))
-    merged       <- combine(queryTopDocs.map(_.docs), size)
-  } yield {
-    TopDocsWithFacets(merged, facets)
-  }
 }
 
 object RerankQuery {
-  val supportedTypes = Set("rrf")
+  case class ShardDoc(docid: Int, shardIndex: Int)
+  val supportedTypes = Set("rrf", "cross_encoder")
 
-  given rerankQueryEncoder: Encoder[RerankQuery] = Encoder.instance { case q: RRFQuery =>
-    Json.obj("rrf" -> RRFQuery.rrfQueryEncoder(q))
+  given rerankQueryEncoder: Encoder[RerankQuery] = Encoder.instance {
+    case q: RRFQuery =>
+      Json.obj("rrf" -> RRFQuery.rrfQueryEncoder(q))
+    case q: CEQuery =>
+      Json.obj("cross_encoder" -> CEQuery.ceQueryEncoder(q))
   }
   given rerankQueryDecoder: Decoder[RerankQuery] = Decoder.instance(c =>
     c.value.asObject match {
@@ -59,8 +46,9 @@ object RerankQuery {
         value.keys.toList match {
           case head :: Nil =>
             head match {
-              case tpe @ "rrf" => c.downField(tpe).as[RRFQuery]
-              case other       => Left(DecodingFailure(s"query type $other not supported", c.history))
+              case tpe @ "rrf"           => c.downField(tpe).as[RRFQuery]
+              case tpe @ "cross_encoder" => c.downField(tpe).as[CEQuery]
+              case other                 => Left(DecodingFailure(s"query type $other not supported", c.history))
             }
           case Nil => Left(DecodingFailure(s"query should contain a type, but got empty object", c.history))
           case other =>

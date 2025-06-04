@@ -10,7 +10,7 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.field.*
-import ai.nixiesearch.index.Searcher
+import ai.nixiesearch.index.{Models, Searcher}
 import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import ai.nixiesearch.config.mapping.FieldName.*
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
@@ -68,11 +68,11 @@ trait RetrieveQuery extends Query {
       readers: Readers,
       sort: List[SortPredicate],
       maybeFilter: Option[Filters],
-      encoders: EmbedModelDict,
+      models: Models,
       aggs: Option[Aggs],
       size: Int
   ): IO[TopDocsWithFacets] = for {
-    luceneQueryWithFilters <- compile(mapping, maybeFilter, encoders, readers.fields)
+    luceneQueryWithFilters <- compile(mapping, maybeFilter, models.embedding, readers.fields)
     topCollector <- sort match {
       case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
       case nel =>
