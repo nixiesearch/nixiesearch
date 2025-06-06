@@ -16,3 +16,6 @@ indexes
 /cache
 /docs/.cache
 llama.log
+package.json
+package-lock.json
+node_modules
