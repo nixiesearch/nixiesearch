@@ -33,9 +33,9 @@ case class RemotePathStateClient(path: JPath, indexName: IndexName) extends Stat
   override def readManifest(): IO[Option[IndexManifest]] = for {
     _            <- debug(s"reading index manifest '${IndexManifest.MANIFEST_FILE_NAME}'")
     manifestPath <- IO(path.resolve(IndexManifest.MANIFEST_FILE_NAME))
-    manifest <- Files[IO].exists(Path.fromNioPath(manifestPath)).flatMap {
+    manifest     <- Files[IO].exists(Path.fromNioPath(manifestPath)).flatMap {
       case false => IO.none
-      case true =>
+      case true  =>
         for {
           bytes <- readInputStream(IO(new FileInputStream(new File(manifestPath.toUri))), IO_BUFFER_SIZE, true).compile
             .to(Array)
@@ -66,7 +66,7 @@ case class RemotePathStateClient(path: JPath, indexName: IndexName) extends Stat
     _        <- debug(s"writing file '$filePath'")
     exists   <- Files[IO].exists(Path.fromNioPath(filePath))
     _        <- IO.whenA(exists)(Files[IO].delete(Path.fromNioPath(filePath)) *> debug(s"overwritten file '$fileName'"))
-    _ <- stream
+    _        <- stream
       .chunkN(IO_BUFFER_SIZE)
       .unchunks
       .through(writeOutputStream[IO](IO(new FileOutputStream(new File(filePath.toUri)))))

@@ -23,8 +23,8 @@ object IndexMode extends Logging {
   def run(args: IndexArgs, config: Config): IO[Unit] = for {
     _       <- info("Starting in 'index' mode with indexer only ")
     indexes <- IO(config.schema.values.toList)
-    _ <- args.source match {
-      case apiConfig: ApiIndexSourceArgs => runApi(indexes, apiConfig, config)
+    _       <- args.source match {
+      case apiConfig: ApiIndexSourceArgs   => runApi(indexes, apiConfig, config)
       case fileConfig: FileIndexSourceArgs =>
         runOffline(indexes, FileSource(fileConfig), fileConfig.index, config.core.cache, config.inference)
       case kafkaConfig: KafkaIndexSourceArgs =>
@@ -72,9 +72,9 @@ object IndexMode extends Logging {
 
   def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = {
     val server = for {
-      _       <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API"))
-      models  <- Models.create(config.inference, config.core.cache)
-      metrics <- Resource.pure(Metrics())
+      _        <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API"))
+      models   <- Models.create(config.inference, config.core.cache)
+      metrics  <- Resource.pure(Metrics())
       indexers <- indexes
         .map(im =>
           for {

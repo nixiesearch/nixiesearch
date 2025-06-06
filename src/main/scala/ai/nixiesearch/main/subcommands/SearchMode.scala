@@ -24,15 +24,15 @@ object SearchMode extends Logging {
   }
 
   def api(args: SearchArgs, config: Config): Resource[IO, Server] = for {
-    _       <- Resource.eval(info("Starting in 'search' mode with only searcher"))
-    models  <- Models.create(config.inference, config.core.cache)
-    metrics <- Resource.pure(Metrics())
+    _         <- Resource.eval(info("Starting in 'search' mode with only searcher"))
+    models    <- Models.create(config.inference, config.core.cache)
+    metrics   <- Resource.pure(Metrics())
     searchers <- config.schema.values.toList
       .map(im =>
         for {
           index    <- Index.forSearch(im, models)
           searcher <- Searcher.open(index, metrics)
-          _ <- Stream
+          _        <- Stream
             .repeatEval(index.sync().flatMap {
               case false => IO.unit
               case true  => searcher.sync()
@@ -47,7 +47,7 @@ object SearchMode extends Logging {
       )
       .sequence
     searchRoutes = searchers.map(s => SearchRoute(s).routes <+> MappingRoute(s.index).routes <+> StatsRoute(s).routes)
-    routes = List(
+    routes       = List(
       searchRoutes,
       List(HealthRoute().routes),
       List(AdminRoute(config).routes),

@@ -73,7 +73,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   }
 
   def search(request: Request[IO]): IO[Response[IO]] = for {
-    start <- IO(System.nanoTime())
+    start   <- IO(System.nanoTime())
     decoded <- IO(request.entity.length).flatMap {
       case None    => IO.pure(SearchRequest(query = MatchAllQuery()))
       case Some(0) => IO.pure(SearchRequest(query = MatchAllQuery()))
@@ -105,7 +105,7 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
 
   def searchStreaming(request: SearchRequest): Stream[IO, SearchResponseFrame] = for {
     response <- Stream.eval(searcher.search(request))
-    frame <- request.rag match {
+    frame    <- request.rag match {
       case Some(ragRequest) =>
         Stream.emit(SearchResultsFrame(response)) ++ searcher
           .rag(response.hits, ragRequest)
@@ -117,8 +117,8 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
   }
 
   def searchBlocking(request: SearchRequest): IO[SearchResponse] = for {
-    _    <- info(s"search index='${searcher.index.name}' query=$request")
-    docs <- searcher.search(request)
+    _        <- info(s"search index='${searcher.index.name}' query=$request")
+    docs     <- searcher.search(request)
     response <- request.rag match {
       case None =>
         IO.pure(docs)
@@ -187,7 +187,7 @@ object SearchRoute {
         query   <- c.downField("query").as[Option[Query]].map(_.getOrElse(MatchAllQuery()))
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]]
-        fields <- c.downField("fields").as[Option[List[FieldName]]].map {
+        fields  <- c.downField("fields").as[Option[List[FieldName]]].map {
           case Some(Nil)  => Nil
           case Some(list) => list
           case None       => Nil
@@ -409,7 +409,7 @@ object SearchRoute {
     given sortPredicateDecoder: Decoder[SortPredicate] = Decoder.instance { c =>
       {
         c.focus match {
-          case None => Left(DecodingFailure("sort object cannot be empty", c.history))
+          case None       => Left(DecodingFailure("sort object cannot be empty", c.history))
           case Some(json) =>
             json.fold(
               jsonNull = Left(DecodingFailure("sort object cannot be null", c.history)),
@@ -425,9 +425,9 @@ object SearchRoute {
                       missingOption <- c.downField(field).downField("missing").as[Option[MissingValue]]
                       latOption     <- c.downField(field).downField("lat").as[Option[Double]]
                       lonOption     <- c.downField(field).downField("lon").as[Option[Double]]
-                      sort <- (orderOption, missingOption, latOption, lonOption) match {
+                      sort          <- (orderOption, missingOption, latOption, lonOption) match {
                         case (None, None, Some(lat), Some(lon)) => Right(DistanceSort(StringName(field), lat, lon))
-                        case (None, Some(m), Some(_), Some(_)) =>
+                        case (None, Some(m), Some(_), Some(_))  =>
                           Left(DecodingFailure(s"distance sort cannot have a 'missing' option, but got $m", c.history))
                         case (Some(o), _, Some(_), Some(_)) =>
                           Left(DecodingFailure(s"distance sort cannot have an 'order' option, but got $o", c.history))

@@ -44,7 +44,7 @@ object TermAggregator {
   def aggregateString(reader: IndexReader, request: TermAggregation, facets: FacetsCollector): TermAggregationResult = {
     val state  = new StringDocValuesReaderState(reader, request.field)
     val counts = StringValueFacetCounts(state, facets)
-    val size = request.size match {
+    val size   = request.size match {
       case TermAggSize.ExactTermAggSize(value) => value
       case TermAggSize.AllTermAggSize          => MAX_TERM_FACETS
     }
@@ -54,7 +54,7 @@ object TermAggregator {
 
   def aggregateLong(reader: IndexReader, request: TermAggregation, facets: FacetsCollector): TermAggregationResult = {
     val counts = new LongValueFacetCounts(request.field, facets)
-    val size = request.size match {
+    val size   = request.size match {
       case TermAggSize.ExactTermAggSize(value) => value
       case TermAggSize.AllTermAggSize          => MAX_TERM_FACETS
     }

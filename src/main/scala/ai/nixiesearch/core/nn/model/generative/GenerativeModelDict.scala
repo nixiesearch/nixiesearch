@@ -18,7 +18,7 @@ import fs2.Stream
 case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel]) {
   def generate(name: ModelRef, input: String, maxTokens: Int): Stream[IO, String] = models.get(name) match {
     case Some(model) => model.generate(input, maxTokens)
-    case None =>
+    case None        =>
       Stream.raiseError(
         UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")
       )
@@ -32,7 +32,7 @@ case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel]) {
   ): IO[String] =
     models.get(name) match {
       case Some(model) => model.prompt(instruction, docs, maxTokensPerDoc, fields)
-      case None =>
+      case None        =>
         IO.raiseError(
           UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")
         )
@@ -62,7 +62,7 @@ object GenerativeModelDict extends Logging {
       config: LlamacppInferenceModelConfig,
       cache: ModelFileCache
   ): Resource[IO, GenerativeModel] = for {
-    hf <- HuggingFaceClient.create(cache)
+    hf        <- HuggingFaceClient.create(cache)
     modelFile <- Resource.eval(for {
       card      <- hf.model(handle)
       modelFile <- chooseModelFile(card.siblings.map(_.rfilename), config.file)
@@ -71,7 +71,7 @@ object GenerativeModelDict extends Logging {
     } yield {
       modelPath
     })
-    isGPU <- Resource.eval(IO(GPUUtils.isGPUBuild()))
+    isGPU    <- Resource.eval(IO(GPUUtils.isGPUBuild()))
     genModel <- LlamacppGenerativeModel.create(
       path = modelFile,
       options = config.options,
@@ -96,7 +96,7 @@ object GenerativeModelDict extends Logging {
       } yield {
         path.toNioPath.resolve(modelFile)
       })
-      isGPU <- Resource.eval(IO(GPUUtils.isGPUBuild()))
+      isGPU    <- Resource.eval(IO(GPUUtils.isGPUBuild()))
       genModel <- LlamacppGenerativeModel.create(
         path = modelFile,
         options = config.options,
@@ -110,7 +110,7 @@ object GenerativeModelDict extends Logging {
 
   def chooseModelFile(files: List[String], forced: Option[String]): IO[String] = forced match {
     case Some(file) => IO.pure(file)
-    case None =>
+    case None       =>
       files.find(f => f.toLowerCase().endsWith("gguf")) match {
         case Some(file) => IO.pure(file)
         case None       => IO.raiseError(UserError(s"cannot choose a GGUF model file out of this list: ${files}"))

@@ -20,7 +20,7 @@ object Size {
       size.toLowerCase() match {
         case sizePattern(numstr, unit) =>
           numstr.toDoubleOption match {
-            case None => Failure(UserError(s"cannot parse size '$size': $numstr is not a number"))
+            case None         => Failure(UserError(s"cannot parse size '$size': $numstr is not a number"))
             case Some(number) =>
               Option(unit) match {
                 case Some("kb")  => Success(Size(math.round(number * 1024L), size))

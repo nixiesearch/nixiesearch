@@ -38,7 +38,7 @@ object Config extends Logging {
         core      <- c.downField("core").as[Option[CoreConfig]].map(_.getOrElse(CoreConfig()))
         indexJson <- c.downField("schema").as[Option[Map[IndexName, Json]]].flatMap {
           case Some(map) => Right(map)
-          case _ =>
+          case _         =>
             logger.info("No index schemas found in the config file.")
             logger.info(
               "It's OK if you use Nixiesearch as an inference endpoint, but not OK if you plan to index documents"

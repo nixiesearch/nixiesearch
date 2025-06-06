@@ -33,7 +33,7 @@ object MasterIndex extends Logging {
       masterState  <- DirectoryStateClient.create(directory, configMapping.name)
       manifest     <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
       seqnum       <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
-      index <- Resource.make(
+      index        <- Resource.make(
         IO(
           MasterIndex(
             mapping = manifest.mapping,

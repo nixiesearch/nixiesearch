@@ -30,15 +30,15 @@ case class MatchQuery(field: String, query: String, operator: Operator = OR) ext
   ): IO[search.Query] =
     for {
       schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
-      _ <- schema match {
+      _      <- schema match {
         case t: TextLikeFieldSchema[?] if t.search.lexical.nonEmpty => IO.unit
-        case t: TextLikeFieldSchema[?] =>
+        case t: TextLikeFieldSchema[?]                              =>
           IO.raiseError(UserError(s"field '$field' is not lexically searchable, check the index mapping"))
         case other => IO.raiseError(UserError(s"field '$field' is not a text field"))
       }
       analyzer <- IO(mapping.analyzer.getWrappedAnalyzer(field))
       builder  <- IO.pure(new BooleanQuery.Builder())
-      _ <- IO(
+      _        <- IO(
         AnalyzedIterator(analyzer, field, query).foreach(term =>
           builder.add(new BooleanClause(new TermQuery(new Term(field, term)), operator.occur))
         )

@@ -45,7 +45,7 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
       }
     case req @ POST -> Root / "inference" / "completion" / modelName =>
       for {
-        request <- req.as[CompletionRequest]
+        request  <- req.as[CompletionRequest]
         response <- request.stream match {
           case false =>
             generateBlocking(request, ModelRef(modelName)).map(response =>
@@ -78,7 +78,7 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
     _     <- IO(metrics.inference.embedDocTotal.labelValues(modelRef.name).inc(request.input.size))
     start <- IO(System.currentTimeMillis())
     model <- IO.fromOption(models.embedding.embedders.get(modelRef))(UserError(s"model $modelRef not found"))
-    docs <- IO(
+    docs  <- IO(
       request.input.map(doc =>
         doc.`type` match {
           // hack until we migrate to openai spec
@@ -108,7 +108,7 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
     for {
       start <- Stream.eval(IO(System.currentTimeMillis()))
       _     <- Stream.eval(IO(metrics.inference.completionTotal.labelValues(modelRef.name).inc()))
-      next <- models.generative
+      next  <- models.generative
         .generate(modelRef, request.prompt, request.max_tokens)
         .through(DurationStream.pipe(System.currentTimeMillis()))
         .map { case (token, took) =>

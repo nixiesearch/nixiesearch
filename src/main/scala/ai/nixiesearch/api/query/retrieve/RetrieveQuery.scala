@@ -45,7 +45,7 @@ trait RetrieveQuery extends Query {
   ): IO[org.apache.lucene.search.Query] = maybeFilter match {
     case Some(filter) =>
       filter.toLuceneQuery(mapping).map {
-        case None => luceneQuery
+        case None              => luceneQuery
         case Some(filterQuery) =>
           val outerQuery = new BooleanQuery.Builder()
           outerQuery.add(new BooleanClause(filterQuery, Occur.FILTER))
@@ -73,7 +73,7 @@ trait RetrieveQuery extends Query {
       size: Int
   ): IO[TopDocsWithFacets] = for {
     luceneQueryWithFilters <- compile(mapping, maybeFilter, models.embedding, readers.fields)
-    topCollector <- sort match {
+    topCollector           <- sort match {
       case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
       case nel =>
         nel
@@ -124,7 +124,7 @@ trait RetrieveQuery extends Query {
 
       case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, reverse))
       case None if by.field.name == "_doc"   => IO.pure(new SortField(by.field.name, SortField.Type.DOC, reverse))
-      case None =>
+      case None                              =>
         val fieldNames = mapping.fields.keys.map(_.name).toList
         IO.raiseError(
           UserError(s"cannot sort by '${by.field.name}' as it's missing in index schema (fields=$fieldNames)")
@@ -163,7 +163,7 @@ object RetrieveQuery {
               case tpe @ "semantic"    => c.downField(tpe).as[SemanticQuery]
               case other               => Left(DecodingFailure(s"query type $other not supported", c.history))
             }
-          case Nil => Left(DecodingFailure(s"query should contain a type, but got empty object", c.history))
+          case Nil   => Left(DecodingFailure(s"query should contain a type, but got empty object", c.history))
           case other =>
             Left(DecodingFailure(s"query json object should contain exactly one key, but got $other", c.history))
         }

@@ -9,7 +9,7 @@ case class OnnxModelFile(base: String, data: Option[String] = None)
 
 object OnnxModelFile extends Logging {
   given onnxModelFileEncoder: Encoder[OnnxModelFile] = Encoder.instance {
-    case OnnxModelFile(base, None) => Json.fromString(base)
+    case OnnxModelFile(base, None)       => Json.fromString(base)
     case OnnxModelFile(base, Some(data)) =>
       Json.obj("base" -> Json.fromString(base), "data" -> Json.fromString(data))
   }
@@ -17,7 +17,7 @@ object OnnxModelFile extends Logging {
   given onnxModelDecoder: Decoder[OnnxModelFile] = Decoder.instance(c =>
     c.as[String] match {
       case Right(value) => Right(OnnxModelFile(value))
-      case Left(_) =>
+      case Left(_)      =>
         for {
           base <- c.downField("base").as[String]
           data <- c.downField("data").as[Option[String]]
@@ -30,9 +30,9 @@ object OnnxModelFile extends Logging {
   def chooseModelFile(files: List[String], forced: Option[OnnxModelFile]): IO[OnnxModelFile] = {
     forced match {
       case Some(f) => IO.pure(f)
-      case None =>
+      case None    =>
         files.filter(_.endsWith(".onnx")) match {
-          case Nil => IO.raiseError(UserError(s"no ONNX files found in the repo. files=$files"))
+          case Nil           => IO.raiseError(UserError(s"no ONNX files found in the repo. files=$files"))
           case base :: other =>
             if (other.nonEmpty) {
               logger.warn(s"multiple ONNX files found in the repo: choosing $base (and ignoring $other)")

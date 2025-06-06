@@ -53,7 +53,7 @@ case class S3Client(client: S3AsyncClient) {
 
   def listObjects(bucket: String, path: String): Stream[IO, S3File] = for {
     requestBuilder <- Stream.eval(IO(ListObjectsV2Request.builder().bucket(bucket).prefix(path)))
-    files <- Stream
+    files          <- Stream
       .unfoldLoopEval(requestBuilder.build())(request =>
         for {
           response <- IO.fromCompletableFuture(IO(client.listObjectsV2(request)))
@@ -77,8 +77,8 @@ case class S3Client(client: S3AsyncClient) {
   }
 
   def multipartUpload(bucket: String, path: String, stream: Stream[IO, Byte]) = for {
-    request <- IO(CreateMultipartUploadRequest.builder().bucket(bucket).key(path).build())
-    mpart   <- IO.fromCompletableFuture(IO(client.createMultipartUpload(request)))
+    request        <- IO(CreateMultipartUploadRequest.builder().bucket(bucket).key(path).build())
+    mpart          <- IO.fromCompletableFuture(IO(client.createMultipartUpload(request)))
     completedParts <- stream
       .chunkN(IO_BUFFER_SIZE)
       .zipWithIndex
@@ -156,7 +156,7 @@ object S3Client {
   }
 
   def create(region: String, endpoint: Option[String]): Resource[IO, S3Client] = for {
-    creds <- Resource.eval(IO(createCredentialsProvider()))
+    creds         <- Resource.eval(IO(createCredentialsProvider()))
     clientBuilder <- Resource.eval(
       IO(
         S3AsyncClient
