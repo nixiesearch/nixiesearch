@@ -210,6 +210,7 @@ Use `rank_window_size` to balance relevance and performance:
 ### Batch Size Tuning
 
 Configure batch size based on your hardware:
+
 - **CPU**: 8-32 documents per batch
 - **GPU**: 32-128 documents per batch
 - **Memory-constrained**: Reduce batch size if getting OOM errors
