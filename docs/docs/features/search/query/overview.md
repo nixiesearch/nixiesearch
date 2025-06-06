@@ -67,4 +67,5 @@ Rank operators accept one or more [search operators](#search-operators) but only
 Nixiesearch supports the following list of rank operators:
 
 * [RRF](rank/rrf.md): Reciprocal Rank Fusion, merge two search results lists based on document position.
+* [Cross-Encoder](rank/ce.md): Neural reranking model that jointly processes query-document pairs for more accurate relevance scoring.
 

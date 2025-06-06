@@ -2,7 +2,7 @@
 
 [Reciprocal Rank Fusion (RRF)](https://plg.uwaterloo.ca/%7Egvcormac/cormacksigir09-rrf.pdf) is a simple method to combine multiple search results with different search score numerical distributions into a single list.
 
-The main benefit of RRF is that it's lightweight and requires no tuning, but might provide less relevant results compared to other more computationally intensive ranking methods like [Learn-to-Rank](https://metarank.ai) and Cross-Encoders.
+The main benefit of RRF is that it's lightweight and requires no tuning, but might provide less relevant results compared to other more computationally intensive ranking methods like [Learn-to-Rank](https://metarank.ai) and [Cross-Encoders](./ce.md).
 
 The `rrf` rank operator takes two or more child sub-queries:
 

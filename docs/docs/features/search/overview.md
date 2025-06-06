@@ -157,6 +157,8 @@ While performing hybrid search, Nixiesearch does the following:
 RRF merging approach:
 
 * Does not use a document score directly (so BM25 or cosine-distance), but a document position in a result list when sorted by the score.
+
+For even better relevance, you can combine RRF results with [cross-encoder reranking](query/rank/ce.md) to get neural-powered relevance scoring on top of hybrid retrieval.
 * Scores of documents from multiple lists are combined together.
 * Final ranking is made by sorting merged document list by the combined score.
 
