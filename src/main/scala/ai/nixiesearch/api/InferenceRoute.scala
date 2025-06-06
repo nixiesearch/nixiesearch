@@ -32,7 +32,7 @@ import org.http4s.headers.`Content-Type`
 
 import scala.util.{Failure, Success}
 
-class InferenceRoute(models: Models, metrics: Metrics) extends Route with Logging {
+class InferenceRoute(models: Models) extends Route with Logging {
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> Root / "inference" / "embedding" / modelName =>
@@ -74,8 +74,6 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
   }
 
   def embed(request: EmbeddingInferenceRequest, modelRef: ModelRef): IO[EmbeddingInferenceResponse] = for {
-    _     <- IO(metrics.inference.embedTotal.labelValues(modelRef.name).inc())
-    _     <- IO(metrics.inference.embedDocTotal.labelValues(modelRef.name).inc(request.input.size))
     start <- IO(System.currentTimeMillis())
     model <- IO.fromOption(models.embedding.embedders.get(modelRef))(UserError(s"model $modelRef not found"))
     docs <- IO(
@@ -91,7 +89,6 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
     )
     results <- models.embedding.encode(modelRef, TaskType.Raw, docs)
     finish  <- IO(System.currentTimeMillis())
-    _       <- IO(metrics.inference.embedTimeSeconds.labelValues(modelRef.name).inc((finish - start) / 1000.0))
   } yield {
     EmbeddingInferenceResponse(results.toList.map(embed => EmbeddingOutput(embed)), took = finish - start)
   }
@@ -107,22 +104,14 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
   def generateStreaming(request: CompletionRequest, modelRef: ModelRef): Stream[IO, CompletionFrame] = {
     for {
       start <- Stream.eval(IO(System.currentTimeMillis()))
-      _     <- Stream.eval(IO(metrics.inference.completionTotal.labelValues(modelRef.name).inc()))
       next <- models.generative
         .generate(modelRef, request.prompt, request.max_tokens)
         .through(DurationStream.pipe(System.currentTimeMillis()))
         .map { case (token, took) =>
           CompletionFrame(token, took, false)
         }
-        .evalTap(_ => IO(metrics.inference.completionGeneratedTokensTotal.labelValues(modelRef.name).inc()))
         .through(StreamMark.pipe[CompletionFrame](tail = tok => tok.copy(last = true)))
-        .onFinalize(
-          IO(
-            metrics.inference.completionTimeSeconds
-              .labelValues(modelRef.name)
-              .inc((System.currentTimeMillis() - start) / 1000.0)
-          )
-        )
+
     } yield {
       next
     }

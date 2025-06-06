@@ -5,6 +5,7 @@ import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
 import ai.nixiesearch.config.InferenceConfig.{EmbeddingInferenceModelConfig, PromptConfig}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
@@ -33,7 +34,7 @@ import io.circe.generic.semiauto.*
 
 import java.nio.file.Files as NIOFiles
 
-case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging {
+case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel], metrics: Metrics) extends Logging {
   def encode(name: ModelRef, task: TaskType, text: String): IO[Array[Float]] =
     encode(name, task, List(text)).flatMap {
       case head :: Nil => IO.pure(head)
@@ -41,8 +42,16 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging 
     }
   def encode(name: ModelRef, task: TaskType, texts: List[String]): IO[List[Array[Float]]] =
     embedders.get(name) match {
-      case None           => IO.raiseError(UserError(s"cannot get embedding model $name"))
-      case Some(embedder) => embedder.encode(task, texts).compile.toList
+      case None => IO.raiseError(UserError(s"cannot get embedding model $name"))
+      case Some(embedder) =>
+        for {
+          _      <- IO(metrics.inference.embedTotal.labelValues(name.name).inc())
+          _      <- IO(metrics.inference.embedDocTotal.labelValues(name.name).inc(texts.size))
+          start  <- IO(System.currentTimeMillis())
+          result <- embedder.encode(task, texts).compile.toList
+          finish <- IO(System.currentTimeMillis())
+          _      <- IO(metrics.inference.embedTimeSeconds.labelValues(name.name).inc((finish - start) / 1000.0))
+        } yield result
     }
 
 }
@@ -54,7 +63,8 @@ object EmbedModelDict extends Logging {
 
   def create(
       models: Map[ModelRef, EmbeddingInferenceModelConfig],
-      localFileCache: ModelFileCache
+      localFileCache: ModelFileCache,
+      metrics: Metrics
   ): Resource[IO, EmbedModelDict] =
     for {
       encoders <- models.toList.map {
@@ -76,7 +86,7 @@ object EmbedModelDict extends Logging {
           )
       }.sequence
     } yield {
-      EmbedModelDict(encoders.toMap)
+      EmbedModelDict(encoders.toMap, metrics)
     }
 
   private def maybeCache(model: EmbedModel, cache: EmbedCacheConfig): Resource[IO, EmbedModel] = cache match {

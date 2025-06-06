@@ -45,4 +45,25 @@ case class InferenceMetrics(registry: PrometheusRegistry) {
     .help("Total embed query time in seconds")
     .labelNames("model")
     .register(registry)
+
+  val rankTotal = Counter
+    .builder()
+    .name("nixiesearch_inference_ranking_request_total")
+    .help("Total number of ranking queries")
+    .labelNames("model")
+    .register(registry)
+
+  val rankDocTotal = Counter
+    .builder()
+    .name("nixiesearch_inference_ranking_doc_total")
+    .help("Total number of ranked documents")
+    .labelNames("model")
+    .register(registry)
+
+  val rankTimeSeconds = Gauge
+    .builder()
+    .name("nixiesearch_inference_ranking_request_time_seconds")
+    .help("Total ranking query time in seconds")
+    .labelNames("model")
+    .register(registry)
 }

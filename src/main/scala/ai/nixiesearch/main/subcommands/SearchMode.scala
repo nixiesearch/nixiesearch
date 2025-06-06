@@ -25,8 +25,8 @@ object SearchMode extends Logging {
 
   def api(args: SearchArgs, config: Config): Resource[IO, Server] = for {
     _       <- Resource.eval(info("Starting in 'search' mode with only searcher"))
-    models  <- Models.create(config.inference, config.core.cache)
     metrics <- Resource.pure(Metrics())
+    models  <- Models.create(config.inference, config.core.cache, metrics)
     searchers <- config.schema.values.toList
       .map(im =>
         for {
@@ -53,7 +53,7 @@ object SearchMode extends Logging {
       List(AdminRoute(config).routes),
       List(MainRoute().routes),
       List(TypicalErrorsRoute(searchers.map(_.index.name.value)).routes),
-      List(InferenceRoute(models, metrics).routes),
+      List(InferenceRoute(models).routes),
       List(MetricsRoute(metrics).routes)
     ).flatten.reduce(_ <+> _)
     api <- API.start(routes, config.core.host, config.core.port)

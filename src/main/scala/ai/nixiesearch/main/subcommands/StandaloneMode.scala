@@ -22,11 +22,11 @@ object StandaloneMode extends Logging {
 
   def api(args: StandaloneArgs, config: Config): Resource[IO, Server] = for {
     _ <- Resource.eval(info("Starting in 'standalone' mode with indexer+searcher colocated within a single process"))
-    models <- Models.create(config.inference, config.core.cache)
+    metrics <- Resource.pure(Metrics())
+    models <- Models.create(config.inference, config.core.cache, metrics)
     indexes <- config.schema.values.toList
       .map(im => Index.local(im, models))
       .sequence
-    metrics <- Resource.pure(Metrics())
     indexers <- indexes
       .map(index => Indexer.open(index, metrics).flatTap(indexer => PeriodicFlushStream.run(index, indexer)))
       .sequence
@@ -39,7 +39,7 @@ object StandaloneMode extends Logging {
       List(AdminRoute(config).routes),
       List(MainRoute().routes),
       List(HealthRoute().routes),
-      List(InferenceRoute(models, metrics).routes),
+      List(InferenceRoute(models).routes),
       List(MetricsRoute(metrics).routes)
     ).flatten.reduce(_ <+> _)
     server <- API.start(routes, config.core.host, config.core.port)

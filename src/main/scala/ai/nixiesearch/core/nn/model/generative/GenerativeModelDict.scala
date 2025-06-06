@@ -5,6 +5,7 @@ import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.Llam
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{Document, Logging}
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.huggingface.{HuggingFaceClient, ModelFileCache}
@@ -15,9 +16,25 @@ import cats.syntax.all.*
 import fs2.io.file.Path as Fs2Path
 import fs2.Stream
 
-case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel]) {
+case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel], metrics: Metrics) {
   def generate(name: ModelRef, input: String, maxTokens: Int): Stream[IO, String] = models.get(name) match {
-    case Some(model) => model.generate(input, maxTokens)
+    case Some(model) =>
+      for {
+        _     <- Stream.eval(IO(metrics.inference.completionTotal.labelValues(name.name).inc()))
+        start <- Stream.eval(IO(System.currentTimeMillis()))
+        token <- model
+          .generate(input, maxTokens)
+          .evalTap(_ => IO(metrics.inference.completionGeneratedTokensTotal.labelValues(name.name).inc()))
+          .onFinalize(
+            IO(
+              metrics.inference.completionTimeSeconds
+                .labelValues(name.name)
+                .inc((System.currentTimeMillis() - start) / 1000.0)
+            )
+          )
+      } yield {
+        token
+      }
     case None =>
       Stream.raiseError(
         UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")
@@ -43,7 +60,8 @@ object GenerativeModelDict extends Logging {
 
   def create(
       models: Map[ModelRef, CompletionInferenceModelConfig],
-      cache: ModelFileCache
+      cache: ModelFileCache,
+      metrics: Metrics
   ): Resource[IO, GenerativeModelDict] =
     for {
       generativeModels <- models.toList.map {
@@ -53,7 +71,7 @@ object GenerativeModelDict extends Logging {
           createLocal(handle, name, conf).map(model => name -> model)
       }.sequence
     } yield {
-      GenerativeModelDict(generativeModels.toMap)
+      GenerativeModelDict(generativeModels.toMap, metrics)
     }
 
   def createHuggingface(

@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.nn.model.generative
 
 import ai.nixiesearch.config.InferenceConfig
+import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
@@ -19,7 +20,7 @@ class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
   it should "load, generate text, unload" in {
     val (cache, shutdownHandle) =
       GenerativeModelDict
-        .create(TestInferenceConfig.full().completion, fileCache)
+        .create(TestInferenceConfig.full().completion, fileCache, Metrics())
         .allocated
         .unsafeRunSync()
 
