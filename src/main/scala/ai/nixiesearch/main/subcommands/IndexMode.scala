@@ -46,7 +46,7 @@ object IndexMode extends Logging {
       )
       _       <- Resource.eval(debug(s"found index mapping for index '${indexMapping.name}'"))
       metrics <- Resource.pure(Metrics())
-      models  <- Models.create(inference, cacheConfig)
+      models  <- Models.create(inference, cacheConfig, metrics)
       index   <- Index.forIndexing(indexMapping, models)
       indexer <- Indexer.open(index, metrics)
     } yield {
@@ -73,8 +73,8 @@ object IndexMode extends Logging {
   def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = {
     val server = for {
       _       <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API"))
-      models  <- Models.create(config.inference, config.core.cache)
       metrics <- Resource.pure(Metrics())
+      models  <- Models.create(config.inference, config.core.cache, metrics)
       indexers <- indexes
         .map(im =>
           for {

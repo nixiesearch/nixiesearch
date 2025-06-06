@@ -25,8 +25,8 @@ object SearchMode extends Logging {
 
   def api(args: SearchArgs, config: Config): Resource[IO, Server] = for {
     _       <- Resource.eval(info("Starting in 'search' mode with only searcher"))
-    models  <- Models.create(config.inference, config.core.cache)
     metrics <- Resource.pure(Metrics())
+    models  <- Models.create(config.inference, config.core.cache, metrics)
     searchers <- config.schema.values.toList
       .map(im =>
         for {
