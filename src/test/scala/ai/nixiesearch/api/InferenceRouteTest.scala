@@ -17,7 +17,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response =
         send[EmbeddingInferenceRequest, EmbeddingInferenceResponse](
-          InferenceRoute(index.indexer.index.models, Metrics()).routes,
+          InferenceRoute(index.indexer.index.models).routes,
           "http://localhost/inference/embedding/text",
           Some(EmbeddingInferenceRequest(List(EmbeddingDocument("hello world")))),
           Method.POST
@@ -30,7 +30,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response =
         send[CompletionRequest, CompletionResponse](
-          InferenceRoute(index.indexer.index.models, Metrics()).routes,
+          InferenceRoute(index.indexer.index.models).routes,
           "http://localhost/inference/completion/qwen2",
           Some(CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10)),
           Method.POST
@@ -43,7 +43,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val response =
         send[CompletionRequest, String](
-          InferenceRoute(index.indexer.index.models, Metrics()).routes,
+          InferenceRoute(index.indexer.index.models).routes,
           "http://localhost/inference/completion/qwen2",
           Some(
             CompletionRequest(prompt = "why did chicken cross the road? answer short.", max_tokens = 10, stream = true)

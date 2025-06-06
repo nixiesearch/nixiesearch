@@ -32,7 +32,7 @@ import org.http4s.headers.`Content-Type`
 
 import scala.util.{Failure, Success}
 
-class InferenceRoute(models: Models, metrics: Metrics) extends Route with Logging {
+class InferenceRoute(models: Models) extends Route with Logging {
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> Root / "inference" / "embedding" / modelName =>
@@ -111,13 +111,7 @@ class InferenceRoute(models: Models, metrics: Metrics) extends Route with Loggin
           CompletionFrame(token, took, false)
         }
         .through(StreamMark.pipe[CompletionFrame](tail = tok => tok.copy(last = true)))
-        .onFinalize(
-          IO(
-            metrics.inference.completionTimeSeconds
-              .labelValues(modelRef.name)
-              .inc((System.currentTimeMillis() - start) / 1000.0)
-          )
-        )
+
     } yield {
       next
     }

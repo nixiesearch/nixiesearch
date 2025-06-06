@@ -19,8 +19,22 @@ import fs2.Stream
 case class GenerativeModelDict(models: Map[ModelRef, GenerativeModel], metrics: Metrics) {
   def generate(name: ModelRef, input: String, maxTokens: Int): Stream[IO, String] = models.get(name) match {
     case Some(model) =>
-      Stream.eval(IO(metrics.inference.completionTotal.labelValues(name.name).inc())) >>
-        model.generate(input, maxTokens).evalTap(_ => IO(metrics.inference.completionGeneratedTokensTotal.labelValues(name.name).inc()))
+      for {
+        _     <- Stream.eval(IO(metrics.inference.completionTotal.labelValues(name.name).inc()))
+        start <- Stream.eval(IO(System.currentTimeMillis()))
+        token <- model
+          .generate(input, maxTokens)
+          .evalTap(_ => IO(metrics.inference.completionGeneratedTokensTotal.labelValues(name.name).inc()))
+          .onFinalize(
+            IO(
+              metrics.inference.completionTimeSeconds
+                .labelValues(name.name)
+                .inc((System.currentTimeMillis() - start) / 1000.0)
+            )
+          )
+      } yield {
+        token
+      }
     case None =>
       Stream.raiseError(
         UserError(s"RAG model handle ${name} cannot be found among these found in config: ${models.keys.toList}")
