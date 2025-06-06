@@ -2,7 +2,8 @@ package ai.nixiesearch.core.nn.model
 
 import ai.nixiesearch.config.CacheConfig
 import ai.nixiesearch.core.Error.BackendError
-import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache.CacheKey
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global

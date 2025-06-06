@@ -1,25 +1,14 @@
 package ai.nixiesearch.config
 
-import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig}
+import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig, RankInferenceModelConfig}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
-import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{
-  CohereEmbeddingInferenceModelConfig,
-  cohereEmbeddingConfigDecoder,
-  cohereEmbeddingConfigEncoder
-}
-import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{
-  OnnxEmbeddingInferenceModelConfig,
-  onnxEmbeddingConfigDecoder,
-  onnxEmbeddingConfigEncoder
-}
+import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{CohereEmbeddingInferenceModelConfig, cohereEmbeddingConfigDecoder, cohereEmbeddingConfigEncoder}
+import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.{OnnxEmbeddingInferenceModelConfig, onnxEmbeddingConfigDecoder, onnxEmbeddingConfigEncoder}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel
-import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{
-  OpenAIEmbeddingInferenceModelConfig,
-  openAIEmbeddingConfigDecoder,
-  openAIEmbeddingConfigEncoder
-}
+import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.{OpenAIEmbeddingInferenceModelConfig, openAIEmbeddingConfigDecoder, openAIEmbeddingConfigEncoder}
+import ai.nixiesearch.core.nn.model.ranking.providers.OnnxRankModel.{OnnxRankInferenceModelConfig, onnxRankConfigDecoder, onnxRankConfigEncoder}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -28,7 +17,8 @@ import scala.util.{Failure, Success}
 
 case class InferenceConfig(
     embedding: Map[ModelRef, EmbeddingInferenceModelConfig] = Map.empty,
-    completion: Map[ModelRef, CompletionInferenceModelConfig] = Map.empty
+    completion: Map[ModelRef, CompletionInferenceModelConfig] = Map.empty,
+    ranker: Map[ModelRef, RankInferenceModelConfig] = Map.empty
 )
 
 object InferenceConfig {
@@ -201,6 +191,24 @@ object InferenceConfig {
       }
     )
   }
+
+  trait RankInferenceModelConfig {
+    def model: ModelHandle
+  }
+
+  given rankInferenceConfigEncoder: Encoder[RankInferenceModelConfig] = Encoder.instance {
+    case e: OnnxRankInferenceModelConfig =>
+      Json.obj("provider" -> Json.fromString("onnx")).deepMerge(onnxRankConfigEncoder(e))
+  }
+
+  given rankInferenceConfigDecoder: Decoder[RankInferenceModelConfig] = Decoder.instance(c =>
+    c.downField("provider").as[Option[String]] match {
+      case Right(Some("onnx")) => onnxRankConfigDecoder.tryDecode(c)
+      case Right(Some(other))  => Left(DecodingFailure(s"rank provider $other not yet supported", c.history))
+      case Right(None)         => Left(DecodingFailure("field 'provider' is required for rank models", c.history))
+      case Left(err)           => Left(err)
+    }
+  )
 
   given inferenceConfigEncoder: Encoder[InferenceConfig] = deriveEncoder[InferenceConfig]
   given inferenceConfigDecoder: Decoder[InferenceConfig] = Decoder.instance(c =>

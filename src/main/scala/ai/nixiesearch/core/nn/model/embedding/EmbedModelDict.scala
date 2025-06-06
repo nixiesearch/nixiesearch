@@ -7,9 +7,9 @@ import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
-import ai.nixiesearch.core.nn.model.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.embedding.cache.{CachedEmbedModel, MemoryCachedEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.{
@@ -48,9 +48,8 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel]) extends Logging 
 }
 
 object EmbedModelDict extends Logging {
-  val CONFIG_FILE = "config.json"
 
-  case class TransformersConfig(hidden_size: Int, model_type: Option[String])
+  case class TransformersConfig(hidden_size: Int, model_type: Option[String] = None)
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder
 
   def create(
@@ -60,16 +59,9 @@ object EmbedModelDict extends Logging {
     for {
       encoders <- models.toList.map {
         case (name: ModelRef, conf: OnnxEmbeddingInferenceModelConfig) =>
-          conf.model match {
-            case handle: HuggingFaceHandle =>
-              OnnxEmbedModel
-                .createHuggingface(handle, conf, localFileCache)
-                .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
-            case handle: LocalModelHandle =>
-              OnnxEmbedModel
-                .createLocal(handle, conf)
-                .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
-          }
+          OnnxEmbedModel
+            .create(conf.model, conf, localFileCache)
+            .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
         case (name: ModelRef, conf: OpenAIEmbeddingInferenceModelConfig) =>
           OpenAIEmbedModel
             .create(conf)

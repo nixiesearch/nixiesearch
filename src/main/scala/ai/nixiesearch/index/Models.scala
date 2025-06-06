@@ -1,15 +1,16 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
-import ai.nixiesearch.core.nn.model.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict
+import ai.nixiesearch.core.nn.model.ranking.RankModelDict
 import cats.effect.IO
 import cats.effect.kernel.Resource
 
 import java.nio.file.Paths
 
-case class Models(embedding: EmbedModelDict, generative: GenerativeModelDict)
+case class Models(embedding: EmbedModelDict, generative: GenerativeModelDict, ranker: RankModelDict)
 
 object Models {
   def create(
@@ -19,8 +20,9 @@ object Models {
     cache      <- Resource.eval(ModelFileCache.create(Paths.get(cacheConfig.dir)))
     embeddings <- EmbedModelDict.create(inferenceConfig.embedding, cache)
     generative <- GenerativeModelDict.create(inferenceConfig.completion, cache)
+    ranker     <- RankModelDict.create(inferenceConfig.ranker, cache)
   } yield {
-    Models(embeddings, generative)
+    Models(embeddings, generative, ranker)
   }
 
 }

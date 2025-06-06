@@ -8,6 +8,7 @@ import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQ
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.index.Models
 import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, JsonObject}
@@ -19,7 +20,7 @@ trait Query extends Logging {
       readers: Readers,
       sort: List[SortPredicate],
       filter: Option[Filters],
-      encoders: EmbedModelDict,
+      models: Models,
       aggs: Option[Aggs],
       size: Int
   ): IO[TopDocsWithFacets]

@@ -1,15 +1,15 @@
-package ai.nixiesearch.core.nn.model
+package ai.nixiesearch.core.nn.huggingface
 
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache.CacheKey
 import cats.effect.IO
-import fs2.io.file.{Files, Path as Fs2Path}
 import fs2.Stream
+import fs2.io.file.{Files, Path as Fs2Path}
 import fs2.io.writeOutputStream
 
 import java.io.FileOutputStream
-import java.nio.file.{Path as NioPath}
+import java.nio.file.Path as NioPath
 
 case class ModelFileCache(dir: NioPath) extends Logging {
   def exists(key: CacheKey): IO[Boolean] = Files[IO].exists(Fs2Path.fromNioPath(key.resolve(dir)))

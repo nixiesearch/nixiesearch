@@ -1,6 +1,6 @@
 # RAG: Retrieval Augmented Generation
 
-Nixiesearch supports [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)-style question answering over fully local LLMs:
+Nixiesearch supports [RAG](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)-style question answering over fully local LLMs. For improved document retrieval quality in RAG pipelines, consider using [cross-encoder reranking](query/rank/ce.md) to ensure the most relevant documents are passed to the LLM.
 
 ![RAG](../../img/rag.png)
 

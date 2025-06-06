@@ -48,3 +48,7 @@ Where the fields are:
 * `k`: an optional parameter of how many neighbor documents to fetch. By default, equals to the `request.size` field.
 
 For a case when you already have a pre-embedded query and want to search over the embedding vector directly skipping the inference, see the [`knn`](knn.md) query.
+
+## Improving Semantic Search Relevance
+
+For improved relevance scoring beyond vector similarity, consider using [cross-encoder reranking](../rank/ce.md) to rerank semantic search results with neural models that jointly process query-document pairs.

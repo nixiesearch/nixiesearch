@@ -2,7 +2,7 @@
 
 [Reciprocal Rank Fusion (RRF)](https://plg.uwaterloo.ca/%7Egvcormac/cormacksigir09-rrf.pdf) is a simple method to combine multiple search results with different search score numerical distributions into a single list.
 
-The main benefit of RRF is that it's lightweight and requires no tuning, but might provide less relevant results compared to other more computationally intensive ranking methods like [Learn-to-Rank](https://metarank.ai) and Cross-Encoders.
+The main benefit of RRF is that it's lightweight and requires no tuning, but might provide less relevant results compared to other more computationally intensive ranking methods like [Learn-to-Rank](https://metarank.ai) and [Cross-Encoders](./ce.md).
 
 The `rrf` rank operator takes two or more child sub-queries:
 
@@ -10,7 +10,7 @@ The `rrf` rank operator takes two or more child sub-queries:
 {
   "query": {
     "rrf": {
-      "queries": [
+      "retrieve": [
         {"match": {"title": "cookie"}},
         {"semantic": {"title": "cookie"}}
       ],
@@ -40,7 +40,7 @@ return score
 
 Fields:
 
-* `queries` (required, list of [search queries](../overview.md#search-operators)). Two or more nested search queries to combine.
+* `retrieve` (required, list of [search queries](../overview.md#search-operators)). Two or more nested search queries to combine.
 * `k` (optional, float, default 60.0). The ranking constant - how strongly lower document position affects the score.
 * `rank_window_size` (optional, integer, default is `request.size`) This value determines the size of the individual result sets per query. A higher value will improve result relevance at the cost of performance. The final ranked result set is pruned down to the search request’s size. 
 

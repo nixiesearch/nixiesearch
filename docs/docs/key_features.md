@@ -40,7 +40,7 @@ At its core, Nixiesearch runs on [Apache Lucene](https://lucene.apache.org) — 
 
 What you get:
 
-* [Lexical](features/search/overview.md#search), semantic, and [hybrid search with Reciprocal Rank Fusion](features/search/overview.md#hybrid-search-with-reciprocal-rank-fusion) (RRF)
+* [Lexical](features/search/overview.md#search), semantic, and [hybrid search with Reciprocal Rank Fusion](features/search/overview.md#hybrid-search-with-reciprocal-rank-fusion) (RRF), plus [cross-encoder reranking](features/search/query/rank/ce.md) for neural relevance scoring
 * [Facets](features/search/facet.md), [filters](features/search/filter.md), [autocomplete](features/autocomplete/index.md), and all the [advanced query](features/search/query/overview.md#search-request-format) goodness.
 * [Embedding inference](features/inference/embeddings.md) and [RAG](features/search/rag.md) out of the box—no extra services needed.
 

@@ -117,13 +117,13 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       case other                                => IO.pure(other)
     }
     mergedTopDocs <- query.topDocs(
-      index.mapping,
-      readers,
-      request.sort,
-      request.filters,
-      index.models.embedding,
-      request.aggs,
-      request.size
+      mapping = index.mapping,
+      readers = readers,
+      sort = request.sort,
+      filter = request.filters,
+      models = index.models,
+      aggs = request.aggs,
+      size = request.size
     )
     aggs      <- aggregate(index.mapping, mergedTopDocs.facets, request.aggs)
     collected <- collect(index.mapping, mergedTopDocs.docs, request.fields)

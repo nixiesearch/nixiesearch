@@ -1,28 +1,28 @@
-package ai.nixiesearch.core.nn.model
+package ai.nixiesearch.core.nn.huggingface
 
-import ai.nixiesearch.core.{Logging, PrintProgress}
+import ai.nixiesearch.core.Error.*
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
-import ai.nixiesearch.core.nn.model.HuggingFaceClient.ModelResponse
-import ai.nixiesearch.core.nn.model.HuggingFaceClient.ModelResponse.Sibling
+import ai.nixiesearch.core.nn.huggingface.HuggingFaceClient.ModelResponse
+import ai.nixiesearch.core.nn.huggingface.HuggingFaceClient.ModelResponse.Sibling
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache.CacheKey
+import ai.nixiesearch.core.{Logging, PrintProgress}
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import cats.syntax.all.*
 import fs2.{Chunk, Stream}
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
+import io.circe.parser.*
+import io.circe.syntax.*
 import org.http4s.circe.*
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.{EntityDecoder, Request, Uri}
 import org.typelevel.ci.CIString
-import ai.nixiesearch.core.Error.*
-import ai.nixiesearch.core.nn.model.ModelFileCache.CacheKey
-import scala.concurrent.duration.*
-import io.circe.syntax.*
-import io.circe.parser.*
-import cats.syntax.all.*
 
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Path}
+import scala.concurrent.duration.*
 
 case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFileCache) extends Logging {
   val MODEL_FILE                                                      = "model_card.json"

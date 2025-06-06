@@ -9,7 +9,7 @@ import io.circe.parser.*
 class RRFQueryJsonTest extends AnyFlatSpec with Matchers {
   it should "decode query from quickstart" in {
     val str = """{
-                |  "queries": [
+                |  "retrieve": [
                 |    {"match": {"title": "matrix"}},
                 |    {"semantic": {"title": "guy in black suit fights computers"}}
                 |  ]
