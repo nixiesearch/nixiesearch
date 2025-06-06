@@ -1,0 +1,21 @@
+# PersistentVolumeClaim for Nixiesearch data storage
+# Provides persistent storage for indexes and cache data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nixiesearch-data
+  labels:
+    app: nixiesearch
+spec:
+  # Access mode - ReadWriteOnce for single pod access
+  accessModes:
+    - ReadWriteOnce
+  
+  # Storage request - adjust size as needed
+  resources:
+    requests:
+      storage: 10Gi
+  
+  # Storage class - use default or specify based on your cluster
+  # Examples: gp2 (AWS), pd-standard (GCP), default
+  # storageClassName: default

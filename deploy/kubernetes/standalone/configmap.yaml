@@ -1,0 +1,53 @@
+# ConfigMap containing Nixiesearch configuration
+# This uses the quickstart configuration with embedding models and movie schema
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nixiesearch-config
+  labels:
+    app: nixiesearch
+data:
+  config.yml: |
+    # Core configuration with cache directory
+    core:
+      cache:
+        dir: /data/cache
+    
+    # Inference configuration for embedding models
+    inference:
+      embedding:
+        e5-small:
+          model: intfloat/e5-small-v2
+    
+    # Schema configuration defining the movies index
+    schema:
+      movies: # index name
+        # Store configuration for persistent data
+        store:
+          local:
+            disk:
+              path: /data/indexes
+        fields:
+          title: # field name
+            type: text
+            search:
+              lexical: # lexical search index
+                analyze: en
+              semantic: # semantic search index
+                model: e5-small
+            suggest: true
+          overview:
+            type: text
+            search:
+              lexical:
+                analyze: en
+              semantic:
+                model: e5-small
+          genres:
+            type: text[]
+            filter: true
+            facet: true
+          year:
+            type: int
+            filter: true
+            facet: true
