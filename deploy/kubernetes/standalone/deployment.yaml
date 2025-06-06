@@ -1,0 +1,90 @@
+# Deployment for Nixiesearch application
+# Runs Nixiesearch in standalone mode with config from ConfigMap
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nixiesearch
+  labels:
+    app: nixiesearch
+spec:
+  # Single replica for simple deployment
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nixiesearch
+  template:
+    metadata:
+      labels:
+        app: nixiesearch
+    spec:
+      containers:
+      - name: nixiesearch
+        # Use the latest Nixiesearch image
+        # Replace with specific version tag in production
+        image: nixiesearch/nixiesearch:latest
+        imagePullPolicy: Always
+        
+        # Arguments to pass to the nixiesearch.sh entrypoint
+        args: [
+          "standalone",
+          "--config", "/config/config.yml"
+        ]
+        
+        # Container ports
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        
+        # Mount the config file from ConfigMap and data volume
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+          readOnly: true
+        - name: data-volume
+          mountPath: /data
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Environment variables for JVM tuning
+        env:
+        - name: JAVA_OPTS
+          value: "-Xmx1g -verbose:gc --add-modules jdk.incubator.vector"
+      
+      # Volume definitions for config and persistent data
+      volumes:
+      - name: config-volume
+        configMap:
+          name: nixiesearch-config
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: nixiesearch-data
+      
+      # Restart policy
+      restartPolicy: Always

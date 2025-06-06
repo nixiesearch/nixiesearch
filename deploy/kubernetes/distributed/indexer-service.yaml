@@ -1,0 +1,24 @@
+# Service to expose Nixiesearch indexer StatefulSet
+# Provides stable network endpoint for indexing operations
+apiVersion: v1
+kind: Service
+metadata:
+  name: nixiesearch-indexer
+  labels:
+    app: nixiesearch
+    component: indexer
+spec:
+  # Service type - ClusterIP for internal access
+  type: ClusterIP
+  
+  # Port configuration
+  ports:
+  - name: http
+    port: 8080        # Service port
+    targetPort: http  # Container port name
+    protocol: TCP
+  
+  # Select indexer pods
+  selector:
+    app: nixiesearch
+    component: indexer

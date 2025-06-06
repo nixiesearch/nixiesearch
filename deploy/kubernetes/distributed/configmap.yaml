@@ -1,0 +1,55 @@
+# ConfigMap for distributed Nixiesearch deployment
+# Configures S3-based index synchronization between searcher and indexer
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nixiesearch-config
+  labels:
+    app: nixiesearch
+data:
+  config.yml: |
+    # Core configuration
+    core:
+      cache:
+        dir: /tmp/cache
+    
+    # Inference configuration for embedding models
+    inference:
+      embedding:
+        e5-small:
+          model: intfloat/e5-small-v2
+    
+    # Schema configuration with distributed storage
+    schema:
+      movies: # index name
+        # Distributed store configuration
+        store:
+          distributed:
+            searcher:
+              # Searcher uses memory for fast access
+              memory:
+            indexer:
+              # Indexer also uses memory for building indexes
+              memory:
+            remote:
+              # S3 configuration for index synchronization
+              s3:
+                bucket: nixiesearch-indexes
+                prefix: movies
+                region: us-east-1
+                # endpoint: http://minio:9000  # Uncomment for MinIO/custom S3
+        fields:
+          title:
+            type: text
+            search:
+              lexical:
+                analyze: en
+              semantic:
+                model: e5-small
+          overview:
+            type: text
+            search:
+              lexical:
+                analyze: en
+              semantic:
+                model: e5-small

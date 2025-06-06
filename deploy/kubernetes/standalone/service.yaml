@@ -1,0 +1,23 @@
+# Service to expose Nixiesearch deployment
+# Provides stable network endpoint for accessing the search API
+apiVersion: v1
+kind: Service
+metadata:
+  name: nixiesearch
+  labels:
+    app: nixiesearch
+spec:
+  # Service type - use ClusterIP for internal access
+  # Change to LoadBalancer or NodePort for external access
+  type: ClusterIP
+  
+  # Port configuration
+  ports:
+  - name: http
+    port: 8080        # Service port
+    targetPort: http  # Container port name
+    protocol: TCP
+  
+  # Select pods with the nixiesearch app label
+  selector:
+    app: nixiesearch
