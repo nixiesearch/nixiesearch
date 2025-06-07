@@ -19,7 +19,7 @@ case class DateTimeField(name: String, value: Long) extends Field
 object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long] {
   case class DateTime(millis: Long)
   given dateTimeEncoder: Encoder[DateTime] = Encoder.encodeString.contramap(field => writeString(field.millis))
-  given dateTimeDecode: Decoder[DateTime] =
+  given dateTimeDecode: Decoder[DateTime]  =
     Decoder.decodeString.emapTry(string => parseString(string).map(DateTime.apply).toTry)
 
   def applyUnsafe(name: String, value: String): DateTimeField = new DateTimeField(name, parseString(value).toOption.get)

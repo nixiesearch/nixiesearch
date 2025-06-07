@@ -1,8 +1,15 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.EmbedCacheConfig.{MemoryCacheConfig, NoCache}
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{LlamacppInferenceModelConfig, LlamacppParams}
-import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig, PromptConfig}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
+  LlamacppInferenceModelConfig,
+  LlamacppParams
+}
+import ai.nixiesearch.config.InferenceConfig.{
+  CompletionInferenceModelConfig,
+  EmbeddingInferenceModelConfig,
+  PromptConfig
+}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig

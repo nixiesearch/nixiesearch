@@ -45,19 +45,19 @@ object AggregationResult {
     for {
       gtOption  <- c.downField("gt").as[Option[RangeValue]]
       gteOption <- c.downField("gte").as[Option[RangeValue]]
-      from <- (gtOption, gteOption) match {
-        case (Some(gt), None)  => Right(Some(Lower.Gt(gt)))
-        case (None, Some(gte)) => Right(Some(Lower.Gte(gte)))
-        case (None, None)      => Right(None)
+      from      <- (gtOption, gteOption) match {
+        case (Some(gt), None)      => Right(Some(Lower.Gt(gt)))
+        case (None, Some(gte))     => Right(Some(Lower.Gte(gte)))
+        case (None, None)          => Right(None)
         case (Some(gt), Some(gte)) =>
           Left(DecodingFailure(s"both gt and gte options present, should be only one: ${c.focus}", c.history))
       }
       ltOption  <- c.downField("lt").as[Option[RangeValue]]
       lteOption <- c.downField("lte").as[Option[RangeValue]]
-      to <- (ltOption, lteOption) match {
-        case (Some(lt), None)  => Right(Some(Higher.Lt(lt)))
-        case (None, Some(lte)) => Right(Some(Higher.Lte(lte)))
-        case (None, None)      => Right(None)
+      to        <- (ltOption, lteOption) match {
+        case (Some(lt), None)      => Right(Some(Higher.Lt(lt)))
+        case (None, Some(lte))     => Right(Some(Higher.Lte(lte)))
+        case (None, None)          => Right(None)
         case (Some(lt), Some(lte)) =>
           Left(DecodingFailure(s"both lt and lte options present, should be only one: ${c.focus}", c.history))
       }

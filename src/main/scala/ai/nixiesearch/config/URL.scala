@@ -22,19 +22,19 @@ object URL {
     case u @ URL.S3URL(bucket, prefix, _, _)   => Json.fromJsonObject(JsonObject.fromMap(Map("s3" -> s3Encoder(u))))
   }
 
-  val localScheme3Pattern = "file:///(.*)".r
-  val localScheme2Pattern = "file://(.*)".r
-  val localScheme1Pattern = "file:/(.*)".r
-  val localPattern        = "/(.*)".r
-  val s3Pattern           = "s3://([a-zA-Z0-9\\-\\.]{3,})/(.+)".r
-  val httpPattern         = "(https?://.*)".r
-  val catchAllPrefix      = "([a-zA-Z0-9]+://.*)".r
+  val localScheme3Pattern        = "file:///(.*)".r
+  val localScheme2Pattern        = "file://(.*)".r
+  val localScheme1Pattern        = "file:/(.*)".r
+  val localPattern               = "/(.*)".r
+  val s3Pattern                  = "s3://([a-zA-Z0-9\\-\\.]{3,})/(.+)".r
+  val httpPattern                = "(https?://.*)".r
+  val catchAllPrefix             = "([a-zA-Z0-9]+://.*)".r
   given urlDecoder: Decoder[URL] = Decoder.instance(c =>
     c.focus match {
       case Some(json) =>
         json.asString match {
           case Some(string) => fromString(string)
-          case None =>
+          case None         =>
             json.asObject match {
               case Some(obj) =>
                 obj.toMap.get("s3") match {
@@ -54,7 +54,7 @@ object URL {
     case localScheme1Pattern(path) => Right(LocalURL(Paths.get("/" + path)))
     case localPattern(path)        => Right(LocalURL(Paths.get("/" + path)))
     case s3Pattern(bucket, prefix) => Right(URL.S3URL(bucket, prefix, None, None))
-    case httpPattern(http) =>
+    case httpPattern(http)         =>
       Uri.fromString(http) match {
         case Left(value)  => Left(DecodingFailure(s"cannot decode HTTP uri '$http': ${value}", Nil))
         case Right(value) => Right(HttpURL(value))

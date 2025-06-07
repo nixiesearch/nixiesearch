@@ -14,7 +14,7 @@ import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
 class ScoreSortTest extends SearchTest with Matchers {
-  val name = StringName("field")
+  val name    = StringName("field")
   val mapping =
     TestIndexMapping(
       "sort",

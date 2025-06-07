@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 
 class BoolQueryTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping()
-  val docs = List(
+  val docs    = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))

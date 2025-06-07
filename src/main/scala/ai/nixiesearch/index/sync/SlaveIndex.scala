@@ -25,7 +25,7 @@ case class SlaveIndex(
     _                     <- debug("index sync remote->slave in progress")
     masterManifestOption  <- master.readManifest()
     replicaManifestOption <- replica.readManifest()
-    changed <- (masterManifestOption, replicaManifestOption) match {
+    changed               <- (masterManifestOption, replicaManifestOption) match {
       case (Some(masterManifest), Some(replicaManifest)) if masterManifest.seqnum > replicaManifest.seqnum =>
         Stream
           .evalSeq(masterManifest.diff(Some(replicaManifest)))
@@ -74,7 +74,7 @@ object SlaveIndex extends Logging {
       manifestOption <- Resource.eval(replicaState.readManifest())
       manifest <- Resource.eval(IO.fromOption(manifestOption)(BackendError("index.json file not found in the index")))
       seqnum   <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
-      index <- Resource.make(
+      index    <- Resource.make(
         IO(
           SlaveIndex(
             mapping = manifest.mapping,

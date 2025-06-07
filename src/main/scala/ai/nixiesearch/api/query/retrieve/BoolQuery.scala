@@ -24,7 +24,7 @@ case class BoolQuery(
       fields: List[String]
   ): IO[Query] = for {
     builder <- IO.pure(new BooleanQuery.Builder())
-    _ <- should.traverse(
+    _       <- should.traverse(
       _.compile(mapping, maybeFilter, encoders, fields).map(q => builder.add(new BooleanClause(q, Occur.SHOULD)))
     )
     _ <- must.traverse(
@@ -46,7 +46,7 @@ object BoolQuery {
       should  <- c.downField("should").as[Option[List[RetrieveQuery]]]
       must    <- c.downField("must").as[Option[List[RetrieveQuery]]]
       mustNot <- c.downField("must_not").as[Option[List[RetrieveQuery]]]
-      _ <- List(should, must, mustNot).flatMap(_.toList.flatten) match {
+      _       <- List(should, must, mustNot).flatMap(_.toList.flatten) match {
         case Nil =>
           Left(DecodingFailure("bool query should have at least single predicate", c.history))
         case _ => Right(0)

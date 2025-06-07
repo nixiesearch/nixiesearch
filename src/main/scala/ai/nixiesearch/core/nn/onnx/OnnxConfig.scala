@@ -24,11 +24,11 @@ object OnnxConfig {
     case Device.CPU(threads) => s"cpu:$threads"
   }
 
-  val cudaPattern = "cuda:([0-9]+)".r
-  val cpuPattern  = "cpu:([0-9]+)".r
+  val cudaPattern                      = "cuda:([0-9]+)".r
+  val cpuPattern                       = "cpu:([0-9]+)".r
   given deviceDecoder: Decoder[Device] = Decoder.decodeString.emapTry {
-    case "cpu"  => Success(Device.CPU())
-    case "cuda" => Success(Device.CUDA(0))
+    case "cpu"                         => Success(Device.CPU())
+    case "cuda"                        => Success(Device.CUDA(0))
     case value @ cudaPattern(idString) =>
       idString.toIntOption match {
         case Some(id) if id >= 0 => Success(Device.CUDA(id))

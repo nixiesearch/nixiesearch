@@ -46,9 +46,9 @@ class EmbeddingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
 
 object EmbeddingInferenceEndToEndTest {
   def embed(model: String, text: String): Array[Float] = {
-    val parts  = model.split("/")
-    val handle = HuggingFaceHandle(parts(0), parts(1))
-    val config = OnnxEmbeddingInferenceModelConfig(model = handle)
+    val parts                      = model.split("/")
+    val handle                     = HuggingFaceHandle(parts(0), parts(1))
+    val config                     = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
       .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated

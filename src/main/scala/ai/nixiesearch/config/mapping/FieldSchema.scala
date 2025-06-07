@@ -144,11 +144,11 @@ object FieldSchema {
 
     def textFieldSchemaDecoder(name: FieldName): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
-        search <- c.downField("search").as[Option[SearchParams]]
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        search  <- c.downField("search").as[Option[SearchParams]]
+        store   <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort    <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet   <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter  <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         suggest <- c
           .downField("suggest")
           .as[Option[SuggestSchema]]
@@ -295,7 +295,7 @@ object FieldSchema {
         case Right("geopoint")            => geopointFieldSchemaDecoder(name).tryDecode(c)
         case Right("date")                => dateFieldSchemaDecoder(name).tryDecode(c)
         case Right("datetime")            => dateTimeFieldSchemaDecoder(name).tryDecode(c)
-        case Right(other) =>
+        case Right(other)                 =>
           Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
     )

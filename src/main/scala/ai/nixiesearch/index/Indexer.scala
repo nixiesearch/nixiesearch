@@ -100,7 +100,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
   def flush(): IO[Boolean] = {
     IO((writer.numRamDocs() > 0) || writer.hasDeletions || writer.hasUncommittedChanges).flatMap {
       case false => debug(s"skipping flush of '${index.name.value}', no uncommitted changes") *> IO(false)
-      case true =>
+      case true  =>
         for {
           _ <- debug(
             s"memdocs=${writer.numRamDocs()} deletes=${writer.hasDeletions} uncommitted=${writer.hasUncommittedChanges}"
@@ -108,13 +108,13 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
           _      <- IO(metrics.indexer.flushTotal.labelValues(index.name.value).inc())
           start  <- IO(System.currentTimeMillis())
           seqnum <- IO(writer.commit())
-          _ <- IO(
+          _      <- IO(
             metrics.indexer.flushTimeSeconds
               .labelValues(index.name.value)
               .inc((System.currentTimeMillis() - start) / 1000.0)
           )
           result <- seqnum match {
-            case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+            case -1        => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
             case posSeqNum =>
               for {
                 _        <- info(s"index '${index.name.value}' commit, seqnum=$posSeqNum")
@@ -139,7 +139,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
       _ <- IO(writer.forceMerge(segments, true))
       _ <- info("Forced merge finished")
       _ <- IO(writer.commit()).flatMap {
-        case -1 => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
+        case -1     => debug(s"nothing to commit for index '${index.name}'") *> IO.pure(false)
         case seqnum =>
           for {
             _        <- info(s"index '${index.name.value}' commit, seqnum=$seqnum")
@@ -161,7 +161,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
 
   def delete(filters: Option[Filters]): IO[Int] = for {
     query <- filters match {
-      case None => IO.pure(new MatchAllDocsQuery())
+      case None    => IO.pure(new MatchAllDocsQuery())
       case Some(f) =>
         f.toLuceneQuery(index.mapping).map {
           case Some(value) => value
@@ -189,7 +189,7 @@ object Indexer extends Logging {
 
   def indexWriter(directory: Directory, mapping: IndexMapping): Resource[IO, IndexWriter] =
     for {
-      codec <- Resource.pure(Nixiesearch101Codec(mapping))
+      codec  <- Resource.pure(Nixiesearch101Codec(mapping))
       config <- Resource.eval(
         IO(
           new IndexWriterConfig(mapping.analyzer)

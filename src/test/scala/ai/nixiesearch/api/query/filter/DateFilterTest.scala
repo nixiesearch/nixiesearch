@@ -38,7 +38,7 @@ class DateFilterTest extends SearchTest with Matchers {
 
   it should "filter over gt match" in withIndex { index =>
     {
-      val days = DateField.parseString("2024-02-01").toOption.get
+      val days    = DateField.parseString("2024-02-01").toOption.get
       val results = index.search(filters =
         Some(
           Filters(include = Some(RangePredicate("date", Lower.Gt(RangeValue(BigDecimal(days), Json.fromString("x"))))))
@@ -50,8 +50,8 @@ class DateFilterTest extends SearchTest with Matchers {
 
   it should "filter over gt/lt match" in withIndex { index =>
     {
-      val days1 = DateField.parseString("2024-01-01").toOption.get
-      val days2 = DateField.parseString("2024-03-01").toOption.get
+      val days1   = DateField.parseString("2024-01-01").toOption.get
+      val days2   = DateField.parseString("2024-03-01").toOption.get
       val results = index.search(filters =
         Some(
           Filters(include =

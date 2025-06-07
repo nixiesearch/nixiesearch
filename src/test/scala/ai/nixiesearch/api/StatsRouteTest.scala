@@ -12,7 +12,7 @@ class StatsRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import ai.nixiesearch.util.HttpTest.*
 
   val mapping = TestIndexMapping()
-  val docs = List(
+  val docs    = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
@@ -20,7 +20,7 @@ class StatsRouteTest extends AnyFlatSpec with Matchers with SearchTest {
 
   it should "get index stats" in withIndex { index =>
     {
-      val route = StatsRoute(index.searcher)
+      val route    = StatsRoute(index.searcher)
       val response =
         sendRaw[IndexStats](
           route.routes,

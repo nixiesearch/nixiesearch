@@ -90,7 +90,7 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
   it should "read http files" in {
     implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
     val data                                = "hello".getBytes()
-    val route = HttpRoutes.of[IO] { case req @ GET -> Root / "file.json" =>
+    val route                               = HttpRoutes.of[IO] { case req @ GET -> Root / "file.json" =>
       IO(Response[IO](status = Status.Ok, entity = Entity.strict(ByteVector(data))))
     }
     val (server, shutdown) = EmberServerBuilder

@@ -12,8 +12,8 @@ import java.nio.file.Paths
 
 class OnnxRankModelTest extends AnyFlatSpec with Matchers {
   it should "work with bert-based models" taggedAs (EndToEnd.Embeddings) in {
-    val handle = HuggingFaceHandle("cross-encoder", "ms-marco-MiniLM-L6-v2")
-    val config = OnnxRankInferenceModelConfig(model = handle)
+    val handle                   = HuggingFaceHandle("cross-encoder", "ms-marco-MiniLM-L6-v2")
+    val config                   = OnnxRankInferenceModelConfig(model = handle)
     val (ranker, shutdownHandle) = OnnxRankModel
       .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated

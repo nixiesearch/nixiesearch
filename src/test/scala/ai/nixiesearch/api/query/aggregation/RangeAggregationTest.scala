@@ -346,8 +346,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
 
   it should "aggregate over dates" in withIndex { index =>
     {
-      val day1 = DateField.parseString("2024-01-02").toOption.get
-      val day2 = DateField.parseString("2024-01-04").toOption.get
+      val day1   = DateField.parseString("2024-01-02").toOption.get
+      val day2   = DateField.parseString("2024-01-04").toOption.get
       val result = index.searchRaw(aggs =
         Some(
           Aggs(
@@ -374,8 +374,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
 
   it should "aggregate over datetimes" in withIndex { index =>
     {
-      val day1 = DateTimeField.parseString("2024-01-02T00:00:00Z").toOption.get
-      val day2 = DateTimeField.parseString("2024-01-04T00:00:00Z").toOption.get
+      val day1   = DateTimeField.parseString("2024-01-02T00:00:00Z").toOption.get
+      val day2   = DateTimeField.parseString("2024-01-04T00:00:00Z").toOption.get
       val result = index.searchRaw(aggs =
         Some(
           Aggs(

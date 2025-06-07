@@ -37,7 +37,7 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
           request  <- IO(Request[IO](uri = endpoint / "api" / "models" / handle.ns / handle.name))
           _        <- info(s"sending HuggingFace API request $request")
           response <- client.expect[ModelResponse](request)
-          _ <- cache.put(
+          _        <- cache.put(
             key = CacheKey(handle.ns, handle.name, MODEL_FILE),
             bytes = Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(response.asJson.spaces2.getBytes())))
           )
@@ -53,7 +53,7 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
   def get(uri: Uri): Stream[IO, Byte] = for {
     response <- client.stream(Request[IO](uri = uri))
     _        <- Stream.eval(info(s"sending HuggingFace API request for a file $uri"))
-    byte <- response.status.code match {
+    byte     <- response.status.code match {
       case 200 => response.entity.body.through(PrintProgress.bytes)
       case 302 =>
         response.headers.get(CIString("Location")) match {
@@ -72,7 +72,7 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
 
   def getCached(handle: HuggingFaceHandle, file: String): IO[Path] = for {
     cached <- cache.getIfExists(CacheKey(handle.ns, handle.name, file))
-    bytes <- cached match {
+    bytes  <- cached match {
       case Some(path) =>
         info(s"found cached $path file for requested ${handle.ns}/${handle.name}/$file") *> IO.pure(path)
       case None =>
@@ -102,7 +102,7 @@ object HuggingFaceClient extends Logging {
 
   def create(cache: ModelFileCache, endpoint: String = HUGGINGFACE_API_ENDPOINT): Resource[IO, HuggingFaceClient] =
     for {
-      uri <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
+      uri    <- Resource.eval(IO.fromEither(Uri.fromString(endpoint)))
       client <- EmberClientBuilder
         .default[IO]
         .withTimeout(120.second)

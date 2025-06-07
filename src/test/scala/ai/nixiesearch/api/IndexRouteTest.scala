@@ -16,7 +16,7 @@ class IndexRouteTest extends AnyFlatSpec with Matchers with SearchTest {
 
   it should "accept docs for existing indices" in withIndex { store =>
     {
-      val doc = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
+      val doc      = Document(List(TextField("_id", "1"), TextField("title", "foo bar"), IntField("price", 10)))
       val response =
         send[Document, IndexResponse](
           IndexModifyRoute(store.indexer).routes,

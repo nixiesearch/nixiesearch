@@ -42,7 +42,7 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel], metrics: Metrics
     }
   def encode(name: ModelRef, task: TaskType, texts: List[String]): IO[List[Array[Float]]] =
     embedders.get(name) match {
-      case None => IO.raiseError(UserError(s"cannot get embedding model $name"))
+      case None           => IO.raiseError(UserError(s"cannot get embedding model $name"))
       case Some(embedder) =>
         for {
           _      <- IO(metrics.inference.embedTotal.labelValues(name.name).inc())

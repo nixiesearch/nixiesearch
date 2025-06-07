@@ -20,7 +20,7 @@ trait SortSuite[T <: Field, S <: FieldSchema[T], U: Ordering] extends SearchTest
 
   val name    = StringName("field")
   val mapping = TestIndexMapping("sort", List(schema(name), TextFieldSchema(StringName("_id"))))
-  val docs = List(
+  val docs    = List(
     Document(
       List(
         TextField("_id", "miss")

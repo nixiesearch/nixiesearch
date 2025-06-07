@@ -29,7 +29,7 @@ class CliConfigTest extends AnyFlatSpec with Matchers {
   }
 
   it should "parse index file args" in {
-    val temp = Files.createTempFile("config", ".yml")
+    val temp   = Files.createTempFile("config", ".yml")
     val result = CliConfig
       .load(List("index", "file", "--config", temp.toString, "--url", "s3://bucket/prefix.json", "--index", "movies"))
       .unsafeRunSync()

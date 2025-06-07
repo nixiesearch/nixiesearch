@@ -12,7 +12,7 @@ import cats.effect.unsafe.implicits.global
 class MetricsRouteTest extends AnyFlatSpec with Matchers {
   it should "return index mapping on GET" in {
 
-    val route = MetricsRoute(Metrics())
+    val route    = MetricsRoute(Metrics())
     val response =
       route.routes(Request(uri = Uri.unsafeFromString("http://localhost/metrics"))).value.unsafeRunSync()
     response.map(_.status.code) shouldBe Some(200)
