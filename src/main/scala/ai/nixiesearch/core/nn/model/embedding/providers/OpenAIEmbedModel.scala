@@ -36,7 +36,7 @@ case class OpenAIEmbedModel(client: Client[IO], endpoint: Uri, key: String, conf
   override val batchSize        = config.batchSize
 
   override def encodeBatch(task: TaskType, docs: List[String]): IO[Array[Array[Float]]] = for {
-    start <- IO(System.currentTimeMillis())
+    start   <- IO(System.currentTimeMillis())
     request <- IO(
       Request[IO](
         method = Method.POST,
@@ -52,7 +52,7 @@ case class OpenAIEmbedModel(client: Client[IO], endpoint: Uri, key: String, conf
     )
     response <- client.expect[OpenAIResponse](request)
     finish   <- IO(System.currentTimeMillis())
-    _ <- debug(
+    _        <- debug(
       s"Embedded ${docs.size} docs with OpenAI ${config.model}, took ${finish - start}ms (${response.usage.total_tokens} tokens)"
     )
   } yield {

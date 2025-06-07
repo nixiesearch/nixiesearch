@@ -18,7 +18,7 @@ object SemanticLuceneQuery {
       filter: Option[Filters],
       mapping: IndexMapping
   ): IO[List[LuceneQuery]] = for {
-    queryEmbed <- encoders.encode(model, TaskType.Query, query)
+    queryEmbed   <- encoders.encode(model, TaskType.Query, query)
     filterOption <- filter match {
       case Some(f) => f.toLuceneQuery(mapping)
       case None    => IO.none

@@ -17,7 +17,7 @@ object Distance {
     number.toDoubleOption match {
       case None                       => Failure(UserError(s"cannot parse number part '$number' of distance"))
       case Some(double) if double < 0 => Failure(UserError(s"distance cannot be negative: got $number $unit"))
-      case Some(double) =>
+      case Some(double)               =>
         DistanceUnit.distanceNames.get(unit) match {
           case Some(u) => Success(Distance(double, u))
           case None    => Failure(UserError(s"distance unit '$unit' not supported"))
@@ -98,7 +98,7 @@ object Distance {
     }
 
     case object NauticalMile extends DistanceUnit {
-      val name = "nmi"
+      val name  = "nmi"
       val forms =
         List("nauticalmiles", "nauticalmile", "nautical-mile", "nautical-miles", "nautical mile", "nautical miles")
       val scale = 1852.0

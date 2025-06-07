@@ -20,7 +20,7 @@ case class MetricsRoute(metrics: Metrics) {
 
   val routes = HttpRoutes.of[IO] { case GET -> Root / "metrics" =>
     for {
-      _ <- metrics.system.refresh()
+      _  <- metrics.system.refresh()
       ok <- IO(
         Response[IO](
           status = Status.Ok,

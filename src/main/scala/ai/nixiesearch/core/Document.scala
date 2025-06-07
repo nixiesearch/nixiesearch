@@ -39,8 +39,8 @@ object Document {
 
   def decoderFor(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
     cursor.value.foldWith(DocumentParser(Nil, mapping)) match {
-      case Left(err)  => Left(err)
-      case Right(Nil) => Left(DecodingFailure(s"document cannot be empty: ${cursor.value}", cursor.history))
+      case Left(err)    => Left(err)
+      case Right(Nil)   => Left(DecodingFailure(s"document cannot be empty: ${cursor.value}", cursor.history))
       case Right(other) =>
         if (other.exists(_.name == "_id")) {
           Right(Document(other))
@@ -99,7 +99,7 @@ object Document {
 
     override def onObject(value: JsonObject): Result[List[TextListField]] = {
       value.toList.foldLeft[Decoder.Result[List[TextListField]]](Right(Nil)) {
-        case (Left(err), _) => Left(err)
+        case (Left(err), _)              => Left(err)
         case (Right(list), (name, json)) =>
           json.foldWith(ArrayParser(field :+ name, mapping)) match {
             case Left(err)    => Left(err)
@@ -173,7 +173,7 @@ object Document {
           Left(DecodingFailure(s"field $fieldName cannot be parsed from json object '$value'", Nil))
         case None =>
           value.toList.foldLeft[Decoder.Result[List[Field]]](Right(Nil)) {
-            case (Left(err), _) => Left(err)
+            case (Left(err), _)              => Left(err)
             case (Right(list), (name, json)) =>
               json.foldWith(DocumentParser(field :+ name, mapping)) match {
                 case Left(err)    => Left(err)
@@ -187,7 +187,7 @@ object Document {
       mapping.fieldSchema(fieldName) match {
         case Some(_: TextListFieldSchema) =>
           value.foldLeft[Decoder.Result[List[String]]](Right(Nil)) {
-            case (Left(err), _) => Left(err)
+            case (Left(err), _)         => Left(err)
             case (Right(strings), json) =>
               json.asString match {
                 case None => Left(DecodingFailure(s"field '$fieldName' can only contain strings, but got $json", Nil))
@@ -199,7 +199,7 @@ object Document {
             case Right(values) => Right(List(TextListField(fieldName, values)))
           }
         case Some(_) => Left(DecodingFailure(s"unexpected array for field '$fieldName': $value", Nil))
-        case None =>
+        case None    =>
           val result = value.toList
             .map(json => json.foldWith(ArrayParser(field, mapping)))
             .reduceLeftOption {

@@ -66,7 +66,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   def sync(): IO[Unit] = for {
     readers      <- getReadersOrFail()
     ondiskSeqnum <- index.seqnum.get
-    _ <- IO.whenA(ondiskSeqnum > readers.seqnum)(for {
+    _            <- IO.whenA(ondiskSeqnum > readers.seqnum)(for {
       newReaders <- Readers.reopen(readers.reader, ondiskSeqnum)
       _          <- readersRef.set(Some(newReaders))
       _          <- info(s"index searcher reloaded, seqnum ${readers.seqnum} -> $ondiskSeqnum")
@@ -74,9 +74,9 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   } yield {}
 
   def suggest(request: SuggestRequest): IO[SuggestResponse] = for {
-    start     <- IO(System.currentTimeMillis())
-    _         <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
-    suggester <- getReadersOrFail().map(_.suggester)
+    start            <- IO(System.currentTimeMillis())
+    _                <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
+    suggester        <- getReadersOrFail().map(_.suggester)
     fieldSuggestions <- Stream
       .emits(request.fields)
       .evalMap(fieldName =>
@@ -109,7 +109,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     start   <- IO(System.currentTimeMillis())
     _       <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
     readers <- getReadersOrFail()
-    query <- request.query match {
+    query   <- request.query match {
       case q @ KnnQuery(k = None)               => IO.pure(q.copy(k = Some(request.size)))
       case q @ SemanticQuery(k = None)          => IO.pure(q.copy(k = Some(request.size)))
       case q @ RRFQuery(window = None)          => IO.pure(q.copy(window = Some(request.size)))
@@ -141,7 +141,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   }
 
   def rag(docs: List[Document], request: RAGRequest): Stream[IO, RAGResponse] = {
-    val start = System.currentTimeMillis()
+    val start  = System.currentTimeMillis()
     val stream = for {
       _ <- Stream.eval(IO(metrics.search.activeQueries.labelValues(index.name.value).inc()))
 
@@ -154,7 +154,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
           request.fields
         )
       )
-      _ <- Stream.eval(debug(s"prompt: ${prompt}"))
+      _             <- Stream.eval(debug(s"prompt: ${prompt}"))
       (token, took) <- index.models.generative
         .generate(request.model, prompt, request.maxResponseLength)
         .through(DurationStream.pipe(start))
@@ -180,14 +180,14 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     reader <- getReadersOrFail().map(_.reader)
 
     result <- aggs match {
-      case None => IO(Map.empty)
+      case None    => IO(Map.empty)
       case Some(a) =>
         a.aggs.toList
           .traverse { case (name, agg) =>
             mapping.fieldSchema(agg.field) match {
               case Some(field) if !field.facet =>
                 IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
-              case None => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
+              case None         => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
               case Some(schema) =>
                 agg match {
                   case a @ Aggregation.TermAggregation(field, size) =>
@@ -210,7 +210,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   ): IO[List[Document]] = for {
     reader  <- getReadersOrFail().map(_.reader)
     visitor <- DocumentVisitor.create(mapping, fields)
-    docs <- IO {
+    docs    <- IO {
       val docs = top.scoreDocs.map(doc => {
         visitor.reset()
         reader.storedFields().document(doc.doc, visitor)
@@ -256,7 +256,7 @@ object Searcher extends Logging {
     def attemptOpenIfExists(index: Index): IO[Option[Readers]] = {
       IO(DirectoryReader.indexExists(index.directory)).flatMap {
         case false => info(s"index '${index.name.value}' does not yet exist") *> IO.none
-        case true =>
+        case true  =>
           for {
             reader     <- IO(DirectoryReader.open(index.directory))
             searcher   <- IO(new IndexSearcher(reader))
@@ -273,8 +273,8 @@ object Searcher extends Logging {
 
     def reopen(oldReader: DirectoryReader, newSeqnum: Long): IO[Readers] = for {
       readerOption <- IO(Option(DirectoryReader.openIfChanged(oldReader)))
-      reader <- readerOption match {
-        case None => IO.pure(oldReader)
+      reader       <- readerOption match {
+        case None            => IO.pure(oldReader)
         case Some(newReader) =>
           debug(s"reopening reader, seqnum=$newSeqnum") *> IO(oldReader.close()) *> IO.pure(newReader)
       }

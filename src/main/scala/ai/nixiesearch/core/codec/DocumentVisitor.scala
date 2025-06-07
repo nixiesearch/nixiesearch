@@ -69,7 +69,7 @@ case class DocumentVisitor(
 
   override def intField(fieldInfo: FieldInfo, value: Int): Unit = {
     mapping.fieldSchema(fieldInfo.name) match {
-      case Some(schema: IntFieldSchema) => collectField(Some(schema), fieldInfo.name, value, IntField)
+      case Some(schema: IntFieldSchema)     => collectField(Some(schema), fieldInfo.name, value, IntField)
       case Some(schema: BooleanFieldSchema) =>
         collectField(Some(schema), fieldInfo.name, value, BooleanField)
       case Some(schema: DateFieldSchema) =>

@@ -12,7 +12,7 @@ import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
 class DocScoreTest extends SearchTest with Matchers {
-  val name = StringName("field")
+  val name    = StringName("field")
   val mapping =
     TestIndexMapping("sort", List(TextFieldSchema(StringName("_id"))))
   val docs = List(

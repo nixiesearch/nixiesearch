@@ -4,8 +4,8 @@ object MapStringStringConverter extends ArgConverter[Map[String, String]] {
   override def convert(value: String): Either[String, Map[String, String]] = {
     val tuples = value.split(',')
     tuples.foldLeft[Either[String, Map[String, String]]](Right(Map.empty)) {
-      case (Left(err), _)   => Left(err)
-      case (Right(map), "") => Right(map)
+      case (Left(err), _)     => Left(err)
+      case (Right(map), "")   => Right(map)
       case (Right(map), next) =>
         next.split('=').toList match {
           case Nil                  => Right(map)

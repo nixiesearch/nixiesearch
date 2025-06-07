@@ -82,14 +82,14 @@ object Predicate {
 
   object FilterTerm {
     object DateTerm {
-      def unapply(str: String): Option[Int] = DateField.parseString(str).toOption
+      def unapply(str: String): Option[Int]      = DateField.parseString(str).toOption
       def unapply(term: FilterTerm): Option[Int] = term match {
         case StringTerm(string) => DateField.parseString(string).toOption
         case _                  => None
       }
     }
     object DateTimeTerm {
-      def unapply(string: String): Option[Long] = DateTimeField.parseString(string).toOption
+      def unapply(string: String): Option[Long]   = DateTimeField.parseString(string).toOption
       def unapply(term: FilterTerm): Option[Long] = term match {
         case StringTerm(string) => DateTimeField.parseString(string).toOption
         case _                  => None
@@ -102,7 +102,7 @@ object Predicate {
     }
     given filterTermDecoder: Decoder[FilterTerm] = Decoder.instance(c =>
       c.focus match {
-        case None => Left(DecodingFailure("got empty json for a term", c.history))
+        case None       => Left(DecodingFailure("got empty json for a term", c.history))
         case Some(json) =>
           json.fold(
             jsonNull = Left(DecodingFailure("got null instead of term", c.history)),
@@ -163,10 +163,10 @@ object Predicate {
   }
 
   object TermPredicate {
-    def apply(field: String, value: String)  = new TermPredicate(field, StringTerm(value))
-    def apply(field: String, value: Int)     = new TermPredicate(field, NumTerm(value))
-    def apply(field: String, value: Long)    = new TermPredicate(field, NumTerm(value))
-    def apply(field: String, value: Boolean) = new TermPredicate(field, BooleanTerm(value))
+    def apply(field: String, value: String)            = new TermPredicate(field, StringTerm(value))
+    def apply(field: String, value: Int)               = new TermPredicate(field, NumTerm(value))
+    def apply(field: String, value: Long)              = new TermPredicate(field, NumTerm(value))
+    def apply(field: String, value: Boolean)           = new TermPredicate(field, BooleanTerm(value))
     given termPredicateEncoder: Encoder[TermPredicate] =
       Encoder.instance(t => Json.fromJsonObject(JsonObject.singleton(t.field, FilterTerm.filterTermEncoder(t.value))))
 
@@ -270,25 +270,25 @@ object Predicate {
 
     given rangeDecoder: Decoder[RangePredicate] = Decoder.instance(c => {
       c.keys.map(_.toList) match {
-        case None      => Left(DecodingFailure(s"cannot decode range without a field", c.history))
-        case Some(Nil) => Left(DecodingFailure(s"cannot decode range without a field", c.history))
+        case None               => Left(DecodingFailure(s"cannot decode range without a field", c.history))
+        case Some(Nil)          => Left(DecodingFailure(s"cannot decode range without a field", c.history))
         case Some(field :: Nil) =>
           for {
-            gt  <- c.downField(field).downField("gt").as[Option[RangeValue]]
-            gte <- c.downField(field).downField("gte").as[Option[RangeValue]]
+            gt    <- c.downField(field).downField("gt").as[Option[RangeValue]]
+            gte   <- c.downField(field).downField("gte").as[Option[RangeValue]]
             lower <- (gt, gte) match {
-              case (Some(gt), None)  => Right(Some(Lower.Gt(gt)))
-              case (None, Some(gte)) => Right(Some(Lower.Gte(gte)))
-              case (None, None)      => Right(None)
+              case (Some(gt), None)   => Right(Some(Lower.Gt(gt)))
+              case (None, Some(gte))  => Right(Some(Lower.Gte(gte)))
+              case (None, None)       => Right(None)
               case (Some(_), Some(_)) =>
                 Left(DecodingFailure(s"got both gt and gte fields for range, expected one", c.history))
             }
-            lt  <- c.downField(field).downField("lt").as[Option[RangeValue]]
-            lte <- c.downField(field).downField("lte").as[Option[RangeValue]]
+            lt     <- c.downField(field).downField("lt").as[Option[RangeValue]]
+            lte    <- c.downField(field).downField("lte").as[Option[RangeValue]]
             higher <- (lt, lte) match {
-              case (Some(lt), None)  => Right(Some(Higher.Lt(lt)))
-              case (None, Some(lte)) => Right(Some(Higher.Lte(lte)))
-              case (None, None)      => Right(None)
+              case (Some(lt), None)   => Right(Some(Higher.Lt(lt)))
+              case (None, Some(lte))  => Right(Some(Higher.Lte(lte)))
+              case (None, None)       => Right(None)
               case (Some(_), Some(_)) =>
                 Left(DecodingFailure("got both lt and lte fields for a range, expected one", c.history))
             }

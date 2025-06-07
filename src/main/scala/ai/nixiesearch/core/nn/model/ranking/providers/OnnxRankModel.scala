@@ -39,7 +39,7 @@ case class OnnxRankModel(
     val attMask    = encoded.flatMap(e => e.getAttentionMask)
 
     val tensorDim = Array(bs.toLong, encoded(0).getIds.length)
-    val argsList = inputTensorNames.map {
+    val argsList  = inputTensorNames.map {
       case "input_ids"      => OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
       case "token_type_ids" => OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
       case "attention_mask" => OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)

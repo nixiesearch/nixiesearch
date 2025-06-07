@@ -36,10 +36,10 @@ object GPUUtils extends Logging {
     val driverPath = Path(driverDir)
     Files[IO].exists(driverPath).flatMap {
       case false => IO.pure(Nil)
-      case true =>
+      case true  =>
         Files[IO].isDirectory(driverPath).flatMap {
           case false => IO.raiseError(BackendError(s"$driverPath exists but not a directory"))
-          case true =>
+          case true  =>
             Files[IO]
               .list(driverPath / "gpus")
               .evalMap(gpuDir =>
@@ -54,7 +54,7 @@ object GPUUtils extends Logging {
     }
   }
 
-  val paramsPattern = "([a-zA-Z 0-9]+):\\s+(.*)".r
+  val paramsPattern                                       = "([a-zA-Z 0-9]+):\\s+(.*)".r
   def parseInformation(bytes: Array[Byte]): IO[GPUDevice] = for {
     string <- IO(new String(bytes))
     params <- Stream
@@ -65,7 +65,7 @@ object GPUUtils extends Logging {
       }
       .compile
       .to(Map)
-    name <- IO.fromOption(params.get("Model"))(BackendError(s"GPU info parameter 'Model' not found in $params"))
+    name     <- IO.fromOption(params.get("Model"))(BackendError(s"GPU info parameter 'Model' not found in $params"))
     idString <- IO.fromOption(params.get("Device Minor"))(
       BackendError(s"GPU info parameter 'Device Minor' not found in $params")
     )

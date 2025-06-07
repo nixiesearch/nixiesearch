@@ -49,7 +49,7 @@ object LocalIndex extends Logging {
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
-      index <- Resource.pure(
+      index     <- Resource.pure(
         LocalIndex(
           mapping = manifest.mapping,
           models = models,
@@ -71,7 +71,7 @@ object LocalIndex extends Logging {
         for {
           _        <- info("index dir does not contain manifest, creating...")
           manifest <- state.createManifest(configMapping, 0L)
-          _ <- state.write(
+          _        <- state.write(
             IndexManifest.MANIFEST_FILE_NAME,
             Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(manifest.asJson.spaces2.getBytes())))
           )
@@ -88,7 +88,7 @@ object LocalIndex extends Logging {
         for {
           mergedMapping <- indexManifest.mapping.migrate(configMapping)
           manifest      <- state.createManifest(mergedMapping, indexManifest.seqnum)
-          _ <- state.write(
+          _             <- state.write(
             IndexManifest.MANIFEST_FILE_NAME,
             Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(manifest.asJson.spaces2.getBytes())))
           )

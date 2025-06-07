@@ -6,7 +6,7 @@ import com.hubspot.jinjava.interpret.DynamicVariableResolver
 
 object JinjavaTest {
   def main(args: Array[String]): Unit = {
-    val jj = new Jinjava()
+    val jj     = new Jinjava()
     val resolv = new DynamicVariableResolver {
       override def apply(t: String): AnyRef = {
         println(t)

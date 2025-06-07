@@ -9,7 +9,7 @@ import scodec.bits.ByteVector
 import io.circe.syntax.*
 
 case class TypicalErrorsRoute(indexes: List[String]) extends Route {
-  val verbs = Set("_search", "_suggest")
+  val verbs           = Set("_search", "_suggest")
   override def routes = HttpRoutes.of[IO] {
     case POST -> Root / index / handle if !indexes.contains(index) && verbs.contains(handle) =>
       error(Status.NotFound, s"Index '$index' not found. You can try others: [${indexes.mkString(", ")}]")

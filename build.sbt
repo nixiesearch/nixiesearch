@@ -162,18 +162,18 @@ docker / buildOptions := BuildOptions(
 )
 
 ThisBuild / assemblyMergeStrategy := {
-  case PathList("module-info.class")                                         => MergeStrategy.discard
-  case "META-INF/io.netty.versions.properties"                               => MergeStrategy.first
-  case "META-INF/MANIFEST.MF"                                                => MergeStrategy.discard
-  case x if x.startsWith("META-INF/versions/")                               => MergeStrategy.first
-  case x if x.startsWith("META-INF/services/")                               => MergeStrategy.concat
-  case "META-INF/native-image/reflect-config.json"                           => MergeStrategy.concat
-  case "META-INF/native-image/io.netty/netty-common/native-image.properties" => MergeStrategy.first
-  case "META-INF/okio.kotlin_module"                                         => MergeStrategy.first
-  case "findbugsExclude.xml"                                                 => MergeStrategy.discard
-  case "log4j2-test.properties"                                              => MergeStrategy.discard
-  case x if x.startsWith("ai/onnxruntime/native/")                           => MergeStrategy.first
-  case x if x.endsWith("/module-info.class")                                 => MergeStrategy.discard
+  case PathList("module-info.class")                                          => MergeStrategy.discard
+  case "META-INF/io.netty.versions.properties"                                => MergeStrategy.first
+  case "META-INF/MANIFEST.MF"                                                 => MergeStrategy.discard
+  case x if x.startsWith("META-INF/versions/")                                => MergeStrategy.first
+  case x if x.startsWith("META-INF/services/")                                => MergeStrategy.concat
+  case "META-INF/native-image/reflect-config.json"                            => MergeStrategy.concat
+  case "META-INF/native-image/io.netty/netty-common/native-image.properties"  => MergeStrategy.first
+  case "META-INF/okio.kotlin_module"                                          => MergeStrategy.first
+  case "findbugsExclude.xml"                                                  => MergeStrategy.discard
+  case "log4j2-test.properties"                                               => MergeStrategy.discard
+  case x if x.startsWith("ai/onnxruntime/native/")                            => MergeStrategy.first
+  case x if x.endsWith("/module-info.class")                                  => MergeStrategy.discard
   case x if x.startsWith("/META-INF/versions/9/org/yaml/snakeyaml/internal/") =>
     MergeStrategy.discard // pulsar client bundling snakeyaml
   case x =>

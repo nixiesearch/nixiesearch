@@ -29,14 +29,14 @@ case class S3StateClient(s3: S3Client, conf: S3Location, indexName: IndexName) e
   }
   override def readManifest(): IO[Option[IndexManifest]] =
     for {
-      path <- IO(s"${conf.prefix}/${indexName.value}/${IndexManifest.MANIFEST_FILE_NAME}")
-      _    <- debug(s"Reading s3://${conf.bucket}/$path")
+      path     <- IO(s"${conf.prefix}/${indexName.value}/${IndexManifest.MANIFEST_FILE_NAME}")
+      _        <- debug(s"Reading s3://${conf.bucket}/$path")
       manifest <- s3.getObject(conf.bucket, path).attempt.flatMap {
         case Left(e: NoSuchKeyException) => IO.none
         case Left(error)                 => wrapException(IndexManifest.MANIFEST_FILE_NAME)(error)
-        case Right(stream) =>
+        case Right(stream)               =>
           for {
-            bytes <- stream.compile.to(Array)
+            bytes   <- stream.compile.to(Array)
             decoded <- IO(decode[IndexManifest](new String(bytes))).flatMap {
               case Left(err)    => IO.raiseError(err)
               case Right(value) => IO.pure(value)

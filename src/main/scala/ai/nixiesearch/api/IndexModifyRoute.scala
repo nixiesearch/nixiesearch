@@ -65,7 +65,7 @@ case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
 
   private def indexDocStream(request: Stream[IO, Document]): IO[IndexResponse] = for {
     start <- IO(System.nanoTime())
-    docs <- request
+    docs  <- request
       .chunkN(64)
       .through(PrintProgress.tapChunk("indexed docs"))
       .evalTap(chunk => {
@@ -90,7 +90,7 @@ case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
 
   def merge(request: Request[IO]): IO[Response[IO]] = for {
     start <- IO(System.nanoTime())
-    req <- request.entity.length match {
+    req   <- request.entity.length match {
       case None | Some(0) => IO(MergeRequest(1))
       case Some(_)        => request.as[MergeRequest]
     }

@@ -145,7 +145,7 @@ object KafkaSource {
         messages <- IO.blocking(client.poll(freq))
         _        <- debug(s"polled ${messages.count()} messages from kafka")
       } yield {
-        val events = messages.asScala.map(_.value()).toList
+        val events  = messages.asScala.map(_.value()).toList
         val offsets = messages.asScala
           .map(m => new TopicPartition(m.topic(), m.partition()) -> new OffsetAndMetadata(m.offset()))
           .groupBy(_._1)

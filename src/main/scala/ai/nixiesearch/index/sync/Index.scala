@@ -25,7 +25,7 @@ trait Index extends Logging {
 
 object Index {
   def local(mapping: IndexMapping, models: Models): Resource[IO, LocalIndex] = mapping.store match {
-    case local: config.StoreConfig.LocalStoreConfig => LocalIndex.create(mapping, local, models)
+    case local: config.StoreConfig.LocalStoreConfig      => LocalIndex.create(mapping, local, models)
     case dist: config.StoreConfig.DistributedStoreConfig =>
       Resource.raiseError[IO, LocalIndex, Throwable](
         new UnsupportedOperationException("cannot open distributed index in local standalone mode")

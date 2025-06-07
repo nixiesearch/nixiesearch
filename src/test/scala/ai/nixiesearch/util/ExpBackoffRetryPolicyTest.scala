@@ -25,9 +25,9 @@ class ExpBackoffRetryPolicyTest extends AnyFlatSpec with Matchers with Logging {
   it should "handle retries" in {
     val (client, clientShutdown) =
       EmberClientBuilder.default[IO].withTimeout(10.seconds).build.allocated.unsafeRunSync()
-    val retryClient = Retry[IO](ExpBackoffRetryPolicy(100.millis, 2.0, 4000.millis, 10))(client)
-    val app         = Router("/" -> FailFirstNRoute(2).routes).orNotFound
-    val port        = 10240 + Random.nextInt(20000)
+    val retryClient        = Retry[IO](ExpBackoffRetryPolicy(100.millis, 2.0, 4000.millis, 10))(client)
+    val app                = Router("/" -> FailFirstNRoute(2).routes).orNotFound
+    val port               = 10240 + Random.nextInt(20000)
     val (api, apiShutdown) =
       EmberServerBuilder.default[IO].withHttpApp(app).withPort(Port.fromInt(port).get).build.allocated.unsafeRunSync()
     val response =
