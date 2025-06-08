@@ -1,3 +1,0 @@
-# Index persistence
-
-todo
