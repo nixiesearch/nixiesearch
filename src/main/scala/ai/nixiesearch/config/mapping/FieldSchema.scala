@@ -12,6 +12,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
 import io.circe.JsonObject
+import io.circe.derivation.{ConfiguredDecoder, ConfiguredEncoder}
 
 import language.experimental.namedTuples
 import scala.NamedTuple.NamedTuple
@@ -327,44 +328,43 @@ object FieldSchema {
   object json {
     import SearchParams.given
     import SuggestSchema.json.given
+    import io.circe.derivation.Configuration
+
+    given config: Configuration = Configuration.default.withDefaults
 
     given textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
-    given textFieldSchemaDecoder: Decoder[TextFieldSchema] = deriveDecoder
+    given textFieldSchemaDecoder: Decoder[TextFieldSchema] = ConfiguredDecoder.derived[TextFieldSchema](using config)
 
     given textListFieldSchemaEncoder: Encoder[TextListFieldSchema] = deriveEncoder
-    given textListFieldSchemaDecoder: Decoder[TextListFieldSchema] = deriveDecoder
+    given textListFieldSchemaDecoder: Decoder[TextListFieldSchema] =
+      ConfiguredDecoder.derived[TextListFieldSchema](using config)
 
-    given intFieldSchemaDecoder: Decoder[IntFieldSchema] = deriveDecoder
+    given intFieldSchemaDecoder: Decoder[IntFieldSchema] = ConfiguredDecoder.derived[IntFieldSchema](using config)
     given intFieldSchemaEncoder: Encoder[IntFieldSchema] = deriveEncoder
 
-    given longFieldSchemaDecoder: Decoder[LongFieldSchema] = deriveDecoder
+    given longFieldSchemaDecoder: Decoder[LongFieldSchema] = ConfiguredDecoder.derived[LongFieldSchema](using config)
     given longFieldSchemaEncoder: Encoder[LongFieldSchema] = deriveEncoder
 
-    given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = deriveDecoder
+    given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = ConfiguredDecoder.derived[FloatFieldSchema](using config)
     given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
 
-    given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] = deriveDecoder
+    given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] =
+      ConfiguredDecoder.derived[DoubleFieldSchema](using config)
     given doubleFieldSchemaEncoder: Encoder[DoubleFieldSchema] = deriveEncoder
 
-    given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] = deriveDecoder
+    given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] =
+      ConfiguredDecoder.derived[BooleanFieldSchema](using config)
     given boolFieldSchemaEncoder: Encoder[BooleanFieldSchema] = deriveEncoder
 
-    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = Decoder.instance(c =>
-      for {
-        name   <- c.downField("name").as[FieldName]
-        store  <- c.downField("store").as[Boolean]
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false)) // compat with 0.4
-        filter <- c.downField("filter").as[Boolean]
-      } yield {
-        GeopointFieldSchema(name, store, sort, filter)
-      }
-    )
+    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] =
+      ConfiguredDecoder.derived[GeopointFieldSchema](using config)
     given geopointFieldSchemaEncoder: Encoder[GeopointFieldSchema] = deriveEncoder
 
-    given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = deriveDecoder
+    given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = ConfiguredDecoder.derived[DateFieldSchema](using config)
     given dateFieldSchemaEncoder: Encoder[DateFieldSchema] = deriveEncoder
 
-    given dateTimeFieldSchemaDecoder: Decoder[DateTimeFieldSchema] = deriveDecoder
+    given dateTimeFieldSchemaDecoder: Decoder[DateTimeFieldSchema] =
+      ConfiguredDecoder.derived[DateTimeFieldSchema](using config)
     given dateTimeFieldSchemaEncoder: Encoder[DateTimeFieldSchema] = deriveEncoder
 
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
