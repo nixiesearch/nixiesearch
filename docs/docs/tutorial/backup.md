@@ -5,6 +5,7 @@
 Nixiesearch's S3-native architecture provides significant advantages for backup and restore operations. Unlike traditional search engines that require complex volume snapshots, nixiesearch stores all index data directly in S3, making backups as simple as copying S3 objects.
 
 This tutorial covers:
+
 - **Backup scenarios**: Regular backups vs disaster recovery
 - **Restore procedures**: Point-in-time and cross-environment restores
 - **Key concepts**: S3 prefix changes and ConfigMap rollouts for zero-downtime operations
@@ -174,4 +175,6 @@ spec:
 - [Configuration Reference](../reference/config.md) - Complete configuration options
 - [Auto-scaling](autoscaling.md) - Scaling considerations for restored clusters
 
-Remember that nixiesearch's stateless architecture means no persistent volumes need backing up - all critical data lives in S3 and can be restored by simply updating configuration.
+!!! note 
+    
+    Remember that nixiesearch's stateless architecture means no persistent volumes need backing up - all critical data lives in S3 and can be restored by simply updating configuration.
