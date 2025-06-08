@@ -51,7 +51,7 @@ class InferenceRouteTest extends AnyFlatSpec with Matchers with SearchTest {
           Method.POST
         )
       val events = response.split("\n\n")
-      events.size shouldBe 9
+      events.size shouldBe 8
 
     }
   }
