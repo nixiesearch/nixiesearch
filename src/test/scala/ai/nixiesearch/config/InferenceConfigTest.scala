@@ -1,15 +1,22 @@
 package ai.nixiesearch.config
 
 import ai.nixiesearch.config.EmbedCacheConfig.{MemoryCacheConfig, NoCache}
-import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{LlamacppInferenceModelConfig, LlamacppParams}
-import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, EmbeddingInferenceModelConfig, PromptConfig}
+import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.{
+  LlamacppInferenceModelConfig,
+  LlamacppParams
+}
+import ai.nixiesearch.config.InferenceConfig.{
+  CompletionInferenceModelConfig,
+  EmbeddingInferenceModelConfig,
+  PromptConfig
+}
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.PoolingType.MeanPooling
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
-import ai.nixiesearch.core.nn.onnx.OnnxModelFile
+import ai.nixiesearch.core.nn.onnx.{OnnxConfig, OnnxModelFile}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.yaml.parser.parse as parseYaml
@@ -251,6 +258,69 @@ class InferenceConfigTest extends AnyFlatSpec with Matchers {
             model = ModelHandle.HuggingFaceHandle("Qwen", "Qwen2-0.5B-Instruct-GGUF"),
             file = Some("qwen2-0_5b-instruct-q4_0.gguf"),
             options = LlamacppParams(flash_attn = false)
+          )
+        )
+      )
+    )
+  }
+
+  it should "parse embedding config with device CPU" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: onnx
+        |    model: nixiesearch/e5-small-v2-onnx
+        |    device: cpu:8
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            device = OnnxConfig.Device.CPU(8)
+          )
+        )
+      )
+    )
+  }
+
+  it should "parse embedding config with device CUDA" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: onnx
+        |    model: nixiesearch/e5-small-v2-onnx
+        |    device: cuda:1
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            device = OnnxConfig.Device.CUDA(1)
+          )
+        )
+      )
+    )
+  }
+
+  it should "parse embedding config with default device" in {
+    val text =
+      """embedding:
+        |  small:
+        |    provider: onnx
+        |    model: nixiesearch/e5-small-v2-onnx
+        |    device: cpu
+        |""".stripMargin
+    val decoded = parseYaml(text).flatMap(_.as[InferenceConfig])
+    decoded shouldBe Right(
+      InferenceConfig(
+        embedding = Map(
+          ModelRef("small") -> OnnxEmbeddingInferenceModelConfig(
+            model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx"),
+            device = OnnxConfig.Device.CPU()
           )
         )
       )
