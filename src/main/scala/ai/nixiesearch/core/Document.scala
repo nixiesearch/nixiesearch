@@ -42,11 +42,23 @@ object Document {
       case Left(err)  => Left(err)
       case Right(Nil) => Left(DecodingFailure(s"document cannot be empty: ${cursor.value}", cursor.history))
       case Right(other) =>
-        if (other.exists(_.name == "_id")) {
-          Right(Document(other))
-        } else {
-          val id = TextField("_id", UUID.randomUUID().toString)
-          Right(Document(other :+ id))
+        val missingFields =
+          mapping.requiredFields.filterNot(schemaField => other.exists(docField => schemaField.matches(docField.name)))
+        missingFields match {
+          case Nil =>
+            if (other.exists(_.name == "_id")) {
+              Right(Document(other))
+            } else {
+              val id = TextField("_id", UUID.randomUUID().toString)
+              Right(Document(other :+ id))
+            }
+          case nel =>
+            Left(
+              DecodingFailure(
+                s"fields '${nel.map(_.name)}' is defined as required, but doc has only '${other.map(_.name)}' fields",
+                cursor.history
+              )
+            )
         }
 
     }

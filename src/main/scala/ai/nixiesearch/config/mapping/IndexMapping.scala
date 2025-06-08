@@ -29,7 +29,8 @@ case class IndexMapping(
     fields: Map[FieldName, FieldSchema[? <: Field]]
 ) extends Logging {
 
-  val analyzer = PerFieldAnalyzer(new KeywordAnalyzer(), this)
+  val analyzer                             = PerFieldAnalyzer(new KeywordAnalyzer(), this)
+  lazy val requiredFields: List[FieldName] = fields.filter(_._2.required).keys.toList
 
   def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
     fields.collectFirst {
