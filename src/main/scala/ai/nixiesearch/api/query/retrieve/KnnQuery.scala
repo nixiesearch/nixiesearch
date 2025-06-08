@@ -18,15 +18,15 @@ case class KnnQuery(field: String, query_vector: Array[Float], k: Option[Int]) e
       fields: List[String]
   ): IO[Query] = for {
     schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
-    _ <- schema match {
+    _      <- schema match {
       case t: TextLikeFieldSchema[?] if t.search.semantic.nonEmpty => IO.unit
-      case t: TextLikeFieldSchema[?] =>
+      case t: TextLikeFieldSchema[?]                               =>
         IO.raiseError(UserError(s"field '$field' is not lexically searchable, check the index mapping"))
       case other => IO.raiseError(UserError(s"field '$field' is not a text field"))
     }
     realK = k.getOrElse(10)
     result <- maybeFilter match {
-      case None => IO(new KnnFloatVectorQuery(field, query_vector, realK))
+      case None          => IO(new KnnFloatVectorQuery(field, query_vector, realK))
       case Some(filters) =>
         filters.toLuceneQuery(mapping).map {
           case Some(luceneFilters) => new KnnFloatVectorQuery(field, query_vector, realK, luceneFilters)

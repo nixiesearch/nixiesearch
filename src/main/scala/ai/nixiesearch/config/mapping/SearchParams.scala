@@ -87,7 +87,7 @@ object SearchParams {
         for {
           lexical  <- c.downField("lexical").as[Option[LexicalParams]]
           semantic <- c.downField("semantic").as[Option[SemanticParams]]
-          _ <- c.downField("type").as[Option[String]] match {
+          _        <- c.downField("type").as[Option[String]] match {
             case Left(err)        => Left(err)
             case Right(None)      => Right({})
             case Right(Some(tpe)) => Left(DecodingFailure(s"you use old search options format", c.history))
@@ -96,7 +96,7 @@ object SearchParams {
           SearchParams(lexical, semantic)
         }
       case Right(false) => Right(SearchParams(None, None))
-      case Right(true) =>
+      case Right(true)  =>
         Left(DecodingFailure(s"unexpected search settings 'true': please set lexical/semantic params", c.history))
     }
   )

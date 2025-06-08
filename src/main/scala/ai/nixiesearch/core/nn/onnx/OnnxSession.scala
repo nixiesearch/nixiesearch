@@ -45,20 +45,20 @@ object OnnxSession extends Logging {
       cache: ModelFileCache,
       onnxConfig: OnnxConfig
   ): Resource[IO, OnnxSession] = for {
-    hf <- HuggingFaceClient.create(cache)
+    hf                          <- HuggingFaceClient.create(cache)
     (model, vocab, modelConfig) <- Resource.eval(for {
-      card      <- hf.model(handle)
-      modelFile <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), onnxConfig.file)
+      card          <- hf.model(handle)
+      modelFile     <- OnnxModelFile.chooseModelFile(card.siblings.map(_.rfilename), onnxConfig.file)
       tokenizerFile <- IO.fromOption(card.siblings.map(_.rfilename).find(_ == "tokenizer.json"))(
         BackendError("Cannot find tokenizer.json in repo")
       )
-      _         <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
-      modelPath <- hf.getCached(handle, modelFile.base)
+      _                  <- info(s"Fetching $handle from HF: model=$modelFile tokenizer=$tokenizerFile")
+      modelPath          <- hf.getCached(handle, modelFile.base)
       maybeModelDataPath <- modelFile.data match {
         case None       => IO.none
         case Some(data) => hf.getCached(handle, data).map(Option.apply)
       }
-      vocabPath <- hf.getCached(handle, tokenizerFile)
+      vocabPath   <- hf.getCached(handle, tokenizerFile)
       modelConfig <- hf
         .getCached(handle, CONFIG_FILE)
         .flatMap(path => IO.fromEither(decode[TransformersConfig](Files.readString(path))))
@@ -77,9 +77,9 @@ object OnnxSession extends Logging {
   ): Resource[IO, OnnxSession] = {
     for {
       (model, vocab, modelConfig) <- Resource.eval(for {
-        path      <- IO(Fs2Path(handle.dir))
-        files     <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
-        modelFile <- OnnxModelFile.chooseModelFile(files, onnxConfig.file)
+        path          <- IO(Fs2Path(handle.dir))
+        files         <- fs2.io.file.Files[IO].list(path).map(_.fileName.toString).compile.toList
+        modelFile     <- OnnxModelFile.chooseModelFile(files, onnxConfig.file)
         tokenizerFile <- IO.fromOption(files.find(_ == "tokenizer.json"))(
           BackendError("cannot find tokenizer.json file in dir")
         )

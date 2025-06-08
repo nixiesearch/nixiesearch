@@ -22,7 +22,7 @@ case class Filters(include: Option[Predicate] = None, exclude: Option[Predicate]
     } else {
       for {
         builder <- IO.pure(new BooleanQuery.Builder())
-        _ <- include match {
+        _       <- include match {
           case Some(pred) => pred.compile(mapping).map(q => builder.add(new BooleanClause(q, Occur.FILTER)))
           case None       => IO.unit
         }

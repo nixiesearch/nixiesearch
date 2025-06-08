@@ -23,7 +23,7 @@ object TestInferenceConfig {
   )
   def empty()    = InferenceConfig()
   def semantic() = apply()
-  def apply() = InferenceConfig(
+  def apply()    = InferenceConfig(
     embedding = Map(
       ModelRef("text") -> OnnxEmbeddingInferenceModelConfig(
         model = HuggingFaceHandle("nixiesearch", "e5-small-v2-onnx")

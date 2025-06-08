@@ -10,7 +10,7 @@ trait ReplicatedIndex extends Index {
     _                     <- debug("replicated index sync in progress")
     masterManifestOption  <- master.readManifest()
     replicaManifestOption <- replica.readManifest()
-    changed <- (masterManifestOption, replicaManifestOption) match {
+    changed               <- (masterManifestOption, replicaManifestOption) match {
       case (Some(masterManifest), Some(replicaManifest)) if masterManifest.seqnum > replicaManifest.seqnum =>
         Stream
           .evalSeq(masterManifest.diff(Some(replicaManifest)))

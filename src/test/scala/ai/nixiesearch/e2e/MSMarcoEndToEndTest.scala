@@ -19,7 +19,7 @@ import org.http4s.{Entity, Method, Request, Uri}
 import scodec.bits.ByteVector
 
 class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
-  lazy val pwd = System.getProperty("user.dir")
+  lazy val pwd  = System.getProperty("user.dir")
   lazy val conf =
     Config.load(new File(s"$pwd/src/test/resources/config/msmarco.yml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping = conf.schema(IndexName.unsafe("msmarco"))
@@ -31,7 +31,7 @@ class MSMarcoEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
       val indexApi  = IndexModifyRoute(nixie.indexer)
       val searchApi = SearchRoute(nixie.searcher)
 
-      val jsonPayload = docs.map(doc => doc.asJson.noSpaces).mkString("\n")
+      val jsonPayload  = docs.map(doc => doc.asJson.noSpaces).mkString("\n")
       val indexRequest = Request[IO](
         method = Method.PUT,
         uri = Uri.unsafeFromString("http://localhost:8080/msmarco/_index"),

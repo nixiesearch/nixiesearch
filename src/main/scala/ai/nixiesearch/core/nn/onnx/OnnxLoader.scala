@@ -1,5 +1,3 @@
 package ai.nixiesearch.core.nn.onnx
 
-object OnnxLoader {
-
-}
+object OnnxLoader {}

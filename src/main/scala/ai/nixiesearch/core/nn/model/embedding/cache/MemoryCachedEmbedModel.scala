@@ -14,8 +14,8 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 case class MemoryCachedEmbedModel(underlying: EmbedModel, cache: Cache[Long, Array[Float]], config: MemoryCacheConfig)
     extends CachedEmbedModel {
-  override val batchSize = 128
-  lazy val hasher        = Hashing.murmur3_128()
+  override val batchSize                      = 128
+  lazy val hasher                             = Hashing.murmur3_128()
   def key(task: TaskType, text: String): Long =
     hasher.hashString(s"${task.name}: $text", StandardCharsets.UTF_8).asLong()
 

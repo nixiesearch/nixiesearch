@@ -43,7 +43,7 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
   def parseString(in: String): Either[Throwable, Int] = {
     Try(LocalDate.parse(in)) match {
       case Failure(exception) => Left(exception)
-      case Success(date) =>
+      case Success(date)      =>
         val epoch = LocalDate.of(1970, 1, 1)
         Right(ChronoUnit.DAYS.between(epoch, date).toInt)
     }

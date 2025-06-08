@@ -36,7 +36,7 @@ class RAGTest extends SearchTest with Matchers {
           )
         )
       )
-      val api = SearchRoute(index.searcher)
+      val api      = SearchRoute(index.searcher)
       val response = api
         .searchStreaming(request)
         .collect { case SearchResponseFrame.RAGResponseFrame(value) =>

@@ -43,7 +43,7 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
   }
 
   object standalone extends Subcommand("standalone") with ConfigOption with LoglevelOption
-  object index extends Subcommand("index") {
+  object index      extends Subcommand("index") {
     object api extends Subcommand("api") with ConfigOption with LoglevelOption {
       val host =
         opt[Hostname](
@@ -61,8 +61,8 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
         )
     }
     object file extends Subcommand("file") with ConfigOption with LoglevelOption {
-      val index = opt[String](name = "index", descr = "to which index to write to")
-      val url   = opt[URL](name = "url", descr = "path to documents source")
+      val index     = opt[String](name = "index", descr = "to which index to write to")
+      val url       = opt[URL](name = "url", descr = "path to documents source")
       val recursive =
         opt[Boolean](
           name = "recursive",
@@ -79,10 +79,10 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
         )
     }
     object kafka extends Subcommand("kafka") with ConfigOption with LoglevelOption {
-      val index = opt[String](name = "index", descr = "to which index to write to")
+      val index   = opt[String](name = "index", descr = "to which index to write to")
       val brokers =
         opt[List[String]](name = "brokers", required = true, descr = "Kafka brokers endpoints, comma-separated list")
-      val topic = opt[String](name = "topic", required = true, descr = "Kafka topic name")
+      val topic   = opt[String](name = "topic", required = true, descr = "Kafka topic name")
       val groupId = opt[String](
         name = "group_id",
         required = false,
@@ -187,7 +187,7 @@ object CliConfig extends Logging {
   def load(args: List[String]): IO[CliArgs] = for {
     parser <- IO(CliConfig(args))
     _      <- IO(parser.verify())
-    opts <- parser.subcommand match {
+    opts   <- parser.subcommand match {
       case Some(parser.standalone) =>
         for {
           config   <- parse(parser.standalone.config)

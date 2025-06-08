@@ -40,8 +40,8 @@ object MultiMatchQuery {
     }
   }
 
-  given bestFieldsQueryCodec: Codec[BestFieldsQuery] = deriveCodec
-  given mostFieldsQueryCodec: Codec[MostFieldsQuery] = deriveCodec
+  given bestFieldsQueryCodec: Codec[BestFieldsQuery]     = deriveCodec
+  given mostFieldsQueryCodec: Codec[MostFieldsQuery]     = deriveCodec
   given multiMatchQueryEncoder: Encoder[MultiMatchQuery] = Encoder.instance {
     case q: BestFieldsQuery => bestFieldsQueryCodec(q).deepMerge(tpe("best_fields"))
     case q: MostFieldsQuery => mostFieldsQueryCodec(q).deepMerge(tpe("most_fields"))

@@ -42,13 +42,13 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
   override def readManifest(): IO[Option[IndexManifest]] = {
     IO(dir.listAll().contains(IndexManifest.MANIFEST_FILE_NAME)).flatMap {
       case false => IO.none
-      case true =>
+      case true  =>
         for {
           _ <- debug(
             s"existing ${IndexManifest.MANIFEST_FILE_NAME} file found for Lucene directory $dir for index ${indexName.value}"
           )
           manifestBytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
-          manifest <- IO(decode[IndexManifest](new String(manifestBytes))).flatMap {
+          manifest      <- IO(decode[IndexManifest](new String(manifestBytes))).flatMap {
             case Left(err)    => IO.raiseError(err)
             case Right(value) => IO.pure(value)
           }
@@ -91,7 +91,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
     for {
       exists <- IO(dir.listAll().contains(fileName))
       _      <- IO.whenA(exists)(IO(dir.deleteFile(fileName)) *> debug(s"overwritten file '$fileName'"))
-      _ <- Stream
+      _      <- Stream
         .bracket(IO(dir.createOutput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(out =>
           IO(out.close())
         )

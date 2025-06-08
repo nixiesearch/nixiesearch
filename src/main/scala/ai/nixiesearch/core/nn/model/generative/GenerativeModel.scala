@@ -51,7 +51,7 @@ object GenerativeModel {
     override def generate(input: String, maxTokens: Int): Stream[IO, String] = for {
       tokenized <- Stream.eval(tokenize(input))
       truncated <- Stream(tokenized.take(metadata.n_ctx_train))
-      _ <- Stream.eval(
+      _         <- Stream.eval(
         IO.whenA(truncated.size < tokenized.size)(
           warn(s"Trimmed ${tokenized.size} -> ${metadata.n_ctx_train} due to too long context")
         )
@@ -75,7 +75,7 @@ object GenerativeModel {
         )
       )
       response <- client.stream(request)
-      chunk <- response.entity.body
+      chunk    <- response.entity.body
         .through(fs2.text.utf8.decode)
         .through(fs2.text.lines)
         .through(SSEParser.parse[ChatML.Response])
@@ -107,7 +107,7 @@ object GenerativeModel {
         fields: List[FieldName]
     ): IO[String] = for {
       instructionTokens <- tokenize(instruction + "\n\n")
-      docTokensTrimmed <- Stream
+      docTokensTrimmed  <- Stream
         .emits[IO, Document](docs)
         .parEvalMap(Runtime.getRuntime.availableProcessors())(doc =>
           IO {
@@ -179,7 +179,7 @@ object GenerativeModel {
         .build
       _      <- Resource.eval(waitForHealthy(client, uri))
       models <- Resource.eval(client.expect[ModelsListResponse](uri / "v1" / "models"))
-      meta <- Resource.eval(
+      meta   <- Resource.eval(
         IO.fromOption(models.data.headOption)(BackendError("expected model metadata in llamacpp response"))
       )
     } yield {

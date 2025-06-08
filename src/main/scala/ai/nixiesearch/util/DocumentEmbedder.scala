@@ -44,7 +44,7 @@ case class DocumentEmbedder(
                 case text: TextField =>
                   embeds.get(EmbedTarget(model, text.value)) match {
                     case Some(embed) => text.copy(embedding = Some(embed))
-                    case None =>
+                    case None        =>
                       throw BackendError(
                         s"field ${field.name} should have an embedding for text '${text.value}', but it's not - this is a bug"
                       )
@@ -55,7 +55,7 @@ case class DocumentEmbedder(
                       list.value.map(text =>
                         embeds.get(EmbedTarget(model, text)) match {
                           case Some(embed) => embed
-                          case None =>
+                          case None        =>
                             throw BackendError(
                               s"field ${field.name} should have an embedding for '${text}', but it's not - this is a bug"
                             )
@@ -73,7 +73,7 @@ case class DocumentEmbedder(
   }
 
   def embedStrings(targets: List[EmbedTarget]): IO[Map[EmbedTarget, Array[Float]]] = for {
-    sorted <- IO(targets.groupBy(_.model).map { case (model, docs) => model -> docs.sortBy(_.text.length) })
+    sorted     <- IO(targets.groupBy(_.model).map { case (model, docs) => model -> docs.sortBy(_.text.length) })
     embeddings <- Stream
       .emits(sorted.toList)
       .evalMap((model, docs) =>
@@ -98,7 +98,7 @@ case class DocumentEmbedder(
             // fast path, should be embedded
             case Some(Some(model)) =>
               text match {
-                case TextField(name, value, _) => targets.append(EmbedTarget(model, value))
+                case TextField(name, value, _)      => targets.append(EmbedTarget(model, value))
                 case TextListField(name, values, _) =>
                   values.foreach(value => targets.append(EmbedTarget(model, value)))
                 case _ => // skip
@@ -111,11 +111,11 @@ case class DocumentEmbedder(
                 .fieldSchemaOf[TextLikeFieldSchema[?]](text.name)
                 .foreach(schema => {
                   schema.search.semantic match {
-                    case None => cache.put(text.name, None)
+                    case None           => cache.put(text.name, None)
                     case Some(semantic) =>
                       cache.put(text.name, Some(semantic.model))
                       text match {
-                        case TextField(name, value, _) => targets.append(EmbedTarget(semantic.model, value))
+                        case TextField(name, value, _)      => targets.append(EmbedTarget(semantic.model, value))
                         case TextListField(name, values, _) =>
                           values.foreach(value => targets.append(EmbedTarget(semantic.model, value)))
                         case _ => // skip

@@ -15,7 +15,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
   import SearchRoute.*
 
   val mapping = TestIndexMapping().copy(alias = List(Alias("test_alias")))
-  val docs = List(
+  val docs    = List(
     Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
     Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
     Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
@@ -55,7 +55,7 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
     {
       val route = SearchRoute(index.searcher)
       import route.given
-      val request = SearchRequest(MatchQuery("title", "pajama"), size = 10)
+      val request  = SearchRequest(MatchQuery("title", "pajama"), size = 10)
       val response =
         send[SearchRequest, SearchResponse](
           route.routes,

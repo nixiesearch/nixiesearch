@@ -45,7 +45,7 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
   override def readLucene(name: String, spec: BooleanFieldSchema, value: Int): Either[WireDecodingError, BooleanField] =
     fromInt(value).map(bool => BooleanField(name, bool))
 
-  private def toInt(bool: Boolean): Int = if (bool) 1 else 0
+  private def toInt(bool: Boolean): Int                               = if (bool) 1 else 0
   private def fromInt(value: Int): Either[WireDecodingError, Boolean] = value match {
     case 0     => Right(false)
     case 1     => Right(true)

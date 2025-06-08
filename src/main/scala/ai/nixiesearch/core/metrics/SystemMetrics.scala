@@ -17,7 +17,7 @@ case class SystemMetrics(registry: PrometheusRegistry) {
   JvmMetrics.builder().register(registry)
 
   val os: OperatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean.asInstanceOf[OperatingSystemMXBean]
-  val cpuPercent =
+  val cpuPercent                =
     Gauge.builder().name("nixiesearch_os_cpu_percent").help("Percent CPU used by the OS").register(registry)
   val cpuLoad1 =
     Gauge.builder().name("nixiesearch_os_cpu_load1").help("1-minute system load average").register(registry)
@@ -50,8 +50,8 @@ case class SystemMetrics(registry: PrometheusRegistry) {
   def refresh(): IO[Unit] = for {
     _             <- IO(cpuPercent.set(os.getCpuLoad))
     loadAvgOption <- LoadAvg.create()
-    _ <- loadAvgOption match {
-      case None => IO.unit
+    _             <- loadAvgOption match {
+      case None          => IO.unit
       case Some(loadAvg) =>
         IO {
           cpuLoad1.set(loadAvg.la1)
@@ -60,7 +60,7 @@ case class SystemMetrics(registry: PrometheusRegistry) {
         }
     }
     diskUsages <- DiskUsage.create()
-    _ <- IO {
+    _          <- IO {
       diskUsages.foreach(du => {
         dataAvailableBytes.labelValues(du.device).set(du.usable.toDouble)
         dataFreeBytes.labelValues(du.device).set(du.free.toDouble)

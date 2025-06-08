@@ -38,7 +38,7 @@ case class AnalyticsReporter(
 
   private def post[T](event: String, gid: String, payload: T)(using encoder: Encoder[T]): IO[Unit] = for {
     start <- IO(System.currentTimeMillis())
-    _ <- IO.whenA(config.core.telemetry.usage)(
+    _     <- IO.whenA(config.core.telemetry.usage)(
       client
         .stream(
           Request[IO](
@@ -71,8 +71,8 @@ case class AnalyticsReporter(
 }
 
 object AnalyticsReporter extends Logging {
-  val START_GID  = "1685497662"
-  val ONLINE_GID = "258792152"
+  val START_GID        = "1685497662"
+  val ONLINE_GID       = "258792152"
   val WEBHOOK_ENDPOINT =
     "https://script.google.com/macros/s/AKfycbxTQ0cP4ISZWYVlwnt88kKnthljqInQnD7CnXr-KTLoB4WkGD0n21NyMhBXl0pHnCeLgw/exec"
   val WEBHOOK_TIMEOUT      = 10.seconds
@@ -89,7 +89,7 @@ object AnalyticsReporter extends Logging {
     client    <- EmberClientBuilder.default[IO].withTimeout(WEBHOOK_TIMEOUT).build
     startTime <- Resource.eval(IO(System.currentTimeMillis()))
     reporter  <- Resource.pure(AnalyticsReporter(client, endpoint, config, startTime, mode))
-    _ <- Stream
+    _         <- Stream
       .iterate[IO, Int](0)(_ + 1)
       .meteredStartImmediately(ONLINE_SUBMIT_PERIOD)
       .evalTap {

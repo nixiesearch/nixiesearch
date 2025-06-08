@@ -58,7 +58,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
                 SearchParams(None, Some(SemanticParams(ModelRef("text"))))
               ),
               StringName("price") -> IntFieldSchema(StringName("price"), true, true, true, true),
-              StringName("_id") -> TextFieldSchema(
+              StringName("_id")   -> TextFieldSchema(
                 StringName("_id"),
                 SearchParams(None, None),
                 filter = true
@@ -95,7 +95,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("_id")   -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title") -> TextFieldSchema(
                 name = StringName("title"),
                 search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
@@ -169,7 +169,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              StringName("_id") -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("_id")    -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title1") -> TextFieldSchema(
                 name = StringName("title1"),
                 search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text")))),

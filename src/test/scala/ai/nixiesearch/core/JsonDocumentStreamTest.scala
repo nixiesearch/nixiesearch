@@ -13,7 +13,7 @@ import ai.nixiesearch.config.mapping.FieldName.StringName
 class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val doc      = """{"_id":"1","text":"foo"}"""
   val expected = Document(List(TextField("_id", "1"), TextField("text", "foo")))
-  val mapping = IndexMapping(
+  val mapping  = IndexMapping(
     name = IndexName("test"),
     fields = Map(
       StringName("_id")  -> TextFieldSchema(name = StringName("_id")),
@@ -27,7 +27,7 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   }
 
   it should "decode newline-delimited blobs" in {
-    val input = s"$doc\n$doc"
+    val input  = s"$doc\n$doc"
     val result =
       Stream.emits(input.getBytes()).through(JsonDocumentStream.parse(mapping)).compile.toList.unsafeRunSync()
     result shouldBe List(expected, expected)

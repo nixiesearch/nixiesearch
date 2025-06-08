@@ -44,7 +44,7 @@ object URLReader extends SourceReader with Logging {
     }
 
     def bytes(url: LocalURL): Stream[IO, Byte] = for {
-      _ <- Stream.eval(info(s"reading file ${url.path}"))
+      _    <- Stream.eval(info(s"reading file ${url.path}"))
       byte <- maybeDecompress(
         readInputStream[IO](IO(new FileInputStream(url.path.toFile)), 1024),
         url.path.getFileName.toString

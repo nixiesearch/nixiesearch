@@ -14,7 +14,7 @@ case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: 
       val sourceMap = files.map(f => f.name -> f.size).toMap
       val destMap   = target.map(_.files.map(f => f.name -> f.size).toMap).getOrElse(Map.empty)
       val allKeys   = (sourceMap.keySet ++ destMap.keySet ++ Set(IndexManifest.MANIFEST_FILE_NAME)).toList
-      val result = for {
+      val result    = for {
         key <- allKeys
         sourceTimeOption = sourceMap.get(key)
         destTimeOption   = destMap.get(key)

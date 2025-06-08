@@ -54,7 +54,7 @@ object RangeAggregator extends Logging {
           to.inclusive
         )
     }
-    val counts = new LongRangeFacetCounts(request.field, facets, ranges*)
+    val counts  = new LongRangeFacetCounts(request.field, facets, ranges*)
     val buckets = for {
       (count, range) <- counts.getAllChildren(request.field).labelValues.map(_.value.intValue()).zip(request.ranges)
     } yield {
@@ -87,7 +87,7 @@ object RangeAggregator extends Logging {
           to.inclusive
         )
     }
-    val counts = new DoubleRangeFacetCounts(request.field, facets, ranges*)
+    val counts  = new DoubleRangeFacetCounts(request.field, facets, ranges*)
     val buckets = for {
       (count, range) <- counts.getAllChildren(request.field).labelValues.map(_.value.intValue()).zip(request.ranges)
     } yield {

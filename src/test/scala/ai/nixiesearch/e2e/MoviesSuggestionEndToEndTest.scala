@@ -17,7 +17,7 @@ import cats.effect.unsafe.implicits.global
 import java.io.File
 
 class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with SearchTest {
-  lazy val pwd = System.getProperty("user.dir")
+  lazy val pwd  = System.getProperty("user.dir")
   lazy val conf =
     Config.load(new File(s"$pwd/src/test/resources/datasets/movies/config.yaml"), EnvVars(Map.empty)).unsafeRunSync()
   lazy val mapping                        = conf.schema(IndexName.unsafe("movies"))
@@ -30,7 +30,7 @@ class MoviesSuggestionEndToEndTest extends AnyFlatSpec with Matchers with Search
       val indexApi  = IndexModifyRoute(nixie.indexer)
       val searchApi = SearchRoute(nixie.searcher)
 
-      val jsonPayload = docs.map(doc => doc.asJson.noSpaces).mkString("\n")
+      val jsonPayload  = docs.map(doc => doc.asJson.noSpaces).mkString("\n")
       val indexRequest = Request[IO](
         method = Method.PUT,
         uri = Uri.unsafeFromString("http://localhost:8080/movies/_index"),

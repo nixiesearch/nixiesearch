@@ -14,7 +14,7 @@ object RRFSuggestionRanker extends SuggestionRanker[RRFOptions] {
     IO {
       val scores = mutable.Map[String, Candidate]()
       for {
-        perField <- candidates
+        perField            <- candidates
         (suggest, position) <- List.concat(
           perField.prefix.map(_.suggest).zipWithIndex,
           perField.fuzzy1.map(_.suggest).zipWithIndex,

@@ -19,14 +19,14 @@ import javax.print.Doc
 
 class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   it should "match minilm on python" in {
-    val handle = HuggingFaceHandle("sentence-transformers", "all-MiniLM-L6-v2")
-    val config = OnnxEmbeddingInferenceModelConfig(model = handle)
+    val handle                     = HuggingFaceHandle("sentence-transformers", "all-MiniLM-L6-v2")
+    val config                     = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
       .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
     val query = embedder.encode(Query, List("How many people live in Berlin?")).compile.toList.unsafeRunSync()
-    val docs = embedder
+    val docs  = embedder
       .encode(
         Document,
         List(
@@ -45,8 +45,8 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
   }
 
   it should "work with an XLM-based models" taggedAs (EndToEnd.Embeddings) in {
-    val handle = HuggingFaceHandle("intfloat", "multilingual-e5-base")
-    val config = OnnxEmbeddingInferenceModelConfig(model = handle)
+    val handle                     = HuggingFaceHandle("intfloat", "multilingual-e5-base")
+    val config                     = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
       .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated

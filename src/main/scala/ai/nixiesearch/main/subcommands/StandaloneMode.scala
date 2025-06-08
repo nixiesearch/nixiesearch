@@ -23,7 +23,7 @@ object StandaloneMode extends Logging {
   def api(args: StandaloneArgs, config: Config): Resource[IO, Server] = for {
     _ <- Resource.eval(info("Starting in 'standalone' mode with indexer+searcher colocated within a single process"))
     metrics <- Resource.pure(Metrics())
-    models <- Models.create(config.inference, config.core.cache, metrics)
+    models  <- Models.create(config.inference, config.core.cache, metrics)
     indexes <- config.schema.values.toList
       .map(im => Index.local(im, models))
       .sequence

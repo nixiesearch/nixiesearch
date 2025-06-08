@@ -43,7 +43,7 @@ object LocalDirectory extends Logging {
     local                <- Resource.pure(DirectoryStateClient(directory, indexName))
     localManifestOption  <- Resource.eval(local.readManifest())
     remoteManifestOption <- Resource.eval(remote.readManifest())
-    _ <- (localManifestOption, remoteManifestOption) match {
+    _                    <- (localManifestOption, remoteManifestOption) match {
       case (None, None) => Resource.eval(info("both local and remote manifests are missing, empty index created?"))
       case (Some(localManifest), None) =>
         Resource.eval(

@@ -20,5 +20,4 @@ trait RankModel {
   def scoreBatch(query: String, docs: List[String]): IO[List[Float]]
 }
 
-object RankModel {
-}
+object RankModel {}

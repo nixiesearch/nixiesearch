@@ -26,7 +26,7 @@ object EmbedCacheConfig {
     c.as[Boolean] match {
       case Right(true)  => Right(MemoryCacheConfig())
       case Right(false) => Right(NoCache)
-      case Left(_) =>
+      case Left(_)      =>
         c.value.asObject match {
           case None => Left(DecodingFailure(s"cache configuration should be bool|obj, but got ${c.value}", c.history))
           case Some(obj) =>
