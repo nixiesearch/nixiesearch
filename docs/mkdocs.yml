@@ -172,7 +172,7 @@ nav:
         - Distributed:
             - Overview: deployment/distributed/overview.md
             - Persistence:
-                - deployment/distributed/persistence/index.md
+                - Overview: deployment/distributed/persistence/overview.md
                 - S3: deployment/distributed/persistence/s3.md
                 - Local directory: deployment/distributed/persistence/local.md
                 - In-memory: deployment/distributed/persistence/inmem.md
@@ -180,7 +180,6 @@ nav:
                 - Overview: deployment/distributed/indexing/overview.md
                 - Apache Kafka: deployment/distributed/indexing/kafka.md
                 - File: deployment/distributed/indexing/file.md
-            - Kubernetes: deployment/distributed/kubernetes.md
             - GPU support: deployment/distributed/gpu.md
             - Caching: reference/cache.md
             - Prometheus monitoring: deployment/distributed/prometheus.md
