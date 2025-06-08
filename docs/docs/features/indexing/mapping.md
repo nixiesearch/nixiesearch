@@ -56,6 +56,7 @@ schema:
         sort: false   # optional, default false
         facet: false  # optional, default false
         filter: false # optional, default false 
+        required: false # optional, default false
 ```
 
 So by default all fields in Nixiesearch are:
@@ -64,6 +65,7 @@ So by default all fields in Nixiesearch are:
 * `sort: false`: you can't sort over field without explicitly marking a field as sortable. 
 * `facet: false`: you can't perform facet aggregations by default.
 * `filter: false`: you cannot filter over fields by default.
+* `required: false`: fields are optional by default, matching Elasticsearch behavior. Set to `true` to enforce a specific document schema and reject documents with missing fields.
 
 !!! warning
 
@@ -110,7 +112,7 @@ The [`multi_match`](../search/query/retrieve/multi_match.md) search operator als
 
 ## Text field mapping
 
-Apart from common `type`, `store`, `filter`, `sort` and `facet` parameters, text fields have a set of other search-related options:
+Apart from common `type`, `store`, `filter`, `sort`, `facet` and `required` parameters, text fields have a set of other search-related options:
 
 * A field can be `search`able, with [lexical](#lexical-search), [semantic](#semantic-search) and [hybrid retrieval](#hybrid-search).
 * You can use field contents to generate search [autocomplete suggestions](../autocomplete/index.md)

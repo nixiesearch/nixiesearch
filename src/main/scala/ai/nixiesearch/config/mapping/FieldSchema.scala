@@ -12,6 +12,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.Json
 import io.circe.JsonObject
+import io.circe.derivation.{ConfiguredDecoder, ConfiguredEncoder}
 
 import language.experimental.namedTuples
 import scala.NamedTuple.NamedTuple
@@ -23,7 +24,7 @@ sealed trait FieldSchema[T <: Field] {
   def sort: Boolean
   def facet: Boolean
   def filter: Boolean
-
+  def required: Boolean
 }
 
 object FieldSchema {
@@ -54,7 +55,8 @@ object FieldSchema {
       sort: Boolean = false,
       facet: Boolean = false,
       filter: Boolean = false,
-      suggest: Option[SuggestSchema] = None
+      suggest: Option[SuggestSchema] = None,
+      required: Boolean = false
   ) extends TextLikeFieldSchema[TextField]
       with FieldSchema[TextField]
 
@@ -65,7 +67,8 @@ object FieldSchema {
       sort: Boolean = false,
       facet: Boolean = false,
       filter: Boolean = false,
-      suggest: Option[SuggestSchema] = None
+      suggest: Option[SuggestSchema] = None,
+      required: Boolean = false
   ) extends TextLikeFieldSchema[TextListField]
       with FieldSchema[TextListField]
 
@@ -74,7 +77,8 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[IntField]
 
   case class LongFieldSchema(
@@ -82,7 +86,8 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[LongField]
 
   case class FloatFieldSchema(
@@ -90,7 +95,8 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[FloatField]
 
   case class DoubleFieldSchema(
@@ -98,7 +104,8 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[DoubleField]
 
   case class BooleanFieldSchema(
@@ -106,14 +113,16 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[BooleanField]
 
   case class GeopointFieldSchema(
       name: FieldName,
       store: Boolean = true,
       sort: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[GeopointField] {
     def facet = false
   }
@@ -123,7 +132,8 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[DateField] {
     def asInt = IntFieldSchema(name, store, sort, facet, filter)
   }
@@ -133,7 +143,8 @@ object FieldSchema {
       store: Boolean = true,
       sort: Boolean = false,
       facet: Boolean = false,
-      filter: Boolean = false
+      filter: Boolean = false,
+      required: Boolean = false
   ) extends FieldSchema[DateTimeField] {
     def asLong = LongFieldSchema(name, store, sort, facet, filter)
   }
@@ -157,6 +168,7 @@ object FieldSchema {
             case Some(false) => Right(None)
             case None        => Right(None)
           })
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
         TextFieldSchema(
           name = name,
@@ -165,7 +177,8 @@ object FieldSchema {
           sort = sort,
           facet = facet,
           filter = filter,
-          suggest = suggest
+          suggest = suggest,
+          required = required
         )
       }
     )
@@ -185,6 +198,7 @@ object FieldSchema {
             case Some(false) => Right(None)
             case None        => Right(None)
           })
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
         TextListFieldSchema(
           name = name,
@@ -193,92 +207,101 @@ object FieldSchema {
           sort = sort,
           facet = facet,
           filter = filter,
-          suggest = suggest
+          suggest = suggest,
+          required = required
         )
       }
     )
     def intFieldSchemaDecoder(name: FieldName): Decoder[IntFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        IntFieldSchema(name, store, sort, facet, filter)
+        IntFieldSchema(name, store, sort, facet, filter, required)
       }
     )
 
     def longFieldSchemaDecoder(name: FieldName): Decoder[LongFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        LongFieldSchema(name, store, sort, facet, filter)
+        LongFieldSchema(name, store, sort, facet, filter, required)
       }
     )
 
     def floatFieldSchemaDecoder(name: FieldName): Decoder[FloatFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        FloatFieldSchema(name, store, sort, facet, filter)
+        FloatFieldSchema(name, store, sort, facet, filter, required)
       }
     )
 
     def doubleFieldSchemaDecoder(name: FieldName): Decoder[DoubleFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DoubleFieldSchema(name, store, sort, facet, filter)
+        DoubleFieldSchema(name, store, sort, facet, filter, required)
       }
     )
 
     def booleanFieldSchemaDecoder(name: FieldName): Decoder[BooleanFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        BooleanFieldSchema(name, store, sort, facet, filter)
+        BooleanFieldSchema(name, store, sort, facet, filter, required)
       }
     )
     def dateFieldSchemaDecoder(name: FieldName): Decoder[DateFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DateFieldSchema(name, store, sort, facet, filter)
+        DateFieldSchema(name, store, sort, facet, filter, required)
       }
     )
     def dateTimeFieldSchemaDecoder(name: FieldName): Decoder[DateTimeFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        facet  <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DateTimeFieldSchema(name, store, sort, facet, filter)
+        DateTimeFieldSchema(name, store, sort, facet, filter, required)
       }
     )
 
     def geopointFieldSchemaDecoder(name: FieldName): Decoder[GeopointFieldSchema] = Decoder.instance(c =>
       for {
-        store  <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
-        filter <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        sort     <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        GeopointFieldSchema(name, store, sort, filter)
+        GeopointFieldSchema(name, store, sort, filter, required)
       }
     )
 
@@ -305,44 +328,43 @@ object FieldSchema {
   object json {
     import SearchParams.given
     import SuggestSchema.json.given
+    import io.circe.derivation.Configuration
+
+    given config: Configuration = Configuration.default.withDefaults
 
     given textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
-    given textFieldSchemaDecoder: Decoder[TextFieldSchema] = deriveDecoder
+    given textFieldSchemaDecoder: Decoder[TextFieldSchema] = ConfiguredDecoder.derived[TextFieldSchema](using config)
 
     given textListFieldSchemaEncoder: Encoder[TextListFieldSchema] = deriveEncoder
-    given textListFieldSchemaDecoder: Decoder[TextListFieldSchema] = deriveDecoder
+    given textListFieldSchemaDecoder: Decoder[TextListFieldSchema] =
+      ConfiguredDecoder.derived[TextListFieldSchema](using config)
 
-    given intFieldSchemaDecoder: Decoder[IntFieldSchema] = deriveDecoder
+    given intFieldSchemaDecoder: Decoder[IntFieldSchema] = ConfiguredDecoder.derived[IntFieldSchema](using config)
     given intFieldSchemaEncoder: Encoder[IntFieldSchema] = deriveEncoder
 
-    given longFieldSchemaDecoder: Decoder[LongFieldSchema] = deriveDecoder
+    given longFieldSchemaDecoder: Decoder[LongFieldSchema] = ConfiguredDecoder.derived[LongFieldSchema](using config)
     given longFieldSchemaEncoder: Encoder[LongFieldSchema] = deriveEncoder
 
-    given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = deriveDecoder
+    given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = ConfiguredDecoder.derived[FloatFieldSchema](using config)
     given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
 
-    given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] = deriveDecoder
+    given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] =
+      ConfiguredDecoder.derived[DoubleFieldSchema](using config)
     given doubleFieldSchemaEncoder: Encoder[DoubleFieldSchema] = deriveEncoder
 
-    given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] = deriveDecoder
+    given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] =
+      ConfiguredDecoder.derived[BooleanFieldSchema](using config)
     given boolFieldSchemaEncoder: Encoder[BooleanFieldSchema] = deriveEncoder
 
-    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] = Decoder.instance(c =>
-      for {
-        name   <- c.downField("name").as[FieldName]
-        store  <- c.downField("store").as[Boolean]
-        sort   <- c.downField("sort").as[Option[Boolean]].map(_.getOrElse(false)) // compat with 0.4
-        filter <- c.downField("filter").as[Boolean]
-      } yield {
-        GeopointFieldSchema(name, store, sort, filter)
-      }
-    )
+    given geopointFieldSchemaDecoder: Decoder[GeopointFieldSchema] =
+      ConfiguredDecoder.derived[GeopointFieldSchema](using config)
     given geopointFieldSchemaEncoder: Encoder[GeopointFieldSchema] = deriveEncoder
 
-    given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = deriveDecoder
+    given dateFieldSchemaDecoder: Decoder[DateFieldSchema] = ConfiguredDecoder.derived[DateFieldSchema](using config)
     given dateFieldSchemaEncoder: Encoder[DateFieldSchema] = deriveEncoder
 
-    given dateTimeFieldSchemaDecoder: Decoder[DateTimeFieldSchema] = deriveDecoder
+    given dateTimeFieldSchemaDecoder: Decoder[DateTimeFieldSchema] =
+      ConfiguredDecoder.derived[DateTimeFieldSchema](using config)
     given dateTimeFieldSchemaEncoder: Encoder[DateTimeFieldSchema] = deriveEncoder
 
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
