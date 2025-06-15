@@ -64,6 +64,44 @@ inference:
           max_size: 1024 # cache top-N most popular embeddings
 ```
 
+## Device allocation
+
+By default, ONNX models run on CPU using all available CPU cores. You can configure which device to use for model inference by adding a `device` section to your model configuration:
+
+```yaml
+inference:
+  embedding:
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      device: cpu        # Use CPU with default thread count (number of CPU cores)
+```
+
+For GPU acceleration, specify a CUDA device (requires CUDA-enabled Docker image - see [GPU deployment guide](../../deployment/distributed/gpu.md)):
+
+```yaml
+inference:
+  embedding:
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      device: cuda:0     # Use GPU device 0
+```
+
+You can also control CPU thread allocation:
+
+```yaml
+inference:
+  embedding:
+    e5-small:
+      model: nixiesearch/e5-small-v2-onnx
+      device: cpu:8      # Use CPU with 8 threads
+```
+
+Available device options:
+- `cpu` - CPU execution with default thread count (number of available CPU cores)
+- `cpu:N` - CPU execution with N threads (where N > 0)
+- `cuda` - GPU execution on device 0 (default GPU)
+- `cuda:N` - GPU execution on specific GPU device N (where N >= 0)
+
 
 ## Converting your own model
 

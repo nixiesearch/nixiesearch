@@ -424,4 +424,20 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     }
   }
 
+  it should "reject documents with missing required fields" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title"), required = true),
+            IntFieldSchema(StringName("count"))
+          )
+        )
+      )
+    val json = """{"_id": "a", "count": 1}"""
+    decode[Document](json) shouldBe a[Left[?, ?]]
+  }
+
 }

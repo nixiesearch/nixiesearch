@@ -100,8 +100,20 @@ object OnnxEmbedModel extends Logging {
       with OnnxConfig
   object OnnxEmbeddingInferenceModelConfig {
 
+    def apply(model: ModelHandle, device: Device) =
+      new OnnxEmbeddingInferenceModelConfig(
+        model,
+        pooling = PoolingType(model),
+        prompt = PromptConfig(model),
+        device = device
+      )
+
     def apply(model: ModelHandle) =
-      new OnnxEmbeddingInferenceModelConfig(model, pooling = PoolingType(model), prompt = PromptConfig(model))
+      new OnnxEmbeddingInferenceModelConfig(
+        model,
+        pooling = PoolingType(model),
+        prompt = PromptConfig(model)
+      )
   }
 
   def create(
