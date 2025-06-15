@@ -18,7 +18,7 @@ import scala.util.Try
 
 class KnnQueryTest extends SearchTest with Matchers {
   override def inference: InferenceConfig = TestInferenceConfig.semantic()
-  val mapping = TestIndexMapping(
+  val mapping                             = TestIndexMapping(
     "test",
     fields = List(
       TextFieldSchema(name = StringName("_id"), filter = true),

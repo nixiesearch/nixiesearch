@@ -22,7 +22,7 @@ object Main extends IOApp with Logging {
     env    <- EnvVars.load()
     config <- Config.load(opts.config, env)
     _      <- gpuChecks(config)
-    _ <- AnalyticsReporter
+    _      <- AnalyticsReporter
       .create(config, opts.mode)
       .use(_ =>
         opts match {
@@ -38,7 +38,7 @@ object Main extends IOApp with Logging {
   def changeLogbackLevel(level: Loglevel): IO[Unit] = IO {
     val loggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
     val logger        = loggerContext.exists(org.slf4j.Logger.ROOT_LOGGER_NAME)
-    val newLevel = level match {
+    val newLevel      = level match {
       case Loglevel.DEBUG => Level.toLevel("DEBUG", null)
       case Loglevel.INFO  => Level.toLevel("INFO", null)
       case Loglevel.WARN  => Level.toLevel("WARN", null)
@@ -51,7 +51,7 @@ object Main extends IOApp with Logging {
   def gpuChecks(config: Config): IO[Unit] = for {
     _ <- IO(GPUUtils.isGPUBuild()).flatMap {
       case false => info("Nixiesearch CPU inference build. GPU inference not supported")
-      case true =>
+      case true  =>
         info("ONNX CUDA EP Found: GPU Build") *> Stream
           .evalSeq(GPUUtils.listDevices())
           .evalMap(device => info(s"GPU ${device.id}: ${device.model}"))

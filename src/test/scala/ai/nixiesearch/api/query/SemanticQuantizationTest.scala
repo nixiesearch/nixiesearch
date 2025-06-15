@@ -39,7 +39,7 @@ class SemanticQuantizationTest extends SearchTest with Matchers {
     )
   )
   val fields = List("title_f32", "title_i8", "title_i4", "title_i1")
-  val docs = List(
+  val docs   = List(
     Document(List(TextField("_id", "1")) ++ fields.map(f => TextField(f, "red dress"))),
     Document(List(TextField("_id", "2")) ++ fields.map(f => TextField(f, "white dress"))),
     Document(List(TextField("_id", "3")) ++ fields.map(f => TextField(f, "red pajama")))

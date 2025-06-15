@@ -28,7 +28,7 @@ import ai.nixiesearch.config.mapping.FieldName.StringName
 import scala.util.Try
 
 class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
-  val docs = Nil
+  val docs    = Nil
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(

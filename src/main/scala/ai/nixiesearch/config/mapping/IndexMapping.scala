@@ -53,7 +53,7 @@ case class IndexMapping(
   def migrate(updated: IndexMapping): IO[IndexMapping] = for {
     fieldNames <- IO(fields.keySet ++ updated.fields.keySet)
     migrations <- fieldNames.toList.traverse(field => migrateField(fields.get(field), updated.fields.get(field)))
-    _ <- migrations.traverse {
+    _          <- migrations.traverse {
       case Add(field)    => info(s"field ${field.name} added to the index $name mapping")
       case Delete(field) => info(s"field ${field.name} not present in the index $name mapping")
       case _             => IO.unit
@@ -72,7 +72,7 @@ case class IndexMapping(
       case (Some(a: TextFieldSchema), Some(b: TextFieldSchema))         => IO.pure(Keep(b))
       case (Some(a: TextListFieldSchema), Some(b: TextListFieldSchema)) => IO.pure(Keep(b))
       case (Some(a), Some(b)) if a == b                                 => IO.pure(Keep(b))
-      case (Some(a), Some(b)) =>
+      case (Some(a), Some(b))                                           =>
         IO.raiseError(new Exception(s"cannot migrate field schema $a to $b"))
       case (None, None) =>
         IO.raiseError(
@@ -127,7 +127,7 @@ object IndexMapping extends Logging {
 
     def indexMappingDecoder(name: IndexName): Decoder[IndexMapping] = Decoder.instance(c =>
       for {
-        alias <- decodeAlias(c.downField("alias"))
+        alias      <- decodeAlias(c.downField("alias"))
         fieldJsons <- c.downField("fields").as[Map[FieldName, Json]].map(_.toList) match {
           case Left(value)  => Left(DecodingFailure(s"'fields' expected to be a map: $value", c.history))
           case Right(value) => Right(value)
@@ -136,7 +136,7 @@ object IndexMapping extends Logging {
           FieldSchema.yaml.fieldSchemaDecoder(name).decodeJson(json)
         }
         _ <- checkWildcardOverrides(fields) match {
-          case Nil => Right(true)
+          case Nil      => Right(true)
           case failures =>
             val names = failures.map { case (wc, f) => s"${wc.name}/${f.name}" }
             Left(DecodingFailure(s"Fields $names should not wildcard override each other", c.history))
@@ -144,8 +144,8 @@ object IndexMapping extends Logging {
         store  <- c.downField("store").as[Option[StoreConfig]].map(_.getOrElse(StoreConfig()))
         config <- c.downField("config").as[Option[IndexConfig]].map(_.getOrElse(IndexConfig()))
       } yield {
-        val fieldsMap = fields.map(f => f.name -> f).toMap
-        val id        = StringName("_id")
+        val fieldsMap      = fields.map(f => f.name -> f).toMap
+        val id             = StringName("_id")
         val extendedFields = fieldsMap.get(id) match {
           case Some(idMapping) =>
             logger.warn("_id field is internal field and it's mapping cannot be changed")

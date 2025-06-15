@@ -40,19 +40,19 @@ class Nixiesearch101Codec(parent: Codec, mapping: IndexMapping)
       }
   }
 
-  val cache: mutable.Map[String, KnnVectorsFormat] = mutable.Map()
+  val cache: mutable.Map[String, KnnVectorsFormat]  = mutable.Map()
   override def knnVectorsFormat(): KnnVectorsFormat = new PerFieldKnnVectorsFormat() {
     def getKnnVectorsFormatForField(field: String): KnnVectorsFormat = {
       cache.get(field) match {
         case Some(fmt) => fmt
-        case None =>
+        case None      =>
           val fmt = mapping.fieldSchemaOf[TextLikeFieldSchema[?]](field) match {
             case Some(schema) =>
               schema.search.semantic match {
                 case Some(conf) =>
                   val fmt = conf.quantize match {
                     case QuantStore.Float32 => new Lucene99HnswVectorsFormat(conf.m, conf.ef, conf.workers, null)
-                    case QuantStore.Int8 =>
+                    case QuantStore.Int8    =>
                       new Lucene99HnswScalarQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, 7, false, 0, null)
                     case QuantStore.Int4 =>
                       new Lucene99HnswScalarQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, 4, true, 0, null)

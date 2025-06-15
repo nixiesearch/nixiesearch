@@ -37,7 +37,7 @@ object Query extends Logging {
     c.value.asObject match {
       case Some(obj) =>
         obj.keys.toList match {
-          case head :: Nil if RerankQuery.supportedTypes.contains(head) => RerankQuery.rerankQueryDecoder.tryDecode(c)
+          case head :: Nil if RerankQuery.supportedTypes.contains(head)   => RerankQuery.rerankQueryDecoder.tryDecode(c)
           case head :: Nil if RetrieveQuery.supportedTypes.contains(head) =>
             RetrieveQuery.retrieveQueryDecoder.tryDecode(c)
           case head :: Nil => Left(DecodingFailure(s"query type $head is not supported", c.history))

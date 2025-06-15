@@ -30,7 +30,7 @@ object DisMaxQuery {
   given disMaxQueryDecoder: Decoder[DisMaxQuery] = Decoder.instance(c =>
     for {
       queries <- c.downField("queries").as[List[RetrieveQuery]]
-      _ <- queries match {
+      _       <- queries match {
         case q1 :: q2 :: tail => Right(queries)
         case _ => Left(DecodingFailure(s"queries array must have 2+ queries, but got ${queries.length}", c.history))
       }

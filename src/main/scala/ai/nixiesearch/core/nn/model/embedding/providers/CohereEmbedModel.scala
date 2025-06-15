@@ -35,7 +35,7 @@ case class CohereEmbedModel(client: Client[IO], endpoint: Uri, key: String, conf
   override val provider: String = "cohere"
 
   override protected def encodeBatch(task: EmbedModel.TaskType, batch: List[String]): IO[Array[Array[Float]]] = for {
-    start <- IO(System.currentTimeMillis())
+    start   <- IO(System.currentTimeMillis())
     request <- IO.pure(
       Request[IO](
         method = Method.POST,
@@ -61,7 +61,7 @@ case class CohereEmbedModel(client: Client[IO], endpoint: Uri, key: String, conf
     )
     response <- client.expect[EmbedResponse](request)
     finish   <- IO(System.currentTimeMillis())
-    _ <- debug(
+    _        <- debug(
       s"Embedded ${batch.size} docs with Cohere ${config.model}, took ${finish - start}ms (${response.meta.billed_units.input_tokens} tokens)"
     )
 

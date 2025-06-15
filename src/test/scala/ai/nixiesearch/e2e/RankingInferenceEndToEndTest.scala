@@ -38,9 +38,9 @@ class RankingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
 
 object RankingInferenceEndToEndTest {
   def rank(model: String, query: String, documents: List[String]): Array[Float] = {
-    val parts  = model.split("/")
-    val handle = HuggingFaceHandle(parts(0), parts(1))
-    val config = OnnxRankInferenceModelConfig(model = handle)
+    val parts                    = model.split("/")
+    val handle                   = HuggingFaceHandle(parts(0), parts(1))
+    val config                   = OnnxRankInferenceModelConfig(model = handle)
     val (ranker, shutdownHandle) = OnnxRankModel
       .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated

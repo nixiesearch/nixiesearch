@@ -61,16 +61,16 @@ object Aggregation {
 
     given rangeDecoder: Decoder[AggRange] = Decoder.instance { c =>
       for {
-        gt  <- c.downField("gt").as[Option[RangeValue]]
-        gte <- c.downField("gte").as[Option[RangeValue]]
+        gt    <- c.downField("gt").as[Option[RangeValue]]
+        gte   <- c.downField("gte").as[Option[RangeValue]]
         lower <- (gt, gte) match {
           case (None, None)       => Right(None)
           case (Some(gt), None)   => Right(Some(Gt(gt)))
           case (None, Some(gte))  => Right(Some(Gte(gte)))
           case (Some(_), Some(_)) => Left(DecodingFailure(s"both gt+gte defined for range aggregation", c.history))
         }
-        lt  <- c.downField("lt").as[Option[RangeValue]]
-        lte <- c.downField("lte").as[Option[RangeValue]]
+        lt     <- c.downField("lt").as[Option[RangeValue]]
+        lte    <- c.downField("lte").as[Option[RangeValue]]
         higher <- (lt, lte) match {
           case (None, None)       => Right(None)
           case (Some(lt), None)   => Right(Some(Lt(lt)))

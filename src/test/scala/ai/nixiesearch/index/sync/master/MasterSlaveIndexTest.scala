@@ -53,7 +53,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
   it should "start, write, search, stop" in {
     val (models, modelsShutdown) =
       Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
-    val conf = config()
+    val conf                       = config()
     val (masterIndex, masterClose) =
       MasterIndex.create(TestIndexMapping(), conf, models).allocated.unsafeRunSync()
     val (writer, writerClose) = Indexer.open(masterIndex, Metrics()).allocated.unsafeRunSync()
@@ -76,7 +76,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
   it should "start, write, stop, search" in {
     val (models, modelsShutdown) =
       Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
-    val conf = config()
+    val conf                       = config()
     val (masterIndex, masterClose) =
       MasterIndex.create(TestIndexMapping(), conf, models).allocated.unsafeRunSync()
     val (writer, writerClose) = Indexer.open(masterIndex, Metrics()).allocated.unsafeRunSync()

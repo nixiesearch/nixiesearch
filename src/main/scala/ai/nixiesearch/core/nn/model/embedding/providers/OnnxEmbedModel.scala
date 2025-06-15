@@ -61,7 +61,7 @@ case class OnnxEmbedModel(
     val attMask      = encoded.flatMap(e => e.getAttentionMask)
 
     val tensorDim = Array(batch.length.toLong, encoded(0).getIds.length)
-    val argsList = inputTensorNames.map {
+    val argsList  = inputTensorNames.map {
       case "input_ids"      => OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
       case "token_type_ids" => OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
       case "attention_mask" => OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
@@ -69,9 +69,9 @@ case class OnnxEmbedModel(
       case "task_id" => OnnxTensor.createTensor(env, LongBuffer.wrap(Array(4L)), Array(1L))
       case other     => throw Exception(s"input $other not supported")
     }
-    val args   = inputTensorNames.zip(argsList).toMap
-    val result = session.run(args.asJava)
-    val tensor = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
+    val args       = inputTensorNames.zip(argsList).toMap
+    val result     = session.run(args.asJava)
+    val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
     val normalized = config.pooling match {
       case PoolingType.MeanPooling => EmbedPooling.mean(tensor, tokenLengths, dim, config.normalize)
       case PoolingType.CLSPooling  => EmbedPooling.cls(tensor, tokenLengths, dim, config.normalize)
