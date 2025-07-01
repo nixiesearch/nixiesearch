@@ -54,8 +54,8 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
     response <- client.stream(Request[IO](uri = uri))
     _        <- Stream.eval(info(s"sending HuggingFace API request for a file $uri"))
     byte     <- response.status.code match {
-      case 200 => response.entity.body.through(PrintProgress.bytes)
-      case 302 =>
+      case 200       => response.entity.body.through(PrintProgress.bytes)
+      case 302 | 307 =>
         response.headers.get(CIString("Location")) match {
           case Some(locations) =>
             Uri.fromString(locations.head.value) match {
