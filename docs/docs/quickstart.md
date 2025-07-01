@@ -90,17 +90,19 @@ This YAML file defines:
 * a single index `movies` with a text field `title` configured for both lexical and semantic search.
 
 !!! note "External Embedding Computation"
+
     You don't need to configure local embedding inference if you prefer to compute embeddings outside of Nixiesearch. Instead of the `model` parameter, you can use the `dim` parameter and provide pre-computed embeddings with your documents. See [text fields documentation](features/indexing/types/text.md#server-side-vs-pre-embedded-documents) for details.
 
-!!! note 
+!!! note
 
     Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](features/indexing/types/overview.md) field types are currently supported.
 
-See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes, and [ML inference](features/inference/overview.md) on configuring ML models inside Nixiesearch for CPU and [GPU](deployment/distributed/gpu.md). 
+See a full [index mapping reference](features/indexing/mapping.md) for more details on defining indexes, and [ML inference](features/inference/overview.md) on configuring ML models inside Nixiesearch for CPU and [GPU](deployment/distributed/gpu.md).
 
 ## Starting the service
 
 Nixiesearch is distributed as a Docker container, which can be run with the following command:
+
 ```shell
 docker run -itp 8080:8080 -v .:/data nixiesearch/nixiesearch:latest standalone -c /data/config.yml
 ```
@@ -122,7 +124,7 @@ Options breakdown:
 
 * `-i` and `-t`: interactive docker mode with allocated TTY. Useful when you want to be able to press Ctrl-C to stop the application.
 * `-p 8080:8080`: expose the port 8080.
-* `-v .:/data`: mount current dir (with a `config.yml` file!) as a `/data` inside the container 
+* `-v .:/data`: mount current dir (with a `config.yml` file!) as a `/data` inside the container
 * `standalone`: a Nixiesearch running mode, with colocated indexer and searcher processes.
 * `-c /data/config.yml`: use a config file with `movies` index mapping
 
@@ -152,7 +154,7 @@ As Nixiesearch is running a local embedding model inference inside, indexing lar
 
 ## Sending search requests
 
-Query DSL in Nixiesearch is inspired but not compatible with the JSON syntax used in [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html)/[OpenSearch](https://opensearch.org/docs/latest/query-dsl/index/) Query DSL. 
+Query DSL in Nixiesearch is inspired but not compatible with the JSON syntax used in [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html)/[OpenSearch](https://opensearch.org/docs/latest/query-dsl/index/) Query DSL.
 
 To perform a single-field lexical search over our newly-created `movies` index, run the following cURL command:
 
@@ -172,7 +174,7 @@ curl -XPOST http://localhost:8080/v1/index/movies/search \
 
 You will get the following response:
 
-```json    
+```json
 {
   "took": 1,
   "hits": [
@@ -207,17 +209,17 @@ Let's go deeper and perform hybrid search query, by mixing lexical (using [match
 ```shell
 curl -XPOST http://localhost:8080/v1/index/movies/search \
   -H "Content-Type: application/json" \
-  -d '{ 
+  -d '{
     "query": {
       "rrf": {
-        "queries": [
-          {"match": {"title": "batman"}},
-          {"semantic": {"title": "batman nolan"}}
+        "retrieve": [
+          { "match": { "title": "batman" } },
+          { "semantic": { "title": "batman nolan" } }
         ],
         "rank_window_size": 20
-      } 
-    }, 
-    "fields": ["title"], 
+      }
+    },
+    "fields": ["title"],
     "size": 5
   }'
 ```
