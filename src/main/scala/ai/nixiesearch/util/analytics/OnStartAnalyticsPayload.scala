@@ -12,6 +12,7 @@ import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
+import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticParams, SemanticSimpleParams}
 import ai.nixiesearch.config.mapping.{FieldName, IndexName, SearchParams}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.nn.ModelRef
@@ -138,8 +139,13 @@ object OnStartAnalyticsPayload {
   def hash(value: Path): Path     = Paths.get(hash(value.toString))
 
   def hash(search: SearchParams): SearchParams = search.copy(
-    semantic = search.semantic.map(s => s.copy(model = ModelRef(hash(s.model.name))))
+    semantic = search.semantic.map(s => hash(s))
   )
+
+  def hash(sem: SemanticParams): SemanticParams = sem match {
+    case s: SemanticInferenceParams => s.copy(model = ModelRef(hash(s.model.name)))
+    case s: SemanticSimpleParams    => s
+  }
 
   def hash(loc: LocalStoreLocation): LocalStoreLocation = loc match {
     case DiskLocation(path) => DiskLocation(hash(path))

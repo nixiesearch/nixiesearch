@@ -5,7 +5,7 @@ import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
-import ai.nixiesearch.config.mapping.SearchParams.SemanticParams
+import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.core.nn.ModelRef
@@ -21,7 +21,7 @@ class SemanticQueryTest extends SearchTest with Matchers {
       TextFieldSchema(name = StringName("_id"), filter = true),
       TextFieldSchema(
         name = StringName("title"),
-        search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
       )
     )
   )

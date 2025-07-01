@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.retrieve
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
-import ai.nixiesearch.config.mapping.IndexMapping
+import ai.nixiesearch.config.mapping.{IndexMapping, SearchParams}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
@@ -20,8 +20,12 @@ case class SemanticQuery(field: String, query: String, k: Option[Int] = None) ex
   ): IO[Query] = for {
     schema <- IO
       .fromOption(mapping.fieldSchemaOf[TextLikeFieldSchema[?]](field))(UserError(s"no mapping for field $field"))
-    semantic       <- IO.fromOption(schema.search.semantic)(UserError(s"field $field search type is not semantic"))
-    queryEmbedding <- encoders.encode(semantic.model, TaskType.Query, query)
+    semantic <- IO.fromOption(schema.search.semantic)(UserError(s"field $field search type is not semantic"))
+    model    <- semantic match {
+      case SearchParams.SemanticInferenceParams(model = model) => IO.pure(model)
+      case _ => IO.raiseError(UserError("semantic query only works when you have defined embedding model for a field"))
+    }
+    queryEmbedding <- encoders.encode(model, TaskType.Query, query)
     result         <- KnnQuery(field, queryEmbedding, k).compile(mapping, maybeFilter, encoders, fields)
   } yield {
     result

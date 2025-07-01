@@ -39,7 +39,8 @@ schema:
         type: text      # only a single title is allowed
         search:
           semantic:
-            model: e5-small
+            model: e5-small  # optional: for server-side inference
+            dim: 384         # optional: for pre-embedded documents
             ef: 32
             m: 16
             quantize: float32
@@ -49,10 +50,21 @@ schema:
 
 Fields:
 
+* `model` (optional): embedding model for server-side inference. Required when documents don't have pre-computed embeddings.
+* `dim` (optional): embedding vector dimensions for pre-embedded documents. Required when `model` is not specified.
 * `ef` and `m`: HNSW index parameters. The higher these values, the better the search recall at the cost of performance.
 * `quantize` (optional, `float32`/`int8`/`int4`/`int1`, default `float32`): index quantization level. `int8` saves 4x RAM and disk but at the cost of worse recall.
 * `workers` (optional, int, default is same as number of CPUs in the system): how many background workers to use for HNSW indexing operations.
-* `distance` (optional, `dot`/`cosine`, default `dot`): which embedding distance function to use. `dot` is faster (and mathematically equals to `cosine`) if your embeddings are normalized (see [embedding inference](../../inference/embeddings.md#configuration-file) section for details) 
+* `distance` (optional, `dot`/`cosine`, default `dot`): which embedding distance function to use. `dot` is faster (and mathematically equals to `cosine`) if your embeddings are normalized (see [embedding inference](../../inference/embeddings.md#configuration-file) section for details)
+
+### Server-side vs Pre-embedded documents
+
+Nixiesearch supports two modes for semantic search:
+
+1. **Server-side inference**: Use the `model` parameter to compute embeddings on the server
+2. **Pre-embedded documents**: Use the `dim` parameter when documents already contain embedding vectors
+
+You must specify either `model` or `dim`, but not both. 
 
 ## Operations on text fields
 

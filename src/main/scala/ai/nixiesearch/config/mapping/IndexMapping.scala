@@ -29,8 +29,11 @@ case class IndexMapping(
     fields: Map[FieldName, FieldSchema[? <: Field]]
 ) extends Logging {
 
-  val analyzer                             = PerFieldAnalyzer(new KeywordAnalyzer(), this)
-  lazy val requiredFields: List[FieldName] = fields.filter(_._2.required).keys.toList
+  val analyzer                                      = PerFieldAnalyzer(new KeywordAnalyzer(), this)
+  lazy val requiredFields: List[FieldName]          = fields.filter(_._2.required).keys.toList
+  lazy val textFields: List[TextLikeFieldSchema[?]] = fields.values.collect { case s: TextLikeFieldSchema[?] =>
+    s
+  }.toList
 
   def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
     fields.collectFirst {
@@ -80,11 +83,6 @@ case class IndexMapping(
             s"You've found a bug, congratulations! Tried to migrate a non-existent field to another non-existent field, which cannot happen"
           )
         )
-    }
-
-  def suggestFields(): List[FieldName] =
-    fields.values.toList.collect { case TextLikeFieldSchema(name = name, suggest = Some(_)) =>
-      name
     }
 }
 

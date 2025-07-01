@@ -6,7 +6,7 @@ import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore.*
-import ai.nixiesearch.config.mapping.SearchParams.SemanticParams
+import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.core.nn.ModelRef
@@ -22,19 +22,19 @@ class SemanticQuantizationTest extends SearchTest with Matchers {
       TextFieldSchema(name = StringName("_id"), filter = true),
       TextFieldSchema(
         name = StringName("title_f32"),
-        search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"), quantize = Float32)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Float32)))
       ),
       TextFieldSchema(
         name = StringName("title_i8"),
-        search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"), quantize = Int8)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int8)))
       ),
       TextFieldSchema(
         name = StringName("title_i4"),
-        search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"), quantize = Int4)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int4)))
       ),
       TextFieldSchema(
         name = StringName("title_i1"),
-        search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"), quantize = Int1)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int1)))
       )
     )
   )
