@@ -10,7 +10,7 @@ import io.circe.yaml.parser.*
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchParams
-import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams, SemanticSimpleParams}
 
 class SearchParamsTest extends AnyFlatSpec with Matchers {
 
@@ -38,7 +38,8 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
     result shouldBe Right(
       TextFieldSchema(
         name = StringName("field"),
-        search = SearchParams(semantic = Some(SemanticParams(ModelRef("text"))), lexical = Some(LexicalParams()))
+        search =
+          SearchParams(semantic = Some(SemanticInferenceParams(ModelRef("text"))), lexical = Some(LexicalParams()))
       )
     )
   }
@@ -56,8 +57,25 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
       TextFieldSchema(
         name = StringName("field"),
         search = SearchParams(
-          semantic = Some(SemanticParams(ModelRef("text"))),
+          semantic = Some(SemanticInferenceParams(ModelRef("text"))),
           lexical = Some(LexicalParams(analyze = English))
+        )
+      )
+    )
+  }
+  it should "decode semantic with dims" in {
+    val yaml =
+      """type: text
+        |search:
+        |  semantic:
+        |    dim: 123""".stripMargin
+    val result = decodeYaml(yaml)
+    result shouldBe Right(
+      TextFieldSchema(
+        name = StringName("field"),
+        search = SearchParams(
+          semantic = Some(SemanticSimpleParams(dim = 123)),
+          lexical = None
         )
       )
     )

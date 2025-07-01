@@ -1,6 +1,10 @@
 # semantic query
 
-A `semantic` query can be used to search [`text`](../../../indexing/types/text.md) fields with semantic search enabled. Unlike the `knn` query, the `semantic` query accepts text query string and computes embeddings. So for a field `title` defined as:
+A `semantic` query can be used to search [`text`](../../../indexing/types/text.md) fields with semantic search enabled. Unlike the `knn` query, the `semantic` query accepts text query string and computes embeddings. 
+
+**Note**: The `semantic` query only works with fields that have server-side inference configured (i.e., using the `model` parameter). For pre-embedded documents (using the `dim` parameter), use the [`knn`](knn.md) query instead.
+
+So for a field `title` defined as:
 
 ```yaml
 inference:

@@ -85,6 +85,14 @@ schema:
         search: false
 ```
 
+This YAML file defines:
+* an embedding model `e5-small` with a HuggingFace model `intfloat/e5-small-v2`
+* a single index `movies` with a text field `title` configured for both lexical and semantic search.
+
+!!! note "External Embedding Computation"
+
+    You don't need to configure local embedding inference if you prefer to compute embeddings outside of Nixiesearch. Instead of the `model` parameter, you can use the `dim` parameter and provide pre-computed embeddings with your documents. See [text fields documentation](features/indexing/types/text.md#server-side-vs-pre-embedded-documents) for details.
+
 !!! note
 
     Each document field definition **must have a type**. Schemaless dynamic mapping is considered an anti-pattern, as the search engine must know beforehand which structure to use for the index. [int, float, long, double, text, text[], bool](features/indexing/types/overview.md) field types are currently supported.

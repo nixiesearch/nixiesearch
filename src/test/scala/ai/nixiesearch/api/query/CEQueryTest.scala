@@ -14,7 +14,7 @@ import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchParams
-import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.TextField
 import ai.nixiesearch.core.nn.ModelRef
@@ -42,7 +42,7 @@ class CEQueryTest extends SearchTest with Matchers {
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(
-          semantic = Some(SemanticParams(model = ModelRef("text"))),
+          semantic = Some(SemanticInferenceParams(model = ModelRef("text"))),
           lexical = Some(LexicalParams(analyze = English))
         )
       )

@@ -2,7 +2,7 @@ package ai.nixiesearch.config
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL.LocalURL
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
+import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
@@ -65,7 +65,11 @@ object Config extends Logging {
       .flatMap(mapping =>
         mapping.fields.values.flatMap {
           case field: TextLikeFieldSchema[?] =>
-            field.search.semantic.map(p => field.name -> p.model)
+            field.search.semantic.flatMap {
+              case SearchParams.SemanticInferenceParams(model = model) => Some(field.name -> model)
+              case _                                                   => None
+            }
+
           case _ => None
         }
       )

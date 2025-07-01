@@ -11,7 +11,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
-import ai.nixiesearch.config.mapping.SearchParams.SemanticParams
+import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document.JsonScalar.{JNumber, JString, JStringArray}
 import ai.nixiesearch.core.nn.ModelRef
 
@@ -411,7 +411,7 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
             TextFieldSchema(StringName("_id")),
             TextFieldSchema(
               StringName("title"),
-              search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
             )
           )
         )
