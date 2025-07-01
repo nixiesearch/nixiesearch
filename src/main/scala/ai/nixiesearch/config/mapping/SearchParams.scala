@@ -118,15 +118,20 @@ object SearchParams {
   given embeddingSearchParamsDecoder: Decoder[SemanticParams] =
     Decoder.instance { c =>
       c.value.asObject match {
-        case None      => 
+        case None =>
           Left(DecodingFailure("should be an object", c.history))
         case Some(obj) =>
-          if (obj.contains("dim")) {
-            embeddingSearchParamsSimpleDecoder.tryDecode(c)
-          } else if (obj.contains("model")) {
+          if (obj.contains("model")) {
             embeddingSearchParamsInferenceDecoder.tryDecode(c)
+          } else if (obj.contains("dim")) {
+            embeddingSearchParamsSimpleDecoder.tryDecode(c)
           } else {
-            Left(DecodingFailure("should be an object", c.history))
+            Left(
+              DecodingFailure(
+                s"should contain either model or dim parameter, but has only ${obj.keys.toList}",
+                c.history
+              )
+            )
           }
       }
     }
