@@ -60,7 +60,12 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
           case Some(locations) =>
             Uri.fromString(locations.head.value) match {
               case Left(value) => Stream.raiseError[IO](BackendError(value.message))
-              case Right(uri)  => Stream.eval(info(s"redirect to $uri")) *> get(uri)
+              case Right(redirectUri) if redirectUri.authority.nonEmpty =>
+                Stream.eval(info(s"redirect from $uri to $redirectUri")) *> get(redirectUri)
+              case Right(redirectUri) =>
+                Stream.eval(info(s"redirect from $uri to $redirectUri")) *> get(
+                  redirectUri.copy(authority = uri.authority, scheme = uri.scheme)
+                )
             }
           case None => Stream.raiseError[IO](BackendError("No location header"))
         }
