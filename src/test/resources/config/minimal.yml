@@ -1,0 +1,8 @@
+schema:
+  helloworld:
+    fields:
+      title:
+        type: text
+        search:
+          semantic:
+            dim: 384

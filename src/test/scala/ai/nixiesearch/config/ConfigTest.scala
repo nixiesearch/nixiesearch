@@ -20,7 +20,7 @@ import io.circe.yaml.parser.*
 import org.apache.commons.io.IOUtils
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexConfig.{FlushConfig, IndexerConfig}
-import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.PoolingType.MeanPooling
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
@@ -51,11 +51,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             fields = Map(
               StringName("title") -> TextFieldSchema(
                 StringName("title"),
-                SearchParams(None, Some(SemanticParams(ModelRef("text"))))
+                SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"))))
               ),
               StringName("desc") -> TextFieldSchema(
                 StringName("desc"),
-                SearchParams(None, Some(SemanticParams(ModelRef("text"))))
+                SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"))))
               ),
               StringName("price") -> IntFieldSchema(StringName("price"), true, true, true, true),
               StringName("_id")   -> TextFieldSchema(
@@ -98,7 +98,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id")   -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title") -> TextFieldSchema(
                 name = StringName("title"),
-                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
               )
             ),
             store = DistributedStoreConfig(
@@ -150,6 +150,12 @@ class ConfigTest extends AnyFlatSpec with Matchers {
     result shouldBe a[Left[?, ?]]
   }
 
+  it should "parse minimal config" in {
+    val yaml   = IOUtils.resourceToString("/config/minimal.yml", StandardCharsets.UTF_8)
+    val parsed = parse(yaml).flatMap(_.as[Config])
+    parsed.toOption.get.inference.embedding.size shouldBe 0
+  }
+
   it should "parse suggest config" in {
     val yaml   = IOUtils.resourceToString("/config/suggest.yml", StandardCharsets.UTF_8)
     val parsed = parse(yaml).flatMap(_.as[Config])
@@ -172,13 +178,13 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id")    -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title1") -> TextFieldSchema(
                 name = StringName("title1"),
-                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text")))),
+                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text")))),
                 suggest = Some(SuggestSchema())
               ),
               StringName("title2") -> TextFieldSchema(
                 name = StringName("title2"),
                 search = SearchParams(
-                  semantic = Some(SemanticParams(model = ModelRef("text"))),
+                  semantic = Some(SemanticInferenceParams(model = ModelRef("text"))),
                   lexical = Some(LexicalParams(analyze = English))
                 ),
                 suggest = Some(
@@ -187,7 +193,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               ),
               StringName("desc") -> TextFieldSchema(
                 name = StringName("desc"),
-                search = SearchParams(semantic = Some(SemanticParams(model = ModelRef("text"))))
+                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
               ),
               StringName("price") -> IntFieldSchema(
                 name = StringName("price"),

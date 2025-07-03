@@ -16,7 +16,7 @@ import cats.effect.unsafe.implicits.global
 
 import scala.language.implicitConversions
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams}
+import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams}
 
 class IndexStatsTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
@@ -25,8 +25,10 @@ class IndexStatsTest extends SearchTest with Matchers {
       TextFieldSchema(name = StringName("_id"), filter = true),
       TextFieldSchema(
         name = StringName("title"),
-        search =
-          SearchParams(lexical = Some(LexicalParams()), semantic = Some(SemanticParams(model = ModelRef("text")))),
+        search = SearchParams(
+          lexical = Some(LexicalParams()),
+          semantic = Some(SemanticInferenceParams(model = ModelRef("text")))
+        ),
         suggest = Some(SuggestSchema())
       )
     ),

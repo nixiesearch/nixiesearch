@@ -2,6 +2,8 @@
 
 A `knn` search query can be used for searching over [`text`](../../../indexing/types/text.md) fields defined as searchable with semantic search with a pre-computed embedding.
 
+**Note**: The `knn` query works with both server-side inference (using the `model` parameter) and pre-embedded documents (using the `dim` parameter). For text-based queries that require server-side embedding computation, use the [`semantic`](semantic.md) query instead.
+
 Unlike [`semantic`](semantic.md) query, the `knn` query does NOT run embedding inference, and expects the query embedding provided in the request:
 
 ```json

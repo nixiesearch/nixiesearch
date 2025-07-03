@@ -6,7 +6,7 @@ import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticParams
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
-import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, FailedCursor, HCursor, Json, JsonObject}
 import io.circe.generic.semiauto.*
 
 import scala.util.{Failure, Success}
@@ -16,14 +16,31 @@ case class SearchParams(lexical: Option[LexicalParams] = None, semantic: Option[
 object SearchParams {
   case class LexicalParams(analyze: Language = Language.Generic)
 
-  case class SemanticParams(
+  sealed trait SemanticParams {
+    def ef: Int
+    def m: Int
+    def workers: Int
+    def quantize: QuantStore
+    def distance: Distance
+  }
+
+  case class SemanticInferenceParams(
       model: ModelRef,
       ef: Int = 32,
       m: Int = 16,
       workers: Int = Runtime.getRuntime.availableProcessors(),
       quantize: QuantStore = Float32,
       distance: Distance = Dot
-  )
+  ) extends SemanticParams
+
+  case class SemanticSimpleParams(
+      dim: Int,
+      ef: Int = 32,
+      m: Int = 16,
+      workers: Int = Runtime.getRuntime.availableProcessors(),
+      quantize: QuantStore = Float32,
+      distance: Distance = Dot
+  ) extends SemanticParams
 
   enum QuantStore(val alias: String) {
     case Float32 extends QuantStore("float32")
@@ -51,8 +68,30 @@ object SearchParams {
     case Distance.Dot.alias    => Success(Dot)
     case other                 => Failure(UserError(s"cannot decode distance function '$other': we support cosine/dot"))
   }
-  given embeddingSearchParamsEncoder: Encoder[SemanticParams] = deriveEncoder
-  given embeddingSearchParamsDecoder: Decoder[SemanticParams] = Decoder.instance(c =>
+
+  given embeddingSearchParamsSimpleEncoder: Encoder[SemanticSimpleParams] = deriveEncoder
+  given embeddingSearchParamsSimpleDecoder: Decoder[SemanticSimpleParams] = Decoder.instance(c =>
+    for {
+      dim      <- c.downField("dim").as[Int]
+      ef       <- c.downField("ef").as[Option[Int]]
+      m        <- c.downField("m").as[Option[Int]]
+      workers  <- c.downField("workers").as[Option[Int]]
+      quantize <- c.downField("quantize").as[Option[QuantStore]]
+      distance <- c.downField("distance").as[Option[Distance]]
+    } yield {
+      SemanticSimpleParams(
+        dim = dim,
+        ef = ef.getOrElse(32),
+        m = m.getOrElse(16),
+        workers = workers.getOrElse(Runtime.getRuntime.availableProcessors()),
+        quantize = quantize.getOrElse(Float32),
+        distance = distance.getOrElse(Dot)
+      )
+    }
+  )
+
+  given embeddingSearchParamsInferenceEncoder: Encoder[SemanticInferenceParams] = deriveEncoder
+  given embeddingSearchParamsInferenceDecoder: Decoder[SemanticInferenceParams] = Decoder.instance(c =>
     for {
       model    <- c.downField("model").as[ModelRef]
       ef       <- c.downField("ef").as[Option[Int]]
@@ -61,7 +100,7 @@ object SearchParams {
       quantize <- c.downField("quantize").as[Option[QuantStore]]
       distance <- c.downField("distance").as[Option[Distance]]
     } yield {
-      SemanticParams(
+      SemanticInferenceParams(
         model = model,
         ef = ef.getOrElse(32),
         m = m.getOrElse(16),
@@ -71,6 +110,31 @@ object SearchParams {
       )
     }
   )
+  given embeddingSearchParamsEncoder: Encoder[SemanticParams] = Encoder.instance {
+    case sp: SemanticSimpleParams    => embeddingSearchParamsSimpleEncoder(sp)
+    case sp: SemanticInferenceParams => embeddingSearchParamsInferenceEncoder(sp)
+  }
+
+  given embeddingSearchParamsDecoder: Decoder[SemanticParams] =
+    Decoder.instance { c =>
+      c.value.asObject match {
+        case None =>
+          Left(DecodingFailure("should be an object", c.history))
+        case Some(obj) =>
+          if (obj.contains("model")) {
+            embeddingSearchParamsInferenceDecoder.tryDecode(c)
+          } else if (obj.contains("dim")) {
+            embeddingSearchParamsSimpleDecoder.tryDecode(c)
+          } else {
+            Left(
+              DecodingFailure(
+                s"should contain either model or dim parameter, but has only ${obj.keys.toList}",
+                c.history
+              )
+            )
+          }
+      }
+    }
 
   given lexicalSearchParamsEncoder: Encoder[LexicalParams] = deriveEncoder
   given lexicalSearchParamsDecoder: Decoder[LexicalParams] = Decoder.instance(c =>
