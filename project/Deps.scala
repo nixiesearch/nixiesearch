@@ -12,5 +12,5 @@ object Deps {
   lazy val djlVersion         = "0.33.0"
   lazy val onnxRuntimeVersion = "1.22.0"
   lazy val llamacppVersion    = "0.0.4-b5604"
-  lazy val prometheusVersion  = "1.3.8"
+  lazy val prometheusVersion  = "1.3.9"
 }
