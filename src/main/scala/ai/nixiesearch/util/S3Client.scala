@@ -149,7 +149,7 @@ object S3Client {
   def createCredentialsProvider(): AwsCredentialsProvider = {
     val chain = AwsCredentialsProviderChain
       .builder()
-      .addCredentialsProvider(DefaultCredentialsProvider.create())
+      .addCredentialsProvider(DefaultCredentialsProvider.builder().build())
       .addCredentialsProvider(AnonymousCredentialsProvider.create())
       .build()
     LazyAwsCredentialsProvider.create(() => chain)
