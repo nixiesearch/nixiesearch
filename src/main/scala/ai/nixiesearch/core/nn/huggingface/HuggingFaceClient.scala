@@ -26,6 +26,7 @@ import scala.concurrent.duration.*
 
 case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFileCache) extends Logging {
   val MODEL_FILE                                                      = "model_card.json"
+  val HF_MAX_RETRIES                                                  = 10
   implicit val modelResponseDecoder: EntityDecoder[IO, ModelResponse] = jsonOf[IO, ModelResponse]
 
   def model(handle: HuggingFaceHandle): IO[ModelResponse] =
@@ -50,11 +51,21 @@ case class HuggingFaceClient(client: Client[IO], endpoint: Uri, cache: ModelFile
     get(endpoint / handle.ns / handle.name / "resolve" / "main" / fileName)
   }
 
-  def get(uri: Uri): Stream[IO, Byte] = for {
+  def get(uri: Uri, retry: Int = 0): Stream[IO, Byte] = for {
     response <- client.stream(Request[IO](uri = uri))
     _        <- Stream.eval(info(s"sending HuggingFace API request for a file $uri"))
     byte     <- response.status.code match {
-      case 200       => response.entity.body.through(PrintProgress.bytes)
+      case 200 => response.entity.body.through(PrintProgress.bytes)
+      case 429 =>
+        for {
+          nextSleep <- Stream.emit(1.second * (math.pow(retry, 2) - 1))
+          _         <- Stream.eval(info("HTTP 429 Too many requests, sleeping for "))
+          _         <- Stream.eval(IO.sleep(nextSleep))
+          result    <- get(uri, retry + 1)
+        } yield {
+          result
+        }
+
       case 302 | 307 =>
         response.headers.get(CIString("Location")) match {
           case Some(locations) =>
