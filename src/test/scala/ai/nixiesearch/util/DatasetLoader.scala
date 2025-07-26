@@ -14,14 +14,11 @@ import io.circe.Decoder
 object DatasetLoader {
   def fromFile(path: String, mapping: IndexMapping, limit: Int = 1000): List[Document] = {
     given documentDecoder: Decoder[Document] = Document.decoderFor(mapping)
-    URLReader
-      .maybeDecompress(
-        readInputStream[IO](
-          IO(new FileInputStream(new File(path))),
-          1024000
-        ),
-        path
-      )
+
+    readInputStream[IO](
+      IO(new FileInputStream(new File(path))),
+      1024000
+    )
       .through(fs2.text.utf8.decode)
       .through(fs2.text.lines)
       .filter(_.nonEmpty)

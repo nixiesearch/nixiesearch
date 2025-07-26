@@ -34,16 +34,6 @@ class URLReaderTest extends AnyFlatSpec with Matchers {
     read shouldBe data
   }
 
-  it should "read local compressed files" in {
-    val data   = List(1, 2, 3, 4).map(_.toByte)
-    val path   = Files.createTempFile("nixie_", ".tmp.gz")
-    val stream = new GzipCompressorOutputStream(new FileOutputStream(path.toFile))
-    stream.write(data.toArray)
-    stream.close()
-    val read = URLReader.bytes(LocalURL(path)).compile.toList.unsafeRunSync()
-    read shouldBe data
-  }
-
   it should "read local dirs" in {
     val data = List(1, 2, 3, 4).map(_.toByte)
     val dir  = Files.createTempDirectory("nixie_")
