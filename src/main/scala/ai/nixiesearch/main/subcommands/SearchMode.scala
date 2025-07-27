@@ -9,6 +9,7 @@ import ai.nixiesearch.index.{Models, Searcher}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.SearchArgs
 import ai.nixiesearch.main.Logo
+import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
 import cats.data.Kleisli
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
@@ -32,15 +33,13 @@ object SearchMode extends Logging {
         for {
           index    <- Index.forSearch(im, models)
           searcher <- Searcher.open(index, metrics)
-          _        <- Stream
-            .repeatEval(index.sync().flatMap {
+          _        <- PeriodicEvalStream.run(
+            every = index.mapping.config.indexer.flush.interval,
+            action = index.sync().flatMap {
               case false => IO.unit
               case true  => searcher.sync()
-            })
-            .metered(1.second)
-            .compile
-            .drain
-            .background
+            }
+          )
         } yield {
           searcher
         }

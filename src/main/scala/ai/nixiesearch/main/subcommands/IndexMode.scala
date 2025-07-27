@@ -11,13 +11,11 @@ import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
 import ai.nixiesearch.main.CliConfig.IndexSourceArgs.{ApiIndexSourceArgs, FileIndexSourceArgs, KafkaIndexSourceArgs}
 import ai.nixiesearch.main.Logo
-import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
+import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import fs2.Stream
-import io.prometheus.metrics.model.registry.PrometheusRegistry
-import org.http4s.HttpRoutes
 
 object IndexMode extends Logging {
   def run(args: IndexArgs, config: Config): IO[Unit] = for {
@@ -80,7 +78,13 @@ object IndexMode extends Logging {
           for {
             index   <- Index.forIndexing(im, models)
             indexer <- Indexer.open(index, metrics)
-            _       <- PeriodicFlushStream.run(index, indexer)
+            _       <- PeriodicEvalStream.run(
+              every = index.mapping.config.indexer.flush.interval,
+              action = indexer.flush().flatMap {
+                case true  => index.sync()
+                case false => IO.unit
+              }
+            )
           } yield { indexer }
         )
         .sequence

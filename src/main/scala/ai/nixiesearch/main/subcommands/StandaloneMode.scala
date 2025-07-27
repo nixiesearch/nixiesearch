@@ -9,7 +9,7 @@ import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import ai.nixiesearch.main.Logo
-import ai.nixiesearch.main.subcommands.util.PeriodicFlushStream
+import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import io.prometheus.metrics.model.registry.PrometheusRegistry
@@ -27,14 +27,24 @@ object StandaloneMode extends Logging {
     indexes <- config.schema.values.toList
       .map(im => Index.local(im, models))
       .sequence
-    indexers <- indexes
-      .map(index => Indexer.open(index, metrics).flatTap(indexer => PeriodicFlushStream.run(index, indexer)))
-      .sequence
+    indexers  <- indexes.map(index => Indexer.open(index, metrics)).sequence
     searchers <- indexes.map(index => Searcher.open(index, metrics)).sequence
+    _         <- indexers
+      .zip(searchers)
+      .map { case (indexer, searcher) =>
+        PeriodicEvalStream.run(
+          every = indexer.index.mapping.config.indexer.flush.interval,
+          action = indexer.flush().flatMap {
+            case true  => indexer.index.sync() *> searcher.sync()
+            case false => IO.unit
+          }
+        )
+      }
+      .sequence
     routes = List(
       searchers
         .flatMap(s => List(SearchRoute(s).routes, MappingRoute(s.index).routes, StatsRoute(s).routes)),
-      indexers.map(indexer => IndexModifyRoute(indexer).routes),
+      indexers.zip(searchers).map((indexer, searcher) => IndexModifyRoute(indexer, Some(searcher)).routes),
       List(TypicalErrorsRoute(searchers.map(_.index.name.value)).routes),
       List(AdminRoute(config).routes),
       List(MainRoute().routes),
