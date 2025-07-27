@@ -6,11 +6,15 @@ import ai.nixiesearch.core.field.*
 import scala.util.Random
 
 object TestDocument {
-  def apply() = new Document(
+  def apply(
+      id: String = math.abs(Random.nextInt()).toString,
+      title: String = "hello",
+      price: Int = Random.nextInt(100)
+  ) = new Document(
     List(
-      TextField("_id", math.abs(Random.nextInt()).toString),
+      TextField("_id", id),
       TextField("title", "hello"),
-      IntField("price", Random.nextInt(100))
+      IntField("price", price)
     )
   )
 }

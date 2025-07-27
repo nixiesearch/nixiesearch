@@ -52,7 +52,6 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
     searcherShutdown.unsafeRunSync()
     localShutdown.unsafeRunSync()
     modelsShutdown.unsafeRunSync()
-
   }
 
 }

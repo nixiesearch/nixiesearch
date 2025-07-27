@@ -4,7 +4,7 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.{Document, JsonDocumentStream, Logging, PrintProgress}
-import ai.nixiesearch.index.Indexer
+import ai.nixiesearch.index.{Indexer, Searcher}
 import cats.effect.IO
 import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, Request, Response}
@@ -13,7 +13,7 @@ import org.http4s.circe.*
 import io.circe.generic.semiauto.*
 import fs2.Stream
 
-case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
+case class IndexModifyRoute(indexer: Indexer, maybeSearcher: Option[Searcher] = None) extends Route with Logging {
   import IndexModifyRoute.{given, *}
 
   def nameMatches(name: String): Boolean = indexer.index.mapping.nameMatches(name)
@@ -80,10 +80,14 @@ case class IndexModifyRoute(indexer: Indexer) extends Route with Logging {
   }
 
   def flush(): IO[Response[IO]] = for {
-    start    <- IO(System.nanoTime())
-    _        <- info(s"POST /${indexer.index.name.value}/_flush")
-    _        <- indexer.flush()
-    _        <- indexer.index.sync()
+    start <- IO(System.nanoTime())
+    _     <- info(s"POST /${indexer.index.name.value}/_flush")
+    _     <- indexer.flush()
+    _     <- indexer.index.sync()
+    _     <- maybeSearcher match {
+      case None           => IO.none
+      case Some(searcher) => info("we're in standalone mode, also doing sync for searcher") *> searcher.sync()
+    }
     end      <- IO(System.nanoTime())
     response <- Ok(EmptyResponse("ok", (end - start) / 1000000000.0f))
   } yield response
