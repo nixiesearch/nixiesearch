@@ -47,11 +47,17 @@ object JsonDocumentStream extends Logging {
   def maybeDecompress: Pipe[IO, Byte, Byte] =
     bytes =>
       bytes.pull.peek.flatMap {
-        case Some((chunk, tail)) if chunk.startsWith(GZIP_HEADER) => tail.through(gzip.decompress).pull.echo
-        case Some((chunk, tail)) if chunk.startsWith(ZSTD_HEADER) => tail.through(zstd.decompress).pull.echo
-        case Some((chunk, tail)) if chunk.startsWith(BZ2_HEADER)  => tail.through(bzip2.decompress).pull.echo
-        case Some((_, tail))                                      => tail.pull.echo
-        case None                                                 => Pull.done
+        case Some((chunk, tail)) if chunk.startsWith(GZIP_HEADER) =>
+          logger.info("Detected GZIP compression")
+          tail.through(gzip.decompress).pull.echo
+        case Some((chunk, tail)) if chunk.startsWith(ZSTD_HEADER) =>
+          logger.info("Detected ZSTD compression")
+          tail.through(zstd.decompress).pull.echo
+        case Some((chunk, tail)) if chunk.startsWith(BZ2_HEADER) =>
+          logger.info("Detected BZ2 compression")
+          tail.through(bzip2.decompress).pull.echo
+        case Some((_, tail)) => tail.pull.echo
+        case None            => Pull.done
       }.stream
 
   def decompressDisk(source: Stream[IO, Byte], decompressor: File => InputStream): Stream[IO, Byte] = for {

@@ -1,7 +1,7 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.{Document, JsonDocumentStream}
 import ai.nixiesearch.util.source.URLReader
 import cats.effect.IO
 import fs2.io.readInputStream
@@ -19,15 +19,7 @@ object DatasetLoader {
       IO(new FileInputStream(new File(path))),
       1024000
     )
-      .through(fs2.text.utf8.decode)
-      .through(fs2.text.lines)
-      .filter(_.nonEmpty)
-      .parEvalMapUnordered(8)(line =>
-        IO(decode[Document](line)).flatMap {
-          case Left(value)  => IO.raiseError(value)
-          case Right(value) => IO.pure(value)
-        }
-      )
+      .through(JsonDocumentStream.parse(mapping))
       .take(limit)
       .compile
       .toList
