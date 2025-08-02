@@ -10,7 +10,12 @@ import io.circe.yaml.parser.*
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchParams
-import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams, SemanticSimpleParams}
+import ai.nixiesearch.config.mapping.SearchParams.{
+  LexicalParams,
+  SemanticInferenceParams,
+  SemanticParams,
+  SemanticSimpleParams
+}
 
 class SearchParamsTest extends AnyFlatSpec with Matchers {
 
