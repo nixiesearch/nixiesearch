@@ -6,7 +6,7 @@ lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
 version := "0.6.2"
 
-scalaVersion := "3.7.1"
+scalaVersion := "3.7.2"
 
 name := "nixiesearch"
 
