@@ -119,8 +119,10 @@ object OnStartAnalyticsPayload {
             }
             anonName -> (value match {
               case s: IntFieldSchema      => s.copy(name = anonName)
+              case s: IntListFieldSchema  => s.copy(name = anonName)
               case s: FloatFieldSchema    => s.copy(name = anonName)
               case s: LongFieldSchema     => s.copy(name = anonName)
+              case s: LongListFieldSchema => s.copy(name = anonName)
               case s: DoubleFieldSchema   => s.copy(name = anonName)
               case s: TextFieldSchema     => s.copy(name = anonName)
               case s: TextListFieldSchema => s.copy(name = anonName)

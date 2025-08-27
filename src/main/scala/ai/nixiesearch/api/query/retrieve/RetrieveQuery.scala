@@ -106,9 +106,11 @@ trait RetrieveQuery extends Query {
       case Some(schema) if !schema.sort =>
         IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
       case Some(s: IntFieldSchema)      => IO.pure(IntField.sort(s.name, reverse, missing))
+      case Some(s: IntListFieldSchema)  => IO.raiseError(UserError("sorting by int[] is not yet supported"))
       case Some(s: BooleanFieldSchema)  => IO.pure(BooleanField.sort(s.name, reverse, missing))
       case Some(s: DateFieldSchema)     => IO.pure(DateField.sort(s.name, reverse, missing))
       case Some(s: LongFieldSchema)     => IO.pure(LongField.sort(s.name, reverse, missing))
+      case Some(s: LongListFieldSchema) => IO.raiseError(UserError("sorting by long[] is not yet supported"))
       case Some(s: DateTimeFieldSchema) => IO.pure(DateTimeField.sort(s.name, reverse, missing))
       case Some(s: FloatFieldSchema)    => IO.pure(FloatField.sort(s.name, reverse, missing))
       case Some(s: DoubleFieldSchema)   => IO.pure(DoubleField.sort(s.name, reverse, missing))

@@ -181,6 +181,44 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "decode arrays of ints" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            IntListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1,2,3]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), IntListField("lengths", List(1, 2, 3))))
+    )
+  }
+
+  it should "decode arrays of longs" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            LongListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1,2,3]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), LongListField("lengths", List(1L, 2L, 3L))))
+    )
+  }
+
   it should "skip empty arrays" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(

@@ -28,6 +28,7 @@ object Document {
         case f @ FloatField(name, value)       => (name, FloatField.encodeJson(f))
         case f @ DoubleField(name, value)      => (name, DoubleField.encodeJson(f))
         case f @ IntField(name, value)         => (name, IntField.encodeJson(f))
+        case f @ IntListField(name, value)     => (name, IntListField.encodeJson(f))
         case f @ LongField(name, value)        => (name, LongField.encodeJson(f))
         case f @ TextField(name, value, _)     => (name, TextField.encodeJson(f))
         case f @ BooleanField(name, value)     => (name, BooleanField.encodeJson(f))
@@ -195,17 +196,56 @@ object Document {
       }
     }
 
+    def parseList[T](values: Vector[Json], unpack: Json => Decoder.Result[T]): Decoder.Result[List[T]] =
+      values.foldLeft[Decoder.Result[List[T]]](Right(Nil)) {
+        case (Left(err), _)            => Left(err)
+        case (Right(result), nextJson) =>
+          unpack(nextJson) match {
+            case Left(err)    => Left(err)
+            case Right(value) => Right(result :+ value)
+          }
+      }
+
     override def onArray(value: Vector[Json]): Decoder.Result[List[Field]] =
       mapping.fieldSchema(fieldName) match {
-        case Some(_: TextListFieldSchema) =>
-          value.foldLeft[Decoder.Result[List[String]]](Right(Nil)) {
-            case (Left(err), _)         => Left(err)
-            case (Right(strings), json) =>
-              json.asString match {
-                case None => Left(DecodingFailure(s"field '$fieldName' can only contain strings, but got $json", Nil))
-                case Some(str) => Right(strings :+ str)
+        case Some(_: LongListFieldSchema) =>
+          def parseLong(value: Json): Decoder.Result[Long] = value.asNumber match {
+            case None =>
+              Left(DecodingFailure(s"array field '$fieldName' can only contain strings, but got $json", Nil))
+            case Some(num) =>
+              num.toLong match {
+                case Some(long) => Right(long)
+                case None       =>
+                  Left(DecodingFailure(s"array field '$fieldName' can only contain ints/longs, but got $json", Nil))
               }
-          } match {
+          }
+          parseList(value, parseLong) match {
+            case Left(err)     => Left(err)
+            case Right(Nil)    => Right(Nil)
+            case Right(values) => Right(List(LongListField(fieldName, values)))
+          }
+        case Some(_: IntListFieldSchema) =>
+          def parseInt(value: Json): Decoder.Result[Int] = value.asNumber match {
+            case None =>
+              Left(DecodingFailure(s"array field '$fieldName' can only contain strings, but got $json", Nil))
+            case Some(num) =>
+              num.toInt match {
+                case Some(int) => Right(int)
+                case None      =>
+                  Left(DecodingFailure(s"array field '$fieldName' can only contain ints, but got $json", Nil))
+              }
+          }
+          parseList(value, parseInt) match {
+            case Left(err)     => Left(err)
+            case Right(Nil)    => Right(Nil)
+            case Right(values) => Right(List(IntListField(fieldName, values)))
+          }
+        case Some(_: TextListFieldSchema) =>
+          def parseString(value: Json): Decoder.Result[String] = value.asString match {
+            case None      => Left(DecodingFailure(s"field '$fieldName' can only contain strings, but got $json", Nil))
+            case Some(str) => Right(str)
+          }
+          parseList(value, parseString) match {
             case Left(err)     => Left(err)
             case Right(Nil)    => Right(Nil)
             case Right(values) => Right(List(TextListField(fieldName, values)))

@@ -81,6 +81,16 @@ object FieldSchema {
       required: Boolean = false
   ) extends FieldSchema[IntField]
 
+  case class IntListFieldSchema(
+      name: FieldName,
+      store: Boolean = true,
+      filter: Boolean = false,
+      required: Boolean = false
+  ) extends FieldSchema[IntListField] {
+    def sort  = false
+    def facet = false
+  }
+
   case class LongFieldSchema(
       name: FieldName,
       store: Boolean = true,
@@ -89,6 +99,16 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[LongField]
+
+  case class LongListFieldSchema(
+      name: FieldName,
+      store: Boolean = true,
+      filter: Boolean = false,
+      required: Boolean = false
+  ) extends FieldSchema[LongListField] {
+    def sort  = false
+    def facet = false
+  }
 
   case class FloatFieldSchema(
       name: FieldName,
@@ -224,6 +244,16 @@ object FieldSchema {
       }
     )
 
+    def intListFieldSchemaDecoder(name: FieldName): Decoder[IntListFieldSchema] = Decoder.instance(c =>
+      for {
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        IntListFieldSchema(name, store, filter, required)
+      }
+    )
+
     def longFieldSchemaDecoder(name: FieldName): Decoder[LongFieldSchema] = Decoder.instance(c =>
       for {
         store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
@@ -233,6 +263,16 @@ object FieldSchema {
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
         LongFieldSchema(name, store, sort, facet, filter, required)
+      }
+    )
+
+    def longListFieldSchemaDecoder(name: FieldName): Decoder[LongListFieldSchema] = Decoder.instance(c =>
+      for {
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        LongListFieldSchema(name, store, filter, required)
       }
     )
 
@@ -311,7 +351,9 @@ object FieldSchema {
         case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)
         case Right("text[]" | "string[]") => textListFieldSchemaDecoder(name).tryDecode(c)
         case Right("int")                 => intFieldSchemaDecoder(name).tryDecode(c)
+        case Right("int[]")               => intListFieldSchemaDecoder(name).tryDecode(c)
         case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
+        case Right("long[]")              => longListFieldSchemaDecoder(name).tryDecode(c)
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
         case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
         case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
@@ -342,8 +384,16 @@ object FieldSchema {
     given intFieldSchemaDecoder: Decoder[IntFieldSchema] = ConfiguredDecoder.derived[IntFieldSchema](using config)
     given intFieldSchemaEncoder: Encoder[IntFieldSchema] = deriveEncoder
 
+    given intListFieldSchemaDecoder: Decoder[IntListFieldSchema] =
+      ConfiguredDecoder.derived[IntListFieldSchema](using config)
+    given intListFieldSchemaEncoder: Encoder[IntListFieldSchema] = deriveEncoder
+
     given longFieldSchemaDecoder: Decoder[LongFieldSchema] = ConfiguredDecoder.derived[LongFieldSchema](using config)
     given longFieldSchemaEncoder: Encoder[LongFieldSchema] = deriveEncoder
+
+    given longListFieldSchemaDecoder: Decoder[LongListFieldSchema] =
+      ConfiguredDecoder.derived[LongListFieldSchema](using config)
+    given longListFieldSchemaEncoder: Encoder[LongListFieldSchema] = deriveEncoder
 
     given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = ConfiguredDecoder.derived[FloatFieldSchema](using config)
     given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
@@ -369,7 +419,9 @@ object FieldSchema {
 
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
       case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
+      case f: IntListFieldSchema  => intListFieldSchemaEncoder.apply(f).deepMerge(withType("int[]"))
       case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
+      case f: LongListFieldSchema => longListFieldSchemaEncoder.apply(f).deepMerge(withType("long[]"))
       case f: FloatFieldSchema    => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
       case f: DoubleFieldSchema   => doubleFieldSchemaEncoder.apply(f).deepMerge(withType("double"))
       case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
@@ -383,7 +435,9 @@ object FieldSchema {
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
         case Right("int")      => intFieldSchemaDecoder.tryDecode(c)
+        case Right("int[]")    => intListFieldSchemaDecoder.tryDecode(c)
         case Right("long")     => longFieldSchemaDecoder.tryDecode(c)
+        case Right("long[]")   => longListFieldSchemaDecoder.tryDecode(c)
         case Right("float")    => floatFieldSchemaDecoder.tryDecode(c)
         case Right("double")   => doubleFieldSchemaDecoder.tryDecode(c)
         case Right("bool")     => boolFieldSchemaDecoder.tryDecode(c)
