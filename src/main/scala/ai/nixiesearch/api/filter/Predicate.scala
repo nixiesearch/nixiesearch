@@ -140,8 +140,6 @@ object Predicate {
             IO.raiseError(UserError(s"field $field is int field, but term $value cannot be cast to int safely"))
         case (Some(_: LongFieldSchema) | Some(_: LongListFieldSchema), FilterTerm.NumTerm(value)) =>
           IO(LongField.newExactQuery(field, value))
-        case (Some(schema: LongListFieldSchema), FilterTerm.NumTerm(value)) =>
-          IO(LongField.newExactQuery(field, value))
         case (Some(schema: BooleanFieldSchema), FilterTerm.BooleanTerm(value)) =>
           IO(IntField.newExactQuery(field, if (value) 1 else 0))
         case (Some(schema: DateFieldSchema), DateTerm(days)) =>
@@ -200,7 +198,7 @@ object Predicate {
       mapping.fieldSchema(field) match {
         case Some(spec) if !spec.filter =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
-        case Some(_: IntFieldSchema | _: DateFieldSchema) =>
+        case Some(_: IntFieldSchema | _: DateFieldSchema | _: IntListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Int.MinValue
@@ -214,7 +212,7 @@ object Predicate {
             }
             org.apache.lucene.document.IntField.newRangeQuery(field, lower, higher)
           }
-        case Some(_: LongFieldSchema | _: DateTimeFieldSchema) =>
+        case Some(_: LongFieldSchema | _: DateTimeFieldSchema | _: LongListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Long.MinValue

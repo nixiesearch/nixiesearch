@@ -4,15 +4,7 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, IntListFieldSchema, LongFieldSchema, LongListFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
@@ -30,9 +22,19 @@ class IntRangeFilterTest extends RangeFilterTestForType[IntField, IntFieldSchema
   override def field(value: Int) = IntField("field", value)
 }
 
+class IntListRangeFilterTest extends RangeFilterTestForType[IntListField, IntListFieldSchema] {
+  override def schema()          = IntListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = IntListField("field", List(value))
+}
+
 class LongRangeFilterTest extends RangeFilterTestForType[LongField, LongFieldSchema] {
   override def schema()          = LongFieldSchema(StringName("field"), filter = true)
   override def field(value: Int) = LongField("field", value)
+}
+
+class LongListRangeFilterTest extends RangeFilterTestForType[LongListField, LongListFieldSchema] {
+  override def schema()          = LongListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = LongListField("field", List(value))
 }
 
 class FloatRangeFilterTest extends RangeFilterTestForType[FloatField, FloatFieldSchema] {

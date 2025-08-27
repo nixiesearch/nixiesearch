@@ -64,8 +64,12 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
             )
           case field @ IntField(name, value) =>
             writeField(field, IntField, index.mapping.fieldSchemaOf[IntFieldSchema](field.name), buffer)
+          case field @ IntListField(name, value) =>
+            writeField(field, IntListField, index.mapping.fieldSchemaOf[IntListFieldSchema](field.name), buffer)
           case field @ LongField(name, value) =>
             writeField(field, LongField, index.mapping.fieldSchemaOf[LongFieldSchema](field.name), buffer)
+          case field @ LongListField(name, value) =>
+            writeField(field, LongListField, index.mapping.fieldSchemaOf[LongListFieldSchema](field.name), buffer)
           case field @ FloatField(name, value) =>
             writeField(field, FloatField, index.mapping.fieldSchemaOf[FloatFieldSchema](field.name), buffer)
           case field @ DoubleField(name, value) =>
