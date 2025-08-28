@@ -81,6 +81,8 @@ All numeric list fields support:
 - `filter: true/false` - whether the field can be filtered (default: false)
 - `required: true/false` - whether the field is required (default: false)
 
+**Note**: Numeric array fields (`int[]`, `long[]`, `float[]`, `double[]`) do **not** support sorting operations. Only single-value numeric fields can be sorted.
+
 ## Search behavior
 
 Numeric fields cannot be searched in the sense of full text search as [text](text.md) fields do, but you can [filter](../../search/filter.md) over them.
