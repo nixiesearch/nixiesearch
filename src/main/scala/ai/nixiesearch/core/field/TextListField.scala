@@ -33,6 +33,7 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
   import TextField.{MAX_FACET_SIZE, FILTER_SUFFIX, MAX_FIELD_SEARCH_SIZE}
 
   def apply(name: String, value: String, values: String*) = new TextListField(name, value +: values.toList)
+  def apply(name: String, values: List[String])           = new TextListField(name, values)
 
   override def writeLucene(
       field: TextListField,

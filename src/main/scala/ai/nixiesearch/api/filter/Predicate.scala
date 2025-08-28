@@ -9,7 +9,9 @@ import ai.nixiesearch.config.FieldSchema.{
   DateFieldSchema,
   DateTimeFieldSchema,
   DoubleFieldSchema,
+  DoubleListFieldSchema,
   FloatFieldSchema,
+  FloatListFieldSchema,
   GeopointFieldSchema,
   IntFieldSchema,
   IntListFieldSchema,
@@ -227,7 +229,7 @@ object Predicate {
             org.apache.lucene.document.LongField.newRangeQuery(field, lower, higher)
           }
 
-        case Some(_: FloatFieldSchema) =>
+        case Some(_: FloatFieldSchema | _: FloatListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Float.MinValue
@@ -242,7 +244,7 @@ object Predicate {
             }
             org.apache.lucene.document.FloatField.newRangeQuery(field, lower, higher)
           }
-        case Some(_: DoubleFieldSchema) =>
+        case Some(_: DoubleFieldSchema | _: DoubleListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Double.MinValue

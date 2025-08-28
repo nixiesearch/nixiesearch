@@ -119,6 +119,16 @@ object FieldSchema {
       required: Boolean = false
   ) extends FieldSchema[FloatField]
 
+  case class FloatListFieldSchema(
+      name: FieldName,
+      store: Boolean = true,
+      filter: Boolean = false,
+      required: Boolean = false
+  ) extends FieldSchema[FloatListField] {
+    def sort  = false
+    def facet = false
+  }
+
   case class DoubleFieldSchema(
       name: FieldName,
       store: Boolean = true,
@@ -127,6 +137,16 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DoubleField]
+
+  case class DoubleListFieldSchema(
+      name: FieldName,
+      store: Boolean = true,
+      filter: Boolean = false,
+      required: Boolean = false
+  ) extends FieldSchema[DoubleListField] {
+    def sort  = false
+    def facet = false
+  }
 
   case class BooleanFieldSchema(
       name: FieldName,
@@ -287,6 +307,15 @@ object FieldSchema {
         FloatFieldSchema(name, store, sort, facet, filter, required)
       }
     )
+    def floatListFieldSchemaDecoder(name: FieldName): Decoder[FloatListFieldSchema] = Decoder.instance(c =>
+      for {
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        FloatListFieldSchema(name, store, filter, required)
+      }
+    )
 
     def doubleFieldSchemaDecoder(name: FieldName): Decoder[DoubleFieldSchema] = Decoder.instance(c =>
       for {
@@ -297,6 +326,16 @@ object FieldSchema {
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
         DoubleFieldSchema(name, store, sort, facet, filter, required)
+      }
+    )
+
+    def doubleListFieldSchemaDecoder(name: FieldName): Decoder[DoubleListFieldSchema] = Decoder.instance(c =>
+      for {
+        store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
+        required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
+      } yield {
+        DoubleListFieldSchema(name, store, filter, required)
       }
     )
 
@@ -355,7 +394,9 @@ object FieldSchema {
         case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
         case Right("long[]")              => longListFieldSchemaDecoder(name).tryDecode(c)
         case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
+        case Right("float[]")             => floatListFieldSchemaDecoder(name).tryDecode(c)
         case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
+        case Right("double[]")            => doubleListFieldSchemaDecoder(name).tryDecode(c)
         case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
         case Right("geopoint")            => geopointFieldSchemaDecoder(name).tryDecode(c)
         case Right("date")                => dateFieldSchemaDecoder(name).tryDecode(c)
@@ -398,9 +439,17 @@ object FieldSchema {
     given floatFieldSchemaDecoder: Decoder[FloatFieldSchema] = ConfiguredDecoder.derived[FloatFieldSchema](using config)
     given floatFieldSchemaEncoder: Encoder[FloatFieldSchema] = deriveEncoder
 
+    given floatListFieldSchemaDecoder: Decoder[FloatListFieldSchema] =
+      ConfiguredDecoder.derived[FloatListFieldSchema](using config)
+    given floatListFieldSchemaEncoder: Encoder[FloatListFieldSchema] = deriveEncoder
+
     given doubleFieldSchemaDecoder: Decoder[DoubleFieldSchema] =
       ConfiguredDecoder.derived[DoubleFieldSchema](using config)
     given doubleFieldSchemaEncoder: Encoder[DoubleFieldSchema] = deriveEncoder
+
+    given doubleListFieldSchemaDecoder: Decoder[DoubleListFieldSchema] =
+      ConfiguredDecoder.derived[DoubleListFieldSchema](using config)
+    given doubleListFieldSchemaEncoder: Encoder[DoubleListFieldSchema] = deriveEncoder
 
     given boolFieldSchemaDecoder: Decoder[BooleanFieldSchema] =
       ConfiguredDecoder.derived[BooleanFieldSchema](using config)
@@ -418,18 +467,20 @@ object FieldSchema {
     given dateTimeFieldSchemaEncoder: Encoder[DateTimeFieldSchema] = deriveEncoder
 
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
-      case f: IntFieldSchema      => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
-      case f: IntListFieldSchema  => intListFieldSchemaEncoder.apply(f).deepMerge(withType("int[]"))
-      case f: LongFieldSchema     => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
-      case f: LongListFieldSchema => longListFieldSchemaEncoder.apply(f).deepMerge(withType("long[]"))
-      case f: FloatFieldSchema    => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
-      case f: DoubleFieldSchema   => doubleFieldSchemaEncoder.apply(f).deepMerge(withType("double"))
-      case f: TextFieldSchema     => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
-      case f: TextListFieldSchema => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
-      case f: BooleanFieldSchema  => boolFieldSchemaEncoder.apply(f).deepMerge(withType("bool"))
-      case f: GeopointFieldSchema => geopointFieldSchemaEncoder.apply(f).deepMerge(withType("geopoint"))
-      case f: DateFieldSchema     => dateFieldSchemaEncoder.apply(f).deepMerge(withType("date"))
-      case f: DateTimeFieldSchema => dateTimeFieldSchemaEncoder.apply(f).deepMerge(withType("datetime"))
+      case f: IntFieldSchema        => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
+      case f: IntListFieldSchema    => intListFieldSchemaEncoder.apply(f).deepMerge(withType("int[]"))
+      case f: LongFieldSchema       => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
+      case f: LongListFieldSchema   => longListFieldSchemaEncoder.apply(f).deepMerge(withType("long[]"))
+      case f: FloatFieldSchema      => floatFieldSchemaEncoder.apply(f).deepMerge(withType("float"))
+      case f: FloatListFieldSchema  => floatListFieldSchemaEncoder.apply(f).deepMerge(withType("float[]"))
+      case f: DoubleFieldSchema     => doubleFieldSchemaEncoder.apply(f).deepMerge(withType("double"))
+      case f: DoubleListFieldSchema => doubleListFieldSchemaEncoder.apply(f).deepMerge(withType("double[]"))
+      case f: TextFieldSchema       => textFieldSchemaEncoder.apply(f).deepMerge(withType("text"))
+      case f: TextListFieldSchema   => textListFieldSchemaEncoder.apply(f).deepMerge(withType("text[]"))
+      case f: BooleanFieldSchema    => boolFieldSchemaEncoder.apply(f).deepMerge(withType("bool"))
+      case f: GeopointFieldSchema   => geopointFieldSchemaEncoder.apply(f).deepMerge(withType("geopoint"))
+      case f: DateFieldSchema       => dateFieldSchemaEncoder.apply(f).deepMerge(withType("date"))
+      case f: DateTimeFieldSchema   => dateTimeFieldSchemaEncoder.apply(f).deepMerge(withType("datetime"))
     }
 
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
@@ -439,7 +490,9 @@ object FieldSchema {
         case Right("long")     => longFieldSchemaDecoder.tryDecode(c)
         case Right("long[]")   => longListFieldSchemaDecoder.tryDecode(c)
         case Right("float")    => floatFieldSchemaDecoder.tryDecode(c)
+        case Right("float[]")  => floatListFieldSchemaDecoder.tryDecode(c)
         case Right("double")   => doubleFieldSchemaDecoder.tryDecode(c)
+        case Right("double[]") => doubleListFieldSchemaDecoder.tryDecode(c)
         case Right("bool")     => boolFieldSchemaDecoder.tryDecode(c)
         case Right("text")     => textFieldSchemaDecoder.tryDecode(c)
         case Right("text[]")   => textListFieldSchemaDecoder.tryDecode(c)

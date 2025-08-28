@@ -219,6 +219,46 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "decode arrays of doubles" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            DoubleListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1.0,2.0,3.0]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), DoubleListField("lengths", List(1.0, 2.0, 3.0))))
+    )
+  }
+
+  it should "decode arrays of floats" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            FloatListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1.0,2.0,3.0]}"""
+    decode[Document](json) shouldBe Right(
+      Document(
+        List(TextField("_id", "a"), TextField("title", "foo"), FloatListField("lengths", List(1.0f, 2.0f, 3.0f)))
+      )
+    )
+  }
+
   it should "skip empty arrays" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(

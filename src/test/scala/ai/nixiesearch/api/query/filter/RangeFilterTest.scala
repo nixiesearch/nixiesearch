@@ -4,7 +4,19 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, FloatFieldSchema, IntFieldSchema, IntListFieldSchema, LongFieldSchema, LongListFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  DoubleListFieldSchema,
+  FloatFieldSchema,
+  FloatListFieldSchema,
+  IntFieldSchema,
+  IntListFieldSchema,
+  LongFieldSchema,
+  LongListFieldSchema,
+  TextFieldSchema
+}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
@@ -42,9 +54,19 @@ class FloatRangeFilterTest extends RangeFilterTestForType[FloatField, FloatField
   override def field(value: Int) = FloatField("field", value.toFloat)
 }
 
+class FloatListRangeFilterTest extends RangeFilterTestForType[FloatListField, FloatListFieldSchema] {
+  override def schema()          = FloatListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = FloatListField("field", List(value.toFloat))
+}
+
 class DoubleRangeFilterTest extends RangeFilterTestForType[DoubleField, DoubleFieldSchema] {
   override def schema()          = DoubleFieldSchema(StringName("field"), filter = true)
-  override def field(value: Int) = DoubleField("field", value.toFloat)
+  override def field(value: Int) = DoubleField("field", value.toDouble)
+}
+
+class DoubleListRangeFilterTest extends RangeFilterTestForType[DoubleListField, DoubleListFieldSchema] {
+  override def schema()          = DoubleListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = DoubleListField("field", List(value.toDouble))
 }
 
 class DateRangeFilterTest extends RangeFilterTestForType[DateField, DateFieldSchema] {
