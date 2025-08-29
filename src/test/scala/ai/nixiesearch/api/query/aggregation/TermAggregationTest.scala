@@ -5,13 +5,7 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  IntFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
@@ -37,7 +31,9 @@ class TermAggregationTest extends SearchTest with Matchers {
       TextListFieldSchema(StringName("size"), filter = true, facet = true),
       IntFieldSchema(StringName("count"), facet = true),
       DateFieldSchema(StringName("date"), facet = true),
-      DateTimeFieldSchema(StringName("dt"), facet = true)
+      DateTimeFieldSchema(StringName("dt"), facet = true),
+      IntListFieldSchema(StringName("intlist"), facet = true),
+      LongListFieldSchema(StringName("longlist"), facet = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
@@ -50,7 +46,9 @@ class TermAggregationTest extends SearchTest with Matchers {
         TextListField("size", "1", "2"),
         IntField("count", 1),
         DateField.applyUnsafe("date", "2024-01-01"),
-        DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z")
+        DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z"),
+        IntListField("intlist", List(1, 2)),
+        LongListField("longlist", List(1, 2))
       )
     ),
     Document(
@@ -61,7 +59,9 @@ class TermAggregationTest extends SearchTest with Matchers {
         TextListField("size", "2"),
         IntField("count", 1),
         DateField.applyUnsafe("date", "2024-01-01"),
-        DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z")
+        DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z"),
+        IntListField("intlist", List(1, 3)),
+        LongListField("longlist", List(1, 3))
       )
     ),
     Document(
@@ -72,7 +72,9 @@ class TermAggregationTest extends SearchTest with Matchers {
         TextListField("size", "2"),
         IntField("count", 1),
         DateField.applyUnsafe("date", "2024-01-02"),
-        DateTimeField.applyUnsafe("dt", "2024-01-02T00:00:00Z")
+        DateTimeField.applyUnsafe("dt", "2024-01-02T00:00:00Z"),
+        IntListField("intlist", List(1, 4)),
+        LongListField("longlist", List(1, 4))
       )
     ),
     Document(
@@ -83,7 +85,9 @@ class TermAggregationTest extends SearchTest with Matchers {
         TextListField("size", "1", "2"),
         IntField("count", 1),
         DateField.applyUnsafe("date", "2024-01-03"),
-        DateTimeField.applyUnsafe("dt", "2024-01-03T00:00:00Z")
+        DateTimeField.applyUnsafe("dt", "2024-01-03T00:00:00Z"),
+        IntListField("intlist", List(2, 5)),
+        LongListField("longlist", List(2, 5))
       )
     ),
     Document(
@@ -94,7 +98,9 @@ class TermAggregationTest extends SearchTest with Matchers {
         TextListField("size", "1", "2"),
         IntField("count", 1),
         DateField.applyUnsafe("date", "2024-01-04"),
-        DateTimeField.applyUnsafe("dt", "2024-01-03T00:00:00Z")
+        DateTimeField.applyUnsafe("dt", "2024-01-03T00:00:00Z"),
+        IntListField("intlist", List(3, 6)),
+        LongListField("longlist", List(3, 6))
       )
     ),
     Document(
@@ -105,7 +111,9 @@ class TermAggregationTest extends SearchTest with Matchers {
         TextListField("size", "1", "2"),
         IntField("count", 1),
         DateField.applyUnsafe("date", "2024-01-04"),
-        DateTimeField.applyUnsafe("dt", "2024-01-04T00:00:00Z")
+        DateTimeField.applyUnsafe("dt", "2024-01-04T00:00:00Z"),
+        IntListField("intlist", List(7)),
+        LongListField("longlist", List(7))
       )
     )
   )
@@ -163,6 +171,43 @@ class TermAggregationTest extends SearchTest with Matchers {
       val result = index.searchRaw(aggs = Some(Aggs(Map("count" -> TermAggregation("count", 10)))))
       result.aggs shouldBe Map("count" -> TermAggregationResult(List(TermCount("1", 6))))
 
+    }
+  }
+
+  it should "aggregate by int[] field" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs = Some(Aggs(Map("intlist" -> TermAggregation("intlist", 10)))))
+      result.aggs shouldBe Map(
+        "intlist" -> TermAggregationResult(
+          List(
+            TermCount("1", 3),
+            TermCount("2", 2),
+            TermCount("3", 2),
+            TermCount("4", 1),
+            TermCount("5", 1),
+            TermCount("6", 1),
+            TermCount("7", 1)
+          )
+        )
+      )
+    }
+  }
+  it should "aggregate by long[] field" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs = Some(Aggs(Map("longlist" -> TermAggregation("longlist", 10)))))
+      result.aggs shouldBe Map(
+        "longlist" -> TermAggregationResult(
+          List(
+            TermCount("1", 3),
+            TermCount("2", 2),
+            TermCount("3", 2),
+            TermCount("4", 1),
+            TermCount("5", 1),
+            TermCount("6", 1),
+            TermCount("7", 1)
+          )
+        )
+      )
     }
   }
 

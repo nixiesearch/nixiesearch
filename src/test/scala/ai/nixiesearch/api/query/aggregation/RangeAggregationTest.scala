@@ -6,15 +6,7 @@ import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.retrieve.{MatchQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
@@ -38,11 +30,15 @@ class RangeAggregationTest extends SearchTest with Matchers {
       TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(StringName("color"), filter = true, facet = true),
       IntFieldSchema(StringName("count"), facet = true, filter = true),
-      FloatFieldSchema(StringName("fcount"), facet = true),
       LongFieldSchema(StringName("lcount"), facet = true),
+      FloatFieldSchema(StringName("fcount"), facet = true),
       DoubleFieldSchema(StringName("dcount"), facet = true),
       DateFieldSchema(StringName("date"), facet = true),
-      DateTimeFieldSchema(StringName("dt"), facet = true)
+      DateTimeFieldSchema(StringName("dt"), facet = true),
+      IntListFieldSchema(StringName("countlist"), facet = true, filter = true),
+      LongListFieldSchema(StringName("lcountlist"), facet = true),
+      FloatListFieldSchema(StringName("fcountlist"), facet = true),
+      DoubleListFieldSchema(StringName("dcountlist"), facet = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
@@ -56,6 +52,10 @@ class RangeAggregationTest extends SearchTest with Matchers {
         FloatField("fcount", 1.0f),
         LongField("lcount", 1),
         DoubleField("dcount", 1),
+        IntListField("countlist", List(1)),
+        FloatListField("fcountlist", List(1.0f)),
+        LongListField("lcountlist", List(1)),
+        DoubleListField("dcountlist", List(1)),
         DateField.applyUnsafe("date", "2024-01-01"),
         DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z")
       )
@@ -69,6 +69,10 @@ class RangeAggregationTest extends SearchTest with Matchers {
         FloatField("fcount", 2.0f),
         LongField("lcount", 2),
         DoubleField("dcount", 2),
+        IntListField("countlist", List(2)),
+        FloatListField("fcountlist", List(2.0f)),
+        LongListField("lcountlist", List(2)),
+        DoubleListField("dcountlist", List(2)),
         DateField.applyUnsafe("date", "2024-01-02"),
         DateTimeField.applyUnsafe("dt", "2024-01-02T00:00:00Z")
       )
@@ -82,6 +86,10 @@ class RangeAggregationTest extends SearchTest with Matchers {
         FloatField("fcount", 3.0f),
         LongField("lcount", 3),
         DoubleField("dcount", 3),
+        IntListField("countlist", List(3)),
+        FloatListField("fcountlist", List(3.0f)),
+        LongListField("lcountlist", List(3)),
+        DoubleListField("dcountlist", List(3)),
         DateField.applyUnsafe("date", "2024-01-03"),
         DateTimeField.applyUnsafe("dt", "2024-01-03T00:00:00Z")
       )
@@ -95,6 +103,10 @@ class RangeAggregationTest extends SearchTest with Matchers {
         FloatField("fcount", 4.0f),
         LongField("lcount", 4),
         DoubleField("dcount", 4),
+        IntListField("countlist", List(4)),
+        FloatListField("fcountlist", List(4.0f)),
+        LongListField("lcountlist", List(4)),
+        DoubleListField("dcountlist", List(4)),
         DateField.applyUnsafe("date", "2024-01-04"),
         DateTimeField.applyUnsafe("dt", "2024-01-04T00:00:00Z")
       )
@@ -108,6 +120,10 @@ class RangeAggregationTest extends SearchTest with Matchers {
         FloatField("fcount", 5.0f),
         LongField("lcount", 5),
         DoubleField("dcount", 5),
+        IntListField("countlist", List(5)),
+        FloatListField("fcountlist", List(5.0f)),
+        LongListField("lcountlist", List(5)),
+        DoubleListField("dcountlist", List(5)),
         DateField.applyUnsafe("date", "2024-01-05"),
         DateTimeField.applyUnsafe("dt", "2024-01-05T00:00:00Z")
       )
@@ -121,6 +137,10 @@ class RangeAggregationTest extends SearchTest with Matchers {
         FloatField("fcount", 6.0f),
         LongField("lcount", 6),
         DoubleField("dcount", 6),
+        IntListField("countlist", List(6)),
+        FloatListField("fcountlist", List(6.0f)),
+        LongListField("lcountlist", List(6)),
+        DoubleListField("dcountlist", List(6)),
         DateField.applyUnsafe("date", "2024-01-06"),
         DateTimeField.applyUnsafe("dt", "2024-01-06T00:00:00Z")
       )
@@ -224,6 +244,31 @@ class RangeAggregationTest extends SearchTest with Matchers {
       )
     }
   }
+  it should "aggregate over long[] range" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Some(
+          Aggs(
+            Map(
+              "lcountlist" -> RangeAggregation(
+                "lcountlist",
+                List(AggRange(Lt(2)), AggRange(Gte(2), Lt(4)), AggRange(Gte(4)))
+              )
+            )
+          )
+        )
+      )
+      result.aggs shouldBe Map(
+        "lcountlist" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2)), 1),
+            RangeCount(Some(Gte(2)), Some(Lt(4)), 2),
+            RangeCount(Some(Gte(4)), None, 3)
+          )
+        )
+      )
+    }
+  }
 
   it should "aggregate over double range" in withIndex { index =>
     {
@@ -241,6 +286,31 @@ class RangeAggregationTest extends SearchTest with Matchers {
       )
       result.aggs shouldBe Map(
         "dcount" -> RangeAggregationResult(
+          List(
+            RangeCount(None, Some(Lt(2)), 1),
+            RangeCount(Some(Gte(2)), Some(Lt(4)), 2),
+            RangeCount(Some(Gte(4)), None, 3)
+          )
+        )
+      )
+    }
+  }
+  it should "aggregate over double[] range" in withIndex { index =>
+    {
+      val result = index.searchRaw(aggs =
+        Some(
+          Aggs(
+            Map(
+              "dcountlist" -> RangeAggregation(
+                "dcountlist",
+                List(AggRange(Lt(2)), AggRange(Gte(2), Lt(4)), AggRange(Gte(4)))
+              )
+            )
+          )
+        )
+      )
+      result.aggs shouldBe Map(
+        "dcountlist" -> RangeAggregationResult(
           List(
             RangeCount(None, Some(Lt(2)), 1),
             RangeCount(Some(Gte(2)), Some(Lt(4)), 2),

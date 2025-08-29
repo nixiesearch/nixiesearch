@@ -15,7 +15,7 @@ import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, Sema
 import ai.nixiesearch.core.Document.JsonScalar.{JNumber, JString, JStringArray}
 import ai.nixiesearch.core.nn.ModelRef
 
-class DocumentJsonTest extends AnyFlatSpec with Matchers {
+class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
   it should "decode flat json documents" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
@@ -178,6 +178,84 @@ class DocumentJsonTest extends AnyFlatSpec with Matchers {
     val json = """{"_id": "a", "title": "foo", "tracks": ["foo"]}"""
     decode[Document](json) shouldBe Right(
       Document(List(TextField("_id", "a"), TextField("title", "foo"), TextListField("tracks", List("foo"))))
+    )
+  }
+
+  it should "decode arrays of ints" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            IntListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1,2,3]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), IntListField("lengths", List(1, 2, 3))))
+    )
+  }
+
+  it should "decode arrays of longs" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            LongListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1,2,3]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), LongListField("lengths", List(1L, 2L, 3L))))
+    )
+  }
+
+  it should "decode arrays of doubles" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            DoubleListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1.0,2.0,3.0]}"""
+    decode[Document](json) shouldBe Right(
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), DoubleListField("lengths", List(1.0, 2.0, 3.0))))
+    )
+  }
+
+  it should "decode arrays of floats" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextFieldSchema(StringName("title")),
+            FloatListFieldSchema(StringName("lengths"))
+          )
+        )
+      )
+
+    val json = """{"_id": "a", "title": "foo", "lengths": [1.0,2.0,3.0]}"""
+    decode[Document](json) shouldBe Right(
+      Document(
+        List(TextField("_id", "a"), TextField("title", "foo"), FloatListField("lengths", List(1.0f, 2.0f, 3.0f)))
+      )
     )
   }
 

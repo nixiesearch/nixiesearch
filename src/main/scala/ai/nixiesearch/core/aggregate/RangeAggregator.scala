@@ -6,9 +6,13 @@ import ai.nixiesearch.config.FieldSchema.{
   DateFieldSchema,
   DateTimeFieldSchema,
   DoubleFieldSchema,
+  DoubleListFieldSchema,
   FloatFieldSchema,
+  FloatListFieldSchema,
   IntFieldSchema,
-  LongFieldSchema
+  IntListFieldSchema,
+  LongFieldSchema,
+  LongListFieldSchema
 }
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{Field, Logging}
@@ -26,9 +30,11 @@ object RangeAggregator extends Logging {
       facets: FacetsCollector,
       field: FieldSchema[? <: Field]
   ): IO[RangeAggregationResult] = field match {
-    case _: IntFieldSchema | _: LongFieldSchema      => intLongAggregate(reader, request, facets)
+    case _: IntFieldSchema | _: LongFieldSchema | _: IntListFieldSchema | _: LongListFieldSchema =>
+      intLongAggregate(reader, request, facets)
     case _: DateFieldSchema | _: DateTimeFieldSchema => intLongAggregate(reader, request, facets)
-    case _: FloatFieldSchema | _: DoubleFieldSchema  => doubleFloatAggregate(reader, request, facets)
+    case _: FloatFieldSchema | _: DoubleFieldSchema | _: FloatListFieldSchema | _: DoubleListFieldSchema =>
+      doubleFloatAggregate(reader, request, facets)
     case other => IO.raiseError(UserError(s"cannot do range aggregation for a non-numeric field ${field.name}"))
   }
 

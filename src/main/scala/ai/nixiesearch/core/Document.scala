@@ -26,9 +26,13 @@ object Document {
     Encoder.instance(doc => {
       val fields = doc.fields.map {
         case f @ FloatField(name, value)       => (name, FloatField.encodeJson(f))
+        case f @ FloatListField(name, value)   => (name, FloatListField.encodeJson(f))
         case f @ DoubleField(name, value)      => (name, DoubleField.encodeJson(f))
+        case f @ DoubleListField(name, value)  => (name, DoubleListField.encodeJson(f))
         case f @ IntField(name, value)         => (name, IntField.encodeJson(f))
+        case f @ IntListField(name, value)     => (name, IntListField.encodeJson(f))
         case f @ LongField(name, value)        => (name, LongField.encodeJson(f))
+        case f @ LongListField(name, value)    => (name, LongListField.encodeJson(f))
         case f @ TextField(name, value, _)     => (name, TextField.encodeJson(f))
         case f @ BooleanField(name, value)     => (name, BooleanField.encodeJson(f))
         case f @ TextListField(name, value, _) => (name, TextListField.encodeJson(f))
@@ -195,21 +199,61 @@ object Document {
       }
     }
 
+    def parseList[T, F <: Field](
+        values: Vector[Json],
+        unpack: Json => Decoder.Result[T],
+        wrap: (String, List[T]) => F
+    ): Decoder.Result[List[F]] =
+      values.foldLeft[Decoder.Result[List[T]]](Right(Nil)) {
+        case (Left(err), _)            => Left(err)
+        case (Right(result), nextJson) =>
+          unpack(nextJson) match {
+            case Left(err)    => Left(err)
+            case Right(value) => Right(result :+ value)
+          }
+      } match {
+        case Left(err)     => Left(err)
+        case Right(Nil)    => Right(Nil)
+        case Right(values) => Right(List(wrap(fieldName, values)))
+      }
+
+    def parseNumberArrayItemMaybe[T](value: Json, decode: JsonNumber => Option[T], name: String): Decoder.Result[T] =
+      value.asNumber match {
+        case None =>
+          Left(DecodingFailure(s"array field '$fieldName' can only contain $name, but got $json", Nil))
+        case Some(number) =>
+          decode(number) match {
+            case None =>
+              Left(DecodingFailure(s"array field '$fieldName' can only contain $name, but got $json", Nil))
+            case Some(value) => Right(value)
+          }
+      }
+
+    def parseNumberArrayItem[T](value: Json, decode: JsonNumber => T, name: String): Decoder.Result[T] =
+      value.asNumber match {
+        case None =>
+          Left(DecodingFailure(s"array field '$fieldName' can only contain $name, but got $json", Nil))
+        case Some(number) =>
+          Right(decode(number))
+      }
+
+    def parseStringArrayItem(value: Json): Decoder.Result[String] = value.asString match {
+      case None      => Left(DecodingFailure(s"field '$fieldName' can only contain strings, but got $json", Nil))
+      case Some(str) => Right(str)
+    }
+
     override def onArray(value: Vector[Json]): Decoder.Result[List[Field]] =
       mapping.fieldSchema(fieldName) match {
+        case Some(_: DoubleListFieldSchema) =>
+          parseList(value, parseNumberArrayItem(_, _.toDouble, "double"), DoubleListField.apply)
+        case Some(_: FloatListFieldSchema) =>
+          parseList(value, parseNumberArrayItem(_, _.toFloat, "float"), FloatListField.apply)
+        case Some(_: LongListFieldSchema) =>
+          parseList(value, parseNumberArrayItemMaybe(_, _.toLong, "long"), LongListField.apply)
+        case Some(_: IntListFieldSchema) =>
+          parseList(value, parseNumberArrayItemMaybe(_, _.toInt, "int"), IntListField.apply)
         case Some(_: TextListFieldSchema) =>
-          value.foldLeft[Decoder.Result[List[String]]](Right(Nil)) {
-            case (Left(err), _)         => Left(err)
-            case (Right(strings), json) =>
-              json.asString match {
-                case None => Left(DecodingFailure(s"field '$fieldName' can only contain strings, but got $json", Nil))
-                case Some(str) => Right(strings :+ str)
-              }
-          } match {
-            case Left(err)     => Left(err)
-            case Right(Nil)    => Right(Nil)
-            case Right(values) => Right(List(TextListField(fieldName, values)))
-          }
+          parseList(value, parseStringArrayItem, TextListField.apply)
         case Some(_) => Left(DecodingFailure(s"unexpected array for field '$fieldName': $value", Nil))
         case None    =>
           val result = value.toList

@@ -62,7 +62,7 @@ Term filters currently support the following field types: `int`, `long`, `date`,
 
 ## Range filters
 
-Range filters allow defining open and closed ranges for numeric fields of types `[int, long, double, float, date, datetime]` to pre-select documents for search:
+Range filters allow defining open and closed ranges for numeric fields of types `[int, long, double, float, date, datetime]` and their array variants `[int[], long[], double[], float[]]` to pre-select documents for search:
 
 ```json
 {
@@ -84,6 +84,41 @@ Range filter takes following arguments:
 * `lt`/`lte`: Less Than (or Equals), optional field. 
 
 There must be at least one `gt`/`gte`/`lt`/`lte` field present in the filter.
+
+### Filtering array fields
+
+When filtering array/list fields (`int[]`, `long[]`, `float[]`, `double[]`), the range filter matches if **any** element in the array satisfies the condition:
+
+```json
+{
+  "query": { "match_all": {}},
+  "filters": {
+    "include": {
+      "range": {
+        "ratings": { "gte": 4 }
+      }
+    }
+  }
+}
+```
+
+This query matches documents where any rating in the `ratings` array is >= 4. For example, a document with `"ratings": [2, 3, 5, 1]` would match because one element (5) satisfies the condition.
+
+You can also combine multiple range conditions on array fields:
+
+```json
+{
+  "query": { "match_all": {}},
+  "filters": {
+    "include": {
+      "and": [
+        { "range": { "sizes": { "gte": 7.0 }}},
+        { "range": { "sizes": { "lte": 10.0 }}}
+      ]
+    }
+  }
+}
+```
 
 ## Boolean filters
 

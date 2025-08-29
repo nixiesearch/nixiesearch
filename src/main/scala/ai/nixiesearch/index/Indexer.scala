@@ -64,12 +64,20 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
             )
           case field @ IntField(name, value) =>
             writeField(field, IntField, index.mapping.fieldSchemaOf[IntFieldSchema](field.name), buffer)
+          case field @ IntListField(name, value) =>
+            writeField(field, IntListField, index.mapping.fieldSchemaOf[IntListFieldSchema](field.name), buffer)
           case field @ LongField(name, value) =>
             writeField(field, LongField, index.mapping.fieldSchemaOf[LongFieldSchema](field.name), buffer)
+          case field @ LongListField(name, value) =>
+            writeField(field, LongListField, index.mapping.fieldSchemaOf[LongListFieldSchema](field.name), buffer)
           case field @ FloatField(name, value) =>
             writeField(field, FloatField, index.mapping.fieldSchemaOf[FloatFieldSchema](field.name), buffer)
+          case field @ FloatListField(name, value) =>
+            writeField(field, FloatListField, index.mapping.fieldSchemaOf[FloatListFieldSchema](field.name), buffer)
           case field @ DoubleField(name, value) =>
             writeField(field, DoubleField, index.mapping.fieldSchemaOf[DoubleFieldSchema](field.name), buffer)
+          case field @ DoubleListField(name, value) =>
+            writeField(field, DoubleListField, index.mapping.fieldSchemaOf[DoubleListFieldSchema](field.name), buffer)
           case field @ BooleanField(name, value) =>
             writeField(field, BooleanField, index.mapping.fieldSchemaOf[BooleanFieldSchema](field.name), buffer)
           case field @ GeopointField(name, lat, lon) =>

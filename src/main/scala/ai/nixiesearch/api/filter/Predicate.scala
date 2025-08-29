@@ -9,10 +9,14 @@ import ai.nixiesearch.config.FieldSchema.{
   DateFieldSchema,
   DateTimeFieldSchema,
   DoubleFieldSchema,
+  DoubleListFieldSchema,
   FloatFieldSchema,
+  FloatListFieldSchema,
   GeopointFieldSchema,
   IntFieldSchema,
+  IntListFieldSchema,
   LongFieldSchema,
+  LongListFieldSchema,
   TextLikeFieldSchema
 }
 import ai.nixiesearch.config.mapping.IndexMapping
@@ -131,12 +135,12 @@ object Predicate {
           IO(new TermQuery(new Term(field + TextField.FILTER_SUFFIX, value)))
         case (Some(schema: TextLikeFieldSchema[?]), other) =>
           IO.raiseError(UserError(s"field $field expects string filter term, but got $other"))
-        case (Some(schema: IntFieldSchema), FilterTerm.NumTerm(value)) =>
+        case (Some(_: IntFieldSchema) | Some(_: IntListFieldSchema), FilterTerm.NumTerm(value)) =>
           if ((value <= Int.MaxValue) && (value >= Int.MinValue))
             IO(IntField.newExactQuery(field, value.toInt))
           else
             IO.raiseError(UserError(s"field $field is int field, but term $value cannot be cast to int safely"))
-        case (Some(schema: LongFieldSchema), FilterTerm.NumTerm(value)) =>
+        case (Some(_: LongFieldSchema) | Some(_: LongListFieldSchema), FilterTerm.NumTerm(value)) =>
           IO(LongField.newExactQuery(field, value))
         case (Some(schema: BooleanFieldSchema), FilterTerm.BooleanTerm(value)) =>
           IO(IntField.newExactQuery(field, if (value) 1 else 0))
@@ -196,7 +200,7 @@ object Predicate {
       mapping.fieldSchema(field) match {
         case Some(spec) if !spec.filter =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
-        case Some(_: IntFieldSchema | _: DateFieldSchema) =>
+        case Some(_: IntFieldSchema | _: DateFieldSchema | _: IntListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Int.MinValue
@@ -210,7 +214,7 @@ object Predicate {
             }
             org.apache.lucene.document.IntField.newRangeQuery(field, lower, higher)
           }
-        case Some(_: LongFieldSchema | _: DateTimeFieldSchema) =>
+        case Some(_: LongFieldSchema | _: DateTimeFieldSchema | _: LongListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Long.MinValue
@@ -225,7 +229,7 @@ object Predicate {
             org.apache.lucene.document.LongField.newRangeQuery(field, lower, higher)
           }
 
-        case Some(_: FloatFieldSchema) =>
+        case Some(_: FloatFieldSchema | _: FloatListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Float.MinValue
@@ -240,7 +244,7 @@ object Predicate {
             }
             org.apache.lucene.document.FloatField.newRangeQuery(field, lower, higher)
           }
-        case Some(_: DoubleFieldSchema) =>
+        case Some(_: DoubleFieldSchema | _: DoubleListFieldSchema) =>
           IO {
             val lower = greaterThan match {
               case None                               => Double.MinValue

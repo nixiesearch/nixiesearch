@@ -8,9 +8,13 @@ import ai.nixiesearch.config.FieldSchema.{
   DateFieldSchema,
   DateTimeFieldSchema,
   DoubleFieldSchema,
+  DoubleListFieldSchema,
   FloatFieldSchema,
+  FloatListFieldSchema,
   IntFieldSchema,
+  IntListFieldSchema,
   LongFieldSchema,
+  LongListFieldSchema,
   TextFieldSchema
 }
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
@@ -30,9 +34,19 @@ class IntRangeFilterTest extends RangeFilterTestForType[IntField, IntFieldSchema
   override def field(value: Int) = IntField("field", value)
 }
 
+class IntListRangeFilterTest extends RangeFilterTestForType[IntListField, IntListFieldSchema] {
+  override def schema()          = IntListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = IntListField("field", List(value))
+}
+
 class LongRangeFilterTest extends RangeFilterTestForType[LongField, LongFieldSchema] {
   override def schema()          = LongFieldSchema(StringName("field"), filter = true)
   override def field(value: Int) = LongField("field", value)
+}
+
+class LongListRangeFilterTest extends RangeFilterTestForType[LongListField, LongListFieldSchema] {
+  override def schema()          = LongListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = LongListField("field", List(value))
 }
 
 class FloatRangeFilterTest extends RangeFilterTestForType[FloatField, FloatFieldSchema] {
@@ -40,9 +54,19 @@ class FloatRangeFilterTest extends RangeFilterTestForType[FloatField, FloatField
   override def field(value: Int) = FloatField("field", value.toFloat)
 }
 
+class FloatListRangeFilterTest extends RangeFilterTestForType[FloatListField, FloatListFieldSchema] {
+  override def schema()          = FloatListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = FloatListField("field", List(value.toFloat))
+}
+
 class DoubleRangeFilterTest extends RangeFilterTestForType[DoubleField, DoubleFieldSchema] {
   override def schema()          = DoubleFieldSchema(StringName("field"), filter = true)
-  override def field(value: Int) = DoubleField("field", value.toFloat)
+  override def field(value: Int) = DoubleField("field", value.toDouble)
+}
+
+class DoubleListRangeFilterTest extends RangeFilterTestForType[DoubleListField, DoubleListFieldSchema] {
+  override def schema()          = DoubleListFieldSchema(StringName("field"), filter = true)
+  override def field(value: Int) = DoubleListField("field", List(value.toDouble))
 }
 
 class DateRangeFilterTest extends RangeFilterTestForType[DateField, DateFieldSchema] {

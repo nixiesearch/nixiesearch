@@ -1,5 +1,6 @@
 package ai.nixiesearch.core.codec
 
+import ai.nixiesearch.config
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.core.Field
@@ -10,18 +11,7 @@ import org.apache.lucene.index.StoredFieldVisitor
 import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.config.FieldSchema.{
-  BooleanFieldSchema,
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  GeopointFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, DoubleListFieldSchema, FloatFieldSchema, FloatListFieldSchema, GeopointFieldSchema, IntFieldSchema, IntListFieldSchema, LongFieldSchema, LongListFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.*
@@ -34,6 +24,10 @@ case class DocumentVisitor(
     fields: List[FieldName],
     collectedScalars: ArrayBuffer[Field] = ArrayBuffer.empty,
     collectedTextList: mutable.Map[String, ArrayBuffer[String]] = mutable.Map.empty,
+    collectedIntList: mutable.Map[String, ArrayBuffer[Int]] = mutable.Map.empty,
+    collectedLongList: mutable.Map[String, ArrayBuffer[Long]] = mutable.Map.empty,
+    collectedFloatList: mutable.Map[String, ArrayBuffer[Float]] = mutable.Map.empty,
+    collectedDoubleList: mutable.Map[String, ArrayBuffer[Double]] = mutable.Map.empty,
     errors: ArrayBuffer[Exception] = ArrayBuffer.empty
 ) extends StoredFieldVisitor
     with Logging {
@@ -41,8 +35,22 @@ case class DocumentVisitor(
   def reset() = {
     collectedScalars.clear()
     collectedTextList.clear()
+    collectedIntList.clear()
+    collectedLongList.clear()
+    collectedFloatList.clear()
+    collectedDoubleList.clear()
     errors.clear()
   }
+
+  def collectListField[F <: Field, T](fi: FieldInfo, value: T, store: mutable.Map[String, ArrayBuffer[T]]) =
+    store.get(fi.name) match {
+      case None =>
+        val buf = new ArrayBuffer[T](4)
+        buf.addOne(value)
+        store.addOne(fi.name -> buf)
+      case Some(buf) =>
+        buf.addOne(value)
+    }
 
   override def needsField(fieldInfo: FieldInfo): Status =
     if ((fieldInfo.name == "_id") || fields.exists(_.matches(fieldInfo.name))) Status.YES else Status.NO
@@ -55,14 +63,8 @@ case class DocumentVisitor(
         case Right(field) => collectedScalars.addOne(field)
       }
     case Some(_: TextListFieldSchema) =>
-      collectedTextList.get(fieldInfo.name) match {
-        case None =>
-          val buf = new ArrayBuffer[String](4)
-          buf.addOne(value)
-          collectedTextList.addOne(fieldInfo.name -> buf)
-        case Some(buf) =>
-          buf.addOne(value)
-      }
+      collectListField(fieldInfo, value, collectedTextList)
+
     case Some(other) =>
       logger.warn(s"field ${fieldInfo.name} is defined as $other, and cannot accept string value '$value'")
   }
@@ -74,6 +76,8 @@ case class DocumentVisitor(
         collectField(Some(schema), fieldInfo.name, value, BooleanField)
       case Some(schema: DateFieldSchema) =>
         collectField(Some(schema), fieldInfo.name, value, DateField)
+      case Some(schema: IntListFieldSchema) =>
+        collectListField(fieldInfo, value, collectedIntList)
       case Some(other) =>
         logger.warn(s"field ${fieldInfo.name} is int on disk, but ${other} in the mapping")
       case None =>
@@ -87,6 +91,8 @@ case class DocumentVisitor(
         collectField(Some(schema), fieldInfo.name, value, LongField)
       case Some(schema: DateTimeFieldSchema) =>
         collectField(Some(schema), fieldInfo.name, value, DateTimeField)
+      case Some(schema: LongListFieldSchema) =>
+        collectListField(fieldInfo, value, collectedLongList)
       case Some(other) =>
         logger.warn(s"field ${fieldInfo.name} is int on disk, but ${other} in the mapping")
       case None =>
@@ -95,11 +101,27 @@ case class DocumentVisitor(
 
   }
 
-  override def floatField(fieldInfo: FieldInfo, value: Float): Unit =
-    collectField(mapping.fieldSchemaOf[FloatFieldSchema](fieldInfo.name), fieldInfo.name, value, FloatField)
+  override def floatField(fieldInfo: FieldInfo, value: Float): Unit = {
+    mapping.fieldSchema(fieldInfo.name) match {
+      case Some(schema: FloatFieldSchema)     => collectField(Some(schema), fieldInfo.name, value, FloatField)
+      case Some(schema: FloatListFieldSchema) => collectListField(fieldInfo, value, collectedFloatList)
+      case Some(other)                        =>
+        logger.warn(s"field ${fieldInfo.name} is float on disk, but ${other} in the mapping")
+      case None =>
+        logger.warn(s"field ${fieldInfo.name} is not defined in mapping")
+    }
+
+  }
 
   override def doubleField(fieldInfo: FieldInfo, value: Double): Unit =
-    collectField(mapping.fieldSchemaOf[DoubleFieldSchema](fieldInfo.name), fieldInfo.name, value, DoubleField)
+    mapping.fieldSchema(fieldInfo.name) match {
+      case Some(schema: DoubleFieldSchema)     => collectField(Some(schema), fieldInfo.name, value, DoubleField)
+      case Some(schema: DoubleListFieldSchema) => collectListField(fieldInfo, value, collectedDoubleList)
+      case Some(other)                         =>
+        logger.warn(s"field ${fieldInfo.name} is double on disk, but ${other} in the mapping")
+      case None =>
+        logger.warn(s"field ${fieldInfo.name} is not defined in mapping")
+    }
 
   override def binaryField(fieldInfo: FieldInfo, value: Array[Byte]): Unit =
     collectField(mapping.fieldSchemaOf[GeopointFieldSchema](fieldInfo.name), fieldInfo.name, value, GeopointField)
@@ -122,6 +144,10 @@ case class DocumentVisitor(
     val fields = List.concat(
       collectedScalars.toList,
       collectedTextList.map { case (name, values) => TextListField(name, values.toList) },
+      collectedIntList.map { case (name, values) => IntListField(name, values.toList) },
+      collectedLongList.map { case (name, values) => LongListField(name, values.toList) },
+      collectedFloatList.map { case (name, values) => FloatListField(name, values.toList) },
+      collectedDoubleList.map { case (name, values) => DoubleListField(name, values.toList) },
       List(FloatField("_score", score))
     )
     Document(fields)

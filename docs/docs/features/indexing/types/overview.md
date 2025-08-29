@@ -3,11 +3,9 @@
 Nixiesearch supports following field types:
 
 * [text fields](text.md): `text`, `text[]`.
-* [numeric fields](numeric.md): `int`, `float`, `long`, `double`, `bool`.
+* [numeric fields](numeric.md): `int`, `float`, `long`, `double`, `bool`, `int[]`, `long[]`, `float[]`, `double[]`.
 * [geolocation fields](geo.md): `geopoint`
 * [date fields](date.md): `date`, `datetime`
-
-Other field types like `int[]`, `float[]` are not yet supported - but are on the roadmap (see [issue #541](https://github.com/nixiesearch/nixiesearch/issues/541) for more details).
 
 ## Setting field type
 
