@@ -30,6 +30,10 @@ object IntListField extends FieldCodec[IntListField, IntListFieldSchema, List[In
     if (spec.store) {
       field.value.foreach(value => buffer.add(new StoredField(field.name, value)))
     }
+    if (spec.facet) {
+      field.value.foreach(value => buffer.add(new SortedNumericDocValuesField(field.name, value)))
+    }
+
   }
 
   override def readLucene(

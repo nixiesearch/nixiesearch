@@ -5,18 +5,7 @@ import ai.nixiesearch.api.query.retrieve.MatchAllQuery
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName}
-import ai.nixiesearch.config.FieldSchema.{
-  BooleanFieldSchema,
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  FloatFieldSchema,
-  GeopointFieldSchema,
-  IntFieldSchema,
-  LongFieldSchema,
-  TextFieldSchema,
-  TextListFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
@@ -37,10 +26,14 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       TextFieldSchema(StringName("title_nonstore"), store = false),
       TextListFieldSchema(StringName("title2")),
       TextFieldSchema(FieldName.parse("str_*").toOption.get),
-      IntFieldSchema(StringName("count")),
+      IntFieldSchema(StringName("int")),
       LongFieldSchema(StringName("long")),
       FloatFieldSchema(StringName("float")),
       DoubleFieldSchema(StringName("double")),
+      IntListFieldSchema(StringName("intlist")),
+      LongListFieldSchema(StringName("longlist")),
+      FloatListFieldSchema(StringName("floatlist")),
+      DoubleListFieldSchema(StringName("doublelist")),
       BooleanFieldSchema(StringName("boolean")),
       GeopointFieldSchema(StringName("geo")),
       DateFieldSchema(StringName("date")),
@@ -59,10 +52,14 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
             TextListField("title2", List("foo", "bar")),
             TextField("str_foo", "foo"),
             TextField("str_bar", "bar"),
-            IntField("count", 1),
+            IntField("int", 1),
             LongField("long", 1),
             FloatField("float", 1),
             DoubleField("double", 1),
+            IntListField("intlist", List(1, 1)),
+            LongListField("longlist", List(1, 1)),
+            FloatListField("floatlist", List(1, 1)),
+            DoubleListField("doublelist", List(1, 1)),
             BooleanField("boolean", true),
             GeopointField("geo", 1, 2),
             DateField("date", 1),
@@ -81,10 +78,14 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
           StringName("title"),
           StringName("title2"),
           FieldName.parse("str_*").toOption.get,
-          StringName("count"),
+          StringName("int"),
           StringName("long"),
           StringName("float"),
           StringName("double"),
+          StringName("intlist"),
+          StringName("longlist"),
+          StringName("floatlist"),
+          StringName("doublelist"),
           StringName("boolean"),
           StringName("geo"),
           StringName("date"),

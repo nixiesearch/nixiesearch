@@ -84,11 +84,11 @@ object FieldSchema {
   case class IntListFieldSchema(
       name: FieldName,
       store: Boolean = true,
+      facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[IntListField] {
-    def sort  = false
-    def facet = false
+    def sort = false
   }
 
   case class LongFieldSchema(
@@ -103,11 +103,11 @@ object FieldSchema {
   case class LongListFieldSchema(
       name: FieldName,
       store: Boolean = true,
+      facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[LongListField] {
-    def sort  = false
-    def facet = false
+    def sort = false
   }
 
   case class FloatFieldSchema(
@@ -122,11 +122,11 @@ object FieldSchema {
   case class FloatListFieldSchema(
       name: FieldName,
       store: Boolean = true,
+      facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[FloatListField] {
-    def sort  = false
-    def facet = false
+    def sort = false
   }
 
   case class DoubleFieldSchema(
@@ -141,11 +141,11 @@ object FieldSchema {
   case class DoubleListFieldSchema(
       name: FieldName,
       store: Boolean = true,
+      facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DoubleListField] {
-    def sort  = false
-    def facet = false
+    def sort = false
   }
 
   case class BooleanFieldSchema(
@@ -260,17 +260,18 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        IntFieldSchema(name, store, sort, facet, filter, required)
+        IntFieldSchema(name = name, store = store, sort = sort, facet = facet, filter = filter, required = required)
       }
     )
 
     def intListFieldSchemaDecoder(name: FieldName): Decoder[IntListFieldSchema] = Decoder.instance(c =>
       for {
         store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        IntListFieldSchema(name, store, filter, required)
+        IntListFieldSchema(name = name, store = store, facet = facet, filter = filter, required = required)
       }
     )
 
@@ -282,17 +283,18 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        LongFieldSchema(name, store, sort, facet, filter, required)
+        LongFieldSchema(name = name, store = store, sort = sort, facet = facet, filter = filter, required = required)
       }
     )
 
     def longListFieldSchemaDecoder(name: FieldName): Decoder[LongListFieldSchema] = Decoder.instance(c =>
       for {
         store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        LongListFieldSchema(name, store, filter, required)
+        LongListFieldSchema(name = name, store = store, facet = facet, filter = filter, required = required)
       }
     )
 
@@ -304,16 +306,17 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        FloatFieldSchema(name, store, sort, facet, filter, required)
+        FloatFieldSchema(name = name, store = store, sort = sort, facet = facet, filter = filter, required = required)
       }
     )
     def floatListFieldSchemaDecoder(name: FieldName): Decoder[FloatListFieldSchema] = Decoder.instance(c =>
       for {
         store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        FloatListFieldSchema(name, store, filter, required)
+        FloatListFieldSchema(name = name, store = store, facet = facet, filter = filter, required = required)
       }
     )
 
@@ -325,17 +328,18 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DoubleFieldSchema(name, store, sort, facet, filter, required)
+        DoubleFieldSchema(name = name, store = store, sort = sort, facet = facet, filter = filter, required = required)
       }
     )
 
     def doubleListFieldSchemaDecoder(name: FieldName): Decoder[DoubleListFieldSchema] = Decoder.instance(c =>
       for {
         store    <- c.downField("store").as[Option[Boolean]].map(_.getOrElse(true))
+        facet    <- c.downField("facet").as[Option[Boolean]].map(_.getOrElse(false))
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DoubleListFieldSchema(name, store, filter, required)
+        DoubleListFieldSchema(name = name, store = store, facet = facet, filter = filter, required = required)
       }
     )
 
@@ -347,7 +351,7 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        BooleanFieldSchema(name, store, sort, facet, filter, required)
+        BooleanFieldSchema(name = name, store = store, sort = sort, facet = facet, filter = filter, required = required)
       }
     )
     def dateFieldSchemaDecoder(name: FieldName): Decoder[DateFieldSchema] = Decoder.instance(c =>
@@ -358,7 +362,7 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DateFieldSchema(name, store, sort, facet, filter, required)
+        DateFieldSchema(name = name, store = store, sort = sort, facet = facet, filter = filter, required = required)
       }
     )
     def dateTimeFieldSchemaDecoder(name: FieldName): Decoder[DateTimeFieldSchema] = Decoder.instance(c =>
@@ -369,7 +373,14 @@ object FieldSchema {
         filter   <- c.downField("filter").as[Option[Boolean]].map(_.getOrElse(false))
         required <- c.downField("required").as[Option[Boolean]].map(_.getOrElse(false))
       } yield {
-        DateTimeFieldSchema(name, store, sort, facet, filter, required)
+        DateTimeFieldSchema(
+          name = name,
+          store = store,
+          sort = sort,
+          facet = facet,
+          filter = filter,
+          required = required
+        )
       }
     )
 

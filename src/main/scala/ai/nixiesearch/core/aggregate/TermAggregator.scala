@@ -24,9 +24,9 @@ object TermAggregator {
       field: FieldSchema[? <: Field]
   ): IO[TermAggregationResult] = {
     field match {
-      case _: TextFieldSchema     => IO(aggregateString(reader, request, facets))
-      case _: TextListFieldSchema => IO(aggregateString(reader, request, facets))
-      case _: IntFieldSchema | _: LongFieldSchema | _: DoubleFieldSchema | _: FloatFieldSchema =>
+      case _: TextFieldSchema | _: TextListFieldSchema => IO(aggregateString(reader, request, facets))
+      case _: IntFieldSchema | _: LongFieldSchema | _: DoubleFieldSchema | _: FloatFieldSchema | _: IntListFieldSchema |
+          _: LongListFieldSchema | _: FloatListFieldSchema | _: DoubleListFieldSchema =>
         IO(aggregateLong(reader, request, facets))
       case _: DateFieldSchema =>
         IO(aggregateLong(reader, request, facets)).map(result =>
@@ -36,7 +36,7 @@ object TermAggregator {
         IO(aggregateLong(reader, request, facets)).map(result =>
           TermAggregationResult(result.buckets.map(tc => tc.copy(term = DateTimeField.writeString(tc.term.toLong))))
         )
-      case other => IO.raiseError(UserError("term aggregation only works on text and text[] fields"))
+      case other => IO.raiseError(UserError(s"term aggregation does not support type $other"))
     }
   }
 

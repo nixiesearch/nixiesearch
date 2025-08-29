@@ -8,7 +8,7 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import io.circe.Json
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.search.SortField
 
 case class LongListField(name: String, value: List[Long]) extends Field with NumericField
@@ -25,6 +25,10 @@ object LongListField extends FieldCodec[LongListField, LongListFieldSchema, List
     if (spec.store) {
       field.value.foreach(value => buffer.add(new StoredField(field.name, value)))
     }
+    if (spec.facet) {
+      field.value.foreach(value => buffer.add(new SortedNumericDocValuesField(field.name, value)))
+    }
+
   }
 
   override def readLucene(

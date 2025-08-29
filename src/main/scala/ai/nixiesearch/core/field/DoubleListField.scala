@@ -28,6 +28,12 @@ object DoubleListField extends FieldCodec[DoubleListField, DoubleListFieldSchema
     if (spec.store) {
       field.value.foreach(value => buffer.add(new StoredField(field.name, value)))
     }
+    if (spec.facet) {
+      field.value.foreach(value =>
+        buffer.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(value)))
+      )
+    }
+
   }
 
   override def readLucene(

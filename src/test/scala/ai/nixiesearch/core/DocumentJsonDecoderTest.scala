@@ -15,7 +15,7 @@ import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, Sema
 import ai.nixiesearch.core.Document.JsonScalar.{JNumber, JString, JStringArray}
 import ai.nixiesearch.core.nn.ModelRef
 
-class DocumentJsonTest extends AnyFlatSpec with Matchers {
+class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
   it should "decode flat json documents" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
