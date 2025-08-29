@@ -79,8 +79,8 @@ This endpoint expects a JSON payload in [one of the following formats](../../fea
 For example, writing a single document to an `dev` index can be done with a cURL command:
 
 ```bash
-curl -XPUT -d '{"title": "hello", "color": ["red"], "meta": {"sku":"a123"}}'\
-  http://localhost:8080/dev/_index
+curl -XPOST -d '{"title": "hello", "color": ["red"], "meta": {"sku":"a123"}}'\
+  http://localhost:8080//v1/index/my_dev_index
 ```
 
 !!! note
