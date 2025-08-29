@@ -52,7 +52,7 @@ Nixiesearch currently supports the following types of facet aggregations:
 
 ## Term aggregations
 
-A term facet aggregation scans over all values of a specific [text, long, int, float, double, date, datetime](../indexing/types/overview.md) field of matching documents, and builds a list of top-N values:
+A term facet aggregation scans over all values of a specific [text, long, int, float, double, date, datetime, int[], long[], float[], double[]](../indexing/types/overview.md) field of matching documents, and builds a list of top-N values:
 
 ```json
 {
@@ -115,7 +115,7 @@ Range aggregation scans over all values of a specific numerical field for matchi
 
 Range facet aggregation has the following parameters:
 
-* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../features/indexing/mapping.md) and had the type of `int`/`float`/`double`/`long`/`date`/`datetime`
+* `field`: ***required***, *string*. A field to compute range aggregation. Should be marked as `facet: true` in [index mapping](../../features/indexing/mapping.md) and had the type of `int`/`float`/`double`/`long`/`date`/`datetime`/`int[]`/`float[]`/`double[]`/`long[]`
 * `ranges`, ***required***, non-empty list.
 * `ranges.lt`, ***optional***, *number*. **L**ess **T**han. An end of the range, not inclusive.
 * `ranges.lte`, ***optional***, *number*. **L**ess **T**han or **E**quals. An end of the range, inclusive.
@@ -139,5 +139,32 @@ Range facet aggregation response keeps the same ranges as in request, but adds a
     }
   }
 }
-
 ```
+
+## Aggregating over array fields
+
+When aggregating over numeric array fields (`int[]`, `long[]`, `float[]`, `double[]`), the aggregation considers **all elements** in each array. A document will be counted in a range bucket if **any** element in its array falls within that range.
+
+For example, with a document containing `"ratings": [2, 5, 8]` and range aggregation with buckets `[0-5)`, `[5-10)`:
+
+- The document will be counted in the `[0-5)` bucket (due to values 2 and 5)
+- The document will also be counted in the `[5-10)` bucket (due to values 5 and 8)
+
+```json
+{
+  "aggs": {
+    "rating_ranges": {
+      "range": {
+        "field": "ratings",
+        "ranges": [
+          {"gte": 1, "lt": 3},
+          {"gte": 3, "lt": 5},
+          {"gte": 5}
+        ]
+      }
+    }
+  }
+}
+```
+
+This behavior makes array field aggregations useful for analyzing multi-valued attributes like product categories, user ratings, or feature scores.
