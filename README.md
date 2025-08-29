@@ -138,7 +138,7 @@ curl -XPOST http://localhost:8080/v1/index/movies/search \
   -d '{ 
     "query": {
       "rrf": {
-        "queries": [
+        "retrieve": [
           {"match": {"title": "batman"}},
           {"semantic": {"title": "batman nolan"}}
         ],
