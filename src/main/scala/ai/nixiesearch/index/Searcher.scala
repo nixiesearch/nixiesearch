@@ -55,6 +55,7 @@ import org.apache.lucene.search.suggest.document.SuggestIndexSearcher
 import fs2.Stream
 import org.apache.lucene.document.LatLonDocValuesField
 
+import java.util.concurrent.Executors
 import scala.jdk.CollectionConverters.*
 import scala.collection.mutable
 import language.experimental.namedTuples
@@ -259,7 +260,7 @@ object Searcher extends Logging {
         case true  =>
           for {
             reader     <- IO(DirectoryReader.open(index.directory))
-            searcher   <- IO(new IndexSearcher(reader))
+            searcher   <- IO(new IndexSearcher(reader, Executors.newWorkStealingPool()))
             suggester  <- IO(new SuggestIndexSearcher(reader))
             diskSeqnum <- index.seqnum.get
             fields     <- IO(getFields(searcher.getIndexReader))

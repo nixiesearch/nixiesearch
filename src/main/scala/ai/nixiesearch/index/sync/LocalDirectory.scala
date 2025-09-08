@@ -20,7 +20,7 @@ object LocalDirectory extends Logging {
       for {
         _             <- Resource.eval(info("initialized MMapDirectory"))
         safeIndexPath <- Resource.eval(indexPath(path, indexName))
-        directory     <- Resource.make(IO(new NIOFSDirectory(safeIndexPath)))(dir => IO(dir.close()))
+        directory     <- Resource.make(IO(new MMapDirectory(safeIndexPath)))(dir => IO(dir.close()))
 
       } yield {
         directory
