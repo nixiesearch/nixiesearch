@@ -11,7 +11,8 @@ import org.apache.lucene.search.Query
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 
-case class SemanticQuery(field: String, query: String, k: Option[Int] = None) extends RetrieveQuery {
+case class SemanticQuery(field: String, query: String, k: Option[Int] = None, num_candidates: Option[Int] = None)
+    extends RetrieveQuery {
   override def compile(
       mapping: IndexMapping,
       maybeFilter: Option[Filters],
@@ -26,7 +27,7 @@ case class SemanticQuery(field: String, query: String, k: Option[Int] = None) ex
       case _ => IO.raiseError(UserError("semantic query only works when you have defined embedding model for a field"))
     }
     queryEmbedding <- encoders.encode(model, TaskType.Query, query)
-    result         <- KnnQuery(field, queryEmbedding, k).compile(mapping, maybeFilter, encoders, fields)
+    result         <- KnnQuery(field, queryEmbedding, k, num_candidates).compile(mapping, maybeFilter, encoders, fields)
   } yield {
     result
   }
@@ -40,11 +41,12 @@ object SemanticQuery {
         obj.keys.toList match {
           case list if list.contains("field") =>
             for {
-              field <- c.downField("field").as[String]
-              query <- c.downField("query").as[String]
-              k     <- c.downField("k").as[Option[Int]]
+              field          <- c.downField("field").as[String]
+              query          <- c.downField("query").as[String]
+              k              <- c.downField("k").as[Option[Int]]
+              num_candidates <- c.downField("num_candidates").as[Option[Int]]
             } yield {
-              SemanticQuery(field, query, k)
+              SemanticQuery(field, query, k, num_candidates)
             }
           case head :: Nil =>
             for {

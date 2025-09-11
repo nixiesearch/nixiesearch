@@ -47,26 +47,26 @@ class SemanticQuantizationTest extends SearchTest with Matchers {
 
   it should "search for f32 query" in withIndex { index =>
     {
-      val docs = index.search(SemanticQuery("title_f32", "lady in red", Some(1)))
+      val docs = index.search(SemanticQuery("title_f32", "lady in red", Some(1)), n = 1)
       docs shouldBe List("1")
     }
   }
 
   it should "search for i8 query" in withIndex { index =>
     {
-      val docs = index.search(SemanticQuery("title_i8", "lady in red", Some(1)))
+      val docs = index.search(SemanticQuery("title_i8", "lady in red", Some(1)), n = 1)
       docs shouldBe List("1")
     }
   }
   it should "search for i4 query" in withIndex { index =>
     {
-      val docs = index.search(SemanticQuery("title_i4", "lady in red", Some(1)))
+      val docs = index.search(SemanticQuery("title_i4", "lady in red", Some(1)), n = 1)
       docs shouldBe List("1")
     }
   }
   it should "search for i1 query" in withIndex { index =>
     {
-      val docs = index.search(SemanticQuery("title_i1", "lady in red", Some(1)))
+      val docs = index.search(SemanticQuery("title_i1", "lady in red", Some(1)), n = 1)
       docs shouldBe List("1")
     }
   }

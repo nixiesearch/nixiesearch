@@ -12,7 +12,7 @@ class KnnQueryJsonTest extends AnyFlatSpec with Matchers {
     val str     = """{"field": "foo", "query_vector": [1,2,3]}"""
     val decoded = decode[KnnQuery](str)
     decoded should matchPattern {
-      case Right(KnnQuery("foo", vector, _)) if util.Arrays.equals(vector, Array(1f, 2f, 3f)) =>
+      case Right(KnnQuery("foo", vector, _, _)) if util.Arrays.equals(vector, Array(1f, 2f, 3f)) =>
     }
   }
 }
