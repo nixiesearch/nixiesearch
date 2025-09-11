@@ -45,7 +45,7 @@ class KnnQueryTest extends SearchTest with Matchers {
 
   it should "fail on dim mismatch" in withIndex { index =>
     {
-      val result = Try(index.search(KnnQuery("title", Array(0.0f, 0.0f), Some(1))), n = 1)
+      val result = Try(index.search(KnnQuery("title", Array(0.0f, 0.0f), Some(1)), n = 1))
       result.isFailure shouldBe true
     }
   }

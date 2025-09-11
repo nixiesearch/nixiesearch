@@ -12,7 +12,8 @@ Unlike [`semantic`](semantic.md) query, the `knn` query does NOT run embedding i
     "knn": {
       "field": "title",
       "query_vector": [1,2,3,4,5],
-      "k": 10
+      "k": 10,
+      "num_candidates": 15
     }
   }
 }
@@ -20,7 +21,8 @@ Unlike [`semantic`](semantic.md) query, the `knn` query does NOT run embedding i
 
 Fields:
 * `field`: a [`text`](../../../indexing/types/text.md) field name with semantic search enabled in the [index mapping](../../../indexing/mapping.md).
-* `query_embedding`: a text query embedding.
+* `query_vector`: a text query embedding.
 * `k`: an optional parameter of how many neighbor documents to fetch. By default, equals to the `request.size` field.
+* `num_candidates`: an optional parameter for the number of nearest neighbor candidates to consider per shard while doing knn search. Cannot exceed 10,000. Increasing num_candidates tends to improve the accuracy of the final results. Defaults to 1.5 * k if k is set, or 1.5 * size if k is not set.
 
 For a case when you would like Nixiesearch to embed the query, see the [`semantic`](semantic.md) query.

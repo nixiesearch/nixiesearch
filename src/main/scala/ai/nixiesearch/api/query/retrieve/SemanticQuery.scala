@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query.retrieve
 
 import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.api.query.retrieve.KnnQuery.MAX_NUM_CANDIDATES
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
 import ai.nixiesearch.config.mapping.{IndexMapping, SearchParams}
 import ai.nixiesearch.core.Error.UserError
@@ -44,7 +45,12 @@ object SemanticQuery {
               field          <- c.downField("field").as[String]
               query          <- c.downField("query").as[String]
               k              <- c.downField("k").as[Option[Int]]
-              num_candidates <- c.downField("num_candidates").as[Option[Int]]
+              num_candidates <- c.downField("num_candidates").as[Option[Int]].flatMap {
+                case Some(value) if value > MAX_NUM_CANDIDATES =>
+                  Left(DecodingFailure(s"num_candidates should be less than $MAX_NUM_CANDIDATES", c.history))
+                case Some(value) => Right(Some(value))
+                case None        => Right(None)
+              }
             } yield {
               SemanticQuery(field, query, k, num_candidates)
             }

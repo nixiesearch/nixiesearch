@@ -6,7 +6,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
 import org.apache.lucene.search.{KnnFloatVectorQuery, Query}
 
@@ -42,13 +42,19 @@ case class KnnQuery(field: String, query_vector: Array[Float], k: Option[Int], n
 }
 
 object KnnQuery {
+  val MAX_NUM_CANDIDATES                   = 10000
   given knnQueryEncoder: Encoder[KnnQuery] = deriveEncoder
   given knnQueryDecoder: Decoder[KnnQuery] = Decoder.instance(c =>
     for {
       field          <- c.downField("field").as[String]
       queryVector    <- c.downField("query_vector").as[Array[Float]]
       k              <- c.downField("k").as[Option[Int]]
-      num_candidates <- c.downField("num_candidates").as[Option[Int]]
+      num_candidates <- c.downField("num_candidates").as[Option[Int]].flatMap {
+        case Some(value) if value > MAX_NUM_CANDIDATES =>
+          Left(DecodingFailure(s"num_candidates should be less than $MAX_NUM_CANDIDATES", c.history))
+        case Some(value) => Right(Some(value))
+        case None        => Right(None)
+      }
     } yield {
       KnnQuery(field, queryVector, k, num_candidates)
     }
