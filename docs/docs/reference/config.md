@@ -68,7 +68,7 @@ schema:
   index-name:
     config:
       indexer:
-        ramBufferSize: 512mb
+        ram_buffer_size: 512mb
         flush:
           duration: 5s # how frequently new segments are created
       hnsw:
@@ -80,10 +80,100 @@ schema:
 Fields:
 
 * `indexer.flush.duration`: optional, duration, default `5s`. Index writer will periodically produce flush index segments (if there are new documents) with this interval.
-* `indexer.ramBufferSize`: optional, size, default `512mb`. RAM buffer size for new segments.
+* `indexer.ram_buffer_size`: optional, size, default `512mb`. RAM buffer size for new segments.
 * `hnsw.m`: optional, int, default 16. How many links should HNSW index have? Larger value means better recall, but higher memory usage and bigger index. Common values are within 16-128 range.
 * `hnsw.efc`: optional, int, default 100. How many neighbors in the HNSW graph are explored during indexing. Bigger the value, better the recall, but slower the indexing speed.
 * `hnsw.workers`: optional, int, default = number of CPU cores. How many concurrent workers to use for index merges.
+* `indexer.merge_policy`: optional, merge policy config, default `tiered`. Controls how Lucene merges index segments. See [Merge Policies](#merge-policies) section below for details.
+
+### Merge Policies
+
+Nixiesearch allows you to configure Lucene merge policies to optimize indexing performance for your specific use case. The merge policy determines how and when index segments are merged together.
+
+#### Tiered Merge Policy (default)
+
+Best for most use cases, provides balanced performance between indexing speed and search performance.
+
+```yaml
+schema:
+  your-index:
+    config:
+      indexer:
+        merge_policy: tiered
+        # or with custom settings:
+        merge_policy:
+          tiered:
+            segments_per_tier: 10
+            max_merge_at_once: 10
+            max_merged_segment_size: 5gb
+            floor_segment_size: 16mb
+            target_search_concurrency: 1
+```
+
+Parameters:
+* `segments_per_tier`: optional, int, default 10. Number of segments per tier in the merge hierarchy
+* `max_merge_at_once`: optional, int, default 10. Maximum number of segments merged at once
+* `max_merged_segment_size`: optional, size, default 5gb. Maximum size of merged segments
+* `floor_segment_size`: optional, size, default 16mb. Minimum segment size threshold
+* `target_search_concurrency`: optional, int, default 1. Target concurrency level for search operations
+
+#### Byte Size Merge Policy
+
+Good for maintaining consistent segment sizes, useful when you want predictable storage patterns.
+
+```yaml
+schema:
+  your-index:
+    config:
+      indexer:
+        merge_policy: byte_size
+        # or with custom settings:
+        merge_policy:
+          byte_size:
+            max_merge_size: 5gb
+            min_merge_size: 16mb
+            min_merge_size_for_forced_merge: 5gb
+```
+
+Parameters:
+* `max_merge_size`: optional, size, default 5gb. Maximum size of segments to merge
+* `min_merge_size`: optional, size, default 16mb. Minimum size threshold for merging segments
+* `min_merge_size_for_forced_merge`: optional, size, default 5gb. Minimum size threshold for forced merges
+
+#### Document Count Merge Policy
+
+Good when documents are of uniform size and you want to control merging based on document count rather than byte size.
+
+```yaml
+schema:
+  your-index:
+    config:
+      indexer:
+        merge_policy: doc_count
+        # or with custom settings:
+        merge_policy:
+          doc_count:
+            min_merge_docs: 10
+            max_merge_docs: 2147483647
+```
+
+Parameters:
+* `min_merge_docs`: optional, int, default 10. Minimum number of documents in segments before merging
+* `max_merge_docs`: optional, int, default 2147483647. Maximum number of documents in merged segments
+
+#### No Merge Policy
+
+Disables automatic merging entirely. Useful for read-only indexes or when you want full control over merging.
+
+```yaml
+schema:
+  your-index:
+    config:
+      indexer:
+        merge_policy: none
+```
+
+This policy has no additional configuration options.
 
 
 ### Store configuration

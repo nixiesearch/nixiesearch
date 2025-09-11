@@ -16,7 +16,7 @@ To add a set of documents to an index, you need to perform these two steps:
 
 ## Index mapping
 
-To define an index mapping, you need to add an index-specific block to the `schema` section of the [configuration file](../../reference/config.md):
+To define an index mapping, you need to add an index-specific block to the `schema` section of the [configuration file](../../reference/config.md). You can also configure indexing performance settings like [merge policies](../../reference/config.md#merge-policies) in the configuration:
 
 ```yaml
 schema:

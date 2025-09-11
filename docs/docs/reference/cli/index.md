@@ -55,6 +55,8 @@ Primary offline indexing use-case is batch and full-reindex jobs:
 * when you changed index mapping by adding/altering a field and need to re-process the whole document corpus.
 * when performing major non-backwards compatible Nixiesearch upgrades.
 
+For performance tuning during large indexing jobs, consider configuring [merge policies](../config.md#merge-policies) in your index configuration.
+
 Nixiesearch can load a [JSONL document format](../../features/indexing/format.md) from a [local, HTTP or S3 hosted file or directory](../url.md).
 
 !!! note 
