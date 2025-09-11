@@ -12,6 +12,7 @@ case class Size(bytes: Long, literal: String) {
 
 object Size {
   def mb(value: Long)              = Size(value * 1024 * 1024L, s"$value mb")
+  def mb(value: Double)            = Size(math.round(value * 1024 * 1024L), s"$value mb")
   def kb(value: Long)              = Size(value * 1024L, s"$value mb")
   val sizePattern                  = "([0-9\\.]+) ?(k|kb|m|mb|g|gb)?".r
   given sizeEncoder: Encoder[Size] = Encoder.encodeString.contramap(_.literal)
