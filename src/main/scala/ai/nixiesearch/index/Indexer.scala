@@ -20,7 +20,7 @@ import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.DocumentEmbedder
 import cats.effect.{IO, Resource}
 import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, Term}
+import org.apache.lucene.index.{IndexWriter, IndexWriterConfig, NoMergePolicy, Term}
 import org.apache.lucene.store.Directory
 import org.apache.lucene.document.Document as LuceneDocument
 
@@ -199,11 +199,20 @@ object Indexer extends Logging {
     for {
       codec  <- Resource.pure(Nixiesearch101Codec(mapping))
       config <- Resource.eval(
-        IO(
-          new IndexWriterConfig(mapping.analyzer)
+        IO {
+          val config = new IndexWriterConfig(mapping.analyzer)
             .setCodec(codec)
-            .setRAMBufferSizeMB(mapping.config.indexer.ramBufferSize.mb.toDouble)
-        )
+            .setRAMBufferSizeMB(mapping.config.indexer.ram_buffer_size.mb.toDouble)
+          mapping.config.indexer.merge_policy match {
+            case None =>
+              logger.debug("using default Lucene merge policy")
+              config
+            case Some(mergePolicy) =>
+              logger.debug(s"using merge policy $mergePolicy")
+              config.setMergePolicy(mergePolicy.toLuceneMergePolicy())
+          }
+
+        }
       )
       _      <- Resource.eval(debug("opening IndexWriter"))
       writer <- Resource.make(IO(new IndexWriter(directory, config)))(w => IO(w.close()) *> debug("IndexWriter closed"))

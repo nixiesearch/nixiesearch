@@ -116,7 +116,7 @@ class FieldSchemaTest extends AnyFlatSpec with Matchers {
   }
 
   def parseYaml(yaml: String): Either[Throwable, FieldSchema[? <: Field]] = {
-    implicit val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder(StringName("field"))
-    parse(yaml).flatMap(_.as[FieldSchema[? <: Field]])
+    val decoder: Decoder[FieldSchema[? <: Field]] = FieldSchema.yaml.fieldSchemaDecoder(StringName("field"))
+    parse(yaml).flatMap(_.as[FieldSchema[? <: Field]](using decoder))
   }
 }
