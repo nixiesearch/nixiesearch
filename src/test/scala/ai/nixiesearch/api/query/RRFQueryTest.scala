@@ -39,8 +39,11 @@ class RRFQueryTest extends SearchTest with Matchers {
   it should "select matching documents for a knn query" in withIndex { index =>
     {
       val docs =
-        index.search(RRFQuery(List(SemanticQuery("title", "lady in red", Some(1)), MatchQuery("title", "dress"))))
-      docs shouldBe List("1", "2")
+        index.search(
+          RRFQuery(List(SemanticQuery("title", "lady in red", Some(1)), MatchQuery("title", "dress"))),
+          n = 3
+        )
+      docs shouldBe List("1", "3", "2")
     }
   }
 

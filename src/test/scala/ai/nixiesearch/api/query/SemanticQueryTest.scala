@@ -33,7 +33,7 @@ class SemanticQueryTest extends SearchTest with Matchers {
 
   it should "select matching documents for a knn query" in withIndex { index =>
     {
-      val docs = index.search(SemanticQuery("title", "lady in red", Some(1)))
+      val docs = index.search(SemanticQuery("title", "lady in red", Some(1)), n = 1)
       docs shouldBe List("1")
     }
   }

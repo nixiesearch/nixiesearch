@@ -38,14 +38,14 @@ class KnnQueryTest extends SearchTest with Matchers {
     {
       val queryEmbed =
         index.indexer.index.models.embedding.encode(ModelRef("text"), Query, "lady in red").unsafeRunSync()
-      val docs = index.search(KnnQuery("title", queryEmbed, Some(1)))
+      val docs = index.search(KnnQuery("title", queryEmbed, Some(1)), n = 1)
       docs shouldBe List("1")
     }
   }
 
   it should "fail on dim mismatch" in withIndex { index =>
     {
-      val result = Try(index.search(KnnQuery("title", Array(0.0f, 0.0f), Some(1))))
+      val result = Try(index.search(KnnQuery("title", Array(0.0f, 0.0f), Some(1)), n = 1))
       result.isFailure shouldBe true
     }
   }
