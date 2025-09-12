@@ -24,7 +24,7 @@ Where:
 
 * `<field-name>`: is an existing field [marked as searchable](../../../indexing/mapping.md).
 * `<search-query>`: a search query string.
-* `operator`: optional, possible values: `"best_fields"`, `"most_fields"`, default `"best_fields"`. The way field scores are combined when multiple of them are matched at once. 
+* `type`: optional, possible values: `"best_fields"`, `"most_fields"`, default `"best_fields"`. The way field scores are combined when multiple of them are matched at once. 
 
 ## Wildcard fields
 
@@ -49,7 +49,7 @@ This query will perform a `multi_match` over all fields starting with `desc_` pr
 The `multi_match` query has multiple behaviors depending on the `type` parameter:
 
 1. `best_fields` (default): Finds all documents which match any field, but only the `_score` from the best matching field is used.
-2. `sdf`
+2. `most_fields`: Finds all documents which match any field, and combines the `_score` from each field.
 
 ### best_fields
 

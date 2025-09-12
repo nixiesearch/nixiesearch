@@ -10,6 +10,8 @@ core:
   port: 8080 # optional, default=8080
   loglevel: info # optional, default info
   telemetry: true # optional, default true
+  cache:
+    dir: ./cache # optional, default=./cache
 ```
 
 ### Environment variables overrides
@@ -20,6 +22,7 @@ Core config settings can be overridden with env variables:
 * `NIXIESEARCH_CORE_PORT`: overrides `core.port`
 * `NIXIESEARCH_CORE_LOGLEVEL`: overrides `core.loglevel`
 * `NIXIESEARCH_CORE_TELEMETRY`: overrides `core.telemetry`
+* `NIXIESEARCH_CORE_CACHE_DIR`: overrides `core.cache.dir`
 
 Loglevel can also be set from the [command-line flags](../reference/cli/standalone.md). Env overrides always have higher priority than config values.
 
@@ -39,6 +42,16 @@ core:
   telemetry:
     usage: false
 ```
+
+## Searcher config
+
+The `searcher` section is currently reserved for future searcher-specific settings:
+
+```yaml
+searcher: {}
+```
+
+This section is currently empty but part of the configuration schema for future extensibility.
 
 ## Index mapping
 
@@ -70,7 +83,7 @@ schema:
       indexer:
         ram_buffer_size: 512mb
         flush:
-          duration: 5s # how frequently new segments are created
+          interval: 5s # how frequently new segments are created
       hnsw:
         m: 16 # max number of node-node links in HNSW graph
         efc: 100 # beam width used while building the index
@@ -79,7 +92,7 @@ schema:
 
 Fields:
 
-* `indexer.flush.duration`: optional, duration, default `5s`. Index writer will periodically produce flush index segments (if there are new documents) with this interval.
+* `indexer.flush.interval`: optional, duration, default `5s`. Index writer will periodically produce flush index segments (if there are new documents) with this interval.
 * `indexer.ram_buffer_size`: optional, size, default `512mb`. RAM buffer size for new segments.
 * `hnsw.m`: optional, int, default 16. How many links should HNSW index have? Larger value means better recall, but higher memory usage and bigger index. Common values are within 16-128 range.
 * `hnsw.efc`: optional, int, default 100. How many neighbors in the HNSW graph are explored during indexing. Bigger the value, better the recall, but slower the indexing speed.
@@ -293,6 +306,33 @@ Parameters:
 * **cache.memory.max_size**, optional, int, default 32768. How many string-embedding pairs to keep in the LRU cache.
 
 Nixiesearch currently supports only `memory` embedding cache, [Redis caching](../features/inference/embeddings/cache.md#redis-cache) is planned.
+
+### Reranking models
+
+Cross-encoder reranking models can be configured in the `inference.ranker` section:
+
+```yaml
+inference:
+  ranker:
+    your-model-name:
+      provider: onnx
+      model: cross-encoder/ms-marco-MiniLM-L6-v2
+      max_tokens: 512
+      batch_size: 32
+      device: cpu
+      file: model.onnx
+```
+
+Fields:
+
+* `provider`: *required*, *string*. Currently only `onnx` is supported.
+* `model`: *required*, *string*. A [Huggingface](https://huggingface.co/models) handle, or an HTTP/Local/S3 URL for the model. See [model URL reference](url.md) for more details on how to load your model.
+* `max_tokens`: *optional*, *int*, default `512`. Maximum sequence length for query-document pairs.
+* `batch_size`: *optional*, *int*, default `32`. Inference batch size for processing multiple query-document pairs.
+* `device`: *optional*, *string*, default `cpu`. Processing device (`cpu` or `gpu`).
+* `file`: *optional*, *string*. A file name of the model - useful when HF repo contains multiple versions of the same model.
+
+For detailed usage examples, see [Cross-Encoder Reranking documentation](../features/search/query/rank/ce.md).
 
 ### LLM completion models
 

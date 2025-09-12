@@ -22,7 +22,7 @@ If a returned document matches multiple query clauses, the `dis_max` query assig
 
 Fields:
 
-* `quieries`: required, a list of queries. Returned documents must match one or more of these sub-queries. If the doc matches multiple sub-queries, then the highest score is used.
+* `queries`: required, a list of queries. Returned documents must match one or more of these sub-queries. If the doc matches multiple sub-queries, then the highest score is used.
 * `tie_breaker`: optional, float. A number between `0.0` and `1.0` used to increase scores of docs matching multiple queries at once.
 
 ## The tie breaker
