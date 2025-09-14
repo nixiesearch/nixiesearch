@@ -47,7 +47,7 @@ class IndexStatsTest extends SearchTest with Matchers {
       .unsafeRunSync()
     stats.copy(luceneVersion = "1.0.0") shouldBe IndexStats(
       "1.0.0",
-      List(SegmentStats("_0", 3, "Nixiesearch101", List("_0.cfe", "_0.si", "_0.cfs"), 0)),
+      List(SegmentStats("_0", 3, "Nixiesearch103", List("_0.cfe", "_0.si", "_0.cfs"), 0)),
       List(
         LeafStats(
           0,
@@ -63,7 +63,7 @@ class IndexStatsTest extends SearchTest with Matchers {
               Map(
                 "PerFieldKnnVectorsFormat.format" -> "Lucene99HnswVectorsFormat",
                 "PerFieldKnnVectorsFormat.suffix" -> "0",
-                "PerFieldPostingsFormat.format"   -> "Lucene101",
+                "PerFieldPostingsFormat.format"   -> "Lucene103",
                 "PerFieldPostingsFormat.suffix"   -> "0"
               ),
               384,
