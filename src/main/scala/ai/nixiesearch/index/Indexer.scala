@@ -9,7 +9,7 @@ import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.codec.*
-import ai.nixiesearch.core.codec.compat.Nixiesearch101Codec
+import ai.nixiesearch.core.codec.compat.{Nixiesearch101Codec, Nixiesearch103Codec}
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
 import ai.nixiesearch.core.metrics.{IndexerMetrics, Metrics}
@@ -197,7 +197,7 @@ object Indexer extends Logging {
 
   def indexWriter(directory: Directory, mapping: IndexMapping): Resource[IO, IndexWriter] =
     for {
-      codec  <- Resource.pure(Nixiesearch101Codec(mapping))
+      codec  <- Resource.pure(Nixiesearch103Codec(mapping))
       config <- Resource.eval(
         IO {
           val config = new IndexWriterConfig(mapping.analyzer)

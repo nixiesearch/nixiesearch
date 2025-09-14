@@ -14,3 +14,4 @@
 #  limitations under the License.
 
 ai.nixiesearch.core.codec.compat.Nixiesearch101Codec
+ai.nixiesearch.core.codec.compat.Nixiesearch103Codec

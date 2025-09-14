@@ -20,6 +20,8 @@ class Lucene101IndexCompatTest extends LuceneIndexCompatTest("lucene10.1")
 
 class Lucene102IndexCompatTest extends LuceneIndexCompatTest("lucene10.2")
 
+class Lucene103IndexCompatTest extends LuceneIndexCompatTest("lucene10.3")
+
 abstract class LuceneIndexCompatTest(name: String) extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   lazy val pwd           = System.getProperty("user.dir")
   var searcher: Searcher = uninitialized
