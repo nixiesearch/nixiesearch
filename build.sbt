@@ -1,4 +1,4 @@
-import Deps._
+import Deps.*
 import sbt.Package.ManifestAttributes
 
 lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
@@ -115,6 +115,14 @@ docker / dockerfile := {
         "apt-get install -y --no-install-recommends openjdk-24-jdk-headless htop procps curl inetutils-ping libgomp1 locales wget",
         "sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen"
         // "rm -rf /var/lib/apt/lists/*"
+      ).mkString(" && ")
+    )
+    runRaw(
+      List(
+        "wget -O /tmp/jap.tar.gz https://github.com/async-profiler/async-profiler/releases/download/v4.1/async-profiler-4.1-linux-x64.tar.gz",
+        "mkdir -pv /opt/jap",
+        "tar -zxf /tmp/jap.tar.gz -C /opt/jap/",
+        "rm -rf /tmp/jap.tar.gz"
       ).mkString(" && ")
     )
     if (GPU) {
