@@ -108,7 +108,7 @@ docker / dockerfile := {
   val artifactTargetPath = s"/app/${artifact.name}"
 
   new Dockerfile {
-    from(s"--platform=$PLATFORM ubuntu:oracular-20250619")
+    from(s"--platform=$PLATFORM ubuntu:questing-20250830")
     runRaw(
       List(
         "apt-get update",
