@@ -4,7 +4,7 @@ import sbt.Package.ManifestAttributes
 lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
-version := "0.7.2-M1"
+version := "0.7.2"
 
 scalaVersion := "3.7.3"
 
