@@ -42,44 +42,49 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
       spec: TextFieldSchema,
       buffer: LuceneDocument
   ): Unit = {
-    if (spec.store) {
-      buffer.add(new StoredField(field.name, field.value))
-    }
-    if (spec.facet || spec.sort) {
-      val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
-      buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
-    }
-    if (spec.filter) {
-      buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
+    if (field.name == "_id") {
       buffer.add(new BinaryDocValuesField(field.name + FILTER_SUFFIX, new BytesRef(field.value)))
-    }
-    if (spec.search.lexical.isDefined) {
-      val trimmed =
-        if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
-        else field.value
-      buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
-    }
-
-    spec.search.semantic.foreach(conf =>
-      field.embedding match {
-        case Some(embed) =>
-          val similarityFunction = conf.distance match {
-            case Distance.Cosine => VectorSimilarityFunction.COSINE
-            case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
-          }
-          buffer.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
-        case None => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
+      buffer.add(new StoredField(field.name, field.value))
+    } else {
+      if (spec.store) {
+        buffer.add(new StoredField(field.name, field.value))
       }
-    )
+      if (spec.facet || spec.sort) {
+        val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
+        buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
+      }
+      if (spec.filter) {
+        buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
 
-    spec.suggest.foreach(schema => {
-      SuggestCandidates
-        .fromString(schema, field.name, field.value)
-        .foreach(candidate => {
-          val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
-          buffer.add(s)
-        })
-    })
+      }
+      if (spec.search.lexical.isDefined) {
+        val trimmed =
+          if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
+          else field.value
+        buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
+      }
+
+      spec.search.semantic.foreach(conf =>
+        field.embedding match {
+          case Some(embed) =>
+            val similarityFunction = conf.distance match {
+              case Distance.Cosine => VectorSimilarityFunction.COSINE
+              case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
+            }
+            buffer.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
+          case None => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
+        }
+      )
+
+      spec.suggest.foreach(schema => {
+        SuggestCandidates
+          .fromString(schema, field.name, field.value)
+          .foreach(candidate => {
+            val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
+            buffer.add(s)
+          })
+      })
+    }
   }
 
   override def readLucene(
