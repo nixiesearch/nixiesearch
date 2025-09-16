@@ -23,8 +23,9 @@ import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.{Document, Logging}
 import ai.nixiesearch.index.Searcher
+import ai.nixiesearch.util.JsonUtils
 import cats.effect.IO
-import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json, JsonObject, syntax}
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json, JsonObject, syntax}
 import org.http4s.{
   Charset,
   Entity,
@@ -158,6 +159,7 @@ object SearchRoute {
         maxResponseLength <- c.downField("maxResponseLength").as[Option[Int]]
         fields            <- c.downField("fields").as[Option[List[FieldName]]]
         stream            <- c.downField("stream").as[Option[Boolean]]
+        _                 <- JsonUtils.forbidExtraFields[RAGRequest](c.value)
       } yield {
         RAGRequest(
           prompt,
@@ -181,6 +183,17 @@ object SearchRoute {
       sort: List[SortPredicate] = Nil
   )
   object SearchRequest {
+    def forbidExtraFields(itemFields: Iterator[String], cursor: HCursor): Decoder.Result[Unit] = {
+      val expectedFields = itemFields.toSet
+      cursor.value.asObject match {
+        case Some(value) =>
+          value.keys.find(jsonKey => expectedFields.contains(jsonKey)) match {
+            case Some(value) => Left(DecodingFailure(s"forbidden extra field ${value}", cursor.history))
+            case None        => Right({})
+          }
+        case None => Right({})
+      }
+    }
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
@@ -195,6 +208,7 @@ object SearchRoute {
         aggs <- c.downField("aggs").as[Option[Aggs]]
         rag  <- c.downField("rag").as[Option[RAGRequest]]
         sort <- c.downField("sort").as[Option[List[SortPredicate]]]
+        _    <- JsonUtils.forbidExtraFields[SearchRequest](c.value)
       } yield {
         SearchRequest(query, filters, size, fields, aggs, rag, sort.getOrElse(Nil))
       }
@@ -303,6 +317,7 @@ object SearchRoute {
         fields  <- c.downField("fields").as[Option[List[String]]]
         count   <- c.downField("count").as[Option[Int]]
         process <- c.downField("rerank").as[Option[SuggestRerankOptions]]
+        _       <- JsonUtils.forbidExtraFields[SuggestRequest](c.value)
       } yield {
         SuggestRequest(
           query,

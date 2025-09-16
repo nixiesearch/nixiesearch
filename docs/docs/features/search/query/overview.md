@@ -26,7 +26,7 @@ Search request format is similar to existing Lucene-based search engines:
     "color_counts": {"term": {"field": "color"}}
   },
   "filters": {
-    "include": {"term": {"field": "category", "value": "pants"}}
+    "include": {"term": {"category": "pants"}}
   }
 }
 ```
