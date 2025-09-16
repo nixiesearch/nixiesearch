@@ -45,7 +45,7 @@ abstract class LuceneIndexCompatTest(name: String) extends AnyFlatSpec with Matc
     val response = searcher
       .search(SearchRequest(query = MatchAllQuery(), fields = CompatUtil.mapping.fields.keys.toList))
       .unsafeRunSync()
-    response.hits.map(_.fields.size) shouldBe List(10)
+    response.hits.map(_.fields.size).head should be >= 10 // as due to change in 10.3 we also added _id field
   }
 
   it should "fetch id fields via fastpath" in {

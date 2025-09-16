@@ -217,8 +217,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
 
   val ID_DOCVALUE_NAME                                        = "_id" + TextField.FILTER_SUFFIX
   protected def hasBinaryDv(reader: DirectoryReader): Boolean = {
-    val dv = DocValues.getBinary(reader.leaves().getFirst.reader(), ID_DOCVALUE_NAME)
-    dv.nextDoc() != DocIdSetIterator.NO_MORE_DOCS
+    if (reader.leaves().isEmpty) {
+      false
+    } else {
+      val dv = DocValues.getBinary(reader.leaves().getFirst.reader(), ID_DOCVALUE_NAME)
+      dv.nextDoc() != DocIdSetIterator.NO_MORE_DOCS
+    }
   }
 
   /** A fast-path for _id only fetching. Yes benchmaxxing.
