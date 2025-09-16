@@ -183,17 +183,6 @@ object SearchRoute {
       sort: List[SortPredicate] = Nil
   )
   object SearchRequest {
-    def forbidExtraFields(itemFields: Iterator[String], cursor: HCursor): Decoder.Result[Unit] = {
-      val expectedFields = itemFields.toSet
-      cursor.value.asObject match {
-        case Some(value) =>
-          value.keys.find(jsonKey => expectedFields.contains(jsonKey)) match {
-            case Some(value) => Left(DecodingFailure(s"forbidden extra field ${value}", cursor.history))
-            case None        => Right({})
-          }
-        case None => Right({})
-      }
-    }
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
