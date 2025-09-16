@@ -205,11 +205,12 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     result
   }
 
+  val defaultFields                                                                   = Set("_id", "_score")
   protected def collect(mapping: IndexMapping, top: TopDocs, fields: List[FieldName]) = for {
     reader <- getReadersOrFail().map(_.reader)
-    result <- fields match {
-      case Nil | StringName("_id") :: Nil if hasBinaryDv(reader) => collectFastIdOnly(reader, top)
-      case _                                                     => collectStored(reader, mapping, top, fields)
+    result <- (fields.forall(f => defaultFields.contains(f.name)) && hasBinaryDv(reader)) match {
+      case true  => collectFastIdOnly(reader, top)
+      case false => collectStored(reader, mapping, top, fields)
     }
   } yield {
     result

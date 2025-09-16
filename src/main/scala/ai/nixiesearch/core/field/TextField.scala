@@ -45,6 +45,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     if (field.name == "_id") {
       buffer.add(new BinaryDocValuesField(field.name + FILTER_SUFFIX, new BytesRef(field.value)))
       buffer.add(new StoredField(field.name, field.value))
+      buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
     } else {
       if (spec.store) {
         buffer.add(new StoredField(field.name, field.value))
