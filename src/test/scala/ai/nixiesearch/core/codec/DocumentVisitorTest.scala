@@ -14,14 +14,14 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.util.SearchTest
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
-import scala.util.Try
+import scala.util.{Success, Try}
 
 class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val docs    = Nil
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id")),
+      TextFieldSchema(StringName("_id"), filter = true, facet = true),
       TextFieldSchema(StringName("title")),
       TextFieldSchema(StringName("title_nonstore"), store = false),
       TextListFieldSchema(StringName("title2")),
@@ -123,5 +123,27 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       val docs = Try(store.searcher.search(request).unsafeRunSync())
       docs.isFailure shouldBe true
     }
+  }
+
+  it should "handle fast-path fetches" in withIndex { store =>
+    val source = List(
+      Document(List(TextField("_id", "1"))),
+      Document(List(TextField("_id", "2"))),
+      Document(List(TextField("_id", "3"))),
+      Document(List(TextField("_id", "4"))),
+      Document(List(TextField("_id", "5")))
+    )
+    store.indexer.addDocuments(source).unsafeRunSync()
+    store.indexer.flush().unsafeRunSync()
+    store.indexer.index.sync().unsafeRunSync()
+    store.searcher.sync().unsafeRunSync()
+
+    val request = SearchRequest(
+      MatchAllQuery(),
+      fields = List(StringName("_id"))
+    )
+    val docs = Try(store.searcher.search(request).unsafeRunSync())
+    val ids  = docs.map(_.hits.flatMap(_.fields.collect { case TextField("_id", value, _) => value }))
+    ids shouldBe Success(List("1", "2", "3", "4", "5"))
   }
 }

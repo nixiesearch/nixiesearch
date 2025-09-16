@@ -26,6 +26,7 @@ object CompatUtil {
   lazy val docs                       = List(
     Document(
       List(
+        TextField("_id", "1"),
         TextField("text_semantic", "test"),
         TextField("text_lexical", "test"),
         TextListField("text_array", List("test")),

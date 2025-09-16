@@ -14,6 +14,7 @@ import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
+  BinaryDocValuesField,
   KnnFloatVectorField,
   SortedDocValuesField,
   StoredField,
@@ -50,6 +51,7 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     }
     if (spec.filter) {
       buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
+      buffer.add(new BinaryDocValuesField(field.name + FILTER_SUFFIX, new BytesRef(field.value)))
     }
     if (spec.search.lexical.isDefined) {
       val trimmed =

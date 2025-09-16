@@ -24,8 +24,9 @@ import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.search.lucene.*
 import ai.nixiesearch.core.field.*
 import cats.effect.{IO, Ref, Resource}
-import org.apache.lucene.index.{DirectoryReader, IndexReader}
+import org.apache.lucene.index.{DirectoryReader, DocValues, IndexReader, LeafReaderContext, ReaderUtil}
 import org.apache.lucene.search.{
+  DocIdSetIterator,
   IndexSearcher,
   MultiCollectorManager,
   ScoreDoc,
@@ -204,12 +205,45 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     result
   }
 
-  protected def collect(
+  protected def collect(mapping: IndexMapping, top: TopDocs, fields: List[FieldName]) = for {
+    reader <- getReadersOrFail().map(_.reader)
+    result <- fields match {
+      case Nil | StringName("_id") :: Nil if hasBinaryDv(reader) => collectFastIdOnly(reader, top)
+      case _                                                     => collectStored(reader, mapping, top, fields)
+    }
+  } yield {
+    result
+  }
+
+  val ID_DOCVALUE_NAME                                        = "_id" + TextField.FILTER_SUFFIX
+  protected def hasBinaryDv(reader: DirectoryReader): Boolean = {
+    val dv = DocValues.getBinary(reader.leaves().getFirst.reader(), ID_DOCVALUE_NAME)
+    dv.nextDoc() != DocIdSetIterator.NO_MORE_DOCS
+  }
+
+  /** A fast-path for _id only fetching. Yes benchmaxxing.
+    * @return
+    */
+  protected def collectFastIdOnly(reader: DirectoryReader, top: TopDocs): IO[List[Document]] = IO {
+    val segments = reader.leaves()
+    top.scoreDocs
+      .map(scoreDoc => {
+        val segmentIndex = ReaderUtil.subIndex(scoreDoc.doc, segments)
+        val leafReader   = segments.get(segmentIndex)
+        val idDocValues  = DocValues.getBinary(leafReader.reader(), ID_DOCVALUE_NAME)
+        idDocValues.advance(scoreDoc.doc - leafReader.docBase)
+        val id = idDocValues.binaryValue().utf8ToString()
+        Document(TextField("_id", id), FloatField("_score", scoreDoc.score))
+      })
+      .toList
+  }
+
+  protected def collectStored(
+      reader: DirectoryReader,
       mapping: IndexMapping,
       top: TopDocs,
       fields: List[FieldName]
   ): IO[List[Document]] = for {
-    reader  <- getReadersOrFail().map(_.reader)
     visitor <- DocumentVisitor.create(mapping, fields)
     docs    <- IO {
       val docs = top.scoreDocs.map(doc => {
