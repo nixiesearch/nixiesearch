@@ -2,7 +2,13 @@ package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, IntListFieldSchema, LongFieldSchema, LongListFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  IntFieldSchema,
+  IntListFieldSchema,
+  LongFieldSchema,
+  LongListFieldSchema,
+  TextFieldSchema
+}
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.field.*

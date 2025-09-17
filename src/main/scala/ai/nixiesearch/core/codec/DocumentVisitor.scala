@@ -11,7 +11,22 @@ import org.apache.lucene.index.StoredFieldVisitor
 import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, DoubleListFieldSchema, FloatFieldSchema, FloatListFieldSchema, GeopointFieldSchema, IntFieldSchema, IntListFieldSchema, LongFieldSchema, LongListFieldSchema, TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  DoubleListFieldSchema,
+  FloatFieldSchema,
+  FloatListFieldSchema,
+  GeopointFieldSchema,
+  IntFieldSchema,
+  IntListFieldSchema,
+  LongFieldSchema,
+  LongListFieldSchema,
+  TextFieldSchema,
+  TextListFieldSchema
+}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.*
