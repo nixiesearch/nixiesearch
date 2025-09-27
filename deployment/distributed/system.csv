@@ -1,0 +1,8 @@
+Name,Type,Cardinality,Help
+nixiesearch_os_cpu_percent,gauge,1,Percent CPU used by the OS
+nixiesearch_os_cpu_load1,gauge,1,1-minute system load average
+nixiesearch_os_cpu_load5,gauge,1,5-minute system load average
+nixiesearch_os_cpu_load15,gauge,1,15-minute system load average
+nixiesearch_fs_data_available_bytes,gauge,n_disks,Available space on device
+nixiesearch_fs_data_free_bytes,gauge,n_disks,Free space on device
+nixiesearch_fs_data_size_bytes,gauge,n_disks,Size of the device
