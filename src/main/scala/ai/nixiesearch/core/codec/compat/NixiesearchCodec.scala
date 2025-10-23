@@ -5,7 +5,7 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.field.{TextField, TextListField}
 import org.apache.lucene.codecs.{Codec, FilterCodec, KnnVectorsFormat, PostingsFormat}
 import org.apache.lucene.codecs.lucene102.Lucene102HnswBinaryQuantizedVectorsFormat
 import org.apache.lucene.codecs.lucene99.{Lucene99HnswScalarQuantizedVectorsFormat, Lucene99HnswVectorsFormat}
@@ -34,7 +34,11 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
       cache.get(field) match {
         case Some(fmt) => fmt
         case None      =>
-          val fmt = mapping.fieldSchemaOf[TextLikeFieldSchema[?]](field) match {
+          val parentField =
+            if (field.endsWith(TextListField.NESTED_EMBED_SUFFIX))
+              Some(field.replace(TextListField.NESTED_EMBED_SUFFIX, ""))
+            else None
+          val fmt = mapping.fieldSchemaOf[TextLikeFieldSchema[?]](parentField.getOrElse(field)) match {
             case Some(schema) =>
               schema.search.semantic match {
                 case Some(conf) =>

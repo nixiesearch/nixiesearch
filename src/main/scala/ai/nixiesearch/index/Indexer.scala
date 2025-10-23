@@ -16,6 +16,7 @@ import ai.nixiesearch.core.metrics.{IndexerMetrics, Metrics}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.util.DocumentEmbedder
 import cats.effect.{IO, Resource}
@@ -29,6 +30,7 @@ import cats.syntax.all.*
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.lucene.search.MatchAllDocsQuery
 
+import java.util.UUID
 import language.experimental.namedTuples
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -44,15 +46,18 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
       val all = new util.ArrayList[LuceneDocument]()
       val ids = new ArrayBuffer[String]()
       embeddedDocs.foreach(doc => {
-        val buffer = new LuceneDocument()
+        val id = doc.fields
+          .collectFirst { case TextField("_id", id, _) => id }
+          .getOrElse(UUID.randomUUID().toString)
+        ids.append(id)
+        val docGroup = DocumentGroup(id)
         doc.fields.foreach {
           case field @ TextField(name, value, _) =>
-            if (name == "_id") ids.addOne(value)
             writeField(
               field,
               TextField,
               index.mapping.fieldSchemaOf[TextFieldSchema](field.name),
-              buffer
+              docGroup
             )
 
           case field @ TextListField(name, value, _) =>
@@ -60,34 +65,34 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
               field,
               TextListField,
               index.mapping.fieldSchemaOf[TextListFieldSchema](field.name),
-              buffer
+              docGroup
             )
           case field @ IntField(name, value) =>
-            writeField(field, IntField, index.mapping.fieldSchemaOf[IntFieldSchema](field.name), buffer)
+            writeField(field, IntField, index.mapping.fieldSchemaOf[IntFieldSchema](field.name), docGroup)
           case field @ IntListField(name, value) =>
-            writeField(field, IntListField, index.mapping.fieldSchemaOf[IntListFieldSchema](field.name), buffer)
+            writeField(field, IntListField, index.mapping.fieldSchemaOf[IntListFieldSchema](field.name), docGroup)
           case field @ LongField(name, value) =>
-            writeField(field, LongField, index.mapping.fieldSchemaOf[LongFieldSchema](field.name), buffer)
+            writeField(field, LongField, index.mapping.fieldSchemaOf[LongFieldSchema](field.name), docGroup)
           case field @ LongListField(name, value) =>
-            writeField(field, LongListField, index.mapping.fieldSchemaOf[LongListFieldSchema](field.name), buffer)
+            writeField(field, LongListField, index.mapping.fieldSchemaOf[LongListFieldSchema](field.name), docGroup)
           case field @ FloatField(name, value) =>
-            writeField(field, FloatField, index.mapping.fieldSchemaOf[FloatFieldSchema](field.name), buffer)
+            writeField(field, FloatField, index.mapping.fieldSchemaOf[FloatFieldSchema](field.name), docGroup)
           case field @ FloatListField(name, value) =>
-            writeField(field, FloatListField, index.mapping.fieldSchemaOf[FloatListFieldSchema](field.name), buffer)
+            writeField(field, FloatListField, index.mapping.fieldSchemaOf[FloatListFieldSchema](field.name), docGroup)
           case field @ DoubleField(name, value) =>
-            writeField(field, DoubleField, index.mapping.fieldSchemaOf[DoubleFieldSchema](field.name), buffer)
+            writeField(field, DoubleField, index.mapping.fieldSchemaOf[DoubleFieldSchema](field.name), docGroup)
           case field @ DoubleListField(name, value) =>
-            writeField(field, DoubleListField, index.mapping.fieldSchemaOf[DoubleListFieldSchema](field.name), buffer)
+            writeField(field, DoubleListField, index.mapping.fieldSchemaOf[DoubleListFieldSchema](field.name), docGroup)
           case field @ BooleanField(name, value) =>
-            writeField(field, BooleanField, index.mapping.fieldSchemaOf[BooleanFieldSchema](field.name), buffer)
+            writeField(field, BooleanField, index.mapping.fieldSchemaOf[BooleanFieldSchema](field.name), docGroup)
           case field @ GeopointField(name, lat, lon) =>
-            writeField(field, GeopointField, index.mapping.fieldSchemaOf[GeopointFieldSchema](field.name), buffer)
+            writeField(field, GeopointField, index.mapping.fieldSchemaOf[GeopointFieldSchema](field.name), docGroup)
           case field @ DateField(name, value) =>
-            writeField(field, DateField, index.mapping.fieldSchemaOf[DateFieldSchema](field.name), buffer)
+            writeField(field, DateField, index.mapping.fieldSchemaOf[DateFieldSchema](field.name), docGroup)
           case field @ DateTimeField(name, value) =>
-            writeField(field, DateTimeField, index.mapping.fieldSchemaOf[DateTimeFieldSchema](field.name), buffer)
+            writeField(field, DateTimeField, index.mapping.fieldSchemaOf[DateTimeFieldSchema](field.name), docGroup)
         }
-        all.add(buffer)
+        docGroup.toLuceneDocuments().foreach(doc => all.add(doc))
       })
       val deleteIds = ids.map(id => new Term("_id" + FILTER_SUFFIX, id))
       writer.deleteDocuments(deleteIds.toSeq*)
@@ -99,7 +104,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
       field: T,
       codec: FieldCodec[T, S, ?],
       mapping: Option[S],
-      buffer: LuceneDocument
+      buffer: DocumentGroup
   ): Unit = mapping match {
     case None          => logger.warn(s"field '${field.name}' is not defined in index mapping for ${index.name.value}")
     case Some(mapping) => codec.writeLucene(field, mapping, buffer)

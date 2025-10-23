@@ -5,6 +5,7 @@ import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, IntFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.{ACursor, Decoder, Encoder, Json}
 import io.circe.Decoder.Result
 import org.apache.lucene.document.Document
@@ -33,7 +34,7 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
   override def writeLucene(
       field: DateField,
       spec: DateFieldSchema,
-      buffer: Document
+      buffer: DocumentGroup
   ): Unit = {
     IntField.writeLucene(IntField(field.name, field.value), spec.asInt, buffer)
   }

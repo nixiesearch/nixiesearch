@@ -6,14 +6,10 @@ import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
+import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
-import org.apache.lucene.document.{
-  NumericDocValuesField,
-  SortedNumericDocValuesField,
-  StoredField,
-  Document as LuceneDocument
-}
+import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 
@@ -25,20 +21,20 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
   override def writeLucene(
       field: BooleanField,
       spec: BooleanFieldSchema,
-      buffer: LuceneDocument
+      buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
-      buffer.add(new org.apache.lucene.document.IntField(field.name, toInt(field.value), Store.NO))
+      buffer.parent.add(new org.apache.lucene.document.IntField(field.name, toInt(field.value), Store.NO))
     }
     if (spec.sort) {
-      buffer.add(new NumericDocValuesField(field.name + SORT_SUFFIX, toInt(field.value)))
+      buffer.parent.add(new NumericDocValuesField(field.name + SORT_SUFFIX, toInt(field.value)))
     }
 
     if (spec.facet) {
-      buffer.add(new SortedNumericDocValuesField(field.name, toInt(field.value)))
+      buffer.parent.add(new SortedNumericDocValuesField(field.name, toInt(field.value)))
     }
     if (spec.store) {
-      buffer.add(new StoredField(field.name, toInt(field.value)))
+      buffer.parent.add(new StoredField(field.name, toInt(field.value)))
     }
   }
 
