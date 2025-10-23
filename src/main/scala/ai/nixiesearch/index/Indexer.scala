@@ -52,6 +52,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
         ids.append(id)
         val docGroup = DocumentGroup(id)
         doc.fields.foreach {
+          case field @ TextField("_id", _, _)    => // handled by DocumentGroup
           case field @ TextField(name, value, _) =>
             writeField(
               field,

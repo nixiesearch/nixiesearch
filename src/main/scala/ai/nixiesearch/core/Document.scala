@@ -286,18 +286,18 @@ object Document {
       text             <- c.downField("text").as[List[String]]
       embedding        <- c.downField("embedding").as[Option[List[Array[Float]]]]
       embeddingDecoded <- embedding match {
-        case None          => Right({})
+        case None          => Right(None)
         case Some(embList) =>
           embList.size match {
             case 0                           => Right(None)
-            case other if other == text.size => Right(embList)
-            case other if text.size == 1     => Right(embList)
+            case other if other == text.size => Right(Some(embList))
+            case other if text.size == 1     => Right(Some(embList))
             case other                       =>
               Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
           }
       }
     } yield {
-      TextListEmbedding(text, embedding)
+      TextListEmbedding(text, embeddingDecoded)
     }
   }
 

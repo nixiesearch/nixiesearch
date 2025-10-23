@@ -18,14 +18,16 @@ case class DocumentGroup(
     parent.add(new BinaryDocValuesField("_id" + FILTER_SUFFIX, new BytesRef(id)))
     parent.add(new StoredField("_id", id))
     parent.add(new StringField("_id" + FILTER_SUFFIX, id, Store.NO))
-    parent.add(new StringField(ROLE_FIELD, "parent", Store.YES))
+    if (children.nonEmpty) {
+      parent.add(new StringField(ROLE_FIELD, "parent", Store.YES))
 
-    children.foreach(child => {
-      child.add(new BinaryDocValuesField("_id" + FILTER_SUFFIX, new BytesRef(id)))
-      child.add(new StoredField("_id", id))
-      child.add(new StringField("_id" + FILTER_SUFFIX, id, Store.NO))
-      child.add(new StringField(ROLE_FIELD, "child", Store.YES))
-    })
+      children.foreach(child => {
+        child.add(new BinaryDocValuesField("_id" + FILTER_SUFFIX, new BytesRef(id)))
+        child.add(new StoredField("_id", id))
+        child.add(new StringField("_id" + FILTER_SUFFIX, id, Store.NO))
+        child.add(new StringField(ROLE_FIELD, "child", Store.YES))
+      })
+    }
     children.toList :+ parent
   }
 }
