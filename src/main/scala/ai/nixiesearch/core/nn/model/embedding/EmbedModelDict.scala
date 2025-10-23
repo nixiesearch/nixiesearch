@@ -58,7 +58,13 @@ case class EmbedModelDict(embedders: Map[ModelRef, EmbedModel], metrics: Metrics
 
 object EmbedModelDict extends Logging {
 
-  case class TransformersConfig(hidden_size: Int, model_type: Option[String] = None)
+  case class TransformersConfig(
+      hidden_size: Int,
+      model_type: Option[String] = None,
+      num_hidden_layers: Option[Int] = None,
+      num_attention_heads: Option[Int] = None,
+      num_key_value_heads: Option[Int] = None
+  )
   given transformersConfigDecoder: Decoder[TransformersConfig] = deriveDecoder
 
   def create(

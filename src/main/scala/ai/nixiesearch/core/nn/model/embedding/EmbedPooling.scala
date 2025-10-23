@@ -54,6 +54,29 @@ object EmbedPooling {
     result
   }
 
+  def lastToken(
+      tensor: Array[Array[Array[Float]]],
+      tokenLengths: Array[Int],
+      dimensions: Int,
+      normalize: Boolean
+  ): Array[Array[Float]] = {
+    val result     = new Array[Array[Float]](tokenLengths.length)
+    var batchIndex = 0
+    while (batchIndex < tensor.length) {
+      val embed         = new Array[Float](dimensions)
+      val lastTokenIdx  = tokenLengths(batchIndex) - 1
+      var dimIndex      = 0
+      while (dimIndex < dimensions) {
+        val item = tensor(batchIndex)(lastTokenIdx)(dimIndex)
+        embed(dimIndex) = item
+        dimIndex += 1
+      }
+      result(batchIndex) = if (normalize) norm(embed) else embed
+      batchIndex += 1
+    }
+    result
+  }
+
   // F.normalize like SBERT does
   def norm(embed: Array[Float], eps: Float = 1e-12): Array[Float] = {
     var i         = 0

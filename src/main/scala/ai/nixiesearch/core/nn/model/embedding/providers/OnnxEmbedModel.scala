@@ -29,7 +29,7 @@ import io.circe.{Decoder, Encoder, Json}
 import io.circe.parser.*
 import io.circe.generic.semiauto.*
 
-import java.nio.LongBuffer
+import java.nio.{FloatBuffer, LongBuffer}
 import java.nio.file.{Path, Files as NIOFiles}
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
@@ -41,11 +41,27 @@ case class OnnxEmbedModel(
     tokenizer: HuggingFaceTokenizer,
     dim: Int,
     inputTensorNames: List[String],
+    modelConfig: TransformersConfig,
     config: OnnxEmbeddingInferenceModelConfig
 ) extends EmbedModelProvider {
   override val model: String    = config.model.asList.mkString("/")
   override val provider: String = "onnx"
   override val batchSize        = config.batchSize
+
+  private def createPositionIds(batchSize: Long, seqLen: Long): Array[Long] = {
+    // np.tile(np.arange(sequence_length), (batch_size, 1))
+    val result = new Array[Long](batchSize.toInt * seqLen.toInt)
+    var i      = 0
+    while (i < batchSize) {
+      var j = 0
+      while (j < seqLen) {
+        result((i * seqLen + j).toInt) = j
+        j += 1
+      }
+      i += 1
+    }
+    result
+  }
 
   override def encodeBatch(task: TaskType, batch: List[String]): IO[Array[Array[Float]]] = IO {
     val formatted = task match {
@@ -60,21 +76,41 @@ case class OnnxEmbedModel(
     val tokenTypes   = encoded.flatMap(e => e.getTypeIds)
     val attMask      = encoded.flatMap(e => e.getAttentionMask)
 
-    val tensorDim = Array(batch.length.toLong, encoded(0).getIds.length)
-    val argsList  = inputTensorNames.map {
+    val batchSize = batch.length.toLong
+    val seqLen    = encoded(0).getIds.length.toLong
+    val tensorDim = Array(batchSize, seqLen)
+
+    lazy val positionIds = createPositionIds(batchSize, seqLen)
+
+    val argsList = inputTensorNames.map {
       case "input_ids"      => OnnxTensor.createTensor(env, LongBuffer.wrap(tokens), tensorDim)
       case "token_type_ids" => OnnxTensor.createTensor(env, LongBuffer.wrap(tokenTypes), tensorDim)
       case "attention_mask" => OnnxTensor.createTensor(env, LongBuffer.wrap(attMask), tensorDim)
+      case "position_ids"   => OnnxTensor.createTensor(env, LongBuffer.wrap(positionIds), tensorDim)
       // for jina-embed-v3
       case "task_id" => OnnxTensor.createTensor(env, LongBuffer.wrap(Array(4L)), Array(1L))
-      case other     => throw Exception(s"input $other not supported")
+      // KV cache tensors for decoder models like Qwen3
+      case name if name.startsWith("past_key_values.") && name.endsWith(".key") =>
+        // For GQA models: head_dim = hidden_size / num_kv_heads
+        // For MHA models: head_dim = hidden_size / num_attention_heads
+        val numKVHeads = modelConfig.num_key_value_heads.getOrElse(modelConfig.num_attention_heads.getOrElse(8))
+        val headDim    = dim / numKVHeads
+        val kvShape    = Array(batchSize, numKVHeads.toLong, 0L, headDim.toLong)
+        OnnxTensor.createTensor(env, FloatBuffer.allocate(0), kvShape)
+      case name if name.startsWith("past_key_values.") && name.endsWith(".value") =>
+        val numKVHeads = modelConfig.num_key_value_heads.getOrElse(modelConfig.num_attention_heads.getOrElse(8))
+        val headDim    = dim / numKVHeads
+        val kvShape    = Array(batchSize, numKVHeads.toLong, 0L, headDim.toLong)
+        OnnxTensor.createTensor(env, FloatBuffer.allocate(0), kvShape)
+      case other => throw Exception(s"input $other not supported")
     }
-    val args       = inputTensorNames.zip(argsList).toMap
+    val args = inputTensorNames.zip(argsList).toMap
     val result     = session.run(args.asJava)
     val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
     val normalized = config.pooling match {
-      case PoolingType.MeanPooling => EmbedPooling.mean(tensor, tokenLengths, dim, config.normalize)
-      case PoolingType.CLSPooling  => EmbedPooling.cls(tensor, tokenLengths, dim, config.normalize)
+      case PoolingType.MeanPooling      => EmbedPooling.mean(tensor, tokenLengths, dim, config.normalize)
+      case PoolingType.CLSPooling       => EmbedPooling.cls(tensor, tokenLengths, dim, config.normalize)
+      case PoolingType.LastTokenPooling => EmbedPooling.lastToken(tensor, tokenLengths, dim, config.normalize)
     }
 
     result.close()
@@ -114,6 +150,13 @@ object OnnxEmbedModel extends Logging {
         pooling = PoolingType(model),
         prompt = PromptConfig(model)
       )
+    def apply(model: ModelHandle, file: Option[String]) =
+      new OnnxEmbeddingInferenceModelConfig(
+        model,
+        pooling = PoolingType(model),
+        prompt = PromptConfig(model),
+        file = file.map(f => OnnxModelFile(f))
+      )
   }
 
   def create(
@@ -124,7 +167,7 @@ object OnnxEmbedModel extends Logging {
     onnx <- OnnxSession.fromHandle(handle, cache, conf)
   } yield {
     val inputs = onnx.session.getInputNames.asScala.toList
-    OnnxEmbedModel(onnx.env, onnx.session, onnx.tokenizer, onnx.config.hidden_size, inputs, conf)
+    OnnxEmbedModel(onnx.env, onnx.session, onnx.tokenizer, onnx.config.hidden_size, inputs, onnx.config, conf)
   }
 
   given onnxEmbeddingConfigEncoder: Encoder[OnnxEmbeddingInferenceModelConfig] = deriveEncoder
@@ -162,12 +205,16 @@ object OnnxEmbedModel extends Logging {
 
     case object CLSPooling extends PoolingType
 
+    case object LastTokenPooling extends PoolingType
+
     def apply(handle: ModelHandle) = handle match {
       case hf: HuggingFaceHandle =>
         hf match {
           case HuggingFaceHandle("Alibaba-NLP", _)   => CLSPooling
           case HuggingFaceHandle("Snowflake", _)     => CLSPooling
           case HuggingFaceHandle("mixedbread-ai", _) => CLSPooling
+          case HuggingFaceHandle("Qwen", _)          => LastTokenPooling
+          case HuggingFaceHandle(_, name) if name.toLowerCase.contains("qwen") => LastTokenPooling
           case _                                     => MeanPooling
         }
       case LocalModelHandle(dir) =>
@@ -179,14 +226,16 @@ object OnnxEmbedModel extends Logging {
     }
 
     given poolingTypeEncoder: Encoder[PoolingType] = Encoder.encodeString.contramap {
-      case MeanPooling => "mean"
-      case CLSPooling  => "cls"
+      case MeanPooling      => "mean"
+      case CLSPooling       => "cls"
+      case LastTokenPooling => "last"
     }
 
     given poolingTypeDecoder: Decoder[PoolingType] = Decoder.decodeString.emapTry {
       case "mean" => Success(MeanPooling)
       case "cls"  => Success(CLSPooling)
-      case other  => Failure(UserError(s"only cls/mean pooling types supported, but got '$other'"))
+      case "last" => Success(LastTokenPooling)
+      case other  => Failure(UserError(s"only cls/mean/last pooling types supported, but got '$other'"))
     }
   }
 

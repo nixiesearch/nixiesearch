@@ -5,9 +5,9 @@ Nixiesearch supports any [sentence-transformers](https://sbert.net)-compatible m
 The following list of models is tested to work well with Nixiesearch: 
 
 * there is an ONNX model provided in the repo (e.g. a `model.onnx` file),
-* input tensor shapes are supported, 
+* input tensor shapes are supported,
 * Nixiesearch can correctly guess query and document prompt format (like E5-family of models requiring `query: ` and `passage: ` prefixes),
-* embedding pooling method is supported - `CLS` or `mean`.
+* embedding pooling method is supported - `CLS`, `mean`, or `last` (for decoder-style models like Qwen3-Embedding).
 
 !!! note
 
