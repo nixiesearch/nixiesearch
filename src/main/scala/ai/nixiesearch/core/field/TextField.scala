@@ -9,6 +9,7 @@ import ai.nixiesearch.config.mapping.SearchParams.*
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Json}
@@ -40,52 +41,48 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
   override def writeLucene(
       field: TextField,
       spec: TextFieldSchema,
-      buffer: LuceneDocument
+      buffer: DocumentGroup
   ): Unit = {
-    if (field.name == "_id") {
-      buffer.add(new BinaryDocValuesField(field.name + FILTER_SUFFIX, new BytesRef(field.value)))
-      buffer.add(new StoredField(field.name, field.value))
-      buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
-    } else {
-      if (spec.store) {
-        buffer.add(new StoredField(field.name, field.value))
-      }
-      if (spec.facet || spec.sort) {
-        val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
-        buffer.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
-      }
-      if (spec.filter) {
-        buffer.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
 
-      }
-      if (spec.search.lexical.isDefined) {
-        val trimmed =
-          if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
-          else field.value
-        buffer.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
-      }
-
-      spec.search.semantic.foreach(conf =>
-        field.embedding match {
-          case Some(embed) =>
-            val similarityFunction = conf.distance match {
-              case Distance.Cosine => VectorSimilarityFunction.COSINE
-              case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
-            }
-            buffer.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
-          case None => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
-        }
-      )
-
-      spec.suggest.foreach(schema => {
-        SuggestCandidates
-          .fromString(schema, field.name, field.value)
-          .foreach(candidate => {
-            val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
-            buffer.add(s)
-          })
-      })
+    if (spec.store) {
+      buffer.parent.add(new StoredField(field.name, field.value))
     }
+    if (spec.facet || spec.sort) {
+      val trimmed = if (field.value.length > MAX_FACET_SIZE) field.value.substring(0, MAX_FACET_SIZE) else field.value
+      buffer.parent.add(new SortedDocValuesField(field.name, new BytesRef(trimmed)))
+    }
+    if (spec.filter) {
+      buffer.parent.add(new StringField(field.name + FILTER_SUFFIX, field.value, Store.NO))
+
+    }
+    if (spec.search.lexical.isDefined) {
+      val trimmed =
+        if (field.value.length > MAX_FIELD_SEARCH_SIZE) field.value.substring(0, MAX_FIELD_SEARCH_SIZE)
+        else field.value
+      buffer.parent.add(new org.apache.lucene.document.TextField(field.name, trimmed, Store.NO))
+    }
+
+    spec.search.semantic.foreach(conf =>
+      field.embedding match {
+        case Some(embed) =>
+          val similarityFunction = conf.distance match {
+            case Distance.Cosine => VectorSimilarityFunction.COSINE
+            case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
+          }
+          buffer.parent.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
+        case None => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
+      }
+    )
+
+    spec.suggest.foreach(schema => {
+      SuggestCandidates
+        .fromString(schema, field.name, field.value)
+        .foreach(candidate => {
+          val s = SuggestField(field.name + SUGGEST_SUFFIX, candidate, 1)
+          buffer.parent.add(s)
+        })
+    })
+
   }
 
   override def readLucene(

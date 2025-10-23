@@ -99,12 +99,12 @@ schema:
             analyze: english
 ```
 
-After that you can search over text fields with all [Query DSL operators](../../search/query/overview.md) Nixiesearch supports, for example `match`, `semantic` and `rrf`: 
+After that you can search over text fields with all [Query DSL operators](../../search/query/overview.md) Nixiesearch supports, for example `match`, `semantic` and `rrf`:
 
 ```shell
 curl -XPOST http://localhost:8080/v1/index/movies/search \
   -H "Content-Type: application/json" \
-  -d '{ 
+  -d '{
     "query": {
       "rrf": {
         "queries": [
@@ -112,12 +112,25 @@ curl -XPOST http://localhost:8080/v1/index/movies/search \
           {"semantic": {"title": "batman nolan"}}
         ],
         "rank_window_size": 20
-      } 
-    }, 
-    "fields": ["title"], 
+      }
+    },
+    "fields": ["title"],
     "size": 5
   }'
 ```
+
+#### Multi-vector search for text[] fields
+
+For `text[]` fields with semantic search enabled, Nixiesearch uses a multi-vector approach where each embedding is indexed separately. During indexing, child documents are created using Lucene's block-join structure, with one child per embedding.
+
+**Note**: For pre-embedded documents, the number of embeddings can differ from the number of text values. Specifically, a single text value can have multiple embeddings (useful for multi-perspective or chunk-based representations), but each text value must have at least one embedding in a 1:1 or 1:N relationship. See [pre-embedded text fields](../format.md#pre-embedded-text-fields) for ingestion format details.
+
+At search time, the [`knn`](../../search/query/retrieve/knn.md) and [`semantic`](../../search/query/retrieve/semantic.md) queries use Lucene's `DiversifyingChildrenFloatKnnVectorQuery` to:
+1. Find the k-nearest child documents (embeddings) across all items in the field
+2. Aggregate children back to their parent documents
+3. Use the maximum similarity score among all children as the document score
+
+This ensures the most relevant embedding drives the document's relevance, useful for fields like product descriptions, document chunks, or review collections.
 
 ### Facets, filters and sorting
 

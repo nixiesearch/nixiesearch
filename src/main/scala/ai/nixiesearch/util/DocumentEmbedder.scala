@@ -50,6 +50,9 @@ case class DocumentEmbedder(
                         s"field ${field.name} should have an embedding for text '${text.value}', but it's not - this is a bug"
                       )
                   }
+                case list: TextListField if list.embeddings.isDefined =>
+                  // fast path for pre-embedded docs
+                  list
                 case list: TextListField =>
                   list.copy(embeddings =
                     Some(
