@@ -1,6 +1,6 @@
 services:
   kafka:
-    image: docker.io/bitnami/kafka:3.7.0
+    image: docker.io/apache/kafka:4.0.1
     ports:
       - "9092:9092"
     environment:
