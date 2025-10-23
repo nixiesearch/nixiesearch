@@ -8,6 +8,7 @@ import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
+import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import org.apache.lucene.document.{Document, LatLonDocValuesField, LatLonPoint, StoredField}
@@ -23,19 +24,19 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
   override def writeLucene(
       field: GeopointField,
       spec: GeopointFieldSchema,
-      buffer: Document
+      buffer: DocumentGroup
   ): Unit = {
     if (spec.store) {
       val buf = ByteBuffer.allocate(16)
       buf.putDouble(field.lat)
       buf.putDouble(field.lon)
-      buffer.add(new StoredField(field.name, new BytesRef(buf.array())))
+      buffer.parent.add(new StoredField(field.name, new BytesRef(buf.array())))
     }
     if (spec.filter) {
-      buffer.add(new LatLonPoint(field.name, field.lat, field.lon))
+      buffer.parent.add(new LatLonPoint(field.name, field.lat, field.lon))
     }
     if (spec.sort) {
-      buffer.add(new LatLonDocValuesField(field.name + SORT_SUFFIX, field.lat, field.lon))
+      buffer.parent.add(new LatLonDocValuesField(field.name + SORT_SUFFIX, field.lat, field.lon))
     }
   }
 

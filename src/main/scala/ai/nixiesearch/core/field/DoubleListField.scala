@@ -7,6 +7,7 @@ import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Json
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{Document, NumericDocValuesField, SortedNumericDocValuesField, StoredField}
@@ -19,18 +20,18 @@ object DoubleListField extends FieldCodec[DoubleListField, DoubleListFieldSchema
   override def writeLucene(
       field: DoubleListField,
       spec: DoubleListFieldSchema,
-      buffer: Document
+      buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
-      field.value.foreach(value => buffer.add(new org.apache.lucene.document.DoubleField(field.name, value, Store.NO)))
+      field.value.foreach(value => buffer.parent.add(new org.apache.lucene.document.DoubleField(field.name, value, Store.NO)))
 
     }
     if (spec.store) {
-      field.value.foreach(value => buffer.add(new StoredField(field.name, value)))
+      field.value.foreach(value => buffer.parent.add(new StoredField(field.name, value)))
     }
     if (spec.facet) {
       field.value.foreach(value =>
-        buffer.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(value)))
+        buffer.parent.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(value)))
       )
     }
 

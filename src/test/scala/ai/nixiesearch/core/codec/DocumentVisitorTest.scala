@@ -95,7 +95,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       val docs           = store.searcher.search(request).unsafeRunSync()
       val actualFields   = docs.hits.head.fields.sortBy(_.name)
       val expectedFields = (source.fields :+ FloatField("_score", 1.0)).sortBy(_.name)
-      actualFields shouldBe expectedFields
+      actualFields should contain theSameElementsAs expectedFields
     }
   }
   // should fail

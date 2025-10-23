@@ -50,12 +50,7 @@ object Document {
           mapping.requiredFields.filterNot(schemaField => other.exists(docField => schemaField.matches(docField.name)))
         missingFields match {
           case Nil =>
-            if (other.exists(_.name == "_id")) {
-              Right(Document(other))
-            } else {
-              val id = TextField("_id", UUID.randomUUID().toString)
-              Right(Document(other :+ id))
-            }
+            Right(Document(other))
           case nel =>
             Left(
               DecodingFailure(
@@ -185,6 +180,12 @@ object Document {
             case Left(err)    => Left(DecodingFailure(s"cannot decode text field $fieldName for $value", Nil))
             case Right(value) => Right(List(TextField(fieldName, value.text, Some(value.embedding))))
           }
+        case Some(text: TextListFieldSchema) =>
+          value.toJson.as[TextListEmbedding] match {
+            case Left(err)    => Left(DecodingFailure(s"cannot decode text[] field $fieldName for $value", Nil))
+            case Right(value) =>
+              Right(List(TextListField(fieldName, value = value.text, embeddings = value.embedding)))
+          }
         case Some(other) =>
           Left(DecodingFailure(s"field $fieldName cannot be parsed from json object '$value'", Nil))
         case None =>
@@ -277,5 +278,27 @@ object Document {
 
   case class TextEmbedding(text: String, embedding: Array[Float])
   given textEmbeddingCodec: Codec[TextEmbedding] = deriveCodec
+
+  case class TextListEmbedding(text: List[String], embedding: Option[List[Array[Float]]])
+  given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
+  given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
+    for {
+      text             <- c.downField("text").as[List[String]]
+      embedding        <- c.downField("embedding").as[Option[List[Array[Float]]]]
+      embeddingDecoded <- embedding match {
+        case None          => Right(None)
+        case Some(embList) =>
+          embList.size match {
+            case 0                           => Right(None)
+            case other if other == text.size => Right(Some(embList))
+            case other if text.size == 1     => Right(Some(embList))
+            case other                       =>
+              Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
+          }
+      }
+    } yield {
+      TextListEmbedding(text, embeddingDecoded)
+    }
+  }
 
 }

@@ -6,6 +6,7 @@ import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Json
 import org.apache.lucene.document.{
   NumericDocValuesField,
@@ -22,16 +23,18 @@ object IntListField extends FieldCodec[IntListField, IntListFieldSchema, List[In
   override def writeLucene(
       field: IntListField,
       spec: IntListFieldSchema,
-      buffer: LuceneDocument
+      buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
-      field.value.foreach(value => buffer.add(new org.apache.lucene.document.IntField(field.name, value, Store.NO)))
+      field.value.foreach(value =>
+        buffer.parent.add(new org.apache.lucene.document.IntField(field.name, value, Store.NO))
+      )
     }
     if (spec.store) {
-      field.value.foreach(value => buffer.add(new StoredField(field.name, value)))
+      field.value.foreach(value => buffer.parent.add(new StoredField(field.name, value)))
     }
     if (spec.facet) {
-      field.value.foreach(value => buffer.add(new SortedNumericDocValuesField(field.name, value)))
+      field.value.foreach(value => buffer.parent.add(new SortedNumericDocValuesField(field.name, value)))
     }
 
   }

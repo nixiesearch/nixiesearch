@@ -121,7 +121,7 @@ schema:
 
 ## Pre-embedded text fields
 
-By default, for [text fields](types/text.md) Nixiesearch expends a `JSON string` as a document field type, and handles the embedding process internally. Consider the following index schema:
+By default, for [text fields](types/text.md) Nixiesearch expects a `JSON string` (or array of strings for `text[]`) as a document field type, and handles the embedding process internally. Consider the following index schema:
 
 ```yaml
 inference:
@@ -134,23 +134,74 @@ schema:
       title:
         type: text
         search:
-          semantic: 
+          semantic:
+            model: my-model
+      tags:
+        type: text[]
+        search:
+          semantic:
             model: my-model
 ```
 
-So for a JSON document of:
+For a JSON document with server-side inference:
 
 ```json
-{"title": "cookies"}
+{
+  "title": "cookies",
+  "tags": ["scala", "functional", "programming"]
+}
 ```
 
-Nixiesearch will run an embedding inference for a model `intfloat/e5-small-v2`. In a case when you already have text embeddings for documents, you can skip the inference process altogether by providing field text and embedding at the same time:
+Nixiesearch will run embedding inference for the model `intfloat/e5-small-v2`. When you already have text embeddings for documents, you can skip the inference process by providing field text and embedding at the same time:
+
+### text fields
 
 ```json
-{"title": {"text": "cookies", "embedding": [1,2,3]}}
+{"title": {"text": "cookies", "embedding": [0.1, 0.2, 0.3, ...]}}
 ```
 
-So a text field has two possible ingestion formats:
+### text[] fields
 
-* `JSON string`: when embedding inference handled by the server
-* `JSON obj` with two fields of `text: string` and `embedding: array[float]` when embedding inference is skipped.
+For `text[]` fields, you can provide embeddings in multiple formats:
+
+**1:1 text-to-embedding mapping:**
+```json
+{
+  "tags": {
+    "text": ["scala", "functional", "programming"],
+    "embedding": [
+      [0.1, 0.2, 0.3, ...],  // embedding for "scala"
+      [0.4, 0.5, 0.6, ...],  // embedding for "functional"
+      [0.7, 0.8, 0.9, ...]   // embedding for "programming"
+    ]
+  }
+}
+```
+
+**Multiple embeddings for a single text:**
+
+A single text value can have multiple embeddings. This is useful for multi-perspective embeddings or chunk-based approaches:
+
+```json
+{
+  "description": {
+    "text": ["product overview"],
+    "embedding": [
+      [0.1, 0.2, 0.3, ...],  // embedding perspective 1
+      [0.4, 0.5, 0.6, ...],  // embedding perspective 2
+      [0.7, 0.8, 0.9, ...]   // embedding perspective 3
+    ]
+  }
+}
+```
+
+**Summary of ingestion formats:**
+
+* `JSON string` (for `text`) or `JSON array` (for `text[]`): when embedding inference is handled by the server
+* `JSON obj` with `text` and `embedding` fields: when embedding inference is skipped
+  * For `text`: `embedding` is a single array of floats
+  * For `text[]`: `embedding` is an array of arrays with the following constraints:
+    - **1:1 mapping**: number of embeddings equals number of text values
+    - **1:N mapping**: a single text value with N embeddings (useful for multi-perspective or chunk-based representations)
+
+**Note**: During search with `text[]` fields, all embeddings are considered, and the highest-scoring embedding determines the document's relevance score. See [multi-vector search for text[] fields](types/text.md#multi-vector-search-for-text-fields) for details.
