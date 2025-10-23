@@ -89,6 +89,11 @@ object InferenceConfig {
                 query = "Instruct: Given a query, retrieve relevant passages that answer the query.\\nQuery: ",
                 doc = ""
               )
+            case HuggingFaceHandle(_, name) if name.toLowerCase.contains("qwen") =>
+              PromptConfig(
+                query = "Instruct: Given a query, retrieve relevant passages that answer the query.\\nQuery: ",
+                doc = ""
+              )
             case _ => PromptConfig()
           }
         case LocalModelHandle(_) =>

@@ -214,6 +214,7 @@ object OnnxEmbedModel extends Logging {
           case HuggingFaceHandle("Snowflake", _)     => CLSPooling
           case HuggingFaceHandle("mixedbread-ai", _) => CLSPooling
           case HuggingFaceHandle("Qwen", _)          => LastTokenPooling
+          case HuggingFaceHandle(_, name) if name.toLowerCase.contains("qwen") => LastTokenPooling
           case _                                     => MeanPooling
         }
       case LocalModelHandle(dir) =>
