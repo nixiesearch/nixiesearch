@@ -31,6 +31,7 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.search.DocumentGroup
 import cats.effect.IO
 import cats.syntax.all.*
 
@@ -67,8 +68,14 @@ case class DocumentVisitor(
         buf.addOne(value)
     }
 
-  override def needsField(fieldInfo: FieldInfo): Status =
-    if ((fieldInfo.name == "_id") || fields.exists(_.matches(fieldInfo.name))) Status.YES else Status.NO
+  val reservedFields                                    = Set(DocumentGroup.ROLE_FIELD, DocumentGroup.PARENT_FIELD)
+  override def needsField(fieldInfo: FieldInfo): Status = {
+    if (
+      ((fieldInfo.name == "_id") || fields
+        .exists(_.matches(fieldInfo.name))) && !reservedFields.contains(fieldInfo.name)
+    ) Status.YES
+    else Status.NO
+  }
 
   override def stringField(fieldInfo: FieldInfo, value: String): Unit = mapping.fieldSchema(fieldInfo.name) match {
     case None => logger.warn(s"field ${fieldInfo.name} is not found in mapping, but collected: this should not happen")

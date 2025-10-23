@@ -1,14 +1,19 @@
 package ai.nixiesearch.api.query.retrieve
 
 import ai.nixiesearch.api.filter.Filters
-import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
+import ai.nixiesearch.core.field.TextListField.NESTED_EMBED_SUFFIX
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
+import ai.nixiesearch.core.search.DocumentGroup.{PARENT_FIELD, ROLE_FIELD}
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.generic.semiauto.*
-import org.apache.lucene.search.{KnnFloatVectorQuery, Query}
+import org.apache.lucene.index.Term
+import org.apache.lucene.search.BooleanClause.Occur
+import org.apache.lucene.search.join.{DiversifyingChildrenFloatKnnVectorQuery, QueryBitSetProducer}
+import org.apache.lucene.search.{BooleanClause, BooleanQuery, KnnFloatVectorQuery, Query, TermQuery}
 
 case class KnnQuery(field: String, query_vector: Array[Float], k: Option[Int], num_candidates: Option[Int] = None)
     extends RetrieveQuery {
@@ -17,27 +22,44 @@ case class KnnQuery(field: String, query_vector: Array[Float], k: Option[Int], n
       maybeFilter: Option[Filters],
       encoders: EmbedModelDict,
       fields: List[String]
-  ): IO[Query] = for {
-    schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
-    _      <- schema match {
-      case t: TextLikeFieldSchema[?] if t.search.semantic.nonEmpty => IO.unit
-      case t: TextLikeFieldSchema[?]                               =>
-        IO.raiseError(UserError(s"field '$field' is not lexically searchable, check the index mapping"))
-      case other => IO.raiseError(UserError(s"field '$field' is not a text field"))
+  ): IO[Query] = {
+    val realK   = k.getOrElse(10)
+    val numCand = num_candidates.getOrElse(math.round(realK * 1.5).toInt)
+    val finalK  = math.max(realK, numCand)
+    for {
+      luceneFilters <- maybeFilter match {
+        case None          => IO(None)
+        case Some(filters) => filters.toLuceneQuery(mapping)
+      }
+      schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
+      query  <- schema match {
+        case tf: TextFieldSchema if tf.search.semantic.nonEmpty =>
+          IO.pure(new KnnFloatVectorQuery(field, query_vector, finalK, luceneFilters.orNull))
+        case tlf: TextListFieldSchema if tlf.search.semantic.nonEmpty =>
+          IO {
+            val childFilter = new BooleanQuery.Builder()
+            childFilter.add(new BooleanClause(new TermQuery(new Term(ROLE_FIELD, "child")), Occur.FILTER))
+            childFilter.add(new BooleanClause(new TermQuery(new Term(PARENT_FIELD, field)), Occur.FILTER))
+            val parentFilter = new BooleanQuery.Builder()
+            parentFilter.add(new BooleanClause(new TermQuery(new Term(ROLE_FIELD, "parent")), Occur.FILTER))
+            luceneFilters.foreach(q => parentFilter.add(new BooleanClause(q, Occur.FILTER)))
+
+            new DiversifyingChildrenFloatKnnVectorQuery(
+              field + NESTED_EMBED_SUFFIX,
+              query_vector,
+              childFilter.build(),
+              finalK,
+              new QueryBitSetProducer(parentFilter.build())
+            )
+          }
+
+        case t: TextLikeFieldSchema[?] =>
+          IO.raiseError(UserError(s"field '$field' is not semantically searchable, check the index mapping"))
+        case other => IO.raiseError(UserError(s"field '$field' is not a text field"))
+      }
+    } yield {
+      query
     }
-    realK   = k.getOrElse(10)
-    numCand = num_candidates.getOrElse(math.round(realK * 1.5).toInt)
-    finalK  = math.max(realK, numCand)
-    result <- maybeFilter match {
-      case None          => IO(new KnnFloatVectorQuery(field, query_vector, finalK))
-      case Some(filters) =>
-        filters.toLuceneQuery(mapping).map {
-          case Some(luceneFilters) => new KnnFloatVectorQuery(field, query_vector, finalK, luceneFilters)
-          case None                => new KnnFloatVectorQuery(field, query_vector, finalK)
-        }
-    }
-  } yield {
-    result
   }
 }
 

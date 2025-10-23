@@ -79,7 +79,23 @@ class IndexStatsTest extends SearchTest with Matchers {
               0,
               "FLOAT32",
               "EUCLIDEAN"
-            )
+            ),
+            FieldStats(
+              "_id$raw",
+              2,
+              false,
+              "DOCS",
+              Map(
+                "PerFieldDocValuesFormat.format" -> "Lucene90",
+                "PerFieldDocValuesFormat.suffix" -> "0",
+                "PerFieldPostingsFormat.format"  -> "Lucene103",
+                "PerFieldPostingsFormat.suffix"  -> "0"
+              ),
+              0,
+              "FLOAT32",
+              "EUCLIDEAN"
+            ),
+            FieldStats("_id", 3, false, "NONE", Map(), 0, "FLOAT32", "EUCLIDEAN")
           )
         )
       )

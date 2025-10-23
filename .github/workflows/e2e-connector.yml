@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - jvm: 21
+          - jvm: 25
             platform: ubuntu-22.04
 
     steps:

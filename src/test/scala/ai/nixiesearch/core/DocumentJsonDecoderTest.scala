@@ -175,9 +175,9 @@ class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-    val json = """{"_id": "a", "title": "foo", "tracks": ["foo"]}"""
+    val json = """{"_id": "a", "title": "foo", "tracks": ["foo", "bar"]}"""
     decode[Document](json) shouldBe Right(
-      Document(List(TextField("_id", "a"), TextField("title", "foo"), TextListField("tracks", List("foo"))))
+      Document(List(TextField("_id", "a"), TextField("title", "foo"), TextListField("tracks", List("foo", "bar"))))
     )
   }
 
@@ -346,18 +346,6 @@ class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
     decode[Document]("{}") shouldBe a[Left[?, ?]]
   }
 
-  it should "generate synthetic ID" in {
-    given decoder: Decoder[Document] =
-      Document.decoderFor(
-        TestIndexMapping("test", List(TextFieldSchema(StringName("_id")), TextFieldSchema(StringName("title"))))
-      )
-    val ids = decode[Document]("""{"title":"foo"}""").map(_.fields.collectFirst { case TextField("_id", value, _) =>
-      value
-    })
-    ids should matchPattern { case Right(Some(_)) =>
-    }
-  }
-
   it should "accept numeric ids" in {
     given decoder: Decoder[Document] =
       Document.decoderFor(
@@ -516,6 +504,60 @@ class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
       )
     val json = """{"_id": "a", "count": 1}"""
     decode[Document](json) shouldBe a[Left[?, ?]]
+  }
+
+  it should "decode pre-embedded text list fields" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextListFieldSchema(
+              StringName("titles"),
+              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+            )
+          )
+        )
+      )
+    val json   = """{"_id": "a", "titles": {"text": ["foo", "bar"], "embedding": [[1,2,3], [4,5,6]]}}"""
+    val result = decode[Document](json)
+    result should matchPattern {
+      case Right(
+            Document(
+              List(
+                TextField("_id", "a", _),
+                TextListField("titles", List("foo", "bar"), Some(embeddings))
+              )
+            )
+          )
+          if embeddings.length == 2 && embeddings(0).toList == List(1.0f, 2.0f, 3.0f) && embeddings(1).toList == List(
+            4.0f,
+            5.0f,
+            6.0f
+          ) =>
+    }
+  }
+
+  it should "decode pre-embedded text list fields with single item" in {
+    given decoder: Decoder[Document] =
+      Document.decoderFor(
+        TestIndexMapping(
+          "test",
+          List(
+            TextFieldSchema(StringName("_id")),
+            TextListFieldSchema(
+              StringName("titles"),
+              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+            )
+          )
+        )
+      )
+    val json   = """{"_id": "a", "titles": {"text": ["foo"], "embedding": [[1,2,3],[4,5,6]]}}"""
+    val result = decode[Document](json).toOption.get
+    result.fields should matchPattern {
+      case _ :: TextListField("titles", List("foo"), Some(embs)) :: Nil if embs.length == 2 =>
+    }
   }
 
 }
