@@ -331,6 +331,26 @@ Fields:
 * `batch_size`: *optional*, *int*, default `32`. Inference batch size for processing multiple query-document pairs.
 * `device`: *optional*, *string*, default `cpu`. Processing device (`cpu` or `gpu`).
 * `file`: *optional*, *string*. A file name of the model - useful when HF repo contains multiple versions of the same model.
+* `padding_side`: *optional*, `left` or `right`. Controls tokenizer padding direction. Auto-detected for known models (e.g., `left` for Qwen3-based rerankers).
+* `prompt`: *optional*, *object*. Custom prompt template configuration. Auto-detected for known models like Qwen3-Reranker which use template-based prompting with special system instructions.
+* `logits_processor`: *optional*, `sigmoid` or `noop`, default `noop`. Controls how raw model outputs are transformed to scores. Auto-detected as `sigmoid` for Qwen3-based models, `noop` for traditional cross-encoders.
+
+**Example with Qwen3-Reranker (auto-detection):**
+
+```yaml
+inference:
+  ranker:
+    qwen-reranker:
+      provider: onnx
+      model: zhiqing/Qwen3-Reranker-0.6B-seq-cls-ONNX
+      # The following are auto-detected for Qwen3-based models:
+      # padding_side: left
+      # logits_processor: sigmoid
+      # prompt: (model-specific template)
+      max_tokens: 512
+      batch_size: 32
+      device: cpu
+```
 
 For detailed usage examples, see [Cross-Encoder Reranking documentation](../features/search/query/rank/ce.md).
 

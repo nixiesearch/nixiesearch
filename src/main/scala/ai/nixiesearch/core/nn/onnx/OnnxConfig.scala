@@ -10,9 +10,23 @@ trait OnnxConfig {
   def file: Option[OnnxModelFile]
   def maxTokens: Int
   def device: Device
+  def paddingSide: Option[OnnxConfig.PaddingSide] = None
 }
 
 object OnnxConfig {
+  enum PaddingSide(val value: String) {
+    case Left extends PaddingSide("left")
+    case Right extends PaddingSide("right")
+  }
+
+  given paddingSideEncoder: Encoder[PaddingSide] = Encoder.encodeString.contramap(_.value)
+
+  given paddingSideDecoder: Decoder[PaddingSide] = Decoder.decodeString.emapTry {
+    case "left"  => Success(PaddingSide.Left)
+    case "right" => Success(PaddingSide.Right)
+    case other   => Failure(UserError(s"padding_side must be 'left' or 'right', got '$other'"))
+  }
+
   enum Device {
     case CPU(threads: Int = OnnxSession.ONNX_THREADS_DEFAULT) extends Device
     case CUDA(id: Int)                                        extends Device
