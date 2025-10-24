@@ -222,6 +222,45 @@ object InferenceConfig {
     )
   }
 
+  case class RankPromptConfig(
+      template: Option[String] = None
+  ) {
+    def format(query: String, document: String): String = {
+      template match {
+        case Some(tmpl) =>
+          tmpl
+            .replace("{query}", query)
+            .replace("{document}", document)
+        case None =>
+          "" // No template - will use default pair encoding
+      }
+    }
+  }
+  object RankPromptConfig extends Logging {
+    val Qwen3Reranker = RankPromptConfig(
+      template = Some("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n<Instruct>: Given a web search query, retrieve relevant passages that answer the query\n<Query>: {query}\n<Document>: {document}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n")
+    )
+
+    def apply(model: ModelHandle): RankPromptConfig = {
+      model match {
+        case hf: HuggingFaceHandle =>
+          val modelName = hf.name.toLowerCase
+          if (modelName.contains("qwen") && modelName.contains("rerank")) {
+            Qwen3Reranker
+          } else {
+            RankPromptConfig() // Default: no prompt formatting
+          }
+        case LocalModelHandle(_) =>
+          logger.warn("Loading ranker model from disk, cannot guess prompt template")
+          logger.warn("Using empty prompt - please set explicitly in config inference.ranker.<model>.prompt")
+          RankPromptConfig()
+      }
+    }
+
+    given rankPromptEncoder: Encoder[RankPromptConfig] = deriveEncoder
+    given rankPromptDecoder: Decoder[RankPromptConfig] = deriveDecoder
+  }
+
   trait RankInferenceModelConfig {
     def model: ModelHandle
   }

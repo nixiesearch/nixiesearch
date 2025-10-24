@@ -40,10 +40,21 @@ inference:
 - `device`: Processing device (`cpu` or `gpu`) - see [inference overview](../../../inference/overview.md) for hardware requirements
 - `file`: Optional path to custom ONNX model file
 
+**Advanced Configuration:**
+
+Some reranker models like Qwen3-Reranker use template-based prompting with special tokens instead of simple query-document concatenation. Nixiesearch automatically detects model-specific configurations:
+
+- `padding_side`: Tokenizer padding direction (`left` or `right`). Auto-detected for known models.
+- `prompt`: Custom prompt template with placeholders for `{query}` and `{document}`. Auto-detected for Qwen3-based models.
+- `logits_processor`: Output transformation (`sigmoid` or `noop`). Auto-detected as `sigmoid` for Qwen3 models.
+
+Users can override auto-detected settings if needed by explicitly setting these values in the configuration.
+
 Popular cross-encoder models to consider:
 
 - `cross-encoder/ms-marco-MiniLM-L6-v2`: Fast, general-purpose ranking model, English only.
 - [`jinaai/jina-reranker-v2-base-multilingual`](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual): Slower, but much more precise multilingual ranker.
+- `zhiqing/Qwen3-Reranker-0.6B-seq-cls-ONNX`: Fast, efficient decoder-based reranker with automatic prompt template detection.
 
 Nixiesearch supports any sentence-transformer cross-encoder models in ONNX format. See the [Speeding up Inference > ONNX](https://sbert.net/docs/sentence_transformer/usage/efficiency.html#onnx) section of [SBERT](https://sbert.net) docs for more details on how to convert your own model.
 
