@@ -12,7 +12,8 @@ import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.search.DocumentGroup.{PARENT_FIELD, ROLE_FIELD}
 import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Decoder, DecodingFailure, Json}
+import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
+import io.circe.generic.semiauto.*
 import org.apache.lucene.document.{
   KnnFloatVectorField,
   SortedDocValuesField,
@@ -34,6 +35,28 @@ case class TextListField(name: String, value: List[String], embeddings: Option[L
 object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List[String]] {
   val NESTED_EMBED_SUFFIX = "._nested"
   import TextField.{MAX_FACET_SIZE, FILTER_SUFFIX, MAX_FIELD_SEARCH_SIZE}
+
+  case class TextListEmbedding(text: List[String], embedding: Option[List[Array[Float]]])
+  given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
+  given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
+    for {
+      text             <- c.downField("text").as[List[String]]
+      embedding        <- c.downField("embedding").as[Option[List[Array[Float]]]]
+      embeddingDecoded <- embedding match {
+        case None          => Right(None)
+        case Some(embList) =>
+          embList.size match {
+            case 0                           => Right(None)
+            case other if other == text.size => Right(Some(embList))
+            case other if text.size == 1     => Right(Some(embList))
+            case other                       =>
+              Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
+          }
+      }
+    } yield {
+      TextListEmbedding(text, embeddingDecoded)
+    }
+  }
 
   def apply(name: String, value: String, values: String*) = new TextListField(name, value +: values.toList)
   def apply(name: String, values: List[String])           = new TextListField(name, values)
@@ -99,6 +122,22 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
     Right(TextListField(name, value))
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
+
+  override def decodeJson(spec: TextListFieldSchema): Decoder[Option[TextListField]] = Decoder.instance(c =>
+    c.downField(spec.name.name).as[Option[List[String]]] match {
+      case Right(Some(Nil))   => Right(None)
+      case Right(Some(value)) => Right(Some(TextListField(spec.name.name, value)))
+      case Right(None)        => Right(None)
+      case Left(err1)         =>
+        c.downField(spec.name.name).as[Option[TextListEmbedding]] match {
+          case Left(err2) =>
+            Left(DecodingFailure(s"Cannot decode '${spec.name.name}' field. as str: $err1, as obj: $err2", c.history))
+          case Right(Some(tle)) if tle.text.isEmpty => Right(None)
+          case Right(Some(tle)) => Right(Some(TextListField(spec.name.name, tle.text, tle.embedding)))
+          case Right(None)      => Right(None)
+        }
+    }
+  )
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.STRING, reverse)

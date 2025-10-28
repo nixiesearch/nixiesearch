@@ -105,6 +105,7 @@ trait RetrieveQuery extends Query {
     mapping.fieldSchema(by.field.name) match {
       case Some(schema) if !schema.sort =>
         IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
+      case Some(s: IdFieldSchema)         => IO.pure(IdField.sort(reverse))
       case Some(s: IntFieldSchema)        => IO.pure(IntField.sort(s.name, reverse, missing))
       case Some(s: IntListFieldSchema)    => IO.raiseError(UserError("sorting by int[] is not yet supported"))
       case Some(s: BooleanFieldSchema)    => IO.pure(BooleanField.sort(s.name, reverse, missing))

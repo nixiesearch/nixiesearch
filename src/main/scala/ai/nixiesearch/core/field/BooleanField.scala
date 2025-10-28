@@ -8,8 +8,13 @@ import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
 import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
-import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import io.circe.{ACursor, Decoder, Json}
+import org.apache.lucene.document.{
+  NumericDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 
@@ -49,6 +54,11 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
   }
 
   override def encodeJson(field: BooleanField): Json = Json.fromBoolean(field.value)
+
+  override def decodeJson(spec: BooleanFieldSchema): Decoder[Option[BooleanField]] =
+    Decoder.instance(
+      _.downField(spec.name.name).as[Option[Boolean]].map(_.map(value => BooleanField(spec.name.name, value)))
+    )
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField =
     IntField.sort(field, reverse, missing)

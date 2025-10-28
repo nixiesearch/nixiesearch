@@ -1,5 +1,6 @@
 package ai.nixiesearch.config
 
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore
 import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Error.UserError
@@ -46,6 +47,15 @@ object FieldSchema {
       )
     }
 
+  }
+
+  case class IdFieldSchema(name: FieldName = StringName("_id"), sort: Boolean = false, filter: Boolean = true)
+      extends FieldSchema[IdField] {
+
+    def store: Boolean                 = true
+    def facet: Boolean                 = false
+    def suggest: Option[SuggestSchema] = None
+    def required: Boolean              = false
   }
 
   case class TextFieldSchema(
@@ -192,6 +202,16 @@ object FieldSchema {
   object yaml {
     import SearchParams.given
     import SuggestSchema.yaml.given
+
+    def idFieldSchemaDecoder(name: FieldName): Decoder[IdFieldSchema] = Decoder.instance(c =>
+      for {
+        sort   <- c.downField("sort").as[Option[Boolean]]
+        filter <- c.downField("filter").as[Option[Boolean]]
+      } yield {
+        val default = IdFieldSchema()
+        IdFieldSchema(name = name, sort = sort.getOrElse(default.sort), filter = filter.getOrElse(default.filter))
+      }
+    )
 
     def textFieldSchemaDecoder(name: FieldName): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
@@ -397,22 +417,24 @@ object FieldSchema {
 
     def fieldSchemaDecoder(name: FieldName): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
-        case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
-        case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)
-        case Right("text[]" | "string[]") => textListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("int")                 => intFieldSchemaDecoder(name).tryDecode(c)
-        case Right("int[]")               => intListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
-        case Right("long[]")              => longListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
-        case Right("float[]")             => floatListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
-        case Right("double[]")            => doubleListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
-        case Right("geopoint")            => geopointFieldSchemaDecoder(name).tryDecode(c)
-        case Right("date")                => dateFieldSchemaDecoder(name).tryDecode(c)
-        case Right("datetime")            => dateTimeFieldSchemaDecoder(name).tryDecode(c)
-        case Right(other)                 =>
+        case Left(value) => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
+        case Right("id") => idFieldSchemaDecoder(name).tryDecode(c)
+        case Right("text" | "string") if name.name == "_id" => idFieldSchemaDecoder(name).tryDecode(c)
+        case Right("text" | "string")                       => textFieldSchemaDecoder(name).tryDecode(c)
+        case Right("text[]" | "string[]")                   => textListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("int")                                   => intFieldSchemaDecoder(name).tryDecode(c)
+        case Right("int[]")                                 => intListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("long")                                  => longFieldSchemaDecoder(name).tryDecode(c)
+        case Right("long[]")                                => longListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("float")                                 => floatFieldSchemaDecoder(name).tryDecode(c)
+        case Right("float[]")                               => floatListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("double")                                => doubleFieldSchemaDecoder(name).tryDecode(c)
+        case Right("double[]")                              => doubleListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("bool")                                  => booleanFieldSchemaDecoder(name).tryDecode(c)
+        case Right("geopoint")                              => geopointFieldSchemaDecoder(name).tryDecode(c)
+        case Right("date")                                  => dateFieldSchemaDecoder(name).tryDecode(c)
+        case Right("datetime")                              => dateTimeFieldSchemaDecoder(name).tryDecode(c)
+        case Right(other)                                   =>
           Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
     )
@@ -425,6 +447,9 @@ object FieldSchema {
     import io.circe.derivation.Configuration
 
     given config: Configuration = Configuration.default.withDefaults
+
+    given idFieldSchemaEncoder: Encoder[IdFieldSchema] = deriveEncoder
+    given idfieldSchemaDecoder: Decoder[IdFieldSchema] = ConfiguredDecoder.derived[IdFieldSchema](using config)
 
     given textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
     given textFieldSchemaDecoder: Decoder[TextFieldSchema] = ConfiguredDecoder.derived[TextFieldSchema](using config)
@@ -478,6 +503,7 @@ object FieldSchema {
     given dateTimeFieldSchemaEncoder: Encoder[DateTimeFieldSchema] = deriveEncoder
 
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
+      case f: IdFieldSchema         => idFieldSchemaEncoder.apply(f).deepMerge(withType("id"))
       case f: IntFieldSchema        => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: IntListFieldSchema    => intListFieldSchemaEncoder.apply(f).deepMerge(withType("int[]"))
       case f: LongFieldSchema       => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))

@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.{Document, NumericDocValuesField, SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
@@ -44,6 +44,9 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
     Right(LongField(name, value))
 
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
+
+  override def decodeJson(spec: LongFieldSchema): Decoder[Option[LongField]] =
+    Decoder.instance(_.downField(spec.name.name).as[Option[Long]].map(_.map(l => LongField(spec.name.name, l))))
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.LONG, reverse)

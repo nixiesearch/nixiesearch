@@ -12,7 +12,8 @@ import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.suggest.SuggestCandidates
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Codec, Decoder, DecodingFailure, Json}
+import io.circe.generic.semiauto.*
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   BinaryDocValuesField,
@@ -37,6 +38,9 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
 
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
+
+  case class TextEmbedding(text: String, embedding: Array[Float])
+  given textEmbeddingCodec: Codec[TextEmbedding] = deriveCodec
 
   override def writeLucene(
       field: TextField,
@@ -93,6 +97,20 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
     Right(TextField(name, value, None))
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
+
+  override def decodeJson(spec: TextFieldSchema): Decoder[Option[TextField]] = Decoder.instance(c =>
+    c.downField(spec.name.name).as[Option[String]] match {
+      case Right(Some(str)) => Right(Some(TextField(spec.name.name, str, None)))
+      case Right(None)      => Right(None)
+      case Left(err1)       =>
+        c.downField(spec.name.name).as[Option[TextEmbedding]] match {
+          case Left(err2) =>
+            Left(DecodingFailure(s"cannot decode field ${spec.name.name}'. as str: $err1, as obj: $err2", c.history))
+          case Right(Some(value)) => Right(Some(TextField(spec.name.name, value.text, Some(value.embedding))))
+          case Right(None)        => Right(None)
+        }
+    }
+  )
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name, SortField.Type.STRING, reverse)

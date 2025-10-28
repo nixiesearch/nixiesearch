@@ -8,10 +8,14 @@ import ai.nixiesearch.core.Document.JsonScalar.{JBoolean, JNumber, JString, JStr
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.field.GeopointField.Geopoint
+import ai.nixiesearch.core.field.TextField.TextEmbedding
+import ai.nixiesearch.core.field.TextListField.TextListEmbedding
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json, JsonNumber, JsonObject}
 import cats.syntax.all.*
 import io.circe.Decoder.{Result, resultInstance}
 import io.circe.generic.semiauto.*
+import org.http4s.DecodeResult
+
 import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -41,7 +45,43 @@ object Document {
       Json.fromJsonObject(JsonObject.fromIterable(fields))
     })
 
-  def decoderFor(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
+  def decoderFor2(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
+    mapping.fields.values.toList
+      .traverse {
+        case s: IdFieldSchema         => required(IdField.decodeJson(s).tryDecode(cursor), s)
+        case s: TextFieldSchema       => required(TextField.decodeJson(s).tryDecode(cursor), s)
+        case s: TextListFieldSchema   => required(TextListField.decodeJson(s).tryDecode(cursor), s)
+        case s: BooleanFieldSchema    => required(BooleanField.decodeJson(s).tryDecode(cursor), s)
+        case s: DateFieldSchema       => required(DateField.decodeJson(s).tryDecode(cursor), s)
+        case s: DateTimeFieldSchema   => required(DateTimeField.decodeJson(s).tryDecode(cursor), s)
+        case s: DoubleFieldSchema     => required(DoubleField.decodeJson(s).tryDecode(cursor), s)
+        case s: DoubleListFieldSchema => required(DoubleListField.decodeJson(s).tryDecode(cursor), s)
+        case s: FloatFieldSchema      => required(FloatField.decodeJson(s).tryDecode(cursor), s)
+        case s: FloatListFieldSchema  => required(FloatListField.decodeJson(s).tryDecode(cursor), s)
+        case s: GeopointFieldSchema   => required(GeopointField.decodeJson(s).tryDecode(cursor), s)
+        case s: IntFieldSchema        => required(IntField.decodeJson(s).tryDecode(cursor), s)
+        case s: IntListFieldSchema    => required(IntListField.decodeJson(s).tryDecode(cursor), s)
+        case s: LongFieldSchema       => required(LongField.decodeJson(s).tryDecode(cursor), s)
+        case s: LongListFieldSchema   => required(LongListField.decodeJson(s).tryDecode(cursor), s)
+      }
+      .flatMap(_.flatten match {
+        case Nil => Left(DecodingFailure("cannot decode empty document", cursor.history))
+        case nel => Right(Document(nel))
+      })
+  })
+
+  def required[F <: Field, S <: FieldSchema[F]](field: Result[Option[F]], spec: S): Result[Option[F]] = {
+    (spec.required, field) match {
+      case (_, Right(None)) if spec.name.name == "_id" => Right(None) // auto-gen later
+      case (false, _)                                  => field
+      case (true, Left(err))                           => Left(err)
+      case (true, Right(None))        => Left(DecodingFailure(f"field ${spec.name} is required but missing", Nil))
+      case (true, Right(Some(value))) => Right(Some(value))
+    }
+  }
+
+  def decoderFor(mapping: IndexMapping)                     = decoderFor2(mapping)
+  def decoderFor1(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
     cursor.value.foldWith(DocumentParser(Nil, mapping)) match {
       case Left(err)    => Left(err)
       case Right(Nil)   => Left(DecodingFailure(s"document cannot be empty: ${cursor.value}", cursor.history))
@@ -62,7 +102,7 @@ object Document {
 
     }
   })
-  def codecFor(mapping: IndexMapping): Codec[Document] = Codec.from(decoderFor(mapping), encoderFor(mapping))
+  def codecFor(mapping: IndexMapping): Codec[Document] = Codec.from(decoderFor2(mapping), encoderFor(mapping))
 
   sealed trait JsonScalar
   object JsonScalar {
@@ -274,31 +314,6 @@ object Document {
           }
 
       }
-  }
-
-  case class TextEmbedding(text: String, embedding: Array[Float])
-  given textEmbeddingCodec: Codec[TextEmbedding] = deriveCodec
-
-  case class TextListEmbedding(text: List[String], embedding: Option[List[Array[Float]]])
-  given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
-  given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
-    for {
-      text             <- c.downField("text").as[List[String]]
-      embedding        <- c.downField("embedding").as[Option[List[Array[Float]]]]
-      embeddingDecoded <- embedding match {
-        case None          => Right(None)
-        case Some(embList) =>
-          embList.size match {
-            case 0                           => Right(None)
-            case other if other == text.size => Right(Some(embList))
-            case other if text.size == 1     => Right(Some(embList))
-            case other                       =>
-              Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
-          }
-      }
-    } yield {
-      TextListEmbedding(text, embeddingDecoded)
-    }
   }
 
 }

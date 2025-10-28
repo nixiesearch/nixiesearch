@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.{Document, NumericDocValuesField, SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
@@ -27,7 +27,9 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
       buffer.parent.add(new org.apache.lucene.document.DoubleField(field.name, field.value, Store.NO))
     }
     if (spec.sort) {
-      buffer.parent.add(new NumericDocValuesField(field.name + SORT_SUFFIX, NumericUtils.doubleToSortableLong(field.value)))
+      buffer.parent.add(
+        new NumericDocValuesField(field.name + SORT_SUFFIX, NumericUtils.doubleToSortableLong(field.value))
+      )
     }
     if (spec.facet) {
       buffer.parent.add(new SortedNumericDocValuesField(field.name, NumericUtils.doubleToSortableLong(field.value)))
@@ -45,6 +47,9 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
     Right(DoubleField(name, value))
 
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
+
+  override def decodeJson(spec: DoubleFieldSchema): Decoder[Option[DoubleField]] =
+    Decoder.instance(_.downField(spec.name.name).as[Option[Double]].map(_.map(d => DoubleField(spec.name.name, d))))
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.DOUBLE, reverse)

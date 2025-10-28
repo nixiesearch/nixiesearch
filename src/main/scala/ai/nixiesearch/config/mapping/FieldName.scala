@@ -13,6 +13,10 @@ object FieldName {
     override def matches(field: String): Boolean = field == name
   }
 
+  case class NestedName(name: String, head: String, tail: String) extends FieldName {
+    override def matches(field: String): Boolean = field == name
+  }
+
   case class WildcardName(name: String, prefix: String, suffix: String) extends FieldName {
     override def matches(field: String): Boolean = field.startsWith(prefix) && field.endsWith(suffix)
   }
@@ -20,15 +24,24 @@ object FieldName {
   def unsafe(value: String) = parse(value).toOption.get
 
   def parse(field: String): Either[Throwable, FieldName] = {
-    val pos = field.indexOf('*')
-    if (pos == -1) {
+    val placeholderPos = field.indexOf('*')
+    val dotPos         = field.indexOf('.')
+    if ((placeholderPos == -1) && (dotPos == -1)) {
       Right(StringName(field))
-    } else {
-      if (field.indexOf('*', pos + 1) == -1) {
-        Right(WildcardName(field, field.substring(0, pos), field.substring(pos + 1)))
+    } else if (dotPos >= 0) {
+      if (field.indexOf('.', dotPos + 1) == -1) {
+        Right(NestedName(field, field.substring(0, dotPos), field.substring(dotPos + 1)))
+      } else {
+        Left(UserError(s"cannot parse nested field name '$field': more than one '.' placeholder found"))
+      }
+    } else if (placeholderPos >= 0) {
+      if (field.indexOf('*', placeholderPos + 1) == -1) {
+        Right(WildcardName(field, field.substring(0, placeholderPos), field.substring(placeholderPos + 1)))
       } else {
         Left(UserError(s"cannot parse wildcard field name '$field': more than one '*' placeholder found"))
       }
+    } else {
+      Left(UserError(s"we support only nested OR wildcard fields, not both: got field '$field'"))
     }
   }
 

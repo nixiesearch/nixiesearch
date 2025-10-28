@@ -41,6 +41,11 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
 
   override def encodeJson(field: DateTimeField): Json = Json.fromString(writeString(field.value))
 
+  override def decodeJson(spec: DateTimeFieldSchema): Decoder[Option[DateTimeField]] =
+    Decoder.instance(
+      _.downField(spec.name.name).as[Option[DateTime]].map(_.map(dt => DateTimeField(spec.name.name, dt.millis)))
+    )
+
   def parseString(in: String): Either[Throwable, Long] = {
     Try(ZonedDateTime.parse(in, DateTimeFormatter.ISO_DATE_TIME)) match {
       case Success(zoned) =>

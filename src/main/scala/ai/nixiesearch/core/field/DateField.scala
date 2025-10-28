@@ -41,6 +41,11 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
 
   override def encodeJson(field: DateField): Json = Json.fromString(writeString(field.value))
 
+  override def decodeJson(spec: DateFieldSchema): Decoder[Option[DateField]] =
+    Decoder.instance(
+      _.downField(spec.name.name).as[Option[Date]].map(_.map(date => DateField(spec.name.name, date.value)))
+    )
+
   def parseString(in: String): Either[Throwable, Int] = {
     Try(LocalDate.parse(in)) match {
       case Failure(exception) => Left(exception)

@@ -9,7 +9,7 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   KnnFloatVectorField,
@@ -54,6 +54,11 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
     Right(FloatField(name, value))
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
+
+  override def decodeJson(spec: FloatFieldSchema): Decoder[Option[FloatField]] = {
+    Decoder.instance(_.downField(spec.name.name).as[Option[Float]].map(_.map(f => FloatField(spec.name.name, f))))
+
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.FLOAT, reverse)

@@ -4,50 +4,55 @@ import sbt.Package.ManifestAttributes
 lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
-version := "0.7.2"
+ThisBuild / version      := "0.7.2"
+ThisBuild / scalaVersion := "3.7.3"
 
-scalaVersion := "3.7.3"
-
-name := "nixiesearch"
+lazy val root = (project in file("."))
+  .settings(
+    name := "nixiesearch"
+  )
 
 libraryDependencies ++= Seq(
-  "org.typelevel"         %% "cats-effect"                            % "3.6.3",
-  "org.scalatest"         %% "scalatest"                              % scalatestVersion % "test",
-  "org.scalactic"         %% "scalactic"                              % scalatestVersion % "test",
-  "org.scalatestplus"     %% "scalacheck-1-16"                        % "3.2.14.0"       % "test",
-  "ch.qos.logback"         % "logback-classic"                        % "1.5.20",
-  "io.circe"              %% "circe-yaml"                             % circeYamlVersion,
-  "io.circe"              %% "circe-core"                             % circeVersion,
-  "io.circe"              %% "circe-generic"                          % circeVersion,
-  "io.circe"              %% "circe-parser"                           % circeVersion,
-  "com.github.pathikrit"  %% "better-files"                           % "3.9.2",
-  "org.rogach"            %% "scallop"                                % "5.2.0",
-  "com.github.blemale"    %% "scaffeine"                              % "5.3.0",
-  "org.http4s"            %% "http4s-dsl"                             % http4sVersion,
-  "org.http4s"            %% "http4s-ember-server"                    % http4sVersion,
-  "org.http4s"            %% "http4s-ember-client"                    % http4sVersion,
-  "org.http4s"            %% "http4s-circe"                           % http4sVersion,
-  "org.apache.lucene"      % "lucene-core"                            % luceneVersion,
-  "org.apache.lucene"      % "lucene-backward-codecs"                 % luceneVersion,
-  "org.apache.lucene"      % "lucene-join"                            % luceneVersion,
-  "org.apache.lucene"      % "lucene-suggest"                         % luceneVersion,
-  "org.apache.lucene"      % "lucene-facet"                           % luceneVersion,
-  "org.apache.lucene"      % "lucene-queryparser"                     % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-common"                 % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-icu"                    % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-nori"                   % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-smartcn"                % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-kuromoji"               % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-stempel"                % luceneVersion,
-  "org.apache.lucene"      % "lucene-analysis-morfologik"             % luceneVersion,
-  "commons-io"             % "commons-io"                             % "2.20.0",
-  "commons-codec"          % "commons-codec"                          % "1.19.0",
-  "org.apache.commons"     % "commons-lang3"                          % "3.19.0",
-  "ai.djl"                 % "api"                                    % djlVersion,
-  "ai.djl.huggingface"     % "tokenizers"                             % djlVersion,
-  "com.github.luben"       % "zstd-jni"                               % "1.5.7-6",
-  "com.github.blemale"    %% "scaffeine"                              % "5.3.0",
-  "com.hubspot.jinjava"    % "jinjava"                                % "2.8.0",
+  "org.typelevel"        %% "cats-effect"                % "3.6.3",
+  "org.scalatest"        %% "scalatest"                  % scalatestVersion % "test",
+  "org.scalactic"        %% "scalactic"                  % scalatestVersion % "test",
+  "org.scalatestplus"    %% "scalacheck-1-16"            % "3.2.14.0"       % "test",
+  "ch.qos.logback"        % "logback-classic"            % "1.5.20",
+  "io.circe"             %% "circe-yaml"                 % circeYamlVersion,
+  "io.circe"             %% "circe-core"                 % circeVersion,
+  "io.circe"             %% "circe-generic"              % circeVersion,
+  "io.circe"             %% "circe-parser"               % circeVersion,
+  "com.github.pathikrit" %% "better-files"               % "3.9.2",
+  "org.rogach"           %% "scallop"                    % "5.2.0",
+  "com.github.blemale"   %% "scaffeine"                  % "5.3.0",
+  "org.http4s"           %% "http4s-dsl"                 % http4sVersion,
+  "org.http4s"           %% "http4s-ember-server"        % http4sVersion,
+  "org.http4s"           %% "http4s-ember-client"        % http4sVersion,
+  "org.http4s"           %% "http4s-circe"               % http4sVersion,
+  "org.apache.lucene"     % "lucene-core"                % luceneVersion,
+  "org.apache.lucene"     % "lucene-backward-codecs"     % luceneVersion,
+  "org.apache.lucene"     % "lucene-join"                % luceneVersion,
+  "org.apache.lucene"     % "lucene-suggest"             % luceneVersion,
+  "org.apache.lucene"     % "lucene-facet"               % luceneVersion,
+  "org.apache.lucene"     % "lucene-queryparser"         % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-common"     % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-icu"        % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-nori"       % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-smartcn"    % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-kuromoji"   % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-stempel"    % luceneVersion,
+  "org.apache.lucene"     % "lucene-analysis-morfologik" % luceneVersion,
+  "commons-io"            % "commons-io"                 % "2.20.0",
+  "commons-codec"         % "commons-codec"              % "1.19.0",
+  "org.apache.commons"    % "commons-lang3"              % "3.19.0",
+  "ai.djl"                % "api"                        % djlVersion,
+  "ai.djl.huggingface"    % "tokenizers"                 % djlVersion,
+  "com.github.luben"      % "zstd-jni"                   % "1.5.7-6",
+  "com.github.blemale"   %% "scaffeine"                  % "5.3.0",
+  "com.hubspot.jinjava"   % "jinjava"                    % "2.8.1" excludeAll (
+    ExclusionRule(organization = "com.google.code.findbugs", name = "annotations"),
+    ExclusionRule(organization = "com.google.code.findbugs", name = "jsr305")
+  ),
   "software.amazon.awssdk" % "s3"                                     % awsVersion,
   "co.fs2"                %% "fs2-core"                               % fs2Version,
   "co.fs2"                %% "fs2-io"                                 % fs2Version,
@@ -193,3 +198,11 @@ assembly / assemblyJarName          := "nixiesearch.jar"
 ThisBuild / assemblyRepeatableBuild := false
 ThisBuild / usePipelining           := true
 packageOptions                      := Seq(ManifestAttributes(("Multi-Release", "true")))
+
+// Benchmark sub-project
+lazy val benchmark = (project in file("src/benchmark"))
+  .enablePlugins(JmhPlugin)
+  .dependsOn(root)
+  .settings(
+    name := "benchmark"
+  )

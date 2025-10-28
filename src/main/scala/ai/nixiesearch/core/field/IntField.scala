@@ -8,7 +8,7 @@ import ai.nixiesearch.core.Field.NumericField
 import ai.nixiesearch.core.codec.FieldCodec
 import ai.nixiesearch.core.search.DocumentGroup
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.{
   NumericDocValuesField,
   SortedNumericDocValuesField,
@@ -49,6 +49,9 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
     Right(IntField(name, value))
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
+
+  override def decodeJson(spec: IntFieldSchema): Decoder[Option[IntField]] =
+    Decoder.instance(_.downField(spec.name.name).as[Option[Int]].map(_.map(i => IntField(spec.name.name, i))))
 
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.INT, reverse)
