@@ -6,13 +6,16 @@ import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchParams.*
+import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.codec.FieldCodec.WireDecodingError
 import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.suggest.SuggestCandidates
+import com.github.plokhotnyuk.jsoniter_scala.circe.CirceCodecs
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Codec, Decoder, DecodingFailure, Json}
+import io.circe.{ACursor, Codec, Decoder, DecodingFailure, Encoder, Json, JsoniterScalaCodec}
 import io.circe.generic.semiauto.*
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
@@ -27,8 +30,14 @@ import org.apache.lucene.index.VectorSimilarityFunction
 import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec.*
 
 import java.util.UUID
+import com.github.plokhotnyuk.jsoniter_scala.circe.CirceCodecs.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+
+import scala.util.{Failure, Success, Try}
 
 case class TextField(name: String, value: String, embedding: Option[Array[Float]] = None)
     extends Field
@@ -111,6 +120,37 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
         }
     }
   )
+
+  override def decodeJson(spec: TextFieldSchema, name: String, reader: JsonReader): Either[JsonError, TextField] = {
+    val tok = reader.nextToken()
+    reader.rollbackToken()
+    tok match {
+      case '"'   => decodePlain(spec, name, reader)
+      case '{'   => decodeEmbed(spec, name, reader)
+      case other => Left(JsonError(s"""for field $name expected '"' or '{' tokens"""))
+    }
+  }
+
+  def decodePlain(spec: TextFieldSchema, name: String, in: JsonReader): Either[JsonError, TextField] =
+    Try(in.readString(null)) match {
+      case Success(null) => Left(JsonError(s"field $name: got null"))
+      case Success(str)  => Right(TextField(name, str, None))
+      case Failure(err)  => Left(JsonError(s"field $name: cannot parse string: $err", err))
+    }
+  val textEmbeddingJICodec = JsonCodecMaker.make[TextEmbedding]
+  def decodeEmbed(spec: TextFieldSchema, name: String, in: JsonReader): Either[JsonError, TextField] = {
+    spec.search.semantic match {
+      case Some(s: SemanticParams) =>
+        Try(textEmbeddingJICodec.decodeValue(in, null)) match {
+          case Failure(err)  => Left(JsonError(s"field $name: cannot parse string: $err", err))
+          case Success(null) => Left(JsonError(s"field $name: got null"))
+          case Success(emb) if emb.embedding.length != s.dim => Left(JsonError(s"field $name: expected dim ${s.dim}, but got ${emb.embedding.length}"))
+          case Success(emb)  => Right(TextField(name, emb.text, Some(emb.embedding)))
+        }
+      case None =>
+        Left(JsonError(s"field ${name} has semantic=false for search params"))
+    }
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name, SortField.Type.STRING, reverse)

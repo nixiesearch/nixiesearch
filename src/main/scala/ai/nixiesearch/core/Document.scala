@@ -214,6 +214,7 @@ object Document {
 
     override def onString(value: String): Decoder.Result[List[Field]] = {
       mapping.fieldSchema(fieldName) match {
+        case Some(_: IdFieldSchema)   => Right(List(IdField(fieldName, value)))
         case Some(_: TextFieldSchema) => Right(List(TextField(fieldName, value)))
         case Some(_: DateFieldSchema) =>
           value match {
@@ -232,7 +233,7 @@ object Document {
 
     override def onNumber(value: JsonNumber): Decoder.Result[List[Field]] =
       mapping.fieldSchema(fieldName) match {
-        case Some(_: TextFieldSchema) if fieldName == "_id" =>
+        case Some(_: TextFieldSchema | _: IdFieldSchema) if fieldName == "_id" =>
           value.toLong match {
             case Some(long) => Right(List(TextField("_id", long.toString)))
             case None       => Left(DecodingFailure(s"cannot parse numeric _id field for value '$value'", Nil))
@@ -261,7 +262,7 @@ object Document {
           value.toJson.as[TextListEmbedding] match {
             case Left(err)    => Left(DecodingFailure(s"cannot decode text[] field $fieldName for $value", Nil))
             case Right(value) =>
-              Right(List(TextListField(fieldName, value = value.text, embeddings = value.embedding)))
+              Right(List(TextListField(fieldName, value = value.text, embeddings = Some(value.embedding))))
           }
         case Some(other) =>
           Left(DecodingFailure(s"field $fieldName cannot be parsed from json object '$value'", Nil))

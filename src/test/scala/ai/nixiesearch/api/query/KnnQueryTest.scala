@@ -24,7 +24,7 @@ class KnnQueryTest extends SearchTest with Matchers {
       TextFieldSchema(name = StringName("_id"), filter = true),
       TextFieldSchema(
         name = StringName("title"),
-        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
       )
     )
   )

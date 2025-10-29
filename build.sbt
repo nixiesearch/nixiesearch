@@ -64,7 +64,10 @@ libraryDependencies ++= Seq(
   "org.apache.kafka"       % "kafka-clients"                          % "4.1.0",
   "io.prometheus"          % "prometheus-metrics-core"                % prometheusVersion,
   "io.prometheus"          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
-  "io.prometheus"          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion
+  "io.prometheus"          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.38.3",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe" % "2.38.3",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.38.3" % "compile-internal"
 )
 
 if (GPU) {

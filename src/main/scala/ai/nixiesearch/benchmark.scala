@@ -1,5 +1,3 @@
 package ai.nixiesearch
 
-class benchmark {
-
-}
+class benchmark {}

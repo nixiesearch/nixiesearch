@@ -30,7 +30,7 @@ class DocumentEmbedderTest extends AnyFlatSpec with Matchers {
     fields = List(
       TextFieldSchema(
         name = StringName("title"),
-        search = SearchParams(semantic = Some(SemanticInferenceParams(model = modelRef)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = modelRef, dim=384)))
       )
     ),
     store = LocalStoreConfig(MemoryLocation())
@@ -50,7 +50,7 @@ class DocumentEmbedderTest extends AnyFlatSpec with Matchers {
     fields = List(
       TextListFieldSchema(
         name = StringName("tags"),
-        search = SearchParams(semantic = Some(SemanticInferenceParams(model = modelRef)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = modelRef, dim=384)))
       )
     ),
     store = LocalStoreConfig(MemoryLocation())

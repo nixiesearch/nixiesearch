@@ -27,7 +27,7 @@ class IndexStatsTest extends SearchTest with Matchers {
         name = StringName("title"),
         search = SearchParams(
           lexical = Some(LexicalParams()),
-          semantic = Some(SemanticInferenceParams(model = ModelRef("text")))
+          semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384))
         ),
         suggest = Some(SuggestSchema())
       )

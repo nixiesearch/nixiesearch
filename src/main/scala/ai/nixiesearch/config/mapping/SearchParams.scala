@@ -17,6 +17,7 @@ object SearchParams {
   case class LexicalParams(analyze: Language = Language.Generic)
 
   sealed trait SemanticParams {
+    def dim: Int
     def ef: Int
     def m: Int
     def workers: Int
@@ -26,6 +27,7 @@ object SearchParams {
 
   case class SemanticInferenceParams(
       model: ModelRef,
+      dim: Int,
       ef: Int = 32,
       m: Int = 16,
       workers: Int = Runtime.getRuntime.availableProcessors(),
@@ -94,6 +96,7 @@ object SearchParams {
   given embeddingSearchParamsInferenceDecoder: Decoder[SemanticInferenceParams] = Decoder.instance(c =>
     for {
       model    <- c.downField("model").as[ModelRef]
+      dim      <- c.downField("dim").as[Int]
       ef       <- c.downField("ef").as[Option[Int]]
       m        <- c.downField("m").as[Option[Int]]
       workers  <- c.downField("workers").as[Option[Int]]
@@ -102,6 +105,7 @@ object SearchParams {
     } yield {
       SemanticInferenceParams(
         model = model,
+        dim = dim,
         ef = ef.getOrElse(32),
         m = m.getOrElse(16),
         workers = workers.getOrElse(Runtime.getRuntime.availableProcessors()),

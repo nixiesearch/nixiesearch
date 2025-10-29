@@ -24,7 +24,7 @@ class RRFQueryTest extends SearchTest with Matchers {
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(
-          semantic = Some(SemanticInferenceParams(model = ModelRef("text"))),
+          semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)),
           lexical = Some(LexicalParams(analyze = English))
         )
       )

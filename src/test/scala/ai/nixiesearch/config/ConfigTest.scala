@@ -51,11 +51,11 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             fields = Map(
               StringName("title") -> TextFieldSchema(
                 StringName("title"),
-                SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"))))
+                SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"), dim=384)))
               ),
               StringName("desc") -> TextFieldSchema(
                 StringName("desc"),
-                SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"))))
+                SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"), dim=384)))
               ),
               StringName("price") -> IntFieldSchema(StringName("price"), true, true, true, true),
               StringName("_id")   -> TextFieldSchema(
@@ -98,7 +98,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id")   -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title") -> TextFieldSchema(
                 name = StringName("title"),
-                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
               )
             ),
             store = DistributedStoreConfig(
@@ -178,13 +178,13 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               StringName("_id")    -> TextFieldSchema(name = StringName("_id"), filter = true),
               StringName("title1") -> TextFieldSchema(
                 name = StringName("title1"),
-                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text")))),
+                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384))),
                 suggest = Some(SuggestSchema())
               ),
               StringName("title2") -> TextFieldSchema(
                 name = StringName("title2"),
                 search = SearchParams(
-                  semantic = Some(SemanticInferenceParams(model = ModelRef("text"))),
+                  semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)),
                   lexical = Some(LexicalParams(analyze = English))
                 ),
                 suggest = Some(
@@ -193,7 +193,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
               ),
               StringName("desc") -> TextFieldSchema(
                 name = StringName("desc"),
-                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+                search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
               ),
               StringName("price") -> IntFieldSchema(
                 name = StringName("price"),

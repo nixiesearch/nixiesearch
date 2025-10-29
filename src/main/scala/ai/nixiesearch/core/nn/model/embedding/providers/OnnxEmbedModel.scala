@@ -104,7 +104,7 @@ case class OnnxEmbedModel(
         OnnxTensor.createTensor(env, FloatBuffer.allocate(0), kvShape)
       case other => throw Exception(s"input $other not supported")
     }
-    val args = inputTensorNames.zip(argsList).toMap
+    val args       = inputTensorNames.zip(argsList).toMap
     val result     = session.run(args.asJava)
     val tensor     = result.get(0).getValue.asInstanceOf[Array[Array[Array[Float]]]]
     val normalized = config.pooling match {
@@ -210,12 +210,12 @@ object OnnxEmbedModel extends Logging {
     def apply(handle: ModelHandle) = handle match {
       case hf: HuggingFaceHandle =>
         hf match {
-          case HuggingFaceHandle("Alibaba-NLP", _)   => CLSPooling
-          case HuggingFaceHandle("Snowflake", _)     => CLSPooling
-          case HuggingFaceHandle("mixedbread-ai", _) => CLSPooling
-          case HuggingFaceHandle("Qwen", _)          => LastTokenPooling
+          case HuggingFaceHandle("Alibaba-NLP", _)                             => CLSPooling
+          case HuggingFaceHandle("Snowflake", _)                               => CLSPooling
+          case HuggingFaceHandle("mixedbread-ai", _)                           => CLSPooling
+          case HuggingFaceHandle("Qwen", _)                                    => LastTokenPooling
           case HuggingFaceHandle(_, name) if name.toLowerCase.contains("qwen") => LastTokenPooling
-          case _                                     => MeanPooling
+          case _                                                               => MeanPooling
         }
       case LocalModelHandle(dir) =>
         logger.warn("When using local non-HF model, we cannot guess the embedding pooling type")

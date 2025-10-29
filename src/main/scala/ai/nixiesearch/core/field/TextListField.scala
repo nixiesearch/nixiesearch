@@ -5,12 +5,16 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.SearchParams.Distance
-import ai.nixiesearch.core.Field
+import ai.nixiesearch.core.DocumentDecoder.JsonError
+import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.TextLikeField
 import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.field.TextField.textEmbeddingJICodec
 import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.search.DocumentGroup.{PARENT_FIELD, ROLE_FIELD}
 import ai.nixiesearch.core.suggest.SuggestCandidates
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto.*
@@ -28,6 +32,8 @@ import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
 
+import scala.util.{Failure, Success, Try}
+
 case class TextListField(name: String, value: List[String], embeddings: Option[List[Array[Float]]] = None)
     extends Field
     with TextLikeField
@@ -36,25 +42,37 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
   val NESTED_EMBED_SUFFIX = "._nested"
   import TextField.{MAX_FACET_SIZE, FILTER_SUFFIX, MAX_FIELD_SEARCH_SIZE}
 
-  case class TextListEmbedding(text: List[String], embedding: Option[List[Array[Float]]])
+  case class TextListEmbedding(text: List[String], embedding: List[Array[Float]])
   given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
   given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
     for {
       text             <- c.downField("text").as[List[String]]
-      embedding        <- c.downField("embedding").as[Option[List[Array[Float]]]]
-      embeddingDecoded <- embedding match {
-        case None          => Right(None)
-        case Some(embList) =>
-          embList.size match {
-            case 0                           => Right(None)
-            case other if other == text.size => Right(Some(embList))
-            case other if text.size == 1     => Right(Some(embList))
-            case other                       =>
-              Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
-          }
+      embedding        <- c.downField("embedding").as[List[Array[Float]]]
+      embeddingDecoded <- embedding.size match {
+        case 0                           => Left(DecodingFailure("embedding cannot be empty", c.history))
+        case other if other == text.size => Right(embedding)
+        case other if text.size == 1     => Right(embedding)
+        case other                       =>
+          Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
       }
+
     } yield {
       TextListEmbedding(text, embeddingDecoded)
+    }
+  }
+
+  val textListJNCodec = JsonCodecMaker.make[Either[List[String], TextListEmbedding]]
+
+  override def decodeJson(
+      spec: TextListFieldSchema,
+      name: String,
+      reader: JsonReader
+  ): Either[DocumentDecoder.JsonError, TextListField] = {
+    Try(textListJNCodec.decodeValue(reader, null)) match {
+      case Failure(err)            => Left(JsonError(s"field $name: cannot parse text[]: $err", err))
+      case Success(null)           => Left(JsonError(s"field $name: cannot parse text[]: null value"))
+      case Success(Left(textList)) => Right(TextListField(name, textList, None))
+      case Success(Right(emb))     => Right(TextListField(name, emb.text, Some(emb.embedding)))
     }
   }
 
@@ -134,7 +152,7 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
             case Left(err2) =>
               Left(DecodingFailure(s"Cannot decode '$fieldName' field. as str: $err1, as obj: $err2", c.history))
             case Right(Some(tle)) if tle.text.isEmpty => Right(None)
-            case Right(Some(tle)) => Right(Some(TextListField(fieldName, tle.text, tle.embedding)))
+            case Right(Some(tle)) => Right(Some(TextListField(fieldName, tle.text, Some(tle.embedding))))
             case Right(None)      => Right(None)
           }
       }

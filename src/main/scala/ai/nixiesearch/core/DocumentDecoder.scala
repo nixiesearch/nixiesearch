@@ -1,52 +1,62 @@
 package ai.nixiesearch.core
 
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.DocumentDecoder.JsonError
-import io.circe.DecodingFailure
+import ai.nixiesearch.core.field.{IdField, IntField, TextField}
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 
-import scala.annotation.tailrec
-import scala.collection.mutable
-
-case class DocumentDecoder(mapping: IndexMapping) {
-  @tailrec final def decodeObj(
-      input: String,
-      i: Int,
-      fields: mutable.ArrayBuffer[Field] = mutable.ArrayBuffer.empty
-  ): Either[JsonError, Document] = {
-    input.charAt(i) match {
-      case '"' =>
-        val nameEnd = DocumentDecoder.decodeString(input, i + 1)
-        if (nameEnd != -1) {
-          val name = input.substring(i, nameEnd)
-        }
-      case ' ' | '\n' | '\t' => decodeObj(input, i + 1, fields)
-    }
-  }
-
-}
+import scala.collection.mutable.ArrayBuffer
 
 object DocumentDecoder {
-  case class JsonError(msg: String) extends Throwable(msg)
+  case class JsonError(msg: String, err: Throwable = null) extends Throwable(msg, err)
 
-  final def decodeString(input: String, i: Int): Int = {
-    var j          = i
-    var quoteFound = false
-    while (!quoteFound && (j < input.length)) {
-      if (input.charAt(j) == '"') {
-        if (input.charAt(j - 1) != '\\') {
-          quoteFound = true
-        } else {
-          j += 1
+  def codec(mapping: IndexMapping): JsonValueCodec[Document] = new JsonValueCodec[Document] {
+    override def decodeValue(in: JsonReader, default: Document): Document = {
+      if (in.isNextToken('{')) {
+        val fields = ArrayBuffer.empty[Field]
+
+        if (!in.isNextToken('}')) {
+          in.rollbackToken()
+          while ({
+            val fieldName = in.readKeyAsString()
+
+            mapping.fieldSchema(fieldName) match {
+              case Some(s: IdFieldSchema) =>
+                val field = IdField.decodeJson(s, fieldName, in)
+                fields.addOne(field.toOption.get)
+              case Some(s: TextFieldSchema) =>
+                val field = TextField.decodeJson(s, fieldName, in)
+                fields.addOne(field.toOption.get)
+
+              case Some(_: IntFieldSchema) =>
+                val value = in.readInt()
+                fields += IntField(fieldName, value)
+
+              case _ =>
+                // Skip unknown fields
+                in.skip()
+            }
+
+            in.isNextToken(',')
+          }) ()
+
+          if (!in.isCurrentToken('}')) {
+            in.objectEndOrCommaError()
+          }
         }
+
+        if (fields.isEmpty) {
+          throw JsonError("document cannot be empty")
+        }
+
+        Document(fields.toList)
       } else {
-        j += 1
+        in.decodeError("expected '{'")
       }
     }
-    if (quoteFound) {
-      j
-    } else {
-      -1
-    }
-  }
 
+    override def encodeValue(x: Document, out: JsonWriter): Unit = ???
+
+    override def nullValue: Document = Document(Nil)
+  }
 }

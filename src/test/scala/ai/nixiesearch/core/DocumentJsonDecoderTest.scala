@@ -477,7 +477,7 @@ class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
             IdFieldSchema(StringName("_id")),
             TextFieldSchema(
               StringName("title"),
-              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
             )
           )
         )
@@ -515,7 +515,7 @@ class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
             IdFieldSchema(StringName("_id")),
             TextListFieldSchema(
               StringName("titles"),
-              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
             )
           )
         )
@@ -548,7 +548,7 @@ class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {
             IdFieldSchema(StringName("_id")),
             TextListFieldSchema(
               StringName("titles"),
-              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
+              search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
             )
           )
         )

@@ -63,9 +63,9 @@ object EmbedPooling {
     val result     = new Array[Array[Float]](tokenLengths.length)
     var batchIndex = 0
     while (batchIndex < tensor.length) {
-      val embed         = new Array[Float](dimensions)
-      val lastTokenIdx  = tokenLengths(batchIndex) - 1
-      var dimIndex      = 0
+      val embed        = new Array[Float](dimensions)
+      val lastTokenIdx = tokenLengths(batchIndex) - 1
+      var dimIndex     = 0
       while (dimIndex < dimensions) {
         val item = tensor(batchIndex)(lastTokenIdx)(dimIndex)
         embed(dimIndex) = item
