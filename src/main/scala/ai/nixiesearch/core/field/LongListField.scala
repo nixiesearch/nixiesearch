@@ -43,13 +43,12 @@ object LongListField extends FieldCodec[LongListField, LongListFieldSchema, List
 
   override def encodeJson(field: LongListField): Json = Json.fromValues(field.value.map(Json.fromLong))
 
-  override def decodeJson(spec: LongListFieldSchema): Decoder[Option[LongListField]] =
+  override def makeDecoder(spec: LongListFieldSchema, fieldName: String): Decoder[Option[LongListField]] =
     Decoder.instance(
-      _.downField(spec.name.name)
-        .as[Option[List[Long]]]
+      _.as[Option[List[Long]]]
         .map {
           case Some(Nil) => None
-          case Some(nel) => Some(LongListField(spec.name.name, nel))
+          case Some(nel) => Some(LongListField(fieldName, nel))
           case None      => None
         }
     )

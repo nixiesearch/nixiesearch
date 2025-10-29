@@ -58,7 +58,6 @@ import org.apache.lucene.document.LatLonDocValuesField
 import java.util.concurrent.Executors
 import scala.jdk.CollectionConverters.*
 import scala.collection.mutable
-import language.experimental.namedTuples
 
 case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics: Metrics) extends Logging {
 

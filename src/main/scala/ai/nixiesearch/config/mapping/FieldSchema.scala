@@ -15,7 +15,6 @@ import io.circe.Json
 import io.circe.JsonObject
 import io.circe.derivation.{ConfiguredDecoder, ConfiguredEncoder}
 
-import language.experimental.namedTuples
 import scala.NamedTuple.NamedTuple
 import scala.util.{Failure, Success}
 

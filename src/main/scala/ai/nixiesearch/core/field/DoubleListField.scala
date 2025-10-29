@@ -48,13 +48,12 @@ object DoubleListField extends FieldCodec[DoubleListField, DoubleListFieldSchema
 
   override def encodeJson(field: DoubleListField): Json = Json.fromValues(field.value.map(Json.fromDoubleOrNull))
 
-  override def decodeJson(spec: DoubleListFieldSchema): Decoder[Option[DoubleListField]] = {
+  override def makeDecoder(spec: DoubleListFieldSchema, fieldName: String): Decoder[Option[DoubleListField]] = {
     Decoder.instance(
-      _.downField(spec.name.name)
-        .as[Option[List[Double]]]
+      _.as[Option[List[Double]]]
         .map {
           case Some(Nil) => None
-          case Some(nel) => Some(DoubleListField(spec.name.name, nel))
+          case Some(nel) => Some(DoubleListField(fieldName, nel))
           case None      => None
         }
     )

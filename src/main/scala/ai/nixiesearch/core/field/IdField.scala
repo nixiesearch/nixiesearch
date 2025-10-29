@@ -12,15 +12,15 @@ import org.apache.lucene.search.SortField
 case class IdField(name: String, value: String) extends Field {}
 
 object IdField extends FieldCodec[IdField, IdFieldSchema, String] {
-  override def decodeJson(spec: IdFieldSchema): Decoder[Option[IdField]] =
+  override def makeDecoder(spec: IdFieldSchema, fieldName: String): Decoder[Option[IdField]] =
     Decoder.instance(c =>
-      c.downField("_id").as[String] match {
+      c.as[String] match {
         case Left(err1) =>
-          c.downField("_id").as[Int] match {
-            case Left(err2) => Left(DecodingFailure(s"cannot decode _id field: $err1, $err2", c.history))
-            case Right(int) => Right(Some(IdField("_id", int.toString)))
+          c.as[Int] match {
+            case Left(err2) => Left(DecodingFailure(s"cannot decode $fieldName field: $err1, $err2", c.history))
+            case Right(int) => Right(Some(IdField(fieldName, int.toString)))
           }
-        case Right(str) => Right(Some(IdField("_id", str)))
+        case Right(str) => Right(Some(IdField(fieldName, str)))
       }
     )
 

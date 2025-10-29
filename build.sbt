@@ -89,8 +89,8 @@ scalacOptions ++= Seq(
   "-Xfatal-warnings",
 //  "-Wunused:imports",
 //  "-release:20",
-  "-no-indent",
-  "-experimental"
+  "-no-indent"
+//  "-experimental"
 //  "-Wall"
 )
 

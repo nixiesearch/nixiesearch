@@ -21,7 +21,7 @@ trait FieldCodec[T <: Field, S <: FieldSchema[T], U] extends Logging {
   def writeLucene(field: T, spec: S, buffer: DocumentGroup): Unit
   def readLucene(name: String, spec: S, value: U): Either[WireDecodingError, T]
   def encodeJson(field: T): Json
-  def decodeJson(spec: S): Decoder[Option[T]]
+  def makeDecoder(spec: S, fieldName: String): Decoder[Option[T]]
 
 }
 

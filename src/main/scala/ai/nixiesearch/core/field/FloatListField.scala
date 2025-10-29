@@ -52,13 +52,12 @@ object FloatListField extends FieldCodec[FloatListField, FloatListFieldSchema, L
 
   override def encodeJson(field: FloatListField): Json = Json.fromValues(field.value.map(Json.fromFloatOrNull))
 
-  override def decodeJson(spec: FloatListFieldSchema): Decoder[Option[FloatListField]] =
+  override def makeDecoder(spec: FloatListFieldSchema, fieldName: String): Decoder[Option[FloatListField]] =
     Decoder.instance(
-      _.downField(spec.name.name)
-        .as[Option[List[Float]]]
+      _.as[Option[List[Float]]]
         .map {
           case Some(Nil) => None
-          case Some(nel) => Some(FloatListField(spec.name.name, nel))
+          case Some(nel) => Some(FloatListField(fieldName, nel))
           case None      => None
         }
     )

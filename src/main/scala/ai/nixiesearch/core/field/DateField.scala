@@ -41,9 +41,9 @@ object DateField extends FieldCodec[DateField, DateFieldSchema, Int] {
 
   override def encodeJson(field: DateField): Json = Json.fromString(writeString(field.value))
 
-  override def decodeJson(spec: DateFieldSchema): Decoder[Option[DateField]] =
+  override def makeDecoder(spec: DateFieldSchema, fieldName: String): Decoder[Option[DateField]] =
     Decoder.instance(
-      _.downField(spec.name.name).as[Option[Date]].map(_.map(date => DateField(spec.name.name, date.value)))
+      _.as[Option[Date]].map(_.map(date => DateField(fieldName, date.value)))
     )
 
   def parseString(in: String): Either[Throwable, Int] = {

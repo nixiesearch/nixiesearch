@@ -38,8 +38,6 @@ import io.circe.syntax.*
 import scala.util.{Failure, Success}
 import org.apache.lucene.document.{IntField, LongField}
 
-import language.experimental.namedTuples
-
 sealed trait Predicate {
   def compile(mapping: IndexMapping): IO[LuceneQuery]
 }

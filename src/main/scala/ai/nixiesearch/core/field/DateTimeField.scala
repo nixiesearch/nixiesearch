@@ -41,9 +41,9 @@ object DateTimeField extends FieldCodec[DateTimeField, DateTimeFieldSchema, Long
 
   override def encodeJson(field: DateTimeField): Json = Json.fromString(writeString(field.value))
 
-  override def decodeJson(spec: DateTimeFieldSchema): Decoder[Option[DateTimeField]] =
+  override def makeDecoder(spec: DateTimeFieldSchema, fieldName: String): Decoder[Option[DateTimeField]] =
     Decoder.instance(
-      _.downField(spec.name.name).as[Option[DateTime]].map(_.map(dt => DateTimeField(spec.name.name, dt.millis)))
+      _.as[Option[DateTime]].map(_.map(dt => DateTimeField(fieldName, dt.millis)))
     )
 
   def parseString(in: String): Either[Throwable, Long] = {

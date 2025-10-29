@@ -98,15 +98,15 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
 
-  override def decodeJson(spec: TextFieldSchema): Decoder[Option[TextField]] = Decoder.instance(c =>
-    c.downField(spec.name.name).as[Option[String]] match {
-      case Right(Some(str)) => Right(Some(TextField(spec.name.name, str, None)))
+  override def makeDecoder(spec: TextFieldSchema, fieldName: String): Decoder[Option[TextField]] = Decoder.instance(c =>
+    c.as[Option[String]] match {
+      case Right(Some(str)) => Right(Some(TextField(fieldName, str, None)))
       case Right(None)      => Right(None)
       case Left(err1)       =>
-        c.downField(spec.name.name).as[Option[TextEmbedding]] match {
+        c.as[Option[TextEmbedding]] match {
           case Left(err2) =>
-            Left(DecodingFailure(s"cannot decode field ${spec.name.name}'. as str: $err1, as obj: $err2", c.history))
-          case Right(Some(value)) => Right(Some(TextField(spec.name.name, value.text, Some(value.embedding))))
+            Left(DecodingFailure(s"cannot decode field ${fieldName}'. as str: $err1, as obj: $err2", c.history))
+          case Right(Some(value)) => Right(Some(TextField(fieldName, value.text, Some(value.embedding))))
           case Right(None)        => Right(None)
         }
     }

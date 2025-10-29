@@ -31,7 +31,6 @@ import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.lucene.search.MatchAllDocsQuery
 
 import java.util.UUID
-import language.experimental.namedTuples
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 

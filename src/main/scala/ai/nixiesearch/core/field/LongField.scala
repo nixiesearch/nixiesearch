@@ -45,8 +45,8 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
 
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
 
-  override def decodeJson(spec: LongFieldSchema): Decoder[Option[LongField]] =
-    Decoder.instance(_.downField(spec.name.name).as[Option[Long]].map(_.map(l => LongField(spec.name.name, l))))
+  override def makeDecoder(spec: LongFieldSchema, fieldName: String): Decoder[Option[LongField]] =
+    Decoder.instance(_.as[Option[Long]].map(_.map(l => LongField(fieldName, l))))
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.LONG, reverse)

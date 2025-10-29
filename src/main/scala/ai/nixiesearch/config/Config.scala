@@ -15,7 +15,6 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import cats.syntax.all.*
 import io.circe.generic.semiauto.*
 
-import language.experimental.namedTuples
 import java.io.File
 import io.circe.yaml.parser.*
 

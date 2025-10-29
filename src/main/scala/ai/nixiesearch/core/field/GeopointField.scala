@@ -58,9 +58,9 @@ object GeopointField extends FieldCodec[GeopointField, GeopointFieldSchema, Arra
   override def encodeJson(field: GeopointField): Json =
     Json.obj("lat" -> Json.fromDoubleOrNull(field.lat), "lon" -> Json.fromDoubleOrNull(field.lon))
 
-  override def decodeJson(spec: GeopointFieldSchema): Decoder[Option[GeopointField]] = {
+  override def makeDecoder(spec: GeopointFieldSchema, fieldName: String): Decoder[Option[GeopointField]] = {
     Decoder.instance(
-      _.downField(spec.name.name).as[Option[Geopoint]].map(_.map(gp => GeopointField(spec.name.name, gp.lat, gp.lon)))
+      _.as[Option[Geopoint]].map(_.map(gp => GeopointField(fieldName, gp.lat, gp.lon)))
     )
   }
 

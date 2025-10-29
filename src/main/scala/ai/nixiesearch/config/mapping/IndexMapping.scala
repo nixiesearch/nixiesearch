@@ -19,7 +19,6 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 
 import scala.jdk.CollectionConverters.*
-import language.experimental.namedTuples
 
 case class IndexMapping(
     name: IndexName,
@@ -35,17 +34,36 @@ case class IndexMapping(
     s
   }.toList
 
+  lazy val plainFields: Map[String, FieldSchema[? <: Field]] = fields.collect { case (StringName(name), schema) =>
+    (name, schema)
+  }
+
+  lazy val wildcardFields = fields.collect { case (_: WildcardName, schema) =>
+    schema
+  }
+
   def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
-    fields.collectFirst {
-      case (field, schema) if field.matches(name) => schema
+    plainFields.get(name) match {
+      case Some(schema) => Some(schema)
+      case None         =>
+        wildcardFields.collectFirst {
+          case schema if schema.name.matches(name) => schema
+        }
+
     }
   }
 
   def fieldSchemaOf[S <: FieldSchema[? <: Field]](
       name: String
   )(using manifest: scala.reflect.ClassTag[S]): Option[S] = {
-    fields.collectFirst {
-      case (field, schema: S) if field.matches(name) => schema
+    plainFields.get(name) match {
+      case Some(schema: S) => Some(schema)
+      case None            =>
+        wildcardFields.collectFirst {
+          case schema: S if schema.name.matches(name) => schema
+        }
+      case _ => None
+
     }
   }
 

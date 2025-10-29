@@ -48,8 +48,8 @@ object DoubleField extends FieldCodec[DoubleField, DoubleFieldSchema, Double] {
 
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
 
-  override def decodeJson(spec: DoubleFieldSchema): Decoder[Option[DoubleField]] =
-    Decoder.instance(_.downField(spec.name.name).as[Option[Double]].map(_.map(d => DoubleField(spec.name.name, d))))
+  override def makeDecoder(spec: DoubleFieldSchema, fieldName: String): Decoder[Option[DoubleField]] =
+    Decoder.instance(_.as[Option[Double]].map(_.map(d => DoubleField(fieldName, d))))
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.DOUBLE, reverse)

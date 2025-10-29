@@ -123,21 +123,22 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
 
-  override def decodeJson(spec: TextListFieldSchema): Decoder[Option[TextListField]] = Decoder.instance(c =>
-    c.downField(spec.name.name).as[Option[List[String]]] match {
-      case Right(Some(Nil))   => Right(None)
-      case Right(Some(value)) => Right(Some(TextListField(spec.name.name, value)))
-      case Right(None)        => Right(None)
-      case Left(err1)         =>
-        c.downField(spec.name.name).as[Option[TextListEmbedding]] match {
-          case Left(err2) =>
-            Left(DecodingFailure(s"Cannot decode '${spec.name.name}' field. as str: $err1, as obj: $err2", c.history))
-          case Right(Some(tle)) if tle.text.isEmpty => Right(None)
-          case Right(Some(tle)) => Right(Some(TextListField(spec.name.name, tle.text, tle.embedding)))
-          case Right(None)      => Right(None)
-        }
-    }
-  )
+  override def makeDecoder(spec: TextListFieldSchema, fieldName: String): Decoder[Option[TextListField]] =
+    Decoder.instance(c =>
+      c.as[Option[List[String]]] match {
+        case Right(Some(Nil))   => Right(None)
+        case Right(Some(value)) => Right(Some(TextListField(fieldName, value)))
+        case Right(None)        => Right(None)
+        case Left(err1)         =>
+          c.as[Option[TextListEmbedding]] match {
+            case Left(err2) =>
+              Left(DecodingFailure(s"Cannot decode '$fieldName' field. as str: $err1, as obj: $err2", c.history))
+            case Right(Some(tle)) if tle.text.isEmpty => Right(None)
+            case Right(Some(tle)) => Right(Some(TextListField(fieldName, tle.text, tle.embedding)))
+            case Right(None)      => Right(None)
+          }
+      }
+    )
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.STRING, reverse)

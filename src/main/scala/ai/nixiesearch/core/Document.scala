@@ -45,29 +45,66 @@ object Document {
       Json.fromJsonObject(JsonObject.fromIterable(fields))
     })
 
-  def decoderFor2(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
-    mapping.fields.values.toList
-      .traverse {
-        case s: IdFieldSchema         => required(IdField.decodeJson(s).tryDecode(cursor), s)
-        case s: TextFieldSchema       => required(TextField.decodeJson(s).tryDecode(cursor), s)
-        case s: TextListFieldSchema   => required(TextListField.decodeJson(s).tryDecode(cursor), s)
-        case s: BooleanFieldSchema    => required(BooleanField.decodeJson(s).tryDecode(cursor), s)
-        case s: DateFieldSchema       => required(DateField.decodeJson(s).tryDecode(cursor), s)
-        case s: DateTimeFieldSchema   => required(DateTimeField.decodeJson(s).tryDecode(cursor), s)
-        case s: DoubleFieldSchema     => required(DoubleField.decodeJson(s).tryDecode(cursor), s)
-        case s: DoubleListFieldSchema => required(DoubleListField.decodeJson(s).tryDecode(cursor), s)
-        case s: FloatFieldSchema      => required(FloatField.decodeJson(s).tryDecode(cursor), s)
-        case s: FloatListFieldSchema  => required(FloatListField.decodeJson(s).tryDecode(cursor), s)
-        case s: GeopointFieldSchema   => required(GeopointField.decodeJson(s).tryDecode(cursor), s)
-        case s: IntFieldSchema        => required(IntField.decodeJson(s).tryDecode(cursor), s)
-        case s: IntListFieldSchema    => required(IntListField.decodeJson(s).tryDecode(cursor), s)
-        case s: LongFieldSchema       => required(LongField.decodeJson(s).tryDecode(cursor), s)
-        case s: LongListFieldSchema   => required(LongListField.decodeJson(s).tryDecode(cursor), s)
-      }
-      .flatMap(_.flatten match {
-        case Nil => Left(DecodingFailure("cannot decode empty document", cursor.history))
-        case nel => Right(Document(nel))
-      })
+//  def decoderFor2(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
+//    mapping.fields.values.toList
+//      .traverse {
+//        case s: IdFieldSchema         => required(IdField.decodeJson(s).tryDecode(cursor), s)
+//        case s: TextFieldSchema       => required(TextField.decodeJson(s).tryDecode(cursor), s)
+//        case s: TextListFieldSchema   => required(TextListField.decodeJson(s).tryDecode(cursor), s)
+//        case s: BooleanFieldSchema    => required(BooleanField.decodeJson(s).tryDecode(cursor), s)
+//        case s: DateFieldSchema       => required(DateField.decodeJson(s).tryDecode(cursor), s)
+//        case s: DateTimeFieldSchema   => required(DateTimeField.decodeJson(s).tryDecode(cursor), s)
+//        case s: DoubleFieldSchema     => required(DoubleField.decodeJson(s).tryDecode(cursor), s)
+//        case s: DoubleListFieldSchema => required(DoubleListField.decodeJson(s).tryDecode(cursor), s)
+//        case s: FloatFieldSchema      => required(FloatField.decodeJson(s).tryDecode(cursor), s)
+//        case s: FloatListFieldSchema  => required(FloatListField.decodeJson(s).tryDecode(cursor), s)
+//        case s: GeopointFieldSchema   => required(GeopointField.decodeJson(s).tryDecode(cursor), s)
+//        case s: IntFieldSchema        => required(IntField.decodeJson(s).tryDecode(cursor), s)
+//        case s: IntListFieldSchema    => required(IntListField.decodeJson(s).tryDecode(cursor), s)
+//        case s: LongFieldSchema       => required(LongField.decodeJson(s).tryDecode(cursor), s)
+//        case s: LongListFieldSchema   => required(LongListField.decodeJson(s).tryDecode(cursor), s)
+//      }
+//      .flatMap(_.flatten match {
+//        case Nil => Left(DecodingFailure("cannot decode empty document", cursor.history))
+//        case nel => Right(Document(nel))
+//      })
+//  })
+
+  // def decoderFor4(mapping: IndexMapping): Decoder[Document] = Decoder.
+
+  def decoderFor3(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
+    cursor.value.asObject match {
+      case None      => Left(DecodingFailure("doc should be an object", cursor.history))
+      case Some(obj) =>
+        obj.toList
+          .traverse { case (name, json) =>
+            mapping.fieldSchema(name) match {
+              case Some(schema) =>
+                schema match {
+                  case s: IdFieldSchema         => required(IdField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: TextFieldSchema       => required(TextField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: TextListFieldSchema   => required(TextListField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: BooleanFieldSchema    => required(BooleanField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: DateFieldSchema       => required(DateField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: DateTimeFieldSchema   => required(DateTimeField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: DoubleFieldSchema     => required(DoubleField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: DoubleListFieldSchema => required(DoubleListField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: FloatFieldSchema      => required(FloatField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: FloatListFieldSchema  => required(FloatListField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: GeopointFieldSchema   => required(GeopointField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: IntFieldSchema        => required(IntField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: IntListFieldSchema    => required(IntListField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: LongFieldSchema       => required(LongField.makeDecoder(s, name).decodeJson(json), s)
+                  case s: LongListFieldSchema   => required(LongListField.makeDecoder(s, name).decodeJson(json), s)
+                }
+              case None => Right(None)
+            }
+          }
+          .flatMap(_.flatten match {
+            case Nil => Left(DecodingFailure("cannot decode empty document", cursor.history))
+            case nel => Right(Document(nel))
+          })
+    }
   })
 
   def required[F <: Field, S <: FieldSchema[F]](field: Result[Option[F]], spec: S): Result[Option[F]] = {
@@ -80,7 +117,7 @@ object Document {
     }
   }
 
-  def decoderFor(mapping: IndexMapping)                     = decoderFor2(mapping)
+  def decoderFor(mapping: IndexMapping)                     = decoderFor3(mapping)
   def decoderFor1(mapping: IndexMapping): Decoder[Document] = Decoder.instance(cursor => {
     cursor.value.foldWith(DocumentParser(Nil, mapping)) match {
       case Left(err)    => Left(err)
@@ -102,7 +139,7 @@ object Document {
 
     }
   })
-  def codecFor(mapping: IndexMapping): Codec[Document] = Codec.from(decoderFor2(mapping), encoderFor(mapping))
+  def codecFor(mapping: IndexMapping): Codec[Document] = Codec.from(decoderFor3(mapping), encoderFor(mapping))
 
   sealed trait JsonScalar
   object JsonScalar {

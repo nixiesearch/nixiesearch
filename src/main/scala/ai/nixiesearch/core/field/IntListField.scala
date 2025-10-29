@@ -48,13 +48,12 @@ object IntListField extends FieldCodec[IntListField, IntListFieldSchema, List[In
 
   override def encodeJson(field: IntListField): Json = Json.fromValues(field.value.map(Json.fromInt))
 
-  override def decodeJson(spec: IntListFieldSchema): Decoder[Option[IntListField]] =
+  override def makeDecoder(spec: IntListFieldSchema, fieldName: String): Decoder[Option[IntListField]] =
     Decoder.instance(
-      _.downField(spec.name.name)
-        .as[Option[List[Int]]]
+      _.as[Option[List[Int]]]
         .map {
           case Some(Nil) => None
-          case Some(nel) => Some(IntListField(spec.name.name, nel))
+          case Some(nel) => Some(IntListField(fieldName, nel))
           case None      => None
         }
     )

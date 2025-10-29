@@ -55,8 +55,8 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
 
-  override def decodeJson(spec: FloatFieldSchema): Decoder[Option[FloatField]] = {
-    Decoder.instance(_.downField(spec.name.name).as[Option[Float]].map(_.map(f => FloatField(spec.name.name, f))))
+  override def makeDecoder(spec: FloatFieldSchema, fieldName: String): Decoder[Option[FloatField]] = {
+    Decoder.instance(_.as[Option[Float]].map(_.map(f => FloatField(fieldName, f))))
 
   }
 

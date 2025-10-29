@@ -50,8 +50,8 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
 
-  override def decodeJson(spec: IntFieldSchema): Decoder[Option[IntField]] =
-    Decoder.instance(_.downField(spec.name.name).as[Option[Int]].map(_.map(i => IntField(spec.name.name, i))))
+  override def makeDecoder(spec: IntFieldSchema, fieldName: String): Decoder[Option[IntField]] =
+    Decoder.instance(_.as[Option[Int]].map(_.map(i => IntField(fieldName, i))))
 
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): SortField = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.INT, reverse)

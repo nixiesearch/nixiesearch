@@ -55,9 +55,9 @@ object BooleanField extends FieldCodec[BooleanField, BooleanFieldSchema, Int] {
 
   override def encodeJson(field: BooleanField): Json = Json.fromBoolean(field.value)
 
-  override def decodeJson(spec: BooleanFieldSchema): Decoder[Option[BooleanField]] =
+  override def makeDecoder(spec: BooleanFieldSchema, fieldName: String): Decoder[Option[BooleanField]] =
     Decoder.instance(
-      _.downField(spec.name.name).as[Option[Boolean]].map(_.map(value => BooleanField(spec.name.name, value)))
+      _.as[Option[Boolean]].map(_.map(value => BooleanField(fieldName, value)))
     )
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField =
