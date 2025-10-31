@@ -1,7 +1,7 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.{TextField, IntField}
 
 import scala.util.Random
 

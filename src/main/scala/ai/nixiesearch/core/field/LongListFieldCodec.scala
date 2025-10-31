@@ -3,21 +3,21 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.{IntListFieldSchema, LongListFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.NumericField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.{DocumentDecoder, Field}
+import ai.nixiesearch.core.Field.{LongListField, NumericField}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.LongStoredField
 import ai.nixiesearch.core.search.DocumentGroup
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.search.SortField
 
-case class LongListField(name: String, value: List[Long]) extends Field with NumericField
-
-object LongListField extends FieldCodec[LongListField, LongListFieldSchema, List[Long]] {
+case class LongListFieldCodec(spec: LongListFieldSchema) extends FieldCodec[LongListField] {
   override def writeLucene(
       field: LongListField,
-      spec: LongListFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
@@ -35,24 +35,19 @@ object LongListField extends FieldCodec[LongListField, LongListFieldSchema, List
   }
 
   override def readLucene(
-      name: String,
-      spec: LongListFieldSchema,
-      value: List[Long]
-  ): Either[FieldCodec.WireDecodingError, LongListField] =
-    Right(LongListField(name, value))
+      doc: DocumentVisitor.StoredDocument
+  ): Either[FieldCodec.WireDecodingError, Option[LongListField]] =
+    doc.fields.collect { case f @ LongStoredField(name, value) if spec.name.matches(name) => f } match {
+      case Nil             => Right(None)
+      case all @ head :: _ => Right(Some(LongListField(head.name, all.map(_.value))))
+    }
 
   override def encodeJson(field: LongListField): Json = Json.fromValues(field.value.map(Json.fromLong))
 
-  override def makeDecoder(spec: LongListFieldSchema, fieldName: String): Decoder[Option[LongListField]] =
-    Decoder.instance(
-      _.as[Option[List[Long]]]
-        .map {
-          case Some(Nil) => None
-          case Some(nel) => Some(LongListField(fieldName, nel))
-          case None      => None
-        }
-    )
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, LongListField] = ???
 
-  def sort(field: FieldName, reverse: Boolean, missing: MissingValue): SortField = ???
+  def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = Left(
+    BackendError("cannot sort on long[] field")
+  )
 
 }

@@ -4,7 +4,7 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.field.TextListField.NESTED_EMBED_SUFFIX
+import ai.nixiesearch.core.field.TextListFieldCodec.NESTED_EMBED_SUFFIX
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.DocumentGroup.{PARENT_FIELD, ROLE_FIELD}
 import cats.effect.IO

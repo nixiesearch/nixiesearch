@@ -11,7 +11,7 @@ import ai.nixiesearch.config.FieldSchema.{
 }
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig

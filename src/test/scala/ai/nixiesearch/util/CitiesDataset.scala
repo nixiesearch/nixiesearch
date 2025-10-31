@@ -6,11 +6,12 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.{Document, DocumentDecoder, JsonDocumentStream}
 import cats.effect.IO
 import fs2.io.readInputStream
 import io.circe.Codec
 import io.circe.parser.decode
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.util.zip.GZIPInputStream
 import cats.effect.unsafe.implicits.global
@@ -30,12 +31,8 @@ object CitiesDataset {
   )
 
   def apply() = {
-    given documentCodec: Codec[Document] = Document.codecFor(mapping)
     readInputStream(IO(new GZIPInputStream(getClass.getResourceAsStream("/datasets/cities/cities.json.gz"))), 1024)
-      .through(fs2.text.utf8.decode)
-      .through(fs2.text.lines)
-      .filter(_.nonEmpty)
-      .evalMap(line => IO.fromEither(decode[Document](line)))
+      .through(JsonDocumentStream.parse(mapping))
       .compile
       .toList
       .unsafeRunSync()

@@ -5,8 +5,7 @@ import ai.nixiesearch.config.mapping.SearchParams.QuantStore
 import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.TextLikeField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
 import io.circe.{Decoder, DecodingFailure, Encoder}
@@ -19,7 +18,6 @@ import scala.NamedTuple.NamedTuple
 import scala.util.{Failure, Success}
 
 sealed trait FieldSchema[T <: Field] {
-  type Self <: FieldSchema[T]
   def name: FieldName
   def store: Boolean
   def sort: Boolean
@@ -27,7 +25,7 @@ sealed trait FieldSchema[T <: Field] {
   def filter: Boolean
   def required: Boolean
 
-  def codec: FieldCodec[T, Self, ?]
+  def codec: FieldCodec[T]
 }
 
 object FieldSchema {
@@ -59,8 +57,7 @@ object FieldSchema {
     def suggest: Option[SuggestSchema] = None
     def required: Boolean              = false
 
-    type Self = IdFieldSchema
-    val codec: FieldCodec[IdField, IdFieldSchema, ?] = IdField
+    val codec: FieldCodec[IdField] = IdFieldCodec(this)
   }
 
   case class TextFieldSchema(
@@ -74,8 +71,7 @@ object FieldSchema {
       required: Boolean = false
   ) extends TextLikeFieldSchema[TextField]
       with FieldSchema[TextField] {
-    type Self = TextFieldSchema
-    val codec: FieldCodec[TextField, TextFieldSchema, ?] = TextField
+    val codec: FieldCodec[TextField] = TextFieldCodec(this)
   }
 
   case class TextListFieldSchema(
@@ -89,8 +85,7 @@ object FieldSchema {
       required: Boolean = false
   ) extends TextLikeFieldSchema[TextListField]
       with FieldSchema[TextListField] {
-    type Self = TextListFieldSchema
-    val codec: FieldCodec[TextListField, TextListFieldSchema, ?] = TextListField
+    val codec: FieldCodec[TextListField] = TextListFieldCodec(this)
 
   }
 
@@ -102,8 +97,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[IntField] {
-    type Self = IntFieldSchema
-    val codec: FieldCodec[IntField, IntFieldSchema, ?] = IntField
+    val codec: FieldCodec[IntField] = IntFieldCodec(this)
   }
 
   case class IntListFieldSchema(
@@ -113,9 +107,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[IntListField] {
-    def sort = false
-    type Self = IntListFieldSchema
-    val codec: FieldCodec[IntListField, IntListFieldSchema, ?] = IntListField
+    def sort                               = false
+    val codec: FieldCodec[IntListField] = IntListFieldCodec(this)
   }
 
   case class LongFieldSchema(
@@ -126,8 +119,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[LongField] {
-    type Self = LongFieldSchema
-    val codec: FieldCodec[LongField, LongFieldSchema, ?] = LongField
+    val codec: FieldCodec[LongField] = LongFieldCodec(this)
   }
 
   case class LongListFieldSchema(
@@ -137,9 +129,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[LongListField] {
-    def sort = false
-    type Self = LongListFieldSchema
-    val codec: FieldCodec[LongListField, LongListFieldSchema, ?] = LongListField
+    def sort                                = false
+    val codec: FieldCodec[LongListField] = LongListFieldCodec(this)
   }
 
   case class FloatFieldSchema(
@@ -150,8 +141,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[FloatField] {
-    type Self = FloatFieldSchema
-    val codec: FieldCodec[FloatField, FloatFieldSchema, ?] = FloatField
+    val codec: FieldCodec[FloatField] = FloatFieldCodec(this)
   }
 
   case class FloatListFieldSchema(
@@ -161,9 +151,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[FloatListField] {
-    def sort = false
-    type Self = FloatListFieldSchema
-    val codec: FieldCodec[FloatListField, FloatListFieldSchema, ?] = FloatListField
+    def sort                                 = false
+    val codec: FieldCodec[FloatListField] = FloatListFieldCodec(this)
   }
 
   case class DoubleFieldSchema(
@@ -174,8 +163,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DoubleField] {
-    type Self = DoubleFieldSchema
-    val codec: FieldCodec[DoubleField, DoubleFieldSchema, ?] = DoubleField
+    val codec: FieldCodec[DoubleField] = DoubleFieldCodec(this)
   }
 
   case class DoubleListFieldSchema(
@@ -185,9 +173,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DoubleListField] {
-    def sort = false
-    type Self = DoubleListFieldSchema
-    val codec: FieldCodec[DoubleListField, DoubleListFieldSchema, ?] = DoubleListField
+    def sort                                  = false
+    val codec: FieldCodec[DoubleListField] = DoubleListFieldCodec(this)
   }
 
   case class BooleanFieldSchema(
@@ -198,8 +185,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[BooleanField] {
-    type Self = BooleanFieldSchema
-    val codec: FieldCodec[BooleanField, BooleanFieldSchema, ?] = BooleanField
+    val codec: FieldCodec[BooleanField] = BooleanFieldCodec(this)
 
   }
 
@@ -210,10 +196,9 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[GeopointField] {
-    def facet = false
-    type Self = GeopointFieldSchema
-    val codec: FieldCodec[GeopointField, GeopointFieldSchema, ?] = GeopointField
-    
+    def facet                               = false
+    val codec: FieldCodec[GeopointField] = GeopointFieldCodec(this)
+
   }
 
   case class DateFieldSchema(
@@ -224,9 +209,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DateField] {
-    def asInt = IntFieldSchema(name, store, sort, facet, filter)
-    type Self = DateFieldSchema
-    val codec: FieldCodec[DateField, DateFieldSchema, ?] = DateField
+    val codec: FieldCodec[DateField] = DateFieldCodec(this)
   }
 
   case class DateTimeFieldSchema(
@@ -237,9 +220,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DateTimeField] {
-    def asLong = LongFieldSchema(name, store, sort, facet, filter)
-    type Self = DateTimeFieldSchema
-    val codec: FieldCodec[DateTimeField, DateTimeFieldSchema, ?] = DateTimeField
+
+    val codec: FieldCodec[DateTimeField] = DateTimeFieldCodec(this)
   }
 
   object yaml {

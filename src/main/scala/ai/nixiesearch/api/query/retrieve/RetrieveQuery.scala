@@ -13,6 +13,7 @@ import ai.nixiesearch.core.field.*
 import ai.nixiesearch.index.{Models, Searcher}
 import ai.nixiesearch.index.Searcher.{Readers, TopDocsWithFacets}
 import ai.nixiesearch.config.mapping.FieldName.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import cats.effect.IO
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
@@ -105,27 +106,14 @@ trait RetrieveQuery extends Query {
     mapping.fieldSchema(by.field.name) match {
       case Some(schema) if !schema.sort =>
         IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
-      case Some(s: IdFieldSchema)         => IO.pure(IdField.sort(reverse))
-      case Some(s: IntFieldSchema)        => IO.pure(IntField.sort(s.name, reverse, missing))
-      case Some(s: IntListFieldSchema)    => IO.raiseError(UserError("sorting by int[] is not yet supported"))
-      case Some(s: BooleanFieldSchema)    => IO.pure(BooleanField.sort(s.name, reverse, missing))
-      case Some(s: DateFieldSchema)       => IO.pure(DateField.sort(s.name, reverse, missing))
-      case Some(s: LongFieldSchema)       => IO.pure(LongField.sort(s.name, reverse, missing))
-      case Some(s: LongListFieldSchema)   => IO.raiseError(UserError("sorting by long[] is not yet supported"))
-      case Some(s: DateTimeFieldSchema)   => IO.pure(DateTimeField.sort(s.name, reverse, missing))
-      case Some(s: FloatFieldSchema)      => IO.pure(FloatField.sort(s.name, reverse, missing))
-      case Some(s: FloatListFieldSchema)  => IO.raiseError(UserError("sorting by float[] is not yet supported"))
-      case Some(s: DoubleFieldSchema)     => IO.pure(DoubleField.sort(s.name, reverse, missing))
-      case Some(s: DoubleListFieldSchema) => IO.raiseError(UserError("sorting by double[] is not yet supported"))
-      case Some(s: TextFieldSchema)       => IO.pure(TextField.sort(s.name, reverse, missing))
-      case Some(s: TextListFieldSchema)   => IO.pure(TextListField.sort(s.name, reverse, missing))
-      case Some(s: GeopointFieldSchema)   =>
+      case Some(s: GeopointFieldSchema) =>
         by match {
           case _: FieldValueSort =>
             IO.raiseError(UserError(s"to sort by a geopoint, you need to pass lat and lon coordinates"))
           case DistanceSort(field, lat, lon) =>
-            IO.pure(GeopointField.sort(field, lat, lon))
+            IO.fromEither(GeopointFieldCodec.sortBy(field, lat, lon))
         }
+      case Some(schema) => IO.fromEither(schema.codec.sort(schema.name, reverse, missing))
 
       case None if by.field.name == "_score" => IO.pure(new SortField(by.field.name, SortField.Type.SCORE, reverse))
       case None if by.field.name == "_doc"   => IO.pure(new SortField(by.field.name, SortField.Type.DOC, reverse))

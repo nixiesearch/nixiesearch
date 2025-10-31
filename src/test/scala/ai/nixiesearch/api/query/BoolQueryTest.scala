@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.retrieve.{BoolQuery, MatchQuery}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 

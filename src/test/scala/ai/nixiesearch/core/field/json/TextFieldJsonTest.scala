@@ -7,7 +7,7 @@ import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.SemanticSimpleParams
 import ai.nixiesearch.core.{Document, DocumentDecoder, Field}
 import ai.nixiesearch.core.DocumentDecoder.JsonError
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.TestIndexMapping
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

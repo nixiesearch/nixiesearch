@@ -6,10 +6,11 @@ import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.SearchParams.Distance
 import ai.nixiesearch.core.DocumentDecoder.JsonError
+import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
-import ai.nixiesearch.core.Field.TextLikeField
-import ai.nixiesearch.core.codec.FieldCodec
-import ai.nixiesearch.core.field.TextField.textEmbeddingJICodec
+import ai.nixiesearch.core.Field.{TextLikeField, TextListField}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.StringStoredField
 import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.search.DocumentGroup.{PARENT_FIELD, ROLE_FIELD}
 import ai.nixiesearch.core.suggest.SuggestCandidates
@@ -34,37 +35,14 @@ import org.apache.lucene.util.BytesRef
 
 import scala.util.{Failure, Success, Try}
 
-case class TextListField(name: String, value: List[String], embeddings: Option[List[Array[Float]]] = None)
-    extends Field
-    with TextLikeField
+case class TextListFieldCodec(spec: TextListFieldSchema) extends FieldCodec[TextListField] {
+  import TextFieldCodec.*
+  import FieldCodec.*
+  import TextListFieldCodec.*
 
-object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List[String]] {
-  val NESTED_EMBED_SUFFIX = "._nested"
-  import TextField.{MAX_FACET_SIZE, FILTER_SUFFIX, MAX_FIELD_SEARCH_SIZE}
-
-  case class TextListEmbedding(text: List[String], embedding: List[Array[Float]])
-  given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
-  given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
-    for {
-      text             <- c.downField("text").as[List[String]]
-      embedding        <- c.downField("embedding").as[List[Array[Float]]]
-      embeddingDecoded <- embedding.size match {
-        case 0                           => Left(DecodingFailure("embedding cannot be empty", c.history))
-        case other if other == text.size => Right(embedding)
-        case other if text.size == 1     => Right(embedding)
-        case other                       =>
-          Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
-      }
-
-    } yield {
-      TextListEmbedding(text, embeddingDecoded)
-    }
-  }
-
-  val textListJNCodec = JsonCodecMaker.make[Either[List[String], TextListEmbedding]]
+  import TextFieldCodec.{MAX_FACET_SIZE, MAX_FIELD_SEARCH_SIZE}
 
   override def decodeJson(
-      spec: TextListFieldSchema,
       name: String,
       reader: JsonReader
   ): Either[DocumentDecoder.JsonError, TextListField] = {
@@ -76,12 +54,8 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
     }
   }
 
-  def apply(name: String, value: String, values: String*) = new TextListField(name, value +: values.toList)
-  def apply(name: String, values: List[String])           = new TextListField(name, values)
-
   override def writeLucene(
       field: TextListField,
-      spec: TextListFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
     field.value.foreach(item => {
@@ -125,45 +99,52 @@ object TextListField extends FieldCodec[TextListField, TextListFieldSchema, List
         SuggestCandidates
           .fromString(schema, field.name, value)
           .foreach(candidate => {
-            val s = new SuggestField(field.name + TextField.SUGGEST_SUFFIX, candidate, 1)
+            val s = new SuggestField(field.name + FieldCodec.SUGGEST_SUFFIX, candidate, 1)
             buffer.parent.add(s)
           })
       })
     })
   }
 
-  override def readLucene(
-      name: String,
-      spec: TextListFieldSchema,
-      value: List[String]
-  ): Either[FieldCodec.WireDecodingError, TextListField] =
-    Right(TextListField(name, value))
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextListField]] =
+    doc.fields.collect { case f @ StringStoredField(name, value) if spec.name.matches(name) => f } match {
+      case Nil             => Right(None)
+      case all @ head :: _ => Right(Some(TextListField(head.name, all.map(_.value))))
+    }
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))
 
-  override def makeDecoder(spec: TextListFieldSchema, fieldName: String): Decoder[Option[TextListField]] =
-    Decoder.instance(c =>
-      c.as[Option[List[String]]] match {
-        case Right(Some(Nil))   => Right(None)
-        case Right(Some(value)) => Right(Some(TextListField(fieldName, value)))
-        case Right(None)        => Right(None)
-        case Left(err1)         =>
-          c.as[Option[TextListEmbedding]] match {
-            case Left(err2) =>
-              Left(DecodingFailure(s"Cannot decode '$fieldName' field. as str: $err1, as obj: $err2", c.history))
-            case Right(Some(tle)) if tle.text.isEmpty => Right(None)
-            case Right(Some(tle)) => Right(Some(TextListField(fieldName, tle.text, Some(tle.embedding))))
-            case Right(None)      => Right(None)
-          }
-      }
-    )
-
-  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.STRING, reverse)
     sortField.setMissingValue(
       MissingValue.of(min = SortField.STRING_FIRST, max = SortField.STRING_LAST, reverse, missing)
     )
-    sortField
+    Right(sortField)
   }
+
+}
+
+object TextListFieldCodec {
+  val NESTED_EMBED_SUFFIX = "._nested"
+  case class TextListEmbedding(text: List[String], embedding: List[Array[Float]])
+  given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
+  given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
+    for {
+      text             <- c.downField("text").as[List[String]]
+      embedding        <- c.downField("embedding").as[List[Array[Float]]]
+      embeddingDecoded <- embedding.size match {
+        case 0                           => Left(DecodingFailure("embedding cannot be empty", c.history))
+        case other if other == text.size => Right(embedding)
+        case other if text.size == 1     => Right(embedding)
+        case other                       =>
+          Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
+      }
+
+    } yield {
+      TextListEmbedding(text, embeddingDecoded)
+    }
+  }
+
+  val textListJNCodec = JsonCodecMaker.make[Either[List[String], TextListEmbedding]]
 
 }

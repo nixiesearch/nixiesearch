@@ -4,7 +4,7 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName, SearchParams}
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.TestIndexMapping
 import io.circe.{Decoder, Json}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -12,7 +12,7 @@ import org.scalatest.matchers.should.Matchers
 import io.circe.parser.*
 import ai.nixiesearch.config.mapping.FieldName.{NestedName, StringName, WildcardName}
 import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticParams}
-import ai.nixiesearch.core.Document.JsonScalar.{JNumber, JString, JStringArray}
+
 import ai.nixiesearch.core.nn.ModelRef
 
 class DocumentJsonDecoderTest extends AnyFlatSpec with Matchers {

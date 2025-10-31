@@ -10,7 +10,7 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import cats.effect.unsafe.implicits.global
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.SearchTest
 import ai.nixiesearch.config.mapping.FieldName.StringName
 

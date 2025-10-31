@@ -2,7 +2,7 @@ package ai.nixiesearch.core
 
 import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.core.field.{IntField, TextField}
+import ai.nixiesearch.core.Field.{IntField, TextField}
 import ai.nixiesearch.util.TestIndexMapping
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

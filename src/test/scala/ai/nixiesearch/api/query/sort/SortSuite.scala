@@ -7,7 +7,7 @@ import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.{Document, Field}
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.flatspec.AnyFlatSpec

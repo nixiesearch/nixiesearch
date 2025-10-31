@@ -4,10 +4,13 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.FloatFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.NumericField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.{DocumentDecoder, Field}
+import ai.nixiesearch.core.Field.{FloatField, NumericField}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.FloatStoredField
 import ai.nixiesearch.core.search.DocumentGroup
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.Field.Store
@@ -22,12 +25,11 @@ import org.apache.lucene.document.{
 }
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
-case class FloatField(name: String, value: Float) extends Field with NumericField
 
-object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
+case class FloatFieldCodec(spec: FloatFieldSchema) extends FieldCodec[FloatField] {
+  import FieldCodec.*
   override def writeLucene(
       field: FloatField,
-      spec: FloatFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
@@ -46,24 +48,20 @@ object FloatField extends FieldCodec[FloatField, FloatFieldSchema, Float] {
     }
   }
 
-  override def readLucene(
-      name: String,
-      spec: FloatFieldSchema,
-      value: Float
-  ): Either[FieldCodec.WireDecodingError, FloatField] =
-    Right(FloatField(name, value))
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[FloatField]] =
+    doc.fields.collectFirst { case f @ FloatStoredField(name, value) if spec.name.matches(name) => f } match {
+      case Some(float) => Right(Some(FloatField(float.name, float.value)))
+      case None        => Right(None)
+    }
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
 
-  override def makeDecoder(spec: FloatFieldSchema, fieldName: String): Decoder[Option[FloatField]] = {
-    Decoder.instance(_.as[Option[Float]].map(_.map(f => FloatField(fieldName, f))))
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, FloatField] = ???
 
-  }
-
-  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.FLOAT, reverse)
     sortField.setMissingValue(MissingValue.of(min = Float.MinValue, max = Float.MaxValue, reverse, missing))
-    sortField
+    Right(sortField)
   }
 
 }

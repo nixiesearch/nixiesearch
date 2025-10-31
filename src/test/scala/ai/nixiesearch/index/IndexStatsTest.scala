@@ -6,7 +6,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.index.IndexStats.{FieldStats, LeafStats, SegmentStats}
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}

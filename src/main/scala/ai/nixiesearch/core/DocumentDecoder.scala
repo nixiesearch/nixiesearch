@@ -2,7 +2,8 @@ package ai.nixiesearch.core
 
 import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.IndexMapping
-import ai.nixiesearch.core.field.{IdField, IntField, TextField}
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.Field.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import scala.collection.mutable.ArrayBuffer
@@ -22,10 +23,10 @@ object DocumentDecoder {
 
             mapping.fieldSchema(fieldName) match {
               case Some(s: IdFieldSchema) =>
-                val field = IdField.decodeJson(s, fieldName, in)
+                val field = s.codec.decodeJson(fieldName, in)
                 fields.addOne(field.toOption.get)
               case Some(s: TextFieldSchema) =>
-                val field = TextField.decodeJson(s, fieldName, in)
+                val field = s.codec.decodeJson(fieldName, in)
                 fields.addOne(field.toOption.get)
 
               case Some(_: IntFieldSchema) =>
@@ -55,7 +56,8 @@ object DocumentDecoder {
       }
     }
 
-    override def encodeValue(x: Document, out: JsonWriter): Unit = ???
+    override def encodeValue(x: Document, out: JsonWriter): Unit =
+      throw BackendError("jsoniter encoder not implemented")
 
     override def nullValue: Document = Document(Nil)
   }

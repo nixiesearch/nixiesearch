@@ -6,7 +6,7 @@ import ai.nixiesearch.api.{IndexModifyRoute, SearchRoute}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.Tags.EndToEnd
 import ai.nixiesearch.util.{DatasetLoader, EnvVars, SearchTest, TestDocument}
 import cats.effect.IO

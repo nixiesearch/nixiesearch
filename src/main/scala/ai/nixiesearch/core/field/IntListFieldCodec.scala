@@ -3,10 +3,13 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.IntListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.NumericField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.{DocumentDecoder, Field}
+import ai.nixiesearch.core.Field.{FloatListField, IntListField, NumericField}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.IntStoredField
 import ai.nixiesearch.core.search.DocumentGroup
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.{
   NumericDocValuesField,
@@ -17,12 +20,9 @@ import org.apache.lucene.document.{
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 
-case class IntListField(name: String, value: List[Int]) extends Field with NumericField
-
-object IntListField extends FieldCodec[IntListField, IntListFieldSchema, List[Int]] {
+case class IntListFieldCodec(spec: IntListFieldSchema) extends FieldCodec[IntListField] {
   override def writeLucene(
       field: IntListField,
-      spec: IntListFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
@@ -40,24 +40,19 @@ object IntListField extends FieldCodec[IntListField, IntListFieldSchema, List[In
   }
 
   override def readLucene(
-      name: String,
-      spec: IntListFieldSchema,
-      value: List[Int]
-  ): Either[FieldCodec.WireDecodingError, IntListField] =
-    Right(IntListField(name, value))
+      doc: DocumentVisitor.StoredDocument
+  ): Either[FieldCodec.WireDecodingError, Option[IntListField]] =
+    doc.fields.collect { case f @ IntStoredField(name, value) if spec.name.matches(name) => f } match {
+      case Nil             => Right(None)
+      case all @ head :: _ => Right(Some(IntListField(head.name, all.map(_.value))))
+    }
 
   override def encodeJson(field: IntListField): Json = Json.fromValues(field.value.map(Json.fromInt))
 
-  override def makeDecoder(spec: IntListFieldSchema, fieldName: String): Decoder[Option[IntListField]] =
-    Decoder.instance(
-      _.as[Option[List[Int]]]
-        .map {
-          case Some(Nil) => None
-          case Some(nel) => Some(IntListField(fieldName, nel))
-          case None      => None
-        }
-    )
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, IntListField] = ???
 
-  def sort(field: FieldName, reverse: Boolean, missing: MissingValue): SortField = ???
+  def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = Left(
+    BackendError("cannot sort on int[] field")
+  )
 
 }

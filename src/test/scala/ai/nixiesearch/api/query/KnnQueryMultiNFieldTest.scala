@@ -7,7 +7,7 @@ import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.SemanticInferenceParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.{TextField, TextListField}
+import ai.nixiesearch.core.Field.{TextField, TextListField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}

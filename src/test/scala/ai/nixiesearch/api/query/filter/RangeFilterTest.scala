@@ -4,24 +4,12 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  DoubleListFieldSchema,
-  FloatFieldSchema,
-  FloatListFieldSchema,
-  IntFieldSchema,
-  IntListFieldSchema,
-  LongFieldSchema,
-  LongListFieldSchema,
-  TextFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.{Document, Field}
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.util.SearchTest

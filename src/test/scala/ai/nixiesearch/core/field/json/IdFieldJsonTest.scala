@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.field.json
 
 import ai.nixiesearch.config.FieldSchema.IdFieldSchema
-import ai.nixiesearch.core.field.IdField
+import ai.nixiesearch.core.Field.IdField
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

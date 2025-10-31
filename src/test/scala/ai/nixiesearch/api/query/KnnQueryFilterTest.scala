@@ -9,7 +9,7 @@ import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.SemanticInferenceParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.{IntListField, TextField}
+import ai.nixiesearch.core.Field.{IntListField, TextField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers

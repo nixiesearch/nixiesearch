@@ -16,7 +16,7 @@ import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers

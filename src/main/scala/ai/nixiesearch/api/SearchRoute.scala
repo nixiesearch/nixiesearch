@@ -50,11 +50,11 @@ import io.prometheus.metrics.model.registry.PrometheusRegistry
 import scala.util.{Failure, Success}
 
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
-  given documentCodec: Codec[Document]                 = Document.codecFor(searcher.index.mapping)
+  given documentEncoder: Encoder[Document]             = Document.encoderFor(searcher.index.mapping)
   given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
-  given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
+  //given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
   given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
-  given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
+  //given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case request @ POST -> Root / "v1" / "index" / indexName / "search"

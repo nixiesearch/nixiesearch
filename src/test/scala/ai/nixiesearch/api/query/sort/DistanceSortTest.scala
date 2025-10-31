@@ -5,7 +5,7 @@ import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{CitiesDataset, SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 

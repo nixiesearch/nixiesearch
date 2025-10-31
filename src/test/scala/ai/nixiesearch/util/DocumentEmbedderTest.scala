@@ -8,7 +8,7 @@ import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticSimpleParams}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.field.{TextField, TextListField}
+import ai.nixiesearch.core.Field.{TextField, TextListField}
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.{EmbedModel, EmbedModelDict}

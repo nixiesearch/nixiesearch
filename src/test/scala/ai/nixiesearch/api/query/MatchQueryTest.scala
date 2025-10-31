@@ -4,7 +4,7 @@ import ai.nixiesearch.api.query.retrieve.{MatchQuery, MultiMatchQuery}
 import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
 import ai.nixiesearch.api.query.retrieve.MultiMatchQuery.BestFieldsQuery
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 

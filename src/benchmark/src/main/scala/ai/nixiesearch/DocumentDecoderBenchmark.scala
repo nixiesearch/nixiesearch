@@ -9,7 +9,18 @@ import ai.nixiesearch.core.{Document, DocumentDecoder}
 import io.circe.Decoder
 import io.circe.parser.decode
 import io.circe.parser.parse
-import org.openjdk.jmh.annotations.{Benchmark, BenchmarkMode, Measurement, Mode, OutputTimeUnit, Param, Scope, Setup, State, Warmup}
+import org.openjdk.jmh.annotations.{
+  Benchmark,
+  BenchmarkMode,
+  Measurement,
+  Mode,
+  OutputTimeUnit,
+  Param,
+  Scope,
+  Setup,
+  State,
+  Warmup
+}
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.util.concurrent.TimeUnit
@@ -28,7 +39,7 @@ class DocumentDecoderBenchmark {
   @Param(Array("id_only", "movies", "embed"))
   var INPUT_TYPE: String = uninitialized
 
-  @Param(Array("v1", "v2", "v3"))
+  @Param(Array("v3"))
   var DECODER: String = uninitialized
 
   val idOnlySchema = IndexMapping(name = IndexName("test"), fields = Map(StringName("_id") -> IdFieldSchema()))
@@ -41,10 +52,16 @@ class DocumentDecoderBenchmark {
       StringName("year")  -> IntFieldSchema(StringName("year"))
     )
   )
-  val embedSchema = IndexMapping(name=IndexName("test"), fields = Map(
-    StringName("_id") -> IdFieldSchema(),
-    StringName("title") -> TextFieldSchema(name=StringName("title"), search = SearchParams(semantic = Some(SemanticSimpleParams(dim =1024))))
-  ))
+  val embedSchema = IndexMapping(
+    name = IndexName("test"),
+    fields = Map(
+      StringName("_id")   -> IdFieldSchema(),
+      StringName("title") -> TextFieldSchema(
+        name = StringName("title"),
+        search = SearchParams(semantic = Some(SemanticSimpleParams(dim = 1024)))
+      )
+    )
+  )
 
   @Setup
   def setup() = {
@@ -54,9 +71,7 @@ class DocumentDecoderBenchmark {
         Task(
           json = s"""{"_id": "1", "title": {"text": "aaa", "embedding": [${emb.mkString(",")}]}}""",
           decoder = DECODER match {
-            case "v1"  => (a: String) => decode[Document](a)(using Document.decoderFor1(embedSchema)).toTry.get
-            case "v2"  => (a: String) => decode[Document](a)(using Document.decoderFor3(embedSchema)).toTry.get
-            case "v3" => (a: String) => readFromString[Document](a)(using DocumentDecoder.codec(embedSchema))
+            case "v3"  => (a: String) => readFromString[Document](a)(using DocumentDecoder.codec(embedSchema))
             case other => throw NotImplementedError(other)
           }
         )
@@ -64,9 +79,7 @@ class DocumentDecoderBenchmark {
         Task(
           json = """{"_id": "1", "title": "The Matrix", "desc": "foo bar", "year": 1999}""",
           decoder = DECODER match {
-            case "v1"  => (a: String) => decode[Document](a)(using Document.decoderFor1(moviesSchema)).toOption.get
-            case "v2"  => (a: String) => decode[Document](a)(using Document.decoderFor3(moviesSchema)).toOption.get
-            case "v3" => (a: String) => readFromString[Document](a)(using DocumentDecoder.codec(moviesSchema))
+            case "v3"  => (a: String) => readFromString[Document](a)(using DocumentDecoder.codec(moviesSchema))
             case other => throw NotImplementedError(other)
           }
         )
@@ -74,8 +87,6 @@ class DocumentDecoderBenchmark {
         Task(
           json = """{"_id": "1"}""",
           decoder = DECODER match {
-            case "v1"  => (a: String) => decode[Document](a)(using Document.decoderFor1(idOnlySchema)).toOption.get
-            case "v2"  => (a: String) => decode[Document](a)(using Document.decoderFor3(idOnlySchema)).toOption.get
             case other => throw NotImplementedError(other)
           }
         )

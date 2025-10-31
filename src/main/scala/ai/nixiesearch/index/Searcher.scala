@@ -2,15 +2,7 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
-import ai.nixiesearch.api.SearchRoute.{
-  RAGRequest,
-  RAGResponse,
-  SearchRequest,
-  SearchResponse,
-  SortPredicate,
-  SuggestRequest,
-  SuggestResponse
-}
+import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SortPredicate, SuggestRequest, SuggestResponse}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
@@ -21,27 +13,16 @@ import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.field.{FieldCodec, *}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexReader, LeafReaderContext, ReaderUtil}
-import org.apache.lucene.search.{
-  DocIdSetIterator,
-  IndexSearcher,
-  MultiCollectorManager,
-  ScoreDoc,
-  Sort,
-  SortField,
-  TopDocs,
-  TopFieldCollectorManager,
-  TopScoreDocCollectorManager,
-  TotalHits,
-  Query as LuceneQuery
-}
+import org.apache.lucene.search.{DocIdSetIterator, IndexSearcher, MultiCollectorManager, ScoreDoc, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
 import cats.syntax.all.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Error.{BackendError, UserError}
+import ai.nixiesearch.core.Field.{FloatField, IdField, TextField}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.{DocumentVisitor}
 import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
@@ -214,7 +195,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     result
   }
 
-  val ID_DOCVALUE_NAME                                        = "_id" + TextField.FILTER_SUFFIX
+  val ID_DOCVALUE_NAME                                        = "_id" + FieldCodec.FILTER_SUFFIX
   protected def hasBinaryDv(reader: DirectoryReader): Boolean = {
     if (reader.leaves().isEmpty) {
       false
@@ -236,7 +217,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
         val idDocValues  = DocValues.getBinary(leafReader.reader(), ID_DOCVALUE_NAME)
         idDocValues.advance(scoreDoc.doc - leafReader.docBase)
         val id = idDocValues.binaryValue().utf8ToString()
-        Document(TextField("_id", id), FloatField("_score", scoreDoc.score))
+        Document(IdField("_id", id), FloatField("_score", scoreDoc.score))
       })
       .toList
   }

@@ -1,7 +1,7 @@
 package ai.nixiesearch.core.search
 
-import ai.nixiesearch.core.field.TextField
-import ai.nixiesearch.core.field.TextField.FILTER_SUFFIX
+import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.FieldCodec.FILTER_SUFFIX
 import ai.nixiesearch.core.search.DocumentGroup.ROLE_FIELD
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{BinaryDocValuesField, Document, StoredField, StringField}

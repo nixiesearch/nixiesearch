@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.sort
 
 import ai.nixiesearch.config.FieldSchema.FloatFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.field.FloatField
+import ai.nixiesearch.core.Field.FloatField
 
 class FloatSortTest extends SortSuite[FloatField, FloatFieldSchema, Float] {
   override def field(name: FieldName, value: Float): FloatField = FloatField(name.name, value)

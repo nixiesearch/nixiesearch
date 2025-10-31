@@ -5,8 +5,8 @@ import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticSimpleParams}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.{Document, Logging}
-import ai.nixiesearch.core.Field.TextLikeField
-import ai.nixiesearch.core.field.{TextField, TextListField}
+
+import ai.nixiesearch.core.Field.{TextField, TextListField, TextLikeField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
@@ -67,7 +67,6 @@ case class DocumentEmbedder(
                       )
                     )
                   )
-                case other => other
               }
             case _ => field
           }

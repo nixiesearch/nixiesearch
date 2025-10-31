@@ -5,7 +5,8 @@ import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.Llam
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{Document, Field, Logging}
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
+import ai.nixiesearch.core.field.{DateFieldCodec, DateTimeFieldCodec}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel.{
   ModelMetadata,
@@ -117,15 +118,16 @@ object GenerativeModel {
                 case f if f.name == "_id"          => None
                 case f if f.name == "_score"       => None
                 case IntField(name, value)         => Some(s"$name: $value")
-                case DateField(name, value)        => Some(s"$name: ${DateField.writeString(value)}")
+                case DateField(name, value)        => Some(s"$name: ${DateFieldCodec.writeString(value)}")
                 case LongField(name, value)        => Some(s"$name: $value")
                 case TextField(name, value, _)     => Some(s"$name: $value")
                 case FloatField(name, value)       => Some(s"$name: $value")
                 case DoubleField(name, value)      => Some(s"$name: $value")
                 case BooleanField(name, value)     => Some(s"$name: $value")
-                case DateTimeField(name, value)    => Some(s"$name: ${DateTimeField.writeString(value)}")
+                case DateTimeField(name, value)    => Some(s"$name: ${DateTimeFieldCodec.writeString(value)}")
                 case TextListField(name, value, _) => Some(s"$name: ${value.mkString(", ")}")
                 case GeopointField(_, _, _)        => None
+                case _                             => None
               }
             stringifiedFields match {
               case Nil => ""

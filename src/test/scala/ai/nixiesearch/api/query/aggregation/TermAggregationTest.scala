@@ -10,7 +10,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec

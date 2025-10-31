@@ -1,7 +1,7 @@
 package ai.nixiesearch.api
 
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
