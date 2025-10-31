@@ -13,7 +13,7 @@ import io.circe.generic.semiauto.*
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
 object TestIndexMapping {
-  given documentCodec: Codec[Document]                 = Document.codecFor(apply())
+  given documentCodec: Codec[Document]                 = ???//Document.codecFor(apply())
   given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
   given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
 
