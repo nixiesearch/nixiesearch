@@ -46,10 +46,10 @@ case class DoubleListFieldCodec(spec: DoubleListFieldSchema) extends FieldCodec[
 
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
-  ): Either[FieldCodec.WireDecodingError, Option[DoubleListField]] =
+  ): Either[FieldCodec.WireDecodingError, List[DoubleListField]] =
     doc.fields.collect { case f @ DoubleStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Nil             => Right(None)
-      case all @ head :: _ => Right(Some(DoubleListField(head.name, all.map(_.value))))
+      case Nil             => Right(Nil)
+      case all @ head :: _ => Right(List(DoubleListField(head.name, all.map(_.value))))
     }
 
   override def encodeJson(field: DoubleListField): Json = Json.fromValues(field.value.map(Json.fromDoubleOrNull))

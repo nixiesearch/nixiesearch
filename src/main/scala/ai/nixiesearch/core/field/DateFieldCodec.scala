@@ -19,6 +19,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import scala.util.{Failure, Success, Try}
+import cats.syntax.all.*
 
 case class DateFieldCodec(spec: DateFieldSchema) extends FieldCodec[DateField] {
   val nested = IntFieldCodec(
@@ -38,11 +39,9 @@ case class DateFieldCodec(spec: DateFieldSchema) extends FieldCodec[DateField] {
 
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
-  ): Either[FieldCodec.WireDecodingError, Option[DateField]] =
-    nested.readLucene(doc).map {
-      case Some(intField) => Some(DateField(intField.name, intField.value))
-      case None           => None
-    }
+  ): Either[FieldCodec.WireDecodingError, List[DateField]] = {
+    nested.readLucene(doc).map(_.map(int => DateField(int.name, int.value)))
+  }
 
   override def writeLucene(
       field: DateField,

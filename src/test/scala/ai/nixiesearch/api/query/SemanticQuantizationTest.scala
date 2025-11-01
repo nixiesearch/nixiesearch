@@ -22,24 +22,19 @@ class SemanticQuantizationTest extends SearchTest with Matchers {
       IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(
         name = StringName("title_f32"),
-        search = SearchParams(semantic =
-          Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Float32, dim = 384))
-        )
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Float32)))
       ),
       TextFieldSchema(
         name = StringName("title_i8"),
-        search =
-          SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int8, dim = 384)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int8)))
       ),
       TextFieldSchema(
         name = StringName("title_i4"),
-        search =
-          SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int4, dim = 384)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int4)))
       ),
       TextFieldSchema(
         name = StringName("title_i1"),
-        search =
-          SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int1, dim = 384)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), quantize = Int1)))
       )
     )
   )

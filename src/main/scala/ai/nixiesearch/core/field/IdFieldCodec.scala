@@ -45,11 +45,12 @@ case class IdFieldCodec(spec: IdFieldSchema) extends FieldCodec[IdField] {
 
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
-  ): Either[FieldCodec.WireDecodingError, Option[IdField]] = {
-    doc.fields.collectFirst { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Some(value) => Right(Some(IdField(value.name, value.value)))
-      case None        => Right(None)
-    }
+  ): Either[FieldCodec.WireDecodingError, List[IdField]] = {
+    Right(
+      doc.fields
+        .collect { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => IdField(doubleField.name, doubleField.value))
+    )
   }
 
   override def writeLucene(field: IdField, buffer: DocumentGroup): Unit = {

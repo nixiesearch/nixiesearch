@@ -34,11 +34,8 @@ case class DateTimeFieldCodec(spec: DateTimeFieldSchema) extends FieldCodec[Date
 
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
-  ): Either[FieldCodec.WireDecodingError, Option[DateTimeField]] =
-    nested.readLucene(doc).map {
-      case Some(value) => Some(DateTimeField(value.name, value.value))
-      case None        => None
-    }
+  ): Either[FieldCodec.WireDecodingError, List[DateTimeField]] =
+    nested.readLucene(doc).map(_.map(long => DateTimeField(long.name, long.value)))
 
   override def writeLucene(
       field: DateTimeField,

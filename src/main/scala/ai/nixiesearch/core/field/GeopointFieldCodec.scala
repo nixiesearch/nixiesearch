@@ -22,6 +22,7 @@ import org.apache.lucene.document.{Document, LatLonDocValuesField, LatLonPoint, 
 import org.apache.lucene.util.BytesRef
 import io.circe.generic.semiauto.*
 import org.apache.lucene.search.SortField
+import cats.syntax.all.*
 
 import java.nio.ByteBuffer
 
@@ -45,22 +46,23 @@ case class GeopointFieldCodec(spec: GeopointFieldSchema) extends FieldCodec[Geop
     }
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[GeopointField]] =
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[GeopointField]] =
     doc.fields
-      .collectFirst {
+      .collect {
         case f @ StoredLuceneField.BinaryStoredField(name, value) if spec.name.matches(StringName(name)) => f
-      } match {
-      case Some(value) =>
-        if (value.value.length != 16) {
-          Left(WireDecodingError(s"geopoint stored payload should be 16 bytes, but it's ${value.value.length}"))
-        } else {
-          val buf = ByteBuffer.wrap(value.value)
-          val lat = buf.getDouble()
-          val lon = buf.getDouble()
-          Right(Some(GeopointField(value.name, lat, lon)))
-        }
-      case None => Right(None)
+      }
+      .traverse(binary => decodeGP(binary.name, binary.value))
+
+  private def decodeGP(name: String, value: Array[Byte]): Either[WireDecodingError, GeopointField] = {
+    if (value.length != 16) {
+      Left(WireDecodingError(s"geopoint stored payload should be 16 bytes, but it's ${value.length}"))
+    } else {
+      val buf = ByteBuffer.wrap(value)
+      val lat = buf.getDouble()
+      val lon = buf.getDouble()
+      Right(GeopointField(name, lat, lon))
     }
+  }
 
   override def encodeJson(field: GeopointField): Json =
     Json.obj("lat" -> Json.fromDoubleOrNull(field.lat), "lon" -> Json.fromDoubleOrNull(field.lon))

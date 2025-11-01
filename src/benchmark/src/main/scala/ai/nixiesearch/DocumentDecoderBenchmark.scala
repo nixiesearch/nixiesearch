@@ -58,7 +58,7 @@ class DocumentDecoderBenchmark {
       StringName("_id")   -> IdFieldSchema(),
       StringName("title") -> TextFieldSchema(
         name = StringName("title"),
-        search = SearchParams(semantic = Some(SemanticSimpleParams(dim = 1024)))
+        search = SearchParams(semantic = Some(SemanticSimpleParams()))
       )
     )
   )

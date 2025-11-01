@@ -15,7 +15,12 @@ import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec}
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  NumericDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
 
@@ -40,10 +45,10 @@ case class FloatListFieldCodec(spec: FloatListFieldSchema) extends FieldCodec[Fl
 
   }
 
-  override def readLucene(doc: StoredDocument): Either[FieldCodec.WireDecodingError, Option[FloatListField]] =
+  override def readLucene(doc: StoredDocument): Either[FieldCodec.WireDecodingError, List[FloatListField]] =
     doc.fields.collect { case f @ FloatStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Nil             => Right(None)
-      case all @ head :: _ => Right(Some(FloatListField(head.name, all.map(_.value))))
+      case Nil             => Right(Nil)
+      case all @ head :: _ => Right(List(FloatListField(head.name, all.map(_.value))))
     }
 
   override def encodeJson(field: FloatListField): Json = Json.fromValues(field.value.map(Json.fromFloatOrNull))

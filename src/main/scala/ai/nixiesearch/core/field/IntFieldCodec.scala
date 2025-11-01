@@ -46,11 +46,12 @@ case class IntFieldCodec(spec: IntFieldSchema) extends FieldCodec[IntField] {
     }
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[IntField]] =
-    doc.fields.collectFirst { case f @ IntStoredField(name, _) if spec.name.matches(StringName(name)) => f } match {
-      case Some(value) => Right(Some(IntField(value.name, value.value)))
-      case None        => Right(None)
-    }
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[IntField]] =
+    Right(
+      doc.fields
+        .collect { case f @ IntStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => IntField(doubleField.name, doubleField.value))
+    )
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
 

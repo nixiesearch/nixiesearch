@@ -74,13 +74,14 @@ case class DocumentVisitor(
 
   def asDocument(score: Float): Either[WireDecodingError, Document] = {
     val stored          = StoredDocument(collected.toList)
-    val collectedFields = fields.traverse(field => decodeOne(field, stored))
-    collectedFields.map(_.flatten).map(list => Document(FloatField("_score", score), list*))
+    val collectedFields = fields.flatTraverse(field => decodeOne(field, stored))
+    val b               = 1
+    collectedFields.map(list => Document(FloatField("_score", score), list*))
   }
 
-  private def decodeOne(name: FieldName, stored: StoredDocument): Either[WireDecodingError, Option[Field]] =
+  private def decodeOne(name: FieldName, stored: StoredDocument): Either[WireDecodingError, List[Field]] =
     mapping.fieldSchema(name) match {
-      case None         => Right(None)
+      case None         => Right(Nil)
       case Some(schema) => schema.codec.readLucene(stored)
     }
 }

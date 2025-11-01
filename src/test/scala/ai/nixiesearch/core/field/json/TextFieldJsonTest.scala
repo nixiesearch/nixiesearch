@@ -32,7 +32,7 @@ class TextFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest {
   }
 
   it should "decode pre-embedded" in {
-    val semantic = SemanticSimpleParams(dim = 3)
+    val semantic = SemanticSimpleParams()
     val result   = decode(
       TextFieldSchema(StringName("name"), search = SearchParams(semantic = Some(semantic))),
       json = """{"name": {"text": "value", "embedding": [1,2,3]}}"""
@@ -43,7 +43,7 @@ class TextFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest {
   }
 
   it should "fail on dim mismatch" in {
-    val semantic = SemanticSimpleParams(dim = 3)
+    val semantic = SemanticSimpleParams()
     val result   = Try(
       decode(
         TextFieldSchema(StringName("name"), search = SearchParams(semantic = Some(semantic))),

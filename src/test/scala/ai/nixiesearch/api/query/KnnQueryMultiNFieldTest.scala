@@ -23,11 +23,11 @@ class KnnQueryMultiNFieldTest extends SearchTest with Matchers {
       IdFieldSchema(name = StringName("_id")),
       TextListFieldSchema(
         name = StringName("songs"),
-        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
       ),
       TextListFieldSchema(
         name = StringName("categories"),
-        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
       )
     )
   )

@@ -22,7 +22,7 @@ import org.apache.lucene.document.{
 }
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
-
+import cats.syntax.all.*
 import scala.util.{Failure, Success, Try}
 
 case class BooleanFieldCodec(spec: BooleanFieldSchema) extends FieldCodec[BooleanField] {
@@ -44,11 +44,8 @@ case class BooleanFieldCodec(spec: BooleanFieldSchema) extends FieldCodec[Boolea
     nested.writeLucene(IntField(field.name, toInt(field.value)), buffer)
   }
 
-  override def readLucene(doc: StoredDocument): Either[WireDecodingError, Option[BooleanField]] = {
-    nested.readLucene(doc).flatMap {
-      case Some(IntField(name, value)) => fromInt(value).map(bool => Some(BooleanField(name, bool)))
-      case None                        => Right(None)
-    }
+  override def readLucene(doc: StoredDocument): Either[WireDecodingError, List[BooleanField]] = {
+    nested.readLucene(doc).flatMap(list => list.traverse(f => fromInt(f.value).map(bool => BooleanField(f.name, bool))))
   }
 
   private def toInt(bool: Boolean): Int                               = if (bool) 1 else 0

@@ -17,7 +17,7 @@ trait SearchTest extends AnyFlatSpec {
   def mapping: IndexMapping
   def docs: List[Document]
 
-  given documentDecoder: Decoder[Document]             = ???
+  given documentDecoder: Decoder[Document]             = ??? /// Decoder.instance(c => c.str)
   given documentEncoder: Encoder[Document]             = Document.encoderFor(mapping)
   given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
   given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder

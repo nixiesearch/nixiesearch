@@ -42,7 +42,7 @@ class TextListFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest
   }
 
   it should "decode pre-embedded text[1] emb[2]" in {
-    val semantic = SemanticSimpleParams(dim = 3)
+    val semantic = SemanticSimpleParams()
     val result   = decode(
       TextListFieldSchema(StringName("titles"), search = SearchParams(semantic = Some(semantic))),
       """{"titles": {"text": ["foo"], "embedding": [[1,2,3],[4,5,6]]}}"""
@@ -53,7 +53,7 @@ class TextListFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest
   }
 
   it should "decode pre-embedded text[1] emb[1]" in {
-    val semantic = SemanticSimpleParams(dim = 3)
+    val semantic = SemanticSimpleParams()
     val result   = decode(
       TextListFieldSchema(StringName("titles"), search = SearchParams(semantic = Some(semantic))),
       """{"titles": {"text": ["foo"], "embedding": [[1,2,3]]}}"""
@@ -64,7 +64,7 @@ class TextListFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest
   }
 
   it should "fail on pre-embedded text[2] emb[1]" in {
-    val semantic = SemanticSimpleParams(dim = 3)
+    val semantic = SemanticSimpleParams()
     val result   = Try(
       decode(
         TextListFieldSchema(StringName("titles"), search = SearchParams(semantic = Some(semantic))),

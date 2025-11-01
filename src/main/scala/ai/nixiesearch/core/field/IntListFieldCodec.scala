@@ -43,10 +43,10 @@ case class IntListFieldCodec(spec: IntListFieldSchema) extends FieldCodec[IntLis
 
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
-  ): Either[FieldCodec.WireDecodingError, Option[IntListField]] =
+  ): Either[FieldCodec.WireDecodingError, List[IntListField]] =
     doc.fields.collect { case f @ IntStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Nil             => Right(None)
-      case all @ head :: _ => Right(Some(IntListField(head.name, all.map(_.value))))
+      case Nil             => Right(Nil)
+      case all @ head :: _ => Right(List(IntListField(head.name, all.map(_.value))))
     }
 
   override def encodeJson(field: IntListField): Json = Json.fromValues(field.value.map(Json.fromInt))

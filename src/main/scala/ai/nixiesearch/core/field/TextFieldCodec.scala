@@ -92,13 +92,12 @@ case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
 
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextField]] =
-    doc.fields.collectFirst {
-      case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f
-    } match {
-      case Some(str) => Right(Some(TextField(str.name, str.value)))
-      case None      => Right(None)
-    }
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[TextField]] =
+    Right(
+      doc.fields
+        .collect { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => TextField(doubleField.name, doubleField.value))
+    )
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
 
@@ -123,8 +122,6 @@ case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
     spec.search.semantic match {
       case Some(s: SemanticParams) =>
         decodeJsonImpl(name, () => TextFieldCodec.textEmbeddingCodec.decodeValue(in, null)).flatMap {
-          case value if value.embedding.length != s.dim =>
-            Left(JsonError(s"field $name: expected dim ${s.dim}, but got ${value.embedding.length}"))
           case value if value.text.isEmpty =>
             Right(None)
           case value =>

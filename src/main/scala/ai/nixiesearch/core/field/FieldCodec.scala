@@ -21,7 +21,7 @@ import scala.util.{Failure, Success, Try}
 trait FieldCodec[T <: Field] extends Logging {
 
   def writeLucene(field: T, buffer: DocumentGroup): Unit
-  def readLucene(doc: StoredDocument): Either[WireDecodingError, Option[T]]
+  def readLucene(doc: StoredDocument): Either[WireDecodingError, List[T]]
   def encodeJson(field: T): Json
   def decodeJson(name: String, reader: JsonReader): Either[JsonError, Option[T]]
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField]

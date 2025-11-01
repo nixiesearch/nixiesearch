@@ -15,7 +15,15 @@ import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{KnnFloatVectorField, NumericDocValuesField, SortedDocValuesField, SortedNumericDocValuesField, StoredField, StringField, Document as LuceneDocument}
+import org.apache.lucene.document.{
+  KnnFloatVectorField,
+  NumericDocValuesField,
+  SortedDocValuesField,
+  SortedNumericDocValuesField,
+  StoredField,
+  StringField,
+  Document as LuceneDocument
+}
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
 
@@ -43,11 +51,12 @@ case class FloatFieldCodec(spec: FloatFieldSchema) extends FieldCodec[FloatField
     }
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[FloatField]] =
-    doc.fields.collectFirst { case f @ FloatStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Some(float) => Right(Some(FloatField(float.name, float.value)))
-      case None        => Right(None)
-    }
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[FloatField]] =
+    Right(
+      doc.fields
+        .collect { case f @ FloatStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(field => FloatField(field.name, field.value))
+    )
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
 

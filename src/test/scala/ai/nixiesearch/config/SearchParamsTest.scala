@@ -44,7 +44,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
       TextFieldSchema(
         name = StringName("field"),
         search =
-          SearchParams(semantic = Some(SemanticInferenceParams(ModelRef("text"), dim=384)), lexical = Some(LexicalParams()))
+          SearchParams(semantic = Some(SemanticInferenceParams(ModelRef("text"))), lexical = Some(LexicalParams()))
       )
     )
   }
@@ -62,7 +62,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
       TextFieldSchema(
         name = StringName("field"),
         search = SearchParams(
-          semantic = Some(SemanticInferenceParams(ModelRef("text"), dim=384)),
+          semantic = Some(SemanticInferenceParams(ModelRef("text"))),
           lexical = Some(LexicalParams(analyze = English))
         )
       )
@@ -79,7 +79,7 @@ class SearchParamsTest extends AnyFlatSpec with Matchers {
       TextFieldSchema(
         name = StringName("field"),
         search = SearchParams(
-          semantic = Some(SemanticSimpleParams(dim = 123)),
+          semantic = Some(SemanticSimpleParams()),
           lexical = None
         )
       )

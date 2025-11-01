@@ -25,7 +25,7 @@ class KnnQueryMultiTest extends SearchTest with Matchers {
       TextFieldSchema(name = StringName("category"), filter = true),
       TextListFieldSchema(
         name = StringName("titles"),
-        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"), dim=384)))
+        search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
       )
     )
   )

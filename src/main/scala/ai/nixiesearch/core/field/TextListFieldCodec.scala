@@ -120,10 +120,10 @@ case class TextListFieldCodec(spec: TextListFieldSchema) extends FieldCodec[Text
     })
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextListField]] =
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[TextListField]] =
     doc.fields.collect { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Nil             => Right(None)
-      case all @ head :: _ => Right(Some(TextListField(head.name, all.map(_.value))))
+      case Nil             => Right(Nil)
+      case all @ head :: _ => Right(List(TextListField(head.name, all.map(_.value))))
     }
 
   override def encodeJson(field: TextListField): Json = Json.fromValues(field.value.map(Json.fromString))

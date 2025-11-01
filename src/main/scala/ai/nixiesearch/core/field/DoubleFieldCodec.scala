@@ -45,12 +45,14 @@ case class DoubleFieldCodec(spec: DoubleFieldSchema) extends FieldCodec[DoubleFi
     }
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[DoubleField]] = {
-    doc.fields.collectFirst { case f @ DoubleStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Some(doubleField) => Right(Some(DoubleField(doubleField.name, doubleField.value)))
-      case None              => Right(None)
-    }
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[DoubleField]] = {
+    Right(
+      doc.fields
+        .collect { case f @ DoubleStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => DoubleField(doubleField.name, doubleField.value))
+    )
   }
+
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
 
   override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[DoubleField]] = {

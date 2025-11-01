@@ -38,10 +38,10 @@ case class LongListFieldCodec(spec: LongListFieldSchema) extends FieldCodec[Long
 
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
-  ): Either[FieldCodec.WireDecodingError, Option[LongListField]] =
+  ): Either[FieldCodec.WireDecodingError, List[LongListField]] =
     doc.fields.collect { case f @ LongStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
-      case Nil             => Right(None)
-      case all @ head :: _ => Right(Some(LongListField(head.name, all.map(_.value))))
+      case Nil             => Right(Nil)
+      case all @ head :: _ => Right(List(LongListField(head.name, all.map(_.value))))
     }
 
   override def encodeJson(field: LongListField): Json = Json.fromValues(field.value.map(Json.fromLong))

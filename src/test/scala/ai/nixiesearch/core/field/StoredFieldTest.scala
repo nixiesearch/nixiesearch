@@ -93,7 +93,7 @@ class StoredFieldTest extends AnyFlatSpec with Matchers with EitherValues {
       schema = TextFieldSchema(name = WildcardName("title_*", "title_", "")),
       fieldNames = List(WildcardName("title_*", "title_", ""))
     )
-    doc.value.fields.map(_.name) shouldBe List("title_a", "title_b")
+    doc.value.fields.map(_.name) shouldBe List("_score", "title_a", "title_b")
   }
 
   def roundtrip[F <: Field, S <: FieldSchema[F]](field: F, schema: S): Assertion = {

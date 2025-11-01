@@ -41,11 +41,12 @@ case class LongFieldCodec(spec: LongFieldSchema) extends FieldCodec[LongField] {
     }
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[LongField]] =
-    doc.fields.collectFirst { case f @ LongStoredField(name, _) if spec.name.matches(StringName(name)) => f } match {
-      case Some(value) => Right(Some(LongField(value.name, value.value)))
-      case None        => Right(None)
-    }
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[LongField]] =
+    Right(
+      doc.fields
+        .collect { case f @ LongStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => LongField(doubleField.name, doubleField.value))
+    )
 
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
 
