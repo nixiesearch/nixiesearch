@@ -1,12 +1,12 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticSimpleParams}
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.{Document, Logging}
-
-import ai.nixiesearch.core.Field.{TextField, TextListField, TextLikeField}
+import ai.nixiesearch.core.Field.{TextField, TextLikeField, TextListField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
@@ -107,7 +107,7 @@ case class DocumentEmbedder(
       // fast path, no embedding
       case Some(None) => Stream.empty
       case None       =>
-        mapping.fieldSchemaOf[TextLikeFieldSchema[?]](textField.name) match {
+        mapping.fieldSchema[TextLikeFieldSchema[?]](StringName(textField.name)) match {
           case Some(schema) =>
             schema.search.semantic match {
               case Some(SemanticInferenceParams(model = model)) =>

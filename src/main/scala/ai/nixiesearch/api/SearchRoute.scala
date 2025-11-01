@@ -52,9 +52,9 @@ import scala.util.{Failure, Success}
 case class SearchRoute(searcher: Searcher) extends Route with Logging {
   given documentEncoder: Encoder[Document]             = Document.encoderFor(searcher.index.mapping)
   given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
-  //given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
+  // given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
   given searchResponseEncJson: EntityEncoder[IO, SearchResponse] = jsonEncoderOf
-  //given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
+  // given searchResponseDecJson: EntityDecoder[IO, SearchResponse] = jsonOf
 
   override val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case request @ POST -> Root / "v1" / "index" / indexName / "search"
@@ -177,12 +177,13 @@ object SearchRoute {
       query: Query,
       filters: Option[Filters] = None,
       size: Int = 10,
-      fields: List[FieldName] = Nil,
+      fields: List[FieldName] = DEFAULT_FIELDS,
       aggs: Option[Aggs] = None,
       rag: Option[RAGRequest] = None,
       sort: List[SortPredicate] = Nil
   )
   object SearchRequest {
+    val DEFAULT_FIELDS                                 = List(StringName("_id"), StringName("_score"))
     given searchRequestEncoder: Encoder[SearchRequest] = deriveEncoder
     given searchRequestDecoder: Decoder[SearchRequest] = Decoder.instance(c =>
       for {
@@ -190,9 +191,9 @@ object SearchRoute {
         size    <- c.downField("size").as[Option[Int]].map(_.getOrElse(10))
         filters <- c.downField("filters").as[Option[Filters]]
         fields  <- c.downField("fields").as[Option[List[FieldName]]].map {
-          case Some(Nil)  => Nil
+          case Some(Nil)  => DEFAULT_FIELDS
           case Some(list) => list
-          case None       => Nil
+          case None       => DEFAULT_FIELDS
         }
         aggs <- c.downField("aggs").as[Option[Aggs]]
         rag  <- c.downField("rag").as[Option[RAGRequest]]

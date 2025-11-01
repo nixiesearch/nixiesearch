@@ -1,6 +1,6 @@
 package ai.nixiesearch.core
 
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Field.*
@@ -18,11 +18,11 @@ import java.io.{ByteArrayOutputStream, FileInputStream}
 
 class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val doc      = """{"_id":"1","text":"foo"}"""
-  val expected = Document(List(TextField("_id", "1"), TextField("text", "foo")))
+  val expected = Document(List(IdField("_id", "1"), TextField("text", "foo")))
   val mapping  = IndexMapping(
     name = IndexName("test"),
     fields = Map(
-      StringName("_id")  -> TextFieldSchema(name = StringName("_id")),
+      StringName("_id")  -> IdFieldSchema(name = StringName("_id")),
       StringName("text") -> TextFieldSchema(name = StringName("text"))
     )
   )
@@ -58,6 +58,13 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
 
   it should "decode newline-delimited blobs" in {
     val input  = s"$doc\n$doc"
+    val result =
+      Stream.emits(input.getBytes()).through(JsonDocumentStream.parse(mapping)).compile.toList.unsafeRunSync()
+    result shouldBe List(expected, expected)
+  }
+
+  it should "decode newline-delimited blobs with gaps" in {
+    val input  = s"$doc\n$doc\n\n"
     val result =
       Stream.emits(input.getBytes()).through(JsonDocumentStream.parse(mapping)).compile.toList.unsafeRunSync()
     result shouldBe List(expected, expected)

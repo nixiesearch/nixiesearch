@@ -4,7 +4,22 @@ import ai.nixiesearch.api.filter.Predicate.BoolPredicate.{AndPredicate, NotPredi
 import ai.nixiesearch.api.filter.Predicate.FilterTerm.{BooleanTerm, DateTerm, DateTimeTerm, NumTerm, StringTerm}
 import ai.nixiesearch.api.filter.Predicate.GeoBoundingBoxPredicate.{geoBoxDecoder, geoBoxEncoder}
 import ai.nixiesearch.api.filter.Predicate.GeoDistancePredicate.{geoDistanceDecoder, geoDistanceEncoder}
-import ai.nixiesearch.config.FieldSchema.{BooleanFieldSchema, DateFieldSchema, DateTimeFieldSchema, DoubleFieldSchema, DoubleListFieldSchema, FloatFieldSchema, FloatListFieldSchema, GeopointFieldSchema, IntFieldSchema, IntListFieldSchema, LongFieldSchema, LongListFieldSchema, TextLikeFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{
+  BooleanFieldSchema,
+  DateFieldSchema,
+  DateTimeFieldSchema,
+  DoubleFieldSchema,
+  DoubleListFieldSchema,
+  FloatFieldSchema,
+  FloatListFieldSchema,
+  GeopointFieldSchema,
+  IntFieldSchema,
+  IntListFieldSchema,
+  LongFieldSchema,
+  LongListFieldSchema,
+  TextLikeFieldSchema
+}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower, RangeValue}
@@ -111,7 +126,7 @@ object Predicate {
 
   case class TermPredicate(field: String, value: FilterTerm) extends Predicate with Logging {
     def compile(mapping: IndexMapping): IO[LuceneQuery] = {
-      IO((mapping.fieldSchema(field), value)).flatMap {
+      IO((mapping.fieldSchema(StringName(field)), value)).flatMap {
         case (None, _) =>
           IO.raiseError(UserError(s"field $field is not defined in index mapping"))
         case (Some(schema), _) if !schema.filter =>
@@ -182,7 +197,7 @@ object Predicate {
       lessThan: Option[FiniteRange.Higher] = None
   ) extends Predicate {
     override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
-      mapping.fieldSchema(field) match {
+      mapping.fieldSchema(StringName(field)) match {
         case Some(spec) if !spec.filter =>
           IO.raiseError(new Exception(s"range query for field '$field' only works with filter=true fields"))
         case Some(_: IntFieldSchema | _: DateFieldSchema | _: IntListFieldSchema) =>
@@ -334,7 +349,7 @@ object Predicate {
   }
   case class GeoDistancePredicate(field: String, point: LatLon, distance: Distance) extends Predicate with Logging {
     override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
-      mapping.fieldSchemaOf[GeopointFieldSchema](field) match {
+      mapping.fieldSchema[GeopointFieldSchema](StringName(field)) match {
         case None => IO.raiseError(UserError("cannot perform geo_distance query over non-geopoint field"))
         case Some(schema) if !schema.filter =>
           IO.raiseError(UserError("cannot perform geo_distance query over non-filterable geopoint field"))
@@ -370,7 +385,7 @@ object Predicate {
       extends Predicate
       with Logging {
     override def compile(mapping: IndexMapping): IO[LuceneQuery] = {
-      mapping.fieldSchemaOf[GeopointFieldSchema](field) match {
+      mapping.fieldSchema[GeopointFieldSchema](StringName(field)) match {
         case None => IO.raiseError(UserError("cannot perform geo_distance query over non-geopoint field"))
         case Some(schema) if !schema.filter =>
           IO.raiseError(UserError("cannot perform geo_distance query over non-filterable geopoint field"))

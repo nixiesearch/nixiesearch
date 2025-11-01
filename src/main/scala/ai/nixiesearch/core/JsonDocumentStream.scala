@@ -40,8 +40,10 @@ object JsonDocumentStream extends Logging {
           case Some((byte, tail)) if byte == '['.toByte =>
             logger.debug("Payload starts with '[', assuming json-array format")
             tail.through(parseJSONArr(documentListCodec)).pull.echo
-          case Some((chunk, tail)) =>
+          case Some((byte, tail)) if byte == '{'.toByte =>
             tail.through(parseNDJSON(documentCodec)).pull.echo
+          case Some((byte, _)) =>
+            Pull.raiseError[IO](JsonError(s"payload should start with [ or {, but got 0x${byte.toInt.toHexString}"))
           case None => Pull.done
         }
         .stream
@@ -63,12 +65,16 @@ object JsonDocumentStream extends Logging {
         case Some((chunk, tail)) if chunk.startsWith(BZ2_HEADER) =>
           logger.info("Detected BZ2 compression")
           tail.through(bzip2.decompress).pull.echo
-        case Some((_, tail)) => tail.pull.echo
-        case None            => Pull.done
+        case Some((chunk, tail)) => tail.pull.echo
+        case None                => Pull.done
       }.stream
 
   private def parseNDJSON(decoder: JsonValueCodec[Document]): Pipe[IO, Byte, Document] = bytes =>
-    bytes.through(fs2.text.utf8.decode).through(fs2.text.lines).parEvalMap(8)(str => decode(str)(using decoder))
+    bytes
+      .through(fs2.text.utf8.decode)
+      .through(fs2.text.lines)
+      .filter(_.nonEmpty)
+      .parEvalMap(8)(str => decode(str)(using decoder))
 
   private def parseJSONArr(decoder: JsonValueCodec[List[Document]]): Pipe[IO, Byte, Document] = bytes =>
     bytes

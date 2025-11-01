@@ -21,8 +21,8 @@ object Field {
   object DateField {
     def applyUnsafe(name: String, str: String): DateField = {
       val epoch = LocalDate.of(1970, 1, 1)
-      val date = LocalDate.parse(str)
-      val days = ChronoUnit.DAYS.between(epoch, date).toInt
+      val date  = LocalDate.parse(str)
+      val days  = ChronoUnit.DAYS.between(epoch, date).toInt
       new DateField(name, days)
     }
   }
@@ -56,6 +56,15 @@ object Field {
   case class TextField(name: String, value: String, embedding: Option[Array[Float]] = None)
       extends Field
       with TextLikeField
+  object TextField {
+    def apply(name: String, value: String) = {
+      if (name == "_id") {
+        throw new IllegalArgumentException("text field instead of id")
+      } else {
+        new TextField(name, value, None)
+      }
+    }
+  }
 
   case class TextListField(name: String, value: List[String], embeddings: Option[List[Array[Float]]] = None)
       extends Field

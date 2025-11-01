@@ -70,9 +70,9 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         StringName("int") -> IntFieldSchema(StringName("int"), facet = true)
       )
     )
-    val schemaOK = mapping.fieldSchemaOf[IntFieldSchema]("int")
+    val schemaOK = mapping.fieldSchema[IntFieldSchema](StringName("int"))
     schemaOK shouldBe Some(IntFieldSchema(StringName("int"), facet = true))
-    val schemaFail = mapping.fieldSchemaOf[TextFieldSchema]("int")
+    val schemaFail = mapping.fieldSchema[TextFieldSchema](StringName("int"))
     schemaFail shouldBe None
   }
 

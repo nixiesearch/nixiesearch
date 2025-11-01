@@ -7,7 +7,7 @@ import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.FieldSchema.TextFieldSchema
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
@@ -16,12 +16,12 @@ class DocScoreTest extends SearchTest with Matchers {
   val mapping =
     TestIndexMapping("sort", List(TextFieldSchema(StringName("_id"))))
   val docs = List(
-    Document(List(TextField("_id", "0"))),
-    Document(List(TextField("_id", "1"))),
-    Document(List(TextField("_id", "2"))),
-    Document(List(TextField("_id", "3"))),
-    Document(List(TextField("_id", "4"))),
-    Document(List(TextField("_id", "5")))
+    Document(List(IdField("_id", "0"))),
+    Document(List(IdField("_id", "1"))),
+    Document(List(IdField("_id", "2"))),
+    Document(List(IdField("_id", "3"))),
+    Document(List(IdField("_id", "4"))),
+    Document(List(IdField("_id", "5")))
   )
 
   it should "sort by docid desc" in withIndex { index =>

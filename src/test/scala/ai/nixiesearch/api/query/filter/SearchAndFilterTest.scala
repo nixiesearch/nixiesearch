@@ -3,7 +3,7 @@ package ai.nixiesearch.api.query.filter
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.retrieve.MatchQuery
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
@@ -18,16 +18,16 @@ class SearchAndFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("color"), filter = true),
       TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams())))
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
-    Document(List(TextField("_id", "1"), TextField("color", "red"), TextField("title", "big jacket"))),
-    Document(List(TextField("_id", "2"), TextField("color", "white"), TextField("title", "evening dress"))),
-    Document(List(TextField("_id", "3"), TextField("color", "red"), TextField("title", "branded dress")))
+    Document(List(IdField("_id", "1"), TextField("color", "red"), TextField("title", "big jacket"))),
+    Document(List(IdField("_id", "2"), TextField("color", "white"), TextField("title", "evening dress"))),
+    Document(List(IdField("_id", "3"), TextField("color", "red"), TextField("title", "branded dress")))
   )
 
   it should "search and filter" in withIndex { index =>

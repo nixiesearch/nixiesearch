@@ -1,6 +1,7 @@
 package ai.nixiesearch.core
 
 import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Field.*
@@ -21,7 +22,7 @@ object DocumentDecoder {
           while ({
             val fieldName = in.readKeyAsString()
             mapping
-              .fieldSchema(fieldName)
+              .fieldSchema(StringName(fieldName))
               .foreach(schema =>
                 schema.codec.decodeJson(fieldName, in) match {
                   case Left(err)          => in.decodeError(err.msg)

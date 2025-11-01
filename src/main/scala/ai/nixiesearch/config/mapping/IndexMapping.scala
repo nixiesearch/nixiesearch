@@ -9,7 +9,7 @@ import cats.syntax.all.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, fieldNameDecoder}
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, NestedName, fieldNameDecoder}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.nn.ModelHandle
@@ -42,29 +42,33 @@ case class IndexMapping(
     schema
   }
 
-  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
-    plainFields.get(name) match {
-      case Some(schema) => Some(schema)
-      case None         =>
-        wildcardFields.collectFirst {
-          case schema if schema.name.matches(name) => schema
-        }
+  def fieldSchema[S <: FieldSchema[? <: Field]](
+      field: FieldName
+  )(using manifest: scala.reflect.ClassTag[S]): Option[S] = field match {
+    case f @ StringName(name) =>
+      plainFields.get(name) match {
+        case Some(schema: S) => Some(schema)
+        case Some(_)         => None
+        case None            =>
+          wildcardFields.collectFirst {
+            case schema: S if schema.name.matches(f) => schema
+          }
+      }
 
-    }
-  }
+    case f @ NestedName(name, head, tail) =>
+      plainFields.get(name) match {
+        case Some(schema: S) => Some(schema)
+        case Some(_)         => None
+        case None            =>
+          wildcardFields.collectFirst {
+            case schema: S if schema.name.matches(f) => schema
+          }
+      }
 
-  def fieldSchemaOf[S <: FieldSchema[? <: Field]](
-      name: String
-  )(using manifest: scala.reflect.ClassTag[S]): Option[S] = {
-    plainFields.get(name) match {
-      case Some(schema: S) => Some(schema)
-      case None            =>
-        wildcardFields.collectFirst {
-          case schema: S if schema.name.matches(name) => schema
-        }
-      case _ => None
-
-    }
+    case f @ WildcardName(name, prefix, suffix) =>
+      fields.collectFirst {
+        case (name, value: S) if name.matches(f) => value
+      }
   }
 
   def nameMatches(value: String): Boolean = {
@@ -193,7 +197,7 @@ object IndexMapping extends Logging {
       val fieldNames = fields.map(_.name)
       for {
         wildcard <- fieldNames.collect { case wc: WildcardName => wc }
-        string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string.name)
+        string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string)
       } yield {
         (wildcard, string)
       }

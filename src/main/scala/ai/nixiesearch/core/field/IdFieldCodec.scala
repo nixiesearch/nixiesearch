@@ -3,6 +3,7 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Field
@@ -45,7 +46,7 @@ case class IdFieldCodec(spec: IdFieldSchema) extends FieldCodec[IdField] {
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
   ): Either[FieldCodec.WireDecodingError, Option[IdField]] = {
-    doc.fields.collectFirst { case f @ StringStoredField(name, value) if spec.name.matches(name) => f } match {
+    doc.fields.collectFirst { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
       case Some(value) => Right(Some(IdField(value.name, value.value)))
       case None        => Right(None)
     }

@@ -3,6 +3,7 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
@@ -46,7 +47,7 @@ case class IntFieldCodec(spec: IntFieldSchema) extends FieldCodec[IntField] {
   }
 
   override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[IntField]] =
-    doc.fields.collectFirst { case f @ IntStoredField(name, _) if spec.name.matches(name) => f } match {
+    doc.fields.collectFirst { case f @ IntStoredField(name, _) if spec.name.matches(StringName(name)) => f } match {
       case Some(value) => Right(Some(IntField(value.name, value.value)))
       case None        => Right(None)
     }

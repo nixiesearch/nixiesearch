@@ -3,12 +3,12 @@ package ai.nixiesearch.api.query
 import ai.nixiesearch.api.query.retrieve.MatchQuery.Operator
 import ai.nixiesearch.api.query.retrieve.MultiMatchQuery.BestFieldsQuery
 import ai.nixiesearch.api.query.retrieve.{MatchAllQuery, MatchQuery, MultiMatchQuery}
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.{FieldName, SearchParams}
 import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
 import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
@@ -16,15 +16,15 @@ class WildcardTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping(
     name = "test",
     fields = List(
-      TextFieldSchema(FieldName.unsafe("_id"), filter = true),
+      IdFieldSchema(FieldName.unsafe("_id")),
       TextFieldSchema(FieldName.unsafe("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(FieldName.unsafe("field_*"), search = SearchParams(lexical = Some(LexicalParams())))
     )
   )
   val docs = List(
-    Document(List(TextField("_id", "1"), TextField("title", "red dress"), TextField("field_desc", "foo"))),
-    Document(List(TextField("_id", "2"), TextField("title", "white dress"), TextField("field_info", "foo"))),
-    Document(List(TextField("_id", "3"), TextField("title", "red pajama"), TextField("field_stuff", "foo")))
+    Document(List(IdField("_id", "1"), TextField("title", "red dress"), TextField("field_desc", "foo"))),
+    Document(List(IdField("_id", "2"), TextField("title", "white dress"), TextField("field_info", "foo"))),
+    Document(List(IdField("_id", "3"), TextField("title", "red pajama"), TextField("field_stuff", "foo")))
   )
 
   it should "accept and search wildcard fields" in withIndex { index =>

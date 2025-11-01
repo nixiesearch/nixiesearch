@@ -25,7 +25,7 @@ class TermAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(StringName("color"), filter = true, facet = true),
       TextListFieldSchema(StringName("size"), filter = true, facet = true),
@@ -40,7 +40,7 @@ class TermAggregationTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         TextField("title", "long socks"),
         TextField("color", "red"),
         TextListField("size", "1", "2"),
@@ -53,7 +53,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextField("title", "sleeveless jacket"),
         TextField("color", "red"),
         TextListField("size", "2"),
@@ -66,7 +66,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextField("title", "short socks"),
         TextField("color", "red"),
         TextListField("size", "2"),
@@ -79,7 +79,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "4"),
+        IdField("_id", "4"),
         TextField("title", "winter socks"),
         TextField("color", "white"),
         TextListField("size", "1", "2"),
@@ -92,7 +92,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "5"),
+        IdField("_id", "5"),
         TextField("title", "evening dress"),
         TextField("color", "white"),
         TextListField("size", "1", "2"),
@@ -105,7 +105,7 @@ class TermAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "6"),
+        IdField("_id", "6"),
         TextField("title", "winter socks"),
         TextField("color", "black"),
         TextListField("size", "1", "2"),

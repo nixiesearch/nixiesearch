@@ -1,12 +1,12 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.retrieve.{BoolQuery, DisMaxQuery, MatchQuery}
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
@@ -14,7 +14,7 @@ class DisMaxQueryTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping(
     "test",
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(lexical = Some(LexicalParams()))
@@ -28,7 +28,7 @@ class DisMaxQueryTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         TextField("title", "red dress"),
         TextField(
           "desc",
@@ -38,7 +38,7 @@ class DisMaxQueryTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextField("title", "white dress"),
         TextField(
           "desc",
@@ -48,7 +48,7 @@ class DisMaxQueryTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextField("title", "red pajama"),
         TextField(
           "desc",

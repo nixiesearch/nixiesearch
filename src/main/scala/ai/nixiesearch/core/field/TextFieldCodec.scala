@@ -11,6 +11,7 @@ import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.{TextField, TextLikeField}
 import FieldCodec.WireDecodingError
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.StringStoredField
 import ai.nixiesearch.core.search.DocumentGroup
@@ -92,7 +93,9 @@ case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
   }
 
   override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextField]] =
-    doc.fields.collectFirst { case f @ StringStoredField(name, value) if spec.name.matches(name) => f } match {
+    doc.fields.collectFirst {
+      case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f
+    } match {
       case Some(str) => Right(Some(TextField(str.name, str.value)))
       case None      => Right(None)
     }

@@ -3,18 +3,13 @@ package ai.nixiesearch.core.nn.model.generative
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig
 import ai.nixiesearch.config.InferenceConfig.CompletionInferenceModelConfig.LlamacppParams
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.{DateFieldCodec, DateTimeFieldCodec}
 import ai.nixiesearch.core.nn.ModelRef
-import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel.{
-  ModelMetadata,
-  Token,
-  TokenizeRequest,
-  TokenizeResponse,
-  tokenCodec
-}
+import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel.{ModelMetadata, Token, TokenizeRequest, TokenizeResponse, tokenCodec}
 import ai.nixiesearch.llamacppserver.LlamacppServer
 import ai.nixiesearch.llamacppserver.LlamacppServer.LLAMACPP_BACKEND
 import cats.effect.IO
@@ -113,7 +108,7 @@ object GenerativeModel {
         .parEvalMap(Runtime.getRuntime.availableProcessors())(doc =>
           IO {
             val stringifiedFields = doc.fields
-              .filter(f => fields.isEmpty || fields.exists(_.matches(f.name)))
+              .filter(f => fields.isEmpty || fields.exists(_.matches(StringName(f.name))))
               .flatMap {
                 case f if f.name == "_id"          => None
                 case f if f.name == "_score"       => None

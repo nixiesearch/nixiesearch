@@ -11,8 +11,8 @@ import org.scalatest.matchers.should.Matchers
 
 class DistanceSortTest extends SearchTest with Matchers {
   val name    = StringName("field")
-  val mapping = CitiesDataset.mapping
-  val docs    = CitiesDataset()
+  lazy val mapping = CitiesDataset.mapping
+  lazy val docs    = CitiesDataset()
 
   it should "sort by distance, desc" in withIndex { index =>
     {

@@ -5,6 +5,7 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.FieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexConfig, IndexMapping}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.{Document, Field, Logging}
@@ -46,49 +47,50 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
       val ids = new ArrayBuffer[String]()
       embeddedDocs.foreach(doc => {
         val id = doc.fields
-          .collectFirst { case TextField("_id", id, _) => id }
+          .collectFirst { case IdField("_id", id) => id }
           .getOrElse(UUID.randomUUID().toString)
         ids.append(id)
         val docGroup = DocumentGroup(id)
         doc.fields.foreach {
-          case field @ IdField(_, _)         => // handled by DocumentGroup
+          case field @ IdField(_, _) => // handled by DocumentGroup
+
           case field @ TextField(name, value, _) =>
             writeField(
               field,
-              index.mapping.fieldSchemaOf[TextFieldSchema](field.name),
+              index.mapping.fieldSchema[TextFieldSchema](StringName(field.name)),
               docGroup
             )
 
           case field @ TextListField(name, value, _) =>
             writeField(
               field,
-              index.mapping.fieldSchemaOf[TextListFieldSchema](field.name),
+              index.mapping.fieldSchema[TextListFieldSchema](StringName(field.name)),
               docGroup
             )
           case field @ IntField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[IntFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[IntFieldSchema](StringName(field.name)), docGroup)
           case field @ IntListField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[IntListFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[IntListFieldSchema](StringName(field.name)), docGroup)
           case field @ LongField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[LongFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[LongFieldSchema](StringName(field.name)), docGroup)
           case field @ LongListField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[LongListFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[LongListFieldSchema](StringName(field.name)), docGroup)
           case field @ FloatField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[FloatFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[FloatFieldSchema](StringName(field.name)), docGroup)
           case field @ FloatListField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[FloatListFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[FloatListFieldSchema](StringName(field.name)), docGroup)
           case field @ DoubleField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[DoubleFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[DoubleFieldSchema](StringName(field.name)), docGroup)
           case field @ DoubleListField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[DoubleListFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[DoubleListFieldSchema](StringName(field.name)), docGroup)
           case field @ BooleanField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[BooleanFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[BooleanFieldSchema](StringName(field.name)), docGroup)
           case field @ GeopointField(name, lat, lon) =>
-            writeField(field, index.mapping.fieldSchemaOf[GeopointFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[GeopointFieldSchema](StringName(field.name)), docGroup)
           case field @ DateField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[DateFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[DateFieldSchema](StringName(field.name)), docGroup)
           case field @ DateTimeField(name, value) =>
-            writeField(field, index.mapping.fieldSchemaOf[DateTimeFieldSchema](field.name), docGroup)
+            writeField(field, index.mapping.fieldSchema[DateTimeFieldSchema](StringName(field.name)), docGroup)
         }
         docGroup.toLuceneDocuments().foreach(doc => all.add(doc))
       })

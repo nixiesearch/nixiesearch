@@ -9,6 +9,7 @@ import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.GeopointField
 import FieldCodec.WireDecodingError
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField
 import ai.nixiesearch.core.field.GeopointFieldCodec.Geopoint
@@ -47,7 +48,7 @@ case class GeopointFieldCodec(spec: GeopointFieldSchema) extends FieldCodec[Geop
   override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[GeopointField]] =
     doc.fields
       .collectFirst {
-        case f @ StoredLuceneField.BinaryStoredField(name, value) if spec.name.matches(name) => f
+        case f @ StoredLuceneField.BinaryStoredField(name, value) if spec.name.matches(StringName(name)) => f
       } match {
       case Some(value) =>
         if (value.value.length != 16) {

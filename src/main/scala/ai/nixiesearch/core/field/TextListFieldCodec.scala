@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.Distance
 import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
@@ -120,7 +121,7 @@ case class TextListFieldCodec(spec: TextListFieldSchema) extends FieldCodec[Text
   }
 
   override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextListField]] =
-    doc.fields.collect { case f @ StringStoredField(name, value) if spec.name.matches(name) => f } match {
+    doc.fields.collect { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
       case Nil             => Right(None)
       case all @ head :: _ => Right(Some(TextListField(head.name, all.map(_.value))))
     }

@@ -16,7 +16,7 @@ import ai.nixiesearch.config.mapping.Language.English
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
@@ -48,10 +48,10 @@ class CEQueryTest extends SearchTest with Matchers {
       )
     )
   )
-  val docs = List(
-    Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
-    Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
-    Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
+  lazy val docs = List(
+    Document(List(IdField("_id", "1"), TextField("title", "red dress"))),
+    Document(List(IdField("_id", "2"), TextField("title", "white dress"))),
+    Document(List(IdField("_id", "3"), TextField("title", "red pajama")))
   )
   it should "select matching documents for a knn query" in withIndex { index =>
     {

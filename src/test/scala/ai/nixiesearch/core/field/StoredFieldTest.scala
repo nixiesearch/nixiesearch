@@ -4,21 +4,21 @@ import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
-import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
-import ai.nixiesearch.core.Field
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
+import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName}
+import ai.nixiesearch.core.{Document, Field}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.field.FieldCodec.WireDecodingError
 import ai.nixiesearch.core.search.DocumentGroup
-import org.apache.lucene.document.Document
 import org.apache.lucene.index.{DirectoryReader, IndexReader, IndexWriter, IndexWriterConfig}
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.ByteBuffersDirectory
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, EitherValues}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class StoredFieldTest extends AnyFlatSpec with Matchers {
+class StoredFieldTest extends AnyFlatSpec with Matchers with EitherValues {
   it should "decode text" in {
     roundtrip(TextField("name", "foo"), TextFieldSchema(name = StringName("name")))
   }
@@ -87,12 +87,30 @@ class StoredFieldTest extends AnyFlatSpec with Matchers {
     roundtrip(GeopointField("point", 40.7128, -74.0060), GeopointFieldSchema(name = StringName("point")))
   }
 
+  it should "decode wildcart fields" in {
+    val doc = writeread(
+      fields = List(TextField("title_a", "foo"), TextField("title_b", "bar")),
+      schema = TextFieldSchema(name = WildcardName("title_*", "title_", "")),
+      fieldNames = List(WildcardName("title_*", "title_", ""))
+    )
+    doc.value.fields.map(_.name) shouldBe List("title_a", "title_b")
+  }
+
   def roundtrip[F <: Field, S <: FieldSchema[F]](field: F, schema: S): Assertion = {
+    val doc = writeread(List(field), schema, List(schema.name))
+    doc.value.fields should contain(field)
+  }
+
+  def writeread[F <: Field, S <: FieldSchema[F]](
+      fields: List[F],
+      schema: S,
+      fieldNames: List[FieldName]
+  ): Either[WireDecodingError, Document] = {
     val dir    = new ByteBuffersDirectory()
     val writer = new IndexWriter(dir, new IndexWriterConfig())
-    val doc    = DocumentGroup("id", new Document())
-    schema.codec.writeLucene(field, doc)
-    writer.addDocument(doc.parent)
+    val buffer = DocumentGroup("id")
+    fields.foreach(field => schema.codec.writeLucene(field, buffer))
+    writer.addDocument(buffer.parent)
     writer.close()
     val reader  = DirectoryReader.open(dir)
     val visitor = DocumentVisitor(
@@ -101,10 +119,9 @@ class StoredFieldTest extends AnyFlatSpec with Matchers {
         fields = Map(schema.name -> schema),
         store = LocalStoreConfig(local = MemoryLocation())
       ),
-      fields = List(schema.name)
+      fields = fieldNames
     )
     reader.storedFields().document(0, visitor)
-    val stored = visitor.asDocument(1.0).toTry.get
-    stored.fields should contain(field)
+    visitor.asDocument(1.0)
   }
 }

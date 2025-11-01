@@ -5,20 +5,33 @@ import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 
 sealed trait FieldName {
   def name: String
-  def matches(field: String): Boolean
+  def matches(field: FieldName): Boolean
 }
 
 object FieldName {
   case class StringName(name: String) extends FieldName {
-    override def matches(field: String): Boolean = field == name
+    override def matches(field: FieldName): Boolean = field match {
+      case StringName(xname)                   => name == xname
+      case NestedName(xname, parent, child)    => name == xname
+      case WildcardName(xname, prefix, suffix) => name.startsWith(prefix) && name.endsWith(suffix)
+    }
   }
 
-  case class NestedName(name: String, head: String, tail: String) extends FieldName {
-    override def matches(field: String): Boolean = field == name
+  case class NestedName(name: String, parent: String, child: String) extends FieldName {
+    override def matches(field: FieldName): Boolean = field match {
+      case StringName(xname)                   => name == xname
+      case NestedName(xname, parent, child)    => name == xname
+      case WildcardName(xname, prefix, suffix) =>
+        name.startsWith(prefix) && name.endsWith(suffix) // maybe it could be better?
+    }
   }
 
   case class WildcardName(name: String, prefix: String, suffix: String) extends FieldName {
-    override def matches(field: String): Boolean = field.startsWith(prefix) && field.endsWith(suffix)
+    override def matches(field: FieldName): Boolean = field match {
+      case StringName(xname)                   => xname.startsWith(prefix) && name.endsWith(suffix)
+      case NestedName(xname, parent, child)    => xname.startsWith(prefix) && name.endsWith(suffix)
+      case WildcardName(xname, prefix, suffix) => (prefix == prefix) && (suffix == suffix)
+    }
   }
 
   def unsafe(value: String) = parse(value).toOption.get

@@ -21,7 +21,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true, facet = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("title")),
       TextFieldSchema(StringName("title_nonstore"), store = false),
       TextListFieldSchema(StringName("title2")),
@@ -47,7 +47,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       val source =
         Document(
           List(
-            TextField("_id", "1"),
+            IdField("_id", "1"),
             TextField("title", "foo"),
             TextListField("title2", List("foo", "bar")),
             TextField("str_foo", "foo"),

@@ -3,6 +3,7 @@ package ai.nixiesearch.core
 import ai.nixiesearch.api.filter.Predicate.FilterTerm.{DateTerm, DateTimeTerm}
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.*
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Field.*
@@ -36,7 +37,7 @@ object Document {
   private def encodeField[F <: Field, S <: FieldSchema[F]](mapping: IndexMapping, field: F)(using
       manifest: scala.reflect.ClassTag[S]
   ): Option[Json] =
-    mapping.fieldSchemaOf[S](field.name).map(schema => schema.codec.encodeJson(field))
+    mapping.fieldSchema[S](StringName(field.name)).map(schema => schema.codec.encodeJson(field))
 
   def decoderFor(mapping: IndexMapping) = DocumentDecoder.codec(mapping)
 

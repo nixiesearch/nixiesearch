@@ -1,6 +1,7 @@
 package ai.nixiesearch.core.codec.compat
 
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore
 import ai.nixiesearch.core.Error.BackendError
@@ -39,7 +40,7 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
             if (field.endsWith(TextListFieldCodec.NESTED_EMBED_SUFFIX))
               Some(field.replace(TextListFieldCodec.NESTED_EMBED_SUFFIX, ""))
             else None
-          val fmt = mapping.fieldSchemaOf[TextLikeFieldSchema[?]](parentField.getOrElse(field)) match {
+          val fmt = mapping.fieldSchema[TextLikeFieldSchema[?]](StringName(parentField.getOrElse(field))) match {
             case Some(schema) =>
               schema.search.semantic match {
                 case Some(conf) =>
@@ -56,7 +57,7 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
                   fmt
                 case None =>
                   throw BackendError(
-                    s"field $field expected to be a vector field, but it's ${mapping.fieldSchema(field)}"
+                    s"field $field expected to be a vector field, but it's ${mapping.fieldSchema(StringName(field))}"
                   )
               }
             case None => throw BackendError(s"cannot find field format for '$field'")

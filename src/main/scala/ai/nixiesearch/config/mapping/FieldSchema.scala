@@ -49,13 +49,13 @@ object FieldSchema {
 
   }
 
-  case class IdFieldSchema(name: FieldName = StringName("_id"), sort: Boolean = false, filter: Boolean = true)
-      extends FieldSchema[IdField] {
+  case class IdFieldSchema(name: FieldName = StringName("_id"), sort: Boolean = false) extends FieldSchema[IdField] {
 
     def store: Boolean                 = true
     def facet: Boolean                 = false
     def suggest: Option[SuggestSchema] = None
     def required: Boolean              = false
+    def filter: Boolean                = true
 
     val codec: FieldCodec[IdField] = IdFieldCodec(this)
   }
@@ -107,7 +107,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[IntListField] {
-    def sort                               = false
+    def sort                            = false
     val codec: FieldCodec[IntListField] = IntListFieldCodec(this)
   }
 
@@ -129,7 +129,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[LongListField] {
-    def sort                                = false
+    def sort                             = false
     val codec: FieldCodec[LongListField] = LongListFieldCodec(this)
   }
 
@@ -151,7 +151,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[FloatListField] {
-    def sort                                 = false
+    def sort                              = false
     val codec: FieldCodec[FloatListField] = FloatListFieldCodec(this)
   }
 
@@ -173,7 +173,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DoubleListField] {
-    def sort                                  = false
+    def sort                               = false
     val codec: FieldCodec[DoubleListField] = DoubleListFieldCodec(this)
   }
 
@@ -196,7 +196,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[GeopointField] {
-    def facet                               = false
+    def facet                            = false
     val codec: FieldCodec[GeopointField] = GeopointFieldCodec(this)
 
   }
@@ -230,11 +230,10 @@ object FieldSchema {
 
     def idFieldSchemaDecoder(name: FieldName): Decoder[IdFieldSchema] = Decoder.instance(c =>
       for {
-        sort   <- c.downField("sort").as[Option[Boolean]]
-        filter <- c.downField("filter").as[Option[Boolean]]
+        sort <- c.downField("sort").as[Option[Boolean]]
       } yield {
         val default = IdFieldSchema()
-        IdFieldSchema(name = name, sort = sort.getOrElse(default.sort), filter = filter.getOrElse(default.filter))
+        IdFieldSchema(name = name, sort = sort.getOrElse(default.sort))
       }
     )
 
@@ -547,6 +546,7 @@ object FieldSchema {
 
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
+        case Right("id")       => idfieldSchemaDecoder.tryDecode(c)
         case Right("int")      => intFieldSchemaDecoder.tryDecode(c)
         case Right("int[]")    => intListFieldSchemaDecoder.tryDecode(c)
         case Right("long")     => longFieldSchemaDecoder.tryDecode(c)

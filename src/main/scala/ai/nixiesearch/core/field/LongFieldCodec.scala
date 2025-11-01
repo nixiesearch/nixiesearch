@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.LongFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
@@ -41,7 +42,7 @@ case class LongFieldCodec(spec: LongFieldSchema) extends FieldCodec[LongField] {
   }
 
   override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[LongField]] =
-    doc.fields.collectFirst { case f @ LongStoredField(name, _) if spec.name.matches(name) => f } match {
+    doc.fields.collectFirst { case f @ LongStoredField(name, _) if spec.name.matches(StringName(name)) => f } match {
       case Some(value) => Right(Some(LongField(value.name, value.value)))
       case None        => Right(None)
     }

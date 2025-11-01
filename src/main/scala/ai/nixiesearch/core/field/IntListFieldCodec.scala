@@ -3,6 +3,7 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.IntListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.{FloatListField, IntListField, NumericField}
@@ -43,7 +44,7 @@ case class IntListFieldCodec(spec: IntListFieldSchema) extends FieldCodec[IntLis
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
   ): Either[FieldCodec.WireDecodingError, Option[IntListField]] =
-    doc.fields.collect { case f @ IntStoredField(name, value) if spec.name.matches(name) => f } match {
+    doc.fields.collect { case f @ IntStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
       case Nil             => Right(None)
       case all @ head :: _ => Right(Some(IntListField(head.name, all.map(_.value))))
     }

@@ -27,7 +27,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(StringName("color"), filter = true, facet = true),
       IntFieldSchema(StringName("count"), facet = true, filter = true),
@@ -46,7 +46,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         TextField("title", "long socks"),
         TextField("color", "red"),
         IntField("count", 1),
@@ -63,7 +63,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextField("title", "sleeveless jacket"),
         TextField("color", "red"),
         IntField("count", 2),
@@ -80,7 +80,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextField("title", "short socks"),
         TextField("color", "red"),
         IntField("count", 3),
@@ -97,7 +97,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "4"),
+        IdField("_id", "4"),
         TextField("title", "winter socks"),
         TextField("color", "white"),
         IntField("count", 4),
@@ -114,7 +114,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "5"),
+        IdField("_id", "5"),
         TextField("title", "evening dress"),
         TextField("color", "white"),
         IntField("count", 5),
@@ -131,7 +131,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "6"),
+        IdField("_id", "6"),
         TextField("title", "winter socks"),
         TextField("color", "black"),
         IntField("count", 6),

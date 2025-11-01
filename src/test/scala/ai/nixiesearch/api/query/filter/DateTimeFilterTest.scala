@@ -2,13 +2,13 @@ package ai.nixiesearch.api.query.filter
 
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.{RangePredicate, TermPredicate}
-import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, DateTimeFieldSchema, IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.FiniteRange.{Higher, Lower, RangeValue}
-import ai.nixiesearch.core.Field.{DateField, DateTimeField, TextField}
+import ai.nixiesearch.core.Field.{DateField, DateTimeField, IdField, TextField}
 import ai.nixiesearch.util.SearchTest
 import io.circe.Json
 import org.scalatest.matchers.should.Matchers
@@ -19,15 +19,15 @@ class DateTimeFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       DateTimeFieldSchema(StringName("dt"), filter = true)
     ),
     store = LocalStoreConfig(MemoryLocation())
   )
   val docs = List(
-    Document(List(TextField("_id", "1"), DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z"))),
-    Document(List(TextField("_id", "2"), DateTimeField.applyUnsafe("dt", "2024-02-01T00:00:00Z"))),
-    Document(List(TextField("_id", "3"), DateTimeField.applyUnsafe("dt", "2024-03-01T00:00:00Z")))
+    Document(List(IdField("_id", "1"), DateTimeField.applyUnsafe("dt", "2024-01-01T00:00:00Z"))),
+    Document(List(IdField("_id", "2"), DateTimeField.applyUnsafe("dt", "2024-02-01T00:00:00Z"))),
+    Document(List(IdField("_id", "3"), DateTimeField.applyUnsafe("dt", "2024-03-01T00:00:00Z")))
   )
 
   it should "filter over term match" in withIndex { index =>

@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.{FloatFieldSchema, FloatListFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.{FloatListField, NumericField}
@@ -14,12 +15,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec}
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{
-  NumericDocValuesField,
-  SortedNumericDocValuesField,
-  StoredField,
-  Document as LuceneDocument
-}
+import org.apache.lucene.document.{NumericDocValuesField, SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
 
@@ -45,7 +41,7 @@ case class FloatListFieldCodec(spec: FloatListFieldSchema) extends FieldCodec[Fl
   }
 
   override def readLucene(doc: StoredDocument): Either[FieldCodec.WireDecodingError, Option[FloatListField]] =
-    doc.fields.collect { case f @ FloatStoredField(name, value) if spec.name.matches(name) => f } match {
+    doc.fields.collect { case f @ FloatStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
       case Nil             => Right(None)
       case all @ head :: _ => Right(Some(FloatListField(head.name, all.map(_.value))))
     }

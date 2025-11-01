@@ -81,7 +81,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     fieldSuggestions <- Stream
       .emits(request.fields)
       .evalMap(fieldName =>
-        index.mapping.fieldSchema(fieldName) match {
+        index.mapping.fieldSchema(StringName(fieldName)) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
           case Some(TextLikeFieldSchema(suggest = Some(schema))) =>
             GeneratedSuggestions.fromField(fieldName, suggester, schema.analyze.analyzer, request.query, request.count)
@@ -185,7 +185,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       case Some(a) =>
         a.aggs.toList
           .traverse { case (name, agg) =>
-            mapping.fieldSchema(agg.field) match {
+            mapping.fieldSchema(StringName(agg.field)) match {
               case Some(field) if !field.facet =>
                 IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
               case None         => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))

@@ -11,9 +11,9 @@ import org.scalatest.matchers.should.Matchers
 class MatchQueryTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping()
   val docs    = List(
-    Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
-    Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
-    Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
+    Document(List(IdField("_id", "1"), TextField("title", "red dress"))),
+    Document(List(IdField("_id", "2"), TextField("title", "white dress"))),
+    Document(List(IdField("_id", "3"), TextField("title", "red pajama")))
   )
 
   it should "select matching documents for a single-term query" in withIndex { index =>

@@ -12,7 +12,7 @@ import org.apache.lucene.index.FieldInfo
 import org.apache.lucene.index.StoredFieldVisitor.Status
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.FieldName.WildcardName
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName}
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.*
@@ -46,7 +46,7 @@ case class DocumentVisitor(
 
   override def needsField(fieldInfo: FieldInfo): Status = {
     val name = fieldInfo.name
-    if ((name == "_id") || stringFields.contains(name) || wildcardFields.exists(_.matches(name))) {
+    if ((name == "_id") || stringFields.contains(name) || wildcardFields.exists(_.matches(StringName(name)))) {
       Status.YES
     } else {
       Status.NO
@@ -79,7 +79,7 @@ case class DocumentVisitor(
   }
 
   private def decodeOne(name: FieldName, stored: StoredDocument): Either[WireDecodingError, Option[Field]] =
-    mapping.fieldSchema(name.name) match {
+    mapping.fieldSchema(name) match {
       case None         => Right(None)
       case Some(schema) => schema.codec.readLucene(stored)
     }
@@ -102,7 +102,7 @@ object DocumentVisitor {
   def create(mapping: IndexMapping, fields: List[FieldName]): IO[DocumentVisitor] = {
     fields
       .traverse(field =>
-        mapping.fieldSchema(field.name) match {
+        mapping.fieldSchema(field) match {
           case None => IO.raiseError(UserError(s"field ${field.name} is not defined in mapping"))
           case Some(mapping) if !mapping.store => IO.raiseError(UserError(s"field ${field.name} is not stored"))
           case Some(other)                     => IO.pure(other)

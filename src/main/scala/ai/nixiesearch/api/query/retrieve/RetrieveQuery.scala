@@ -57,9 +57,10 @@ trait RetrieveQuery extends Query {
   }
 
   def expandFields(candidates: List[FieldName], all: Set[String]): List[String] = {
+
     candidates.flatMap {
       case s: StringName if all.contains(s.name) => List(s.name)
-      case w: WildcardName                       => all.filter(f => w.matches(f))
+      case w: WildcardName                       => all.filter(f => w.matches(StringName(f)))
       case _                                     => Nil
     }
   }
@@ -103,7 +104,7 @@ trait RetrieveQuery extends Query {
       case FieldValueSort(_, _, missing) => missing
       case DistanceSort(_, _, _)         => MissingValue.Last
     }
-    mapping.fieldSchema(by.field.name) match {
+    mapping.fieldSchema(StringName(by.field.name)) match {
       case Some(schema) if !schema.sort =>
         IO.raiseError(UserError(s"cannot sort by field '${by.field.name}: it's not sortable in index schema'"))
       case Some(s: GeopointFieldSchema) =>

@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.{DoubleFieldSchema, DoubleListFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
@@ -46,7 +47,7 @@ case class DoubleListFieldCodec(spec: DoubleListFieldSchema) extends FieldCodec[
   override def readLucene(
       doc: DocumentVisitor.StoredDocument
   ): Either[FieldCodec.WireDecodingError, Option[DoubleListField]] =
-    doc.fields.collect { case f @ DoubleStoredField(name, value) if spec.name.matches(name) => f } match {
+    doc.fields.collect { case f @ DoubleStoredField(name, value) if spec.name.matches(StringName(name)) => f } match {
       case Nil             => Right(None)
       case all @ head :: _ => Right(Some(DoubleListField(head.name, all.map(_.value))))
     }

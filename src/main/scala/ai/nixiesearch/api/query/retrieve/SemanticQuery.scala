@@ -3,6 +3,7 @@ package ai.nixiesearch.api.query.retrieve
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.retrieve.KnnQuery.MAX_NUM_CANDIDATES
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexMapping, SearchParams}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
@@ -21,7 +22,7 @@ case class SemanticQuery(field: String, query: String, k: Option[Int] = None, nu
       fields: List[String]
   ): IO[Query] = for {
     schema <- IO
-      .fromOption(mapping.fieldSchemaOf[TextLikeFieldSchema[?]](field))(UserError(s"no mapping for field $field"))
+      .fromOption(mapping.fieldSchema[TextLikeFieldSchema[?]](StringName(field)))(UserError(s"no mapping for field $field"))
     semantic <- IO.fromOption(schema.search.semantic)(UserError(s"field $field search type is not semantic"))
     model    <- semantic match {
       case SearchParams.SemanticInferenceParams(model = model) => IO.pure(model)

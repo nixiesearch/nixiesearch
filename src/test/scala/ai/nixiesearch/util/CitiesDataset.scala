@@ -1,7 +1,7 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.api.filter.Predicate.LatLon
-import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.FieldName.StringName
@@ -22,7 +22,7 @@ object CitiesDataset {
   val mapping = IndexMapping(
     name = IndexName("cities"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("city"), facet = true),
       TextFieldSchema(StringName("country"), facet = true),
       GeopointFieldSchema(StringName("location"), filter = true, sort = true)

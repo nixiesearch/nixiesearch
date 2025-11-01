@@ -19,9 +19,9 @@ class RAGTest extends SearchTest with Matchers {
   override val inference = TestInferenceConfig.full()
 
   val docs = List(
-    Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
-    Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
-    Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
+    Document(List(IdField("_id", "1"), TextField("title", "red dress"))),
+    Document(List(IdField("_id", "2"), TextField("title", "white dress"))),
+    Document(List(IdField("_id", "3"), TextField("title", "red pajama")))
   )
   it should "do stream RAG" in withIndex { index =>
     {
