@@ -16,7 +16,7 @@ import ai.nixiesearch.config.mapping.FieldName.WildcardName
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field.*
-import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField
+import ai.nixiesearch.core.codec.DocumentVisitor.{StoredDocument, StoredLuceneField}
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.{
   BinaryStoredField,
   DoubleStoredField,
@@ -26,6 +26,7 @@ import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.{
   StringStoredField
 }
 import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.field.FieldCodec.WireDecodingError
 import ai.nixiesearch.core.search.DocumentGroup
 import cats.effect.IO
 import cats.syntax.all.*
@@ -33,8 +34,7 @@ import cats.syntax.all.*
 case class DocumentVisitor(
     mapping: IndexMapping,
     fields: List[FieldName],
-    collected: ArrayBuffer[StoredLuceneField] = ArrayBuffer.empty,
-    errors: ArrayBuffer[Exception] = ArrayBuffer.empty
+    collected: ArrayBuffer[StoredLuceneField] = ArrayBuffer.empty
 ) extends StoredFieldVisitor
     with Logging {
   val stringFields: Set[String]          = fields.collect { case FieldName.StringName(name) => name }.toSet
@@ -42,7 +42,6 @@ case class DocumentVisitor(
 
   def reset() = {
     collected.clear()
-    errors.clear()
   }
 
   override def needsField(fieldInfo: FieldInfo): Status = {
@@ -73,14 +72,21 @@ case class DocumentVisitor(
   override def binaryField(fieldInfo: FieldInfo, value: Array[Byte]): Unit =
     collected.addOne(BinaryStoredField(fieldInfo.name, value))
 
-  def asDocument(score: Float): Document = {
-    val fields = Nil
-    Document(fields)
+  def asDocument(score: Float): Either[WireDecodingError, Document] = {
+    val stored          = StoredDocument(collected.toList)
+    val collectedFields = fields.traverse(field => decodeOne(field, stored))
+    collectedFields.map(_.flatten).map(list => Document(FloatField("_score", score), list*))
   }
+
+  private def decodeOne(name: FieldName, stored: StoredDocument): Either[WireDecodingError, Option[Field]] =
+    mapping.fieldSchema(name.name) match {
+      case None         => Right(None)
+      case Some(schema) => schema.codec.readLucene(stored)
+    }
 }
 
 object DocumentVisitor {
-  case class StoredDocument(fields: Iterable[StoredLuceneField])
+  case class StoredDocument(fields: List[StoredLuceneField])
   sealed trait StoredLuceneField {
     def name: String
   }

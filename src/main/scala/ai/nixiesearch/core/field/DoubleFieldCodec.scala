@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.DoubleFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.{DoubleField, NumericField}
@@ -17,6 +18,8 @@ import org.apache.lucene.document.{Document, NumericDocValuesField, SortedNumeri
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
+
+import scala.util.{Failure, Success, Try}
 
 case class DoubleFieldCodec(spec: DoubleFieldSchema) extends FieldCodec[DoubleField] {
   import FieldCodec.*
@@ -49,7 +52,9 @@ case class DoubleFieldCodec(spec: DoubleFieldSchema) extends FieldCodec[DoubleFi
   }
   override def encodeJson(field: DoubleField): Json = Json.fromDoubleOrNull(field.value)
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, DoubleField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[DoubleField]] = {
+    decodeJsonImpl(name, reader.readDouble).map(value => Some(DoubleField(name, value)))
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.DOUBLE, reverse)

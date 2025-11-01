@@ -18,7 +18,7 @@ import scala.util.{Failure, Try}
 class TextFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest {
   it should "decode plain strings" in {
     val result = decode(TextFieldSchema(StringName("name")), """{"name": "value"}""")
-    result shouldBe TextField("name", "value")
+    result shouldBe Some(TextField("name", "value"))
   }
 
   it should "fail on type=int" in {
@@ -36,7 +36,7 @@ class TextFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest {
     val result   = decode(
       TextFieldSchema(StringName("name"), search = SearchParams(semantic = Some(semantic))),
       json = """{"name": {"text": "value", "embedding": [1,2,3]}}"""
-    ).asInstanceOf[TextField]
+    ).get
     result.name shouldBe "name"
     result.value shouldBe "value"
     result.embedding.get should equal(Array(1.0f, 2.0f, 3.0f))
@@ -48,8 +48,13 @@ class TextFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest {
       decode(
         TextFieldSchema(StringName("name"), search = SearchParams(semantic = Some(semantic))),
         json = """{"name": {"text": "value", "embedding": [1,2,3,4]}}"""
-      ).asInstanceOf[TextField]
+      )
     )
+    result shouldBe a[Failure[?]]
+  }
+
+  it should "not accept null values" in {
+    val result = Try(decode(TextFieldSchema(StringName("title"), required = true), """{"title": null}"""))
     result shouldBe a[Failure[?]]
   }
 }

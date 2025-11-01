@@ -3,6 +3,7 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.config.FieldSchema.{DateFieldSchema, IntFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.{DateField, IntField}
@@ -52,7 +53,14 @@ case class DateFieldCodec(spec: DateFieldSchema) extends FieldCodec[DateField] {
 
   override def encodeJson(field: DateField): Json = Json.fromString(DateFieldCodec.writeString(field.value))
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, DateField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[DateField]] = {
+    decodeJsonImpl(name, () => reader.readString(null)).flatMap(str =>
+      DateFieldCodec.parseString(str) match {
+        case Left(err)    => Left(JsonError(s"field $name: cannot parse date '$str'", err))
+        case Right(value) => Right(Some(DateField(name, value)))
+      }
+    )
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] =
     nested.sort(field, reverse, missing)
@@ -73,6 +81,5 @@ object DateFieldCodec {
     val epoch = LocalDate.of(1970, 1, 1)
     epoch.plusDays(in).toString
   }
-
 
 }

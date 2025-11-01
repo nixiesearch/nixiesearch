@@ -6,9 +6,9 @@ import ai.nixiesearch.util.TestIndexMapping
 import com.github.plokhotnyuk.jsoniter_scala.core.readFromString
 
 trait FieldJsonTest {
-  def decode(field: FieldSchema[?], json: String): Field = {
+  def decode[T <: Field, S <: FieldSchema[T]](field: S, json: String): Option[T] = {
     val result = readFromString(json)(using DocumentDecoder.codec(TestIndexMapping("t", List(field))))
-    result.fields.head
+    result.fields.headOption.map(_.asInstanceOf[T])
   }
 
 }

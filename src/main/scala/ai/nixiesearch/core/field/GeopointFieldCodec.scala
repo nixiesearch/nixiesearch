@@ -13,7 +13,8 @@ import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField
 import ai.nixiesearch.core.field.GeopointFieldCodec.Geopoint
 import ai.nixiesearch.core.search.DocumentGroup
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec}
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.Decoder.Result
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
 import org.apache.lucene.document.{Document, LatLonDocValuesField, LatLonPoint, StoredField}
@@ -63,7 +64,11 @@ case class GeopointFieldCodec(spec: GeopointFieldSchema) extends FieldCodec[Geop
   override def encodeJson(field: GeopointField): Json =
     Json.obj("lat" -> Json.fromDoubleOrNull(field.lat), "lon" -> Json.fromDoubleOrNull(field.lon))
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, GeopointField]   = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[GeopointField]] =
+    decodeJsonImpl(name, () => GeopointFieldCodec.geopointCodec.decodeValue(reader, null)).map(value =>
+      Some(GeopointField(name, value.lat, value.lon))
+    )
+
   override def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = Left(
     BackendError("???")
   )
@@ -73,10 +78,7 @@ case class GeopointFieldCodec(spec: GeopointFieldSchema) extends FieldCodec[Geop
 object GeopointFieldCodec {
   import FieldCodec.*
   case class Geopoint(lat: Double, lon: Double)
-  object Geopoint {
-    given geopointDecoder: Decoder[Geopoint] = deriveDecoder
-    given geopointEncoder: Encoder[Geopoint] = deriveEncoder
-  }
+  val geopointCodec: JsonValueCodec[Geopoint] = JsonCodecMaker.make[Geopoint]
 
   def sortBy(
       field: FieldName,

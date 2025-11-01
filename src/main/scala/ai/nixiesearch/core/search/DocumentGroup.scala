@@ -12,7 +12,7 @@ import scala.collection.mutable
 case class DocumentGroup(
     id: String,
     parent: Document,
-    children: mutable.ArrayBuffer[Document]
+    children: mutable.ArrayBuffer[Document] = mutable.ArrayBuffer.empty
 ) {
   def toLuceneDocuments(): List[Document] = {
     parent.add(new BinaryDocValuesField("_id" + FILTER_SUFFIX, new BytesRef(id)))

@@ -12,6 +12,7 @@ import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.Field.{TextField, TextLikeField}
 import FieldCodec.WireDecodingError
 import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.StringStoredField
 import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.suggest.SuggestCandidates
 import com.github.plokhotnyuk.jsoniter_scala.circe.CirceCodecs
@@ -90,11 +91,15 @@ case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
 
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextField]] = ???
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[TextField]] =
+    doc.fields.collectFirst { case f @ StringStoredField(name, value) if spec.name.matches(name) => f } match {
+      case Some(str) => Right(Some(TextField(str.name, str.value)))
+      case None      => Right(None)
+    }
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
 
-  override def decodeJson(name: String, reader: JsonReader): Either[JsonError, TextField] = {
+  override def decodeJson(name: String, reader: JsonReader): Either[JsonError, Option[TextField]] = {
     val tok = reader.nextToken()
     reader.rollbackToken()
     tok match {
@@ -104,25 +109,26 @@ case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
     }
   }
 
-  def decodePlain(name: String, in: JsonReader): Either[JsonError, TextField] =
-    Try(in.readString(null)) match {
-      case Success(null) => Left(JsonError(s"field $name: got null"))
-      case Success(str)  => Right(TextField(name, str, None))
-      case Failure(err)  => Left(JsonError(s"field $name: cannot parse string: $err", err))
+  def decodePlain(name: String, in: JsonReader): Either[JsonError, Option[TextField]] = {
+    decodeJsonImpl(name, () => in.readString(null)).map {
+      case ""    => None
+      case value => Some(TextField(name, value))
     }
-  val textEmbeddingJICodec                                                    = JsonCodecMaker.make[TextEmbedding]
-  def decodeEmbed(name: String, in: JsonReader): Either[JsonError, TextField] = {
+  }
+
+  def decodeEmbed(name: String, in: JsonReader): Either[JsonError, Option[TextField]] = {
     spec.search.semantic match {
       case Some(s: SemanticParams) =>
-        Try(textEmbeddingJICodec.decodeValue(in, null)) match {
-          case Failure(err)  => Left(JsonError(s"field $name: cannot parse string: $err", err))
-          case Success(null) => Left(JsonError(s"field $name: got null"))
-          case Success(emb) if emb.embedding.length != s.dim =>
-            Left(JsonError(s"field $name: expected dim ${s.dim}, but got ${emb.embedding.length}"))
-          case Success(emb) => Right(TextField(name, emb.text, Some(emb.embedding)))
+        decodeJsonImpl(name, () => TextFieldCodec.textEmbeddingCodec.decodeValue(in, null)).flatMap {
+          case value if value.embedding.length != s.dim =>
+            Left(JsonError(s"field $name: expected dim ${s.dim}, but got ${value.embedding.length}"))
+          case value if value.text.isEmpty =>
+            Right(None)
+          case value =>
+            Right(Some(TextField(name, value.text, Some(value.embedding))))
         }
       case None =>
-        Left(JsonError(s"field ${name} has semantic=false for search params"))
+        Left(JsonError(s"field $name: semantic search is not enabled, but got embeddings"))
     }
   }
 
@@ -139,6 +145,6 @@ object TextFieldCodec {
   val MAX_FACET_SIZE        = 1024
   val MAX_FIELD_SEARCH_SIZE = 32000
   case class TextEmbedding(text: String, embedding: Array[Float])
-  given textEmbeddingCodec: Codec[TextEmbedding] = deriveCodec
+  val textEmbeddingCodec = JsonCodecMaker.make[TextEmbedding]
 
 }

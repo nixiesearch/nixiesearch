@@ -10,7 +10,8 @@ import ai.nixiesearch.core.Field.{FloatListField, NumericField}
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredDocument
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.FloatStoredField
 import ai.nixiesearch.core.search.DocumentGroup
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec}
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
@@ -51,9 +52,17 @@ case class FloatListFieldCodec(spec: FloatListFieldSchema) extends FieldCodec[Fl
 
   override def encodeJson(field: FloatListField): Json = Json.fromValues(field.value.map(Json.fromFloatOrNull))
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, FloatListField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[FloatListField]] =
+    decodeJsonImpl(name, () => FloatListFieldCodec.floatListCodec.decodeValue(reader, null)).map {
+      case Nil => None
+      case nel => Some(FloatListField(name, nel))
+    }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] =
     Left(BackendError("cannot sort on float[] field"))
 
+}
+
+object FloatListFieldCodec {
+  val floatListCodec: JsonValueCodec[List[Float]] = JsonCodecMaker.make[List[Float]]
 }

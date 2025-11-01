@@ -45,12 +45,25 @@ case class TextListFieldCodec(spec: TextListFieldSchema) extends FieldCodec[Text
   override def decodeJson(
       name: String,
       reader: JsonReader
-  ): Either[DocumentDecoder.JsonError, TextListField] = {
-    Try(textListJNCodec.decodeValue(reader, null)) match {
-      case Failure(err)            => Left(JsonError(s"field $name: cannot parse text[]: $err", err))
-      case Success(null)           => Left(JsonError(s"field $name: cannot parse text[]: null value"))
-      case Success(Left(textList)) => Right(TextListField(name, textList, None))
-      case Success(Right(emb))     => Right(TextListField(name, emb.text, Some(emb.embedding)))
+  ): Either[DocumentDecoder.JsonError, Option[TextListField]] = {
+    val first = reader.nextToken()
+    reader.rollbackToken()
+    first match {
+      case '[' =>
+        decodeJsonImpl(name, () => TextListFieldCodec.textListCodec.decodeValue(reader, null)).map {
+          case value if value.isEmpty => None
+          case value                  => Some(TextListField(name, value))
+        }
+      case '{' =>
+        decodeJsonImpl(name, () => TextListFieldCodec.textListEmbCodec.decodeValue(reader, null)).flatMap {
+          case value if value.text.isEmpty                               => Right(None)
+          case value if value.text.size == 1 && value.embedding.size > 1 =>
+            Right(Some(TextListField(name, value.text, Some(value.embedding))))
+          case value if value.text.size == value.embedding.size =>
+            Right(Some(TextListField(name, value.text, Some(value.embedding))))
+          case value =>
+            Left(JsonError(s"field $name: len(text)=${value.text.size} len(embed)=${value.embedding.size} mismatch"))
+        }
     }
   }
 
@@ -127,24 +140,8 @@ case class TextListFieldCodec(spec: TextListFieldSchema) extends FieldCodec[Text
 object TextListFieldCodec {
   val NESTED_EMBED_SUFFIX = "._nested"
   case class TextListEmbedding(text: List[String], embedding: List[Array[Float]])
-  given textListEmbeddingEncoder: Encoder[TextListEmbedding] = deriveEncoder
-  given testListEmbeddingDecoder: Decoder[TextListEmbedding] = Decoder.instance { c =>
-    for {
-      text             <- c.downField("text").as[List[String]]
-      embedding        <- c.downField("embedding").as[List[Array[Float]]]
-      embeddingDecoded <- embedding.size match {
-        case 0                           => Left(DecodingFailure("embedding cannot be empty", c.history))
-        case other if other == text.size => Right(embedding)
-        case other if text.size == 1     => Right(embedding)
-        case other                       =>
-          Left(DecodingFailure(s"got ${other} embeddings per text[] field, expected ${text.size}", c.history))
-      }
 
-    } yield {
-      TextListEmbedding(text, embeddingDecoded)
-    }
-  }
-
-  val textListJNCodec = JsonCodecMaker.make[Either[List[String], TextListEmbedding]]
+  val textListCodec    = JsonCodecMaker.make[List[String]]
+  val textListEmbCodec = JsonCodecMaker.make[TextListEmbedding]
 
 }

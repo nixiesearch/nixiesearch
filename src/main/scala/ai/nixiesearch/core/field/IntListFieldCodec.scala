@@ -9,7 +9,8 @@ import ai.nixiesearch.core.Field.{FloatListField, IntListField, NumericField}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.IntStoredField
 import ai.nixiesearch.core.search.DocumentGroup
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec}
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.{
   NumericDocValuesField,
@@ -49,10 +50,18 @@ case class IntListFieldCodec(spec: IntListFieldSchema) extends FieldCodec[IntLis
 
   override def encodeJson(field: IntListField): Json = Json.fromValues(field.value.map(Json.fromInt))
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, IntListField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[IntListField]] =
+    decodeJsonImpl(name, () => IntListFieldCodec.intlistCodec.decodeValue(reader, null)).map {
+      case Nil => None
+      case nel => Some(IntListField(name, nel))
+    }
 
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = Left(
     BackendError("cannot sort on int[] field")
   )
 
+}
+
+object IntListFieldCodec {
+  val intlistCodec: JsonValueCodec[List[Int]] = JsonCodecMaker.make[List[Int]]
 }

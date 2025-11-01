@@ -26,6 +26,8 @@ import org.apache.lucene.document.{
 import org.apache.lucene.search.SortField
 import org.apache.lucene.util.NumericUtils
 
+import scala.util.Try
+
 case class FloatFieldCodec(spec: FloatFieldSchema) extends FieldCodec[FloatField] {
   import FieldCodec.*
   override def writeLucene(
@@ -56,7 +58,8 @@ case class FloatFieldCodec(spec: FloatFieldSchema) extends FieldCodec[FloatField
 
   override def encodeJson(field: FloatField): Json = Json.fromFloatOrNull(field.value)
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, FloatField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[FloatField]] =
+    decodeJsonImpl(name, reader.readFloat).map(value => Some(FloatField(name, value)))
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.FLOAT, reverse)

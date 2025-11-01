@@ -2,7 +2,15 @@ package ai.nixiesearch.index
 
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC, Default}
-import ai.nixiesearch.api.SearchRoute.{RAGRequest, RAGResponse, SearchRequest, SearchResponse, SortPredicate, SuggestRequest, SuggestResponse}
+import ai.nixiesearch.api.SearchRoute.{
+  RAGRequest,
+  RAGResponse,
+  SearchRequest,
+  SearchResponse,
+  SortPredicate,
+  SuggestRequest,
+  SuggestResponse
+}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
 import ai.nixiesearch.api.filter.Filters
@@ -16,7 +24,19 @@ import ai.nixiesearch.core.search.MergedFacetCollector
 import ai.nixiesearch.core.field.{FieldCodec, *}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexReader, LeafReaderContext, ReaderUtil}
-import org.apache.lucene.search.{DocIdSetIterator, IndexSearcher, MultiCollectorManager, ScoreDoc, Sort, SortField, TopDocs, TopFieldCollectorManager, TopScoreDocCollectorManager, TotalHits, Query as LuceneQuery}
+import org.apache.lucene.search.{
+  DocIdSetIterator,
+  IndexSearcher,
+  MultiCollectorManager,
+  ScoreDoc,
+  Sort,
+  SortField,
+  TopDocs,
+  TopFieldCollectorManager,
+  TopScoreDocCollectorManager,
+  TotalHits,
+  Query as LuceneQuery
+}
 import cats.syntax.all.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Error.{BackendError, UserError}
@@ -229,16 +249,20 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       fields: List[FieldName]
   ): IO[List[Document]] = for {
     visitor <- DocumentVisitor.create(mapping, fields)
-    docs    <- IO {
-      val docs = top.scoreDocs.map(doc => {
-        visitor.reset()
-        reader.storedFields().document(doc.doc, visitor)
-        visitor.asDocument(doc.score)
-      })
-      docs.toList
-    }
+    docs    <- top.scoreDocs.toList.traverse(collectOne(reader, visitor, _))
   } yield {
     docs
+  }
+
+  private def collectOne(reader: DirectoryReader, visitor: DocumentVisitor, doc: ScoreDoc): IO[Document] = for {
+    _      <- IO(visitor.reset())
+    _      <- IO(reader.storedFields().document(doc.doc, visitor))
+    stored <- IO(visitor.asDocument(doc.score)).flatMap {
+      case Left(value)  => IO.raiseError(value)
+      case Right(value) => IO.pure(value)
+    }
+  } yield {
+    stored
   }
 
   def getReadersOrFail(): IO[Readers] = {

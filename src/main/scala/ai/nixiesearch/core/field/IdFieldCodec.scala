@@ -22,27 +22,19 @@ import org.apache.lucene.util.BytesRef
 import scala.util.{Failure, Success, Try}
 
 case class IdFieldCodec(spec: IdFieldSchema) extends FieldCodec[IdField] {
-  override def decodeJson(name: String, reader: JsonReader): Either[JsonError, IdField] = {
+  override def decodeJson(name: String, reader: JsonReader): Either[JsonError, Option[IdField]] = {
     val tok = reader.nextToken()
     reader.rollbackToken()
     if (tok == '"') {
-      Try(reader.readString(null)) match {
-        case Failure(err)   => Left(JsonError(s"field $name: cannot parse string", err))
-        case Success(null)  => Left(JsonError(s"field $name: got null"))
-        case Success(value) => Right(IdField(name, value))
-      }
+      decodeJsonImpl(name, () => reader.readString(null)).map(value => Some(IdField(name, value)))
     } else if ((tok >= '0') && (tok <= '9')) {
-
-      Try(reader.readInt()) match {
-        case Failure(err)   => Left(JsonError(s"field $name: cannot parse int", err))
-        case Success(value) => Right(IdField(name, value.toString))
-      }
+      decodeJsonImpl(name, reader.readInt).map(value => Some(IdField(name, value.toString)))
     } else {
       Left(JsonError(s"field $name: cannot parse id, got unknown token '$tok'"))
     }
   }
 
-  override def encodeJson(field: IdField): Json = ???
+  override def encodeJson(field: IdField): Json = Json.fromString(field.value)
 
   override def sort(
       field: FieldName,

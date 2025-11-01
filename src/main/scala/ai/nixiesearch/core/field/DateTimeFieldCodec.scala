@@ -3,6 +3,7 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.config.FieldSchema.{DateTimeFieldSchema, LongFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.{DateTimeField, LongField}
@@ -47,8 +48,17 @@ case class DateTimeFieldCodec(spec: DateTimeFieldSchema) extends FieldCodec[Date
 
   override def encodeJson(field: DateTimeField): Json = Json.fromString(DateTimeFieldCodec.writeString(field.value))
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, DateTimeField] =
-    ???
+  override def decodeJson(
+      name: String,
+      reader: JsonReader
+  ): Either[DocumentDecoder.JsonError, Option[DateTimeField]] = {
+    decodeJsonImpl(name, () => reader.readString(null)).flatMap(str =>
+      DateTimeFieldCodec.parseString(str) match {
+        case Left(err)    => Left(JsonError(s"field $name: cannot parse datetime '$str'", err))
+        case Right(value) => Right(Some(DateTimeField(name, value)))
+      }
+    )
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] =
     nested.sort(field, reverse, missing)
@@ -59,7 +69,6 @@ object DateTimeFieldCodec {
   given dateTimeEncoder: Encoder[DateTime] = Encoder.encodeString.contramap(field => writeString(field.millis))
   given dateTimeDecode: Decoder[DateTime]  =
     Decoder.decodeString.emapTry(string => DateTimeFieldCodec.parseString(string).map(DateTime.apply).toTry)
-
 
   def parseString(in: String): Either[Throwable, Long] = {
     Try(ZonedDateTime.parse(in, DateTimeFormatter.ISO_DATE_TIME)) match {

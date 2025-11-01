@@ -16,15 +16,24 @@ import org.apache.lucene.document.Document as LuceneDocument
 import org.apache.lucene.search.SortField
 
 import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
 
 trait FieldCodec[T <: Field] extends Logging {
 
   def writeLucene(field: T, buffer: DocumentGroup): Unit
   def readLucene(doc: StoredDocument): Either[WireDecodingError, Option[T]]
   def encodeJson(field: T): Json
-  def decodeJson(name: String, reader: JsonReader): Either[JsonError, T]
+  def decodeJson(name: String, reader: JsonReader): Either[JsonError, Option[T]]
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField]
 
+  protected def decodeJsonImpl[U](name: String, decode: () => U): Either[JsonError, U] =
+    Try(decode()) match {
+      case Failure(exception) => Left(JsonError(s"field $name: cannot decode", exception))
+      case Success(null)      => Left(JsonError("field $name: got null"))
+      case Success(value)     => Right(value)
+    }
+
+  
 }
 
 object FieldCodec {

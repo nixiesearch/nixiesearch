@@ -20,23 +20,15 @@ object DocumentDecoder {
           in.rollbackToken()
           while ({
             val fieldName = in.readKeyAsString()
-
-            mapping.fieldSchema(fieldName) match {
-              case Some(s: IdFieldSchema) =>
-                val field = s.codec.decodeJson(fieldName, in)
-                fields.addOne(field.toOption.get)
-              case Some(s: TextFieldSchema) =>
-                val field = s.codec.decodeJson(fieldName, in)
-                fields.addOne(field.toOption.get)
-
-              case Some(_: IntFieldSchema) =>
-                val value = in.readInt()
-                fields += IntField(fieldName, value)
-
-              case _ =>
-                // Skip unknown fields
-                in.skip()
-            }
+            mapping
+              .fieldSchema(fieldName)
+              .foreach(schema =>
+                schema.codec.decodeJson(fieldName, in) match {
+                  case Left(err)          => in.decodeError(err.msg)
+                  case Right(Some(value)) => fields.addOne(value)
+                  case Right(None)        => // skip
+                }
+              )
 
             in.isNextToken(',')
           }) ()

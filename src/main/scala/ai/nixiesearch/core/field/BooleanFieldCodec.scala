@@ -60,11 +60,9 @@ case class BooleanFieldCodec(spec: BooleanFieldSchema) extends FieldCodec[Boolea
 
   override def encodeJson(field: BooleanField): Json = Json.fromBoolean(field.value)
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, BooleanField] =
-    Try(reader.readBoolean()) match {
-      case Failure(err)   => Left(JsonError(s"field $name: cannot decode boolean", err))
-      case Success(value) => Right(BooleanField(name, value))
-    }
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[BooleanField]] = {
+    decodeJsonImpl(name, reader.readBoolean).map(value => Some(BooleanField(name, value)))
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] =
     nested.sort(field, reverse, missing)

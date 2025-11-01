@@ -9,7 +9,8 @@ import ai.nixiesearch.core.Field.{LongListField, NumericField}
 import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.LongStoredField
 import ai.nixiesearch.core.search.DocumentGroup
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec}
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{SortedNumericDocValuesField, StoredField, Document as LuceneDocument}
@@ -44,10 +45,18 @@ case class LongListFieldCodec(spec: LongListFieldSchema) extends FieldCodec[Long
 
   override def encodeJson(field: LongListField): Json = Json.fromValues(field.value.map(Json.fromLong))
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, LongListField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[LongListField]] =
+    decodeJsonImpl(name, () => LongListFieldCodec.longListCodec.decodeValue(reader, null)).map {
+      case Nil => None
+      case nel => Some(LongListField(name, nel))
+    }
 
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = Left(
     BackendError("cannot sort on long[] field")
   )
 
+}
+
+object LongListFieldCodec {
+  val longListCodec: JsonValueCodec[List[Long]] = JsonCodecMaker.make[List[Long]]
 }

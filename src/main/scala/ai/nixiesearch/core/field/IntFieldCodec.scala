@@ -3,10 +3,12 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
+import ai.nixiesearch.core.DocumentDecoder.JsonError
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.{DocumentDecoder, Field}
 import ai.nixiesearch.core.Field.{IntField, NumericField}
 import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.IntStoredField
 import ai.nixiesearch.core.search.DocumentGroup
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.Decoder.Result
@@ -20,6 +22,8 @@ import org.apache.lucene.document.{
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.queries.function.docvalues.IntDocValues
 import org.apache.lucene.search.SortField
+
+import scala.util.{Failure, Success, Try}
 
 case class IntFieldCodec(spec: IntFieldSchema) extends FieldCodec[IntField] {
   import FieldCodec.*
@@ -41,11 +45,17 @@ case class IntFieldCodec(spec: IntFieldSchema) extends FieldCodec[IntField] {
     }
   }
 
-  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[IntField]] = ???
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, Option[IntField]] =
+    doc.fields.collectFirst { case f @ IntStoredField(name, _) if spec.name.matches(name) => f } match {
+      case Some(value) => Right(Some(IntField(value.name, value.value)))
+      case None        => Right(None)
+    }
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
 
-  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, IntField] = ???
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[IntField]] = {
+    decodeJsonImpl(name, reader.readInt).map(value => Some(IntField(name, value)))
+  }
 
   def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.INT, reverse)
