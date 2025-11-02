@@ -49,25 +49,25 @@ libraryDependencies ++= Seq(
   "ai.djl.huggingface"    % "tokenizers"                 % djlVersion,
   "com.github.luben"      % "zstd-jni"                   % "1.5.7-6",
   "com.github.blemale"   %% "scaffeine"                  % "5.3.0",
-  "com.hubspot.jinjava"   % "jinjava"                    % "2.8.1" excludeAll (
+  "com.hubspot.jinjava"   % "jinjava"                    % "2.8.2" excludeAll (
     ExclusionRule(organization = "com.google.code.findbugs", name = "annotations"),
     ExclusionRule(organization = "com.google.code.findbugs", name = "jsr305")
   ),
-  "software.amazon.awssdk" % "s3"                                     % awsVersion,
-  "co.fs2"                %% "fs2-core"                               % fs2Version,
-  "co.fs2"                %% "fs2-io"                                 % fs2Version,
-  "co.fs2"                %% "fs2-reactive-streams"                   % fs2Version,
-  "org.typelevel"         %% "log4cats-slf4j"                         % "2.7.1",
-  "de.lhns"               %% "fs2-compress-gzip"                      % fs2CompressVersion,
-  "de.lhns"               %% "fs2-compress-bzip2"                     % fs2CompressVersion,
-  "de.lhns"               %% "fs2-compress-zstd"                      % fs2CompressVersion,
-  "org.apache.kafka"       % "kafka-clients"                          % "4.1.0",
-  "io.prometheus"          % "prometheus-metrics-core"                % prometheusVersion,
-  "io.prometheus"          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
-  "io.prometheus"          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion,
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % "2.38.3",
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe" % "2.38.3",
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.38.3" % "compile-internal"
+  "software.amazon.awssdk"                 % "s3"                                     % awsVersion,
+  "co.fs2"                                %% "fs2-core"                               % fs2Version,
+  "co.fs2"                                %% "fs2-io"                                 % fs2Version,
+  "co.fs2"                                %% "fs2-reactive-streams"                   % fs2Version,
+  "org.typelevel"                         %% "log4cats-slf4j"                         % "2.7.1",
+  "de.lhns"                               %% "fs2-compress-gzip"                      % fs2CompressVersion,
+  "de.lhns"                               %% "fs2-compress-bzip2"                     % fs2CompressVersion,
+  "de.lhns"                               %% "fs2-compress-zstd"                      % fs2CompressVersion,
+  "org.apache.kafka"                       % "kafka-clients"                          % "4.1.0",
+  "io.prometheus"                          % "prometheus-metrics-core"                % prometheusVersion,
+  "io.prometheus"                          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
+  "io.prometheus"                          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"                    % "2.38.3",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe"                   % "2.38.3",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"                  % "2.38.3" % "compile-internal"
 )
 
 if (GPU) {

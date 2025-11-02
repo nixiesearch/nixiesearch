@@ -131,7 +131,8 @@ object OnnxEmbedModel extends Logging {
       maxTokens: Int = 512,
       batchSize: Int = 32,
       cache: EmbedCacheConfig = MemoryCacheConfig(),
-      device: Device = Device.CPU()
+      device: Device = Device.CPU(),
+      override val paddingSide: Option[OnnxConfig.PaddingSide] = None
   ) extends EmbeddingInferenceModelConfig
       with OnnxConfig
   object OnnxEmbeddingInferenceModelConfig {
@@ -174,15 +175,16 @@ object OnnxEmbedModel extends Logging {
 
   given onnxEmbeddingConfigDecoder: Decoder[OnnxEmbeddingInferenceModelConfig] = Decoder.instance(c =>
     for {
-      model     <- c.downField("model").as[ModelHandle]
-      file      <- c.downField("file").as[Option[OnnxModelFile]]
-      seqlen    <- c.downField("max_tokens").as[Option[Int]]
-      prompt    <- c.downField("prompt").as[Option[PromptConfig]]
-      batchSize <- c.downField("batch_size").as[Option[Int]]
-      pooling   <- c.downField("pooling").as[Option[PoolingType]]
-      normalize <- c.downField("normalize").as[Option[Boolean]]
-      cache     <- c.downField("cache").as[Option[EmbedCacheConfig]]
-      device    <- c.downField("device").as[Option[Device]]
+      model       <- c.downField("model").as[ModelHandle]
+      file        <- c.downField("file").as[Option[OnnxModelFile]]
+      seqlen      <- c.downField("max_tokens").as[Option[Int]]
+      prompt      <- c.downField("prompt").as[Option[PromptConfig]]
+      batchSize   <- c.downField("batch_size").as[Option[Int]]
+      pooling     <- c.downField("pooling").as[Option[PoolingType]]
+      normalize   <- c.downField("normalize").as[Option[Boolean]]
+      cache       <- c.downField("cache").as[Option[EmbedCacheConfig]]
+      device      <- c.downField("device").as[Option[Device]]
+      paddingSide <- c.downField("padding_side").as[Option[OnnxConfig.PaddingSide]]
     } yield {
       OnnxEmbeddingInferenceModelConfig(
         model,
@@ -193,7 +195,8 @@ object OnnxEmbedModel extends Logging {
         pooling = pooling.getOrElse(PoolingType(model)),
         normalize = normalize.getOrElse(true),
         cache = cache.getOrElse(MemoryCacheConfig()),
-        device = device.getOrElse(Device.CPU())
+        device = device.getOrElse(Device.CPU()),
+        paddingSide = paddingSide
       )
     }
   )
