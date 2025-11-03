@@ -2,6 +2,7 @@
 
 Nixiesearch supports following field types:
 
+* document identifier: `id` - special field type for the `_id` field (automatically added to every index).
 * [text fields](text.md): `text`, `text[]`.
 * [numeric fields](numeric.md): `int`, `float`, `long`, `double`, `bool`, `int[]`, `long[]`, `float[]`, `double[]`.
 * [geolocation fields](geo.md): `geopoint`

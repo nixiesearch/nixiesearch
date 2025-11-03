@@ -3,7 +3,7 @@ package ai.nixiesearch.config
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.CoreConfig.TelemetryConfig
 import ai.nixiesearch.config.EmbedCacheConfig.MemoryCacheConfig
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.InferenceConfig.PromptConfig
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.S3Location
 import ai.nixiesearch.config.StoreConfig.{DistributedStoreConfig, LocalStoreConfig}
@@ -58,10 +58,8 @@ class ConfigTest extends AnyFlatSpec with Matchers {
                 SearchParams(None, Some(SemanticInferenceParams(ModelRef("text"))))
               ),
               StringName("price") -> IntFieldSchema(StringName("price"), true, true, true, true),
-              StringName("_id")   -> TextFieldSchema(
-                StringName("_id"),
-                SearchParams(None, None),
-                filter = true
+              StringName("_id")   -> IdFieldSchema(
+                StringName("_id")
               )
             )
           )
@@ -95,7 +93,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              StringName("_id")   -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("_id")   -> IdFieldSchema(name = StringName("_id")),
               StringName("title") -> TextFieldSchema(
                 name = StringName("title"),
                 search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
@@ -175,7 +173,7 @@ class ConfigTest extends AnyFlatSpec with Matchers {
             name = IndexName.unsafe("helloworld"),
             alias = Nil,
             fields = Map(
-              StringName("_id")    -> TextFieldSchema(name = StringName("_id"), filter = true),
+              StringName("_id")    -> IdFieldSchema(name = StringName("_id")),
               StringName("title1") -> TextFieldSchema(
                 name = StringName("title1"),
                 search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text")))),

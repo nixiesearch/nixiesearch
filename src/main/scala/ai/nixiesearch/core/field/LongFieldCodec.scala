@@ -4,22 +4,27 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.LongFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.NumericField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.core.DocumentDecoder.JsonError
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.{DocumentDecoder, Field}
+import ai.nixiesearch.core.Field.{LongField, NumericField}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.LongStoredField
 import ai.nixiesearch.core.search.DocumentGroup
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.{Document, NumericDocValuesField, SortedNumericDocValuesField, StoredField}
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.search.SortField
 
-case class LongField(name: String, value: Long) extends Field with NumericField
+import scala.util.{Failure, Success, Try}
 
-object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
+case class LongFieldCodec(spec: LongFieldSchema) extends FieldCodec[LongField] {
+  import FieldCodec.*
   override def writeLucene(
       field: LongField,
-      spec: LongFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
@@ -36,19 +41,22 @@ object LongField extends FieldCodec[LongField, LongFieldSchema, Long] {
     }
   }
 
-  override def readLucene(
-      name: String,
-      spec: LongFieldSchema,
-      value: Long
-  ): Either[FieldCodec.WireDecodingError, LongField] =
-    Right(LongField(name, value))
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[LongField]] =
+    Right(
+      doc.fields
+        .collect { case f @ LongStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => LongField(doubleField.name, doubleField.value))
+    )
 
   override def encodeJson(field: LongField): Json = Json.fromLong(field.value)
 
-  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[LongField]] = {
+    decodeJsonImpl(name, reader.readLong).map(value => Some(LongField(name, value)))
+  }
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.LONG, reverse)
     sortField.setMissingValue(MissingValue.of(min = Long.MinValue, max = Long.MaxValue, reverse, missing))
-    sortField
-
+    Right(sortField)
   }
 }

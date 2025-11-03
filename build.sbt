@@ -4,11 +4,13 @@ import sbt.Package.ManifestAttributes
 lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
-version := "0.7.2"
+ThisBuild / version      := "0.7.2"
+ThisBuild / scalaVersion := "3.7.3"
 
-scalaVersion := "3.7.3"
-
-name := "nixiesearch"
+lazy val root = (project in file("."))
+  .settings(
+    name := "nixiesearch"
+  )
 
 libraryDependencies ++= Seq(
   "org.typelevel"        %% "cats-effect"                % "3.6.3",
@@ -51,18 +53,21 @@ libraryDependencies ++= Seq(
     ExclusionRule(organization = "com.google.code.findbugs", name = "annotations"),
     ExclusionRule(organization = "com.google.code.findbugs", name = "jsr305")
   ),
-  "software.amazon.awssdk" % "s3"                                     % awsVersion,
-  "co.fs2"                %% "fs2-core"                               % fs2Version,
-  "co.fs2"                %% "fs2-io"                                 % fs2Version,
-  "co.fs2"                %% "fs2-reactive-streams"                   % fs2Version,
-  "org.typelevel"         %% "log4cats-slf4j"                         % "2.7.1",
-  "de.lhns"               %% "fs2-compress-gzip"                      % fs2CompressVersion,
-  "de.lhns"               %% "fs2-compress-bzip2"                     % fs2CompressVersion,
-  "de.lhns"               %% "fs2-compress-zstd"                      % fs2CompressVersion,
-  "org.apache.kafka"       % "kafka-clients"                          % "4.1.0",
-  "io.prometheus"          % "prometheus-metrics-core"                % prometheusVersion,
-  "io.prometheus"          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
-  "io.prometheus"          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion
+  "software.amazon.awssdk"                 % "s3"                                     % awsVersion,
+  "co.fs2"                                %% "fs2-core"                               % fs2Version,
+  "co.fs2"                                %% "fs2-io"                                 % fs2Version,
+  "co.fs2"                                %% "fs2-reactive-streams"                   % fs2Version,
+  "org.typelevel"                         %% "log4cats-slf4j"                         % "2.7.1",
+  "de.lhns"                               %% "fs2-compress-gzip"                      % fs2CompressVersion,
+  "de.lhns"                               %% "fs2-compress-bzip2"                     % fs2CompressVersion,
+  "de.lhns"                               %% "fs2-compress-zstd"                      % fs2CompressVersion,
+  "org.apache.kafka"                       % "kafka-clients"                          % "4.1.0",
+  "io.prometheus"                          % "prometheus-metrics-core"                % prometheusVersion,
+  "io.prometheus"                          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
+  "io.prometheus"                          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"                    % "2.38.3",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe"                   % "2.38.3",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"                  % "2.38.3" % "compile-internal"
 )
 
 if (GPU) {
@@ -87,8 +92,8 @@ scalacOptions ++= Seq(
   "-Xfatal-warnings",
 //  "-Wunused:imports",
 //  "-release:20",
-  "-no-indent",
-  "-experimental"
+  "-no-indent"
+//  "-experimental"
 //  "-Wall"
 )
 
@@ -196,3 +201,11 @@ assembly / assemblyJarName          := "nixiesearch.jar"
 ThisBuild / assemblyRepeatableBuild := false
 ThisBuild / usePipelining           := true
 packageOptions                      := Seq(ManifestAttributes(("Multi-Release", "true")))
+
+// Benchmark sub-project
+lazy val benchmark = (project in file("src/benchmark"))
+  .enablePlugins(JmhPlugin)
+  .dependsOn(root)
+  .settings(
+    name := "benchmark"
+  )

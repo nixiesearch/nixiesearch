@@ -17,7 +17,7 @@ import ai.nixiesearch.config.FieldSchema.{
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.{Field, Logging}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
-import ai.nixiesearch.core.field.DateTimeField.DateTime
+import ai.nixiesearch.core.field.DateTimeFieldCodec.DateTime
 import cats.effect.IO
 import org.apache.lucene.facet.FacetsCollector
 import org.apache.lucene.facet.range.{DoubleRange, DoubleRangeFacetCounts, LongRange, LongRangeFacetCounts}

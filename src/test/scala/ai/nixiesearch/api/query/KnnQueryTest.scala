@@ -1,13 +1,13 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.retrieve.{KnnQuery, MatchQuery}
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.{LexicalParams, SemanticInferenceParams, SemanticParams}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
@@ -21,7 +21,7 @@ class KnnQueryTest extends SearchTest with Matchers {
   val mapping                             = TestIndexMapping(
     "test",
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
@@ -29,9 +29,9 @@ class KnnQueryTest extends SearchTest with Matchers {
     )
   )
   val docs = List(
-    Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
-    Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
-    Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
+    Document(List(IdField("_id", "1"), TextField("title", "red dress"))),
+    Document(List(IdField("_id", "2"), TextField("title", "white dress"))),
+    Document(List(IdField("_id", "3"), TextField("title", "red pajama")))
   )
 
   it should "select matching documents for a knn query" in withIndex { index =>

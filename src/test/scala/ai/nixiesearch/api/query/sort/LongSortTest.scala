@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.sort
 
 import ai.nixiesearch.config.FieldSchema.LongFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.field.LongField
+import ai.nixiesearch.core.Field.LongField
 
 class LongSortTest extends SortSuite[LongField, LongFieldSchema, Long] {
   override def field(name: FieldName, value: Long): LongField = LongField(name.name, value)

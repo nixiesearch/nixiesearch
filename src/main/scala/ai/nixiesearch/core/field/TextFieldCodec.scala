@@ -6,13 +6,20 @@ import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema}
 import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.config.mapping.SearchParams.*
+import ai.nixiesearch.core.DocumentDecoder.JsonError
+import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.TextLikeField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.Field.{TextField, TextLikeField}
+import FieldCodec.WireDecodingError
+import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.StringStoredField
 import ai.nixiesearch.core.search.DocumentGroup
 import ai.nixiesearch.core.suggest.SuggestCandidates
+import com.github.plokhotnyuk.jsoniter_scala.circe.CirceCodecs
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Codec, Decoder, DecodingFailure, Encoder, Json, JsoniterScalaCodec}
+import io.circe.generic.semiauto.*
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.document.{
   BinaryDocValuesField,
@@ -26,21 +33,21 @@ import org.apache.lucene.index.VectorSimilarityFunction
 import org.apache.lucene.search.SortField
 import org.apache.lucene.search.suggest.document.SuggestField
 import org.apache.lucene.util.BytesRef
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec.*
 
 import java.util.UUID
+import com.github.plokhotnyuk.jsoniter_scala.circe.CirceCodecs.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 
-case class TextField(name: String, value: String, embedding: Option[Array[Float]] = None)
-    extends Field
-    with TextLikeField
+import scala.util.{Failure, Success, Try}
 
-object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
-
-  val MAX_FACET_SIZE        = 1024
-  val MAX_FIELD_SEARCH_SIZE = 32000
+case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
+  import TextFieldCodec.*
+  import FieldCodec.*
 
   override def writeLucene(
       field: TextField,
-      spec: TextFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
 
@@ -85,20 +92,59 @@ object TextField extends FieldCodec[TextField, TextFieldSchema, String] {
 
   }
 
-  override def readLucene(
-      name: String,
-      spec: TextFieldSchema,
-      value: String
-  ): Either[FieldCodec.WireDecodingError, TextField] =
-    Right(TextField(name, value, None))
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[TextField]] =
+    Right(
+      doc.fields
+        .collect { case f @ StringStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => TextField(doubleField.name, doubleField.value))
+    )
 
   override def encodeJson(field: TextField): Json = Json.fromString(field.value)
 
-  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): SortField = {
+  override def decodeJson(name: String, reader: JsonReader): Either[JsonError, Option[TextField]] = {
+    val tok = reader.nextToken()
+    reader.rollbackToken()
+    tok match {
+      case '"'   => decodePlain(name, reader)
+      case '{'   => decodeEmbed(name, reader)
+      case other => Left(JsonError(s"""for field $name expected '"' or '{' tokens"""))
+    }
+  }
+
+  def decodePlain(name: String, in: JsonReader): Either[JsonError, Option[TextField]] = {
+    decodeJsonImpl(name, () => in.readString(null)).map {
+      case ""    => None
+      case value => Some(TextField(name, value))
+    }
+  }
+
+  def decodeEmbed(name: String, in: JsonReader): Either[JsonError, Option[TextField]] = {
+    spec.search.semantic match {
+      case Some(s: SemanticParams) =>
+        decodeJsonImpl(name, () => TextFieldCodec.textEmbeddingCodec.decodeValue(in, null)).flatMap {
+          case value if value.text.isEmpty =>
+            Right(None)
+          case value =>
+            Right(Some(TextField(name, value.text, Some(value.embedding))))
+        }
+      case None =>
+        Left(JsonError(s"field $name: semantic search is not enabled, but got embeddings"))
+    }
+  }
+
+  def sort(field: FieldName, reverse: Boolean, missing: SortPredicate.MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name, SortField.Type.STRING, reverse)
     sortField.setMissingValue(
       MissingValue.of(min = SortField.STRING_FIRST, max = SortField.STRING_LAST, reverse, missing)
     )
-    sortField
+    Right(sortField)
   }
+}
+
+object TextFieldCodec {
+  val MAX_FACET_SIZE        = 1024
+  val MAX_FIELD_SEARCH_SIZE = 32000
+  case class TextEmbedding(text: String, embedding: Array[Float])
+  val textEmbeddingCodec = JsonCodecMaker.make[TextEmbedding]
+
 }

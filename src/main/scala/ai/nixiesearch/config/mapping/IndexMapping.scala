@@ -9,7 +9,7 @@ import cats.syntax.all.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, fieldNameDecoder}
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, NestedName, NestedWildcardName, fieldNameDecoder}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.nn.ModelHandle
@@ -19,7 +19,6 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 
 import scala.jdk.CollectionConverters.*
-import language.experimental.namedTuples
 
 case class IndexMapping(
     name: IndexName,
@@ -35,18 +34,58 @@ case class IndexMapping(
     s
   }.toList
 
-  def fieldSchema(name: String): Option[FieldSchema[? <: Field]] = {
-    fields.collectFirst {
-      case (field, schema) if field.matches(name) => schema
-    }
+  lazy val plainFields: Map[String, FieldSchema[? <: Field]] = fields.collect { case (StringName(name), schema) =>
+    (name, schema)
   }
 
-  def fieldSchemaOf[S <: FieldSchema[? <: Field]](
-      name: String
-  )(using manifest: scala.reflect.ClassTag[S]): Option[S] = {
-    fields.collectFirst {
-      case (field, schema: S) if field.matches(name) => schema
-    }
+  lazy val nestedFields: Map[String, FieldSchema[? <: Field]] = fields.collect { case (NestedName(name, _, _), schema) =>
+    (name, schema)
+  }
+
+  lazy val wildcardFields = fields.collect { case (_: WildcardName, schema) =>
+    schema
+  }
+
+  lazy val nestedWildcardFields = fields.collect { case (_: NestedWildcardName, schema) =>
+    schema
+  }
+
+  def fieldSchema[S <: FieldSchema[? <: Field]](
+      field: FieldName
+  )(using manifest: scala.reflect.ClassTag[S]): Option[S] = field match {
+    case f @ StringName(name) =>
+      plainFields.get(name) match {
+        case Some(schema: S) => Some(schema)
+        case Some(_)         => None
+        case None            =>
+          wildcardFields.collectFirst {
+            case schema: S if schema.name.matches(f) => schema
+          }
+      }
+
+    case f @ NestedName(name, head, tail) =>
+      nestedFields.get(name) match {
+        case Some(schema: S) => Some(schema)
+        case Some(_)         => None
+        case None            =>
+          wildcardFields.collectFirst {
+            case schema: S if schema.name.matches(f) => schema
+          }.orElse(
+            nestedWildcardFields.collectFirst {
+              case schema: S if schema.name.matches(f) => schema
+            }
+          )
+      }
+
+    case f @ WildcardName(name, prefix, suffix) =>
+      fields.collectFirst {
+        case (name, value: S) if name.matches(f) => value
+      }
+
+    case f @ NestedWildcardName(name, parent, child, prefix, suffix) =>
+      fields.collectFirst {
+        case (name, value: S) if name.matches(f) => value
+      }
   }
 
   def nameMatches(value: String): Boolean = {
@@ -73,6 +112,7 @@ case class IndexMapping(
       case (Some(a: IntFieldSchema), Some(b: IntFieldSchema))           => IO.pure(Keep(b))
       case (Some(a: LongFieldSchema), Some(b: LongFieldSchema))         => IO.pure(Keep(b))
       case (Some(a: TextFieldSchema), Some(b: TextFieldSchema))         => IO.pure(Keep(b))
+      case (Some(a: TextFieldSchema), Some(b: IdFieldSchema))           => IO.pure(Keep(b))
       case (Some(a: TextListFieldSchema), Some(b: TextListFieldSchema)) => IO.pure(Keep(b))
       case (Some(a), Some(b)) if a == b                                 => IO.pure(Keep(b))
       case (Some(a), Some(b))                                           =>
@@ -148,9 +188,9 @@ object IndexMapping extends Logging {
           case Some(idMapping) =>
             logger.warn("_id field is internal field and it's mapping cannot be changed")
             logger.warn("_id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
-            fieldsMap.updated(id, TextFieldSchema(id, filter = true))
+            fieldsMap.updated(id, IdFieldSchema(id))
           case None =>
-            fieldsMap.updated(id, TextFieldSchema(id, filter = true))
+            fieldsMap.updated(id, IdFieldSchema(id))
         }
         IndexMapping(
           name,
@@ -171,14 +211,27 @@ object IndexMapping extends Logging {
       }
     }
 
-    def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(WildcardName, StringName)] = {
+    def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(FieldName, FieldName)] = {
       val fieldNames = fields.map(_.name)
+      val result = scala.collection.mutable.ListBuffer[(FieldName, FieldName)]()
+
+      // Check WildcardName overrides
       for {
         wildcard <- fieldNames.collect { case wc: WildcardName => wc }
-        string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string.name)
-      } yield {
-        (wildcard, string)
+        string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string)
+      } {
+        result.addOne((wildcard, string))
       }
+
+      // Check NestedWildcardName overrides
+      for {
+        nestedWildcard <- fieldNames.collect { case nwc: NestedWildcardName => nwc }
+        other          <- fieldNames if (other != nestedWildcard) && nestedWildcard.matches(other)
+      } {
+        result.addOne((nestedWildcard, other))
+      }
+
+      result.toList
     }
   }
 

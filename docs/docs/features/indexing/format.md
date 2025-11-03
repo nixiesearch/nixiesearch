@@ -8,8 +8,17 @@ Each Nixiesearch-indexed document is expected (but not required) to have a globa
 
 * if JSON document has a special `_id` field defined, then it is used as an identifier.
 * if the `_id` field is missing in the document payload, then a UUID-based random identifier is generated automatically.
- 
+
 Internally the document id is a sequence of bytes, and any real JSON type of the `_id` field (like string and number) will be automatically mapped to the internal id representation.
+
+The `_id` field is automatically added to every index with `type: id`, which is a special field type optimized for document identifiers. This field type has the following characteristics:
+
+* `store: true` - document ID is always stored
+* `filter: true` - can be used in filter queries
+* `facet: false` - cannot be used for faceting
+* `sort: false` - not sortable by default
+
+You don't need to define the `_id` field in your schema - it's added automatically.
 
 This is an exampe of a good `_id` field:
 
@@ -94,6 +103,16 @@ schema:
     fields:
       - meta.asin:
           type: text
+```
+
+When indexing documents, nested JSON objects are automatically flattened using dot notation. Both flat and nested formats work with the same mapping:
+
+```json
+// Flat format
+{"_id": 1, "meta.asin": "AAA123"}
+
+// Nested format (automatically flattened)
+{"_id": 1, "meta": {"asin": "AAA123"}}
 ```
 
 Repeated documents are also flattened in a similar way, but with a notable exception of transforming all internal singular fields into repeated ones:

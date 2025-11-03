@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.sort
 
 import ai.nixiesearch.config.FieldSchema.TextListFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.field.TextListField
+import ai.nixiesearch.core.Field.TextListField
 
 class TextListSortTest extends SortSuite[TextListField, TextListFieldSchema, String] {
   override def field(name: FieldName, value: String): TextListField = TextListField(name.name, List(value))

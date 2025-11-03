@@ -1,11 +1,13 @@
 package ai.nixiesearch.core.codec.compat
 
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.field.{TextField, TextListField}
+import ai.nixiesearch.core.Field.{TextField, TextListField}
+import ai.nixiesearch.core.field.{FieldCodec, TextListFieldCodec}
 import org.apache.lucene.codecs.{Codec, FilterCodec, KnnVectorsFormat, PostingsFormat}
 import org.apache.lucene.codecs.lucene102.Lucene102HnswBinaryQuantizedVectorsFormat
 import org.apache.lucene.codecs.lucene99.{Lucene99HnswScalarQuantizedVectorsFormat, Lucene99HnswVectorsFormat}
@@ -21,7 +23,7 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
 
   override def postingsFormat(): PostingsFormat = new PerFieldPostingsFormat {
     override def getPostingsFormatForField(field: String): PostingsFormat =
-      if (field.endsWith(TextField.SUGGEST_SUFFIX)) {
+      if (field.endsWith(FieldCodec.SUGGEST_SUFFIX)) {
         suggestPostingsFormat
       } else {
         delegate.postingsFormat().asInstanceOf[PerFieldPostingsFormat].getPostingsFormatForField(field)
@@ -35,10 +37,10 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
         case Some(fmt) => fmt
         case None      =>
           val parentField =
-            if (field.endsWith(TextListField.NESTED_EMBED_SUFFIX))
-              Some(field.replace(TextListField.NESTED_EMBED_SUFFIX, ""))
+            if (field.endsWith(TextListFieldCodec.NESTED_EMBED_SUFFIX))
+              Some(field.replace(TextListFieldCodec.NESTED_EMBED_SUFFIX, ""))
             else None
-          val fmt = mapping.fieldSchemaOf[TextLikeFieldSchema[?]](parentField.getOrElse(field)) match {
+          val fmt = mapping.fieldSchema[TextLikeFieldSchema[?]](StringName(parentField.getOrElse(field))) match {
             case Some(schema) =>
               schema.search.semantic match {
                 case Some(conf) =>
@@ -55,7 +57,7 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
                   fmt
                 case None =>
                   throw BackendError(
-                    s"field $field expected to be a vector field, but it's ${mapping.fieldSchema(field)}"
+                    s"field $field expected to be a vector field, but it's ${mapping.fieldSchema(StringName(field))}"
                   )
               }
             case None => throw BackendError(s"cannot find field format for '$field'")

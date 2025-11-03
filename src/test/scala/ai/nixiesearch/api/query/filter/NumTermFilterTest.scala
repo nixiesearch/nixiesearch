@@ -3,6 +3,7 @@ package ai.nixiesearch.api.query.filter
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.config.FieldSchema.{
+  IdFieldSchema,
   IntFieldSchema,
   IntListFieldSchema,
   LongFieldSchema,
@@ -11,7 +12,7 @@ import ai.nixiesearch.config.FieldSchema.{
 }
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
@@ -22,7 +23,7 @@ class NumTermFilterTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       IntFieldSchema(StringName("int"), filter = true),
       IntListFieldSchema(StringName("intlist"), filter = true),
       LongFieldSchema(StringName("long"), filter = true),
@@ -33,7 +34,7 @@ class NumTermFilterTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         IntField("int", 1),
         LongField("long", 1),
         IntListField("intlist", List(1, 11)),
@@ -42,7 +43,7 @@ class NumTermFilterTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         IntField("int", 2),
         LongField("long", 2),
         IntListField("intlist", List(2, 22)),
@@ -51,7 +52,7 @@ class NumTermFilterTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         IntField("int", 3),
         LongField("long", 3),
         IntListField("intlist", List(3, 33)),

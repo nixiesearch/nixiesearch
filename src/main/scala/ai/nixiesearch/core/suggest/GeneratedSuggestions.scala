@@ -1,18 +1,13 @@
 package ai.nixiesearch.core.suggest
 
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.field.{FieldCodec, TextFieldCodec}
 import ai.nixiesearch.core.suggest.GeneratedSuggestions.SuggestDoc
 import cats.effect.IO
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.suggest.document.TopSuggestDocs.SuggestScoreDoc
-import org.apache.lucene.search.suggest.document.{
-  FuzzyCompletionQuery,
-  PrefixCompletionQuery,
-  RegexCompletionQuery,
-  SuggestIndexSearcher,
-  TopSuggestDocs
-}
+import org.apache.lucene.search.suggest.document.{FuzzyCompletionQuery, PrefixCompletionQuery, RegexCompletionQuery, SuggestIndexSearcher, TopSuggestDocs}
 
 import scala.jdk.CollectionConverters.*
 import org.apache.lucene.util.automaton.Operations
@@ -43,7 +38,7 @@ object GeneratedSuggestions {
       query: String,
       count: Int
   ): IO[GeneratedSuggestions] = IO {
-    val field = fieldName + TextField.SUGGEST_SUFFIX
+    val field = fieldName + FieldCodec.SUGGEST_SUFFIX
     GeneratedSuggestions(
       field = fieldName,
       prefix = SuggestDoc.fromTopSuggestDocs(

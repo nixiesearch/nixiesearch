@@ -4,24 +4,12 @@ import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.RangePredicate
 import ai.nixiesearch.api.query.filter.RangeFilterTest.RangeFilterTestForType
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.{
-  DateFieldSchema,
-  DateTimeFieldSchema,
-  DoubleFieldSchema,
-  DoubleListFieldSchema,
-  FloatFieldSchema,
-  FloatListFieldSchema,
-  IntFieldSchema,
-  IntListFieldSchema,
-  LongFieldSchema,
-  LongListFieldSchema,
-  TextFieldSchema
-}
+import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName}
 import ai.nixiesearch.core.{Document, Field}
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.util.SearchTest
@@ -88,16 +76,16 @@ object RangeFilterTest {
     val mapping = IndexMapping(
       name = IndexName.unsafe("test"),
       fields = List(
-        TextFieldSchema(StringName("_id"), filter = true),
+        IdFieldSchema(StringName("_id")),
         schema()
       ),
       store = LocalStoreConfig(MemoryLocation())
     )
     val docs = List(
-      Document(List(TextField("_id", "1"), field(10))),
-      Document(List(TextField("_id", "2"), field(15))),
-      Document(List(TextField("_id", "3"), field(20))),
-      Document(List(TextField("_id", "4"), field(30)))
+      Document(List(IdField("_id", "1"), field(10))),
+      Document(List(IdField("_id", "2"), field(15))),
+      Document(List(IdField("_id", "3"), field(20))),
+      Document(List(IdField("_id", "4"), field(30)))
     )
 
     it should "select all on wide range" in withIndex { index =>

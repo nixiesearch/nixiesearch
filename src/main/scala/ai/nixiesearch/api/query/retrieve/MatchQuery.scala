@@ -4,7 +4,9 @@ import MatchQuery.Operator
 import MatchQuery.Operator.OR
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
+import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.TextLikeFieldSchema
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{IndexMapping, Language}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
@@ -29,8 +31,10 @@ case class MatchQuery(field: String, query: String, operator: Operator = OR) ext
       fields: List[String]
   ): IO[search.Query] =
     for {
-      schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
-      _      <- schema match {
+      schema <- IO.fromOption(mapping.fieldSchema[FieldSchema[?]](StringName(field)))(
+        UserError(s"field '$field' not found in index mapping")
+      )
+      _ <- schema match {
         case t: TextLikeFieldSchema[?] if t.search.lexical.nonEmpty => IO.unit
         case t: TextLikeFieldSchema[?]                              =>
           IO.raiseError(UserError(s"field '$field' is not lexically searchable, check the index mapping"))

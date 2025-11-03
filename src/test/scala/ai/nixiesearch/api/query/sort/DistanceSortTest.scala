@@ -5,14 +5,14 @@ import ai.nixiesearch.config.FieldSchema.{GeopointFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.util.{CitiesDataset, SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
 class DistanceSortTest extends SearchTest with Matchers {
   val name    = StringName("field")
-  val mapping = CitiesDataset.mapping
-  val docs    = CitiesDataset()
+  lazy val mapping = CitiesDataset.mapping
+  lazy val docs    = CitiesDataset()
 
   it should "sort by distance, desc" in withIndex { index =>
     {

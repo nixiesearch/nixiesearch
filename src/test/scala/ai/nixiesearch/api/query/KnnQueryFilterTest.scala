@@ -3,13 +3,13 @@ package ai.nixiesearch.api.query
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.retrieve.KnnQuery
-import ai.nixiesearch.config.FieldSchema.{IntListFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntListFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.SemanticInferenceParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.{IntListField, TextField}
+import ai.nixiesearch.core.Field.{IdField, IntListField, TextField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.matchers.should.Matchers
@@ -23,7 +23,7 @@ class KnnQueryFilterTest extends SearchTest with Matchers {
   val mapping                             = TestIndexMapping(
     "test",
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
@@ -35,7 +35,7 @@ class KnnQueryFilterTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         TextField("title", "red dress"),
         TextField("tag", "a"),
         IntListField("iltag", List(1, 2))
@@ -43,7 +43,7 @@ class KnnQueryFilterTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextField("title", "white dress"),
         TextField("tag", "a"),
         IntListField("iltag", List(2, 3))
@@ -51,7 +51,7 @@ class KnnQueryFilterTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextField("title", "red pajama"),
         TextField("tag", "b"),
         IntListField("iltag", List(3, 4))

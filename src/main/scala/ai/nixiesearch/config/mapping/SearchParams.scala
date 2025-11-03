@@ -34,7 +34,6 @@ object SearchParams {
   ) extends SemanticParams
 
   case class SemanticSimpleParams(
-      dim: Int,
       ef: Int = 32,
       m: Int = 16,
       workers: Int = Runtime.getRuntime.availableProcessors(),
@@ -72,7 +71,6 @@ object SearchParams {
   given embeddingSearchParamsSimpleEncoder: Encoder[SemanticSimpleParams] = deriveEncoder
   given embeddingSearchParamsSimpleDecoder: Decoder[SemanticSimpleParams] = Decoder.instance(c =>
     for {
-      dim      <- c.downField("dim").as[Int]
       ef       <- c.downField("ef").as[Option[Int]]
       m        <- c.downField("m").as[Option[Int]]
       workers  <- c.downField("workers").as[Option[Int]]
@@ -80,7 +78,6 @@ object SearchParams {
       distance <- c.downField("distance").as[Option[Distance]]
     } yield {
       SemanticSimpleParams(
-        dim = dim,
         ef = ef.getOrElse(32),
         m = m.getOrElse(16),
         workers = workers.getOrElse(Runtime.getRuntime.availableProcessors()),

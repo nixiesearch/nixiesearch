@@ -1,13 +1,13 @@
 package ai.nixiesearch.api.query
 
 import ai.nixiesearch.api.query.retrieve.KnnQuery
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.SemanticInferenceParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.{TextField, TextListField}
+import ai.nixiesearch.core.Field.{IdField, TextField, TextListField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
@@ -20,7 +20,7 @@ class KnnQueryMultiNFieldTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping(
     "testmulti",
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextListFieldSchema(
         name = StringName("songs"),
         search = SearchParams(semantic = Some(SemanticInferenceParams(model = ModelRef("text"))))
@@ -35,21 +35,21 @@ class KnnQueryMultiNFieldTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         TextListField("songs", "bohemian rhapsody", "we will rock you"),
         TextListField("categories", "rock", "classic rock")
       )
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextListField("songs", "billie jean", "thriller"),
         TextListField("categories", "pop", "dance")
       )
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextListField("songs", "stairway to heaven", "whole lotta love"),
         TextListField("categories", "rock", "hard rock")
       )

@@ -6,15 +6,11 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
 import ai.nixiesearch.core.aggregate.AggregationResult.{TermAggregationResult, TermCount}
-import ai.nixiesearch.core.field.{DateField, DateTimeField}
+import ai.nixiesearch.core.Field.{DateField, DateTimeField}
+import ai.nixiesearch.core.field.{DateFieldCodec, DateTimeFieldCodec}
 import cats.effect.IO
 import org.apache.lucene.index.IndexReader
-import org.apache.lucene.facet.{
-  FacetsCollector,
-  LongValueFacetCounts,
-  StringDocValuesReaderState,
-  StringValueFacetCounts
-}
+import org.apache.lucene.facet.{FacetsCollector, LongValueFacetCounts, StringDocValuesReaderState, StringValueFacetCounts}
 
 object TermAggregator {
   def aggregate(
@@ -30,11 +26,13 @@ object TermAggregator {
         IO(aggregateLong(reader, request, facets))
       case _: DateFieldSchema =>
         IO(aggregateLong(reader, request, facets)).map(result =>
-          TermAggregationResult(result.buckets.map(tc => tc.copy(term = DateField.writeString(tc.term.toInt))))
+          TermAggregationResult(result.buckets.map(tc => tc.copy(term = DateFieldCodec.writeString(tc.term.toInt))))
         )
       case _: DateTimeFieldSchema =>
         IO(aggregateLong(reader, request, facets)).map(result =>
-          TermAggregationResult(result.buckets.map(tc => tc.copy(term = DateTimeField.writeString(tc.term.toLong))))
+          TermAggregationResult(
+            result.buckets.map(tc => tc.copy(term = DateTimeFieldCodec.writeString(tc.term.toLong)))
+          )
         )
       case other => IO.raiseError(UserError(s"term aggregation does not support type $other"))
     }
