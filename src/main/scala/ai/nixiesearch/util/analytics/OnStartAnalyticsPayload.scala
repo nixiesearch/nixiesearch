@@ -10,7 +10,7 @@ import ai.nixiesearch.config.StoreConfig.{
 }
 import ai.nixiesearch.config.StoreConfig.BlockStoreLocation.*
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, MemoryLocation}
-import ai.nixiesearch.config.mapping.FieldName.{NestedName, StringName, WildcardName}
+import ai.nixiesearch.config.mapping.FieldName.{NestedName, NestedWildcardName, StringName, WildcardName}
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.config.mapping.SearchParams.{SemanticInferenceParams, SemanticParams, SemanticSimpleParams}
 import ai.nixiesearch.config.mapping.{FieldName, IndexName, SearchParams}
@@ -117,6 +117,8 @@ object OnStartAnalyticsPayload {
               case FieldName.NestedName(name, head, tail)       => NestedName(hash(name), hash(head), hash(tail))
               case FieldName.StringName(name)                   => StringName(hash(name))
               case FieldName.WildcardName(name, prefix, suffix) => WildcardName(hash(name), hash(prefix), hash(suffix))
+              case FieldName.NestedWildcardName(name, parent, child, prefix, suffix) =>
+                NestedWildcardName(hash(name), hash(parent), hash(child), hash(prefix), hash(suffix))
             }
             anonName -> (value match {
               case s: IdFieldSchema         => s

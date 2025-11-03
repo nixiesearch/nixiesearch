@@ -9,7 +9,7 @@ import cats.syntax.all.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, NestedName, fieldNameDecoder}
+import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, NestedName, NestedWildcardName, fieldNameDecoder}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.nn.ModelHandle
@@ -38,7 +38,15 @@ case class IndexMapping(
     (name, schema)
   }
 
+  lazy val nestedFields: Map[String, FieldSchema[? <: Field]] = fields.collect { case (NestedName(name, _, _), schema) =>
+    (name, schema)
+  }
+
   lazy val wildcardFields = fields.collect { case (_: WildcardName, schema) =>
+    schema
+  }
+
+  lazy val nestedWildcardFields = fields.collect { case (_: NestedWildcardName, schema) =>
     schema
   }
 
@@ -56,16 +64,25 @@ case class IndexMapping(
       }
 
     case f @ NestedName(name, head, tail) =>
-      plainFields.get(name) match {
+      nestedFields.get(name) match {
         case Some(schema: S) => Some(schema)
         case Some(_)         => None
         case None            =>
           wildcardFields.collectFirst {
             case schema: S if schema.name.matches(f) => schema
-          }
+          }.orElse(
+            nestedWildcardFields.collectFirst {
+              case schema: S if schema.name.matches(f) => schema
+            }
+          )
       }
 
     case f @ WildcardName(name, prefix, suffix) =>
+      fields.collectFirst {
+        case (name, value: S) if name.matches(f) => value
+      }
+
+    case f @ NestedWildcardName(name, parent, child, prefix, suffix) =>
       fields.collectFirst {
         case (name, value: S) if name.matches(f) => value
       }
@@ -194,14 +211,27 @@ object IndexMapping extends Logging {
       }
     }
 
-    def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(WildcardName, StringName)] = {
+    def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(FieldName, FieldName)] = {
       val fieldNames = fields.map(_.name)
+      val result = scala.collection.mutable.ListBuffer[(FieldName, FieldName)]()
+
+      // Check WildcardName overrides
       for {
         wildcard <- fieldNames.collect { case wc: WildcardName => wc }
         string   <- fieldNames.collect { case s: StringName => s } if wildcard.matches(string)
-      } yield {
-        (wildcard, string)
+      } {
+        result.addOne((wildcard, string))
       }
+
+      // Check NestedWildcardName overrides
+      for {
+        nestedWildcard <- fieldNames.collect { case nwc: NestedWildcardName => nwc }
+        other          <- fieldNames if (other != nestedWildcard) && nestedWildcard.matches(other)
+      } {
+        result.addOne((nestedWildcard, other))
+      }
+
+      result.toList
     }
   }
 

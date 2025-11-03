@@ -34,25 +34,10 @@ import scala.util.Random
 @State(Scope.Thread)
 class DocumentDecoderBenchmark {
 
-  var INPUT: Task = uninitialized
+  @Param(Array("384", "768", "1024"))
+  var DIM: String = uninitialized
 
-  @Param(Array("id_only", "movies", "embed"))
-  var INPUT_TYPE: String = uninitialized
-
-  @Param(Array("v3"))
-  var DECODER: String = uninitialized
-
-  val idOnlySchema = IndexMapping(name = IndexName("test"), fields = Map(StringName("_id") -> IdFieldSchema()))
-  val moviesSchema = IndexMapping(
-    name = IndexName("test"),
-    fields = Map(
-      StringName("_id")   -> IdFieldSchema(),
-      StringName("title") -> TextFieldSchema(StringName("title")),
-      StringName("desc")  -> TextFieldSchema(StringName("desc")),
-      StringName("year")  -> IntFieldSchema(StringName("year"))
-    )
-  )
-  val embedSchema = IndexMapping(
+  val SCHEMA = IndexMapping(
     name = IndexName("test"),
     fields = Map(
       StringName("_id")   -> IdFieldSchema(),
@@ -63,45 +48,22 @@ class DocumentDecoderBenchmark {
     )
   )
 
+  var json: String                      = uninitialized
+  var decoder: JsonValueCodec[Document] = uninitialized
+
   @Setup
   def setup() = {
-    INPUT = INPUT_TYPE match {
-      case "embed" =>
-        val emb = Array.fill(1024)(Random.nextFloat())
-        Task(
-          json = s"""{"_id": "1", "title": {"text": "aaa", "embedding": [${emb.mkString(",")}]}}""",
-          decoder = DECODER match {
-            case "v3"  => (a: String) => readFromString[Document](a)(using DocumentDecoder.codec(embedSchema))
-            case other => throw NotImplementedError(other)
-          }
-        )
-      case "movies" =>
-        Task(
-          json = """{"_id": "1", "title": "The Matrix", "desc": "foo bar", "year": 1999}""",
-          decoder = DECODER match {
-            case "v3"  => (a: String) => readFromString[Document](a)(using DocumentDecoder.codec(moviesSchema))
-            case other => throw NotImplementedError(other)
-          }
-        )
-      case "id_only" =>
-        Task(
-          json = """{"_id": "1"}""",
-          decoder = DECODER match {
-            case other => throw NotImplementedError(other)
-          }
-        )
-    }
+    val emb = Array.fill(1024)(Random.nextFloat())
+    json = s"""{"_id": "1", "title": {"text": "aaa", "embedding": [${emb.mkString(",")}]}}"""
+    decoder = DocumentDecoder.codec(SCHEMA)
   }
 
   @Benchmark
-  def measureDecoder() = {
-    INPUT.decoder(INPUT.json)
+  def decodeEmbed() = {
+    readFromString[Document](json)(using decoder)
+
   }
 
-  @Benchmark()
-  def ast() = {
-    parse(INPUT.json)
-  }
 }
 
 object DocumentDecoderBenchmark {
