@@ -9,7 +9,7 @@ import ai.nixiesearch.core.nn.model.ranking.providers.OnnxRankModel.OnnxRankInfe
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.matchers.should.Matchers
 import ai.nixiesearch.api.query.retrieve.{MatchQuery, SemanticQuery}
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.Language.English
@@ -38,7 +38,7 @@ class CEQueryTest extends SearchTest with Matchers {
   val mapping = TestIndexMapping(
     "test",
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(

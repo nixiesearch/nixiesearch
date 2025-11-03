@@ -4,7 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.FieldValueSort
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.Last
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC}
 import ai.nixiesearch.api.query.retrieve.MatchQuery
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Field.{IdField, TextField}
@@ -14,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
 class DocScoreTest extends SearchTest with Matchers {
   val name    = StringName("field")
   val mapping =
-    TestIndexMapping("sort", List(TextFieldSchema(StringName("_id"))))
+    TestIndexMapping("sort", List(IdFieldSchema(StringName("_id"))))
   val docs = List(
     Document(List(IdField("_id", "0"))),
     Document(List(IdField("_id", "1"))),

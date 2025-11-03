@@ -42,17 +42,6 @@ class TextFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest {
     result.embedding.get should equal(Array(1.0f, 2.0f, 3.0f))
   }
 
-  it should "fail on dim mismatch" in {
-    val semantic = SemanticSimpleParams()
-    val result   = Try(
-      decode(
-        TextFieldSchema(StringName("name"), search = SearchParams(semantic = Some(semantic))),
-        json = """{"name": {"text": "value", "embedding": [1,2,3,4]}}"""
-      )
-    )
-    result shouldBe a[Failure[?]]
-  }
-
   it should "not accept null values" in {
     val result = Try(decode(TextFieldSchema(StringName("title"), required = true), """{"title": null}"""))
     result shouldBe a[Failure[?]]

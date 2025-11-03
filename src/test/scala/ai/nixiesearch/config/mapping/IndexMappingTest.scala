@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.field.*
@@ -91,7 +91,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         name = IndexName("test"),
         alias = List(Alias("prod")),
         fields = Map(
-          StringName("_id")   -> TextFieldSchema(StringName("_id"), filter = true),
+          StringName("_id")   -> IdFieldSchema(StringName("_id")),
           StringName("title") -> TextFieldSchema(StringName("title"))
         )
       )

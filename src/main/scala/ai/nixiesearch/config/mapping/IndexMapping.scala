@@ -170,9 +170,9 @@ object IndexMapping extends Logging {
           case Some(idMapping) =>
             logger.warn("_id field is internal field and it's mapping cannot be changed")
             logger.warn("_id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
-            fieldsMap.updated(id, TextFieldSchema(id, filter = true))
+            fieldsMap.updated(id, IdFieldSchema(id))
           case None =>
-            fieldsMap.updated(id, TextFieldSchema(id, filter = true))
+            fieldsMap.updated(id, IdFieldSchema(id))
         }
         IndexMapping(
           name,

@@ -4,6 +4,7 @@ import ai.nixiesearch.api.SearchRoute.SearchResponse
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Document
+import ai.nixiesearch.core.Field.IdField
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import cats.effect.unsafe.implicits.global
@@ -17,7 +18,13 @@ trait SearchTest extends AnyFlatSpec {
   def mapping: IndexMapping
   def docs: List[Document]
 
-  given documentDecoder: Decoder[Document]             = ??? /// Decoder.instance(c => c.str)
+  given documentDecoder: Decoder[Document] = Decoder.instance(c =>
+    for {
+      id <- c.downField("_id").as[String]
+    } yield {
+      Document(IdField("_id", id))
+    }
+  )
   given documentEncoder: Encoder[Document]             = Document.encoderFor(mapping)
   given searchResponseEncoder: Encoder[SearchResponse] = deriveEncoder[SearchResponse].mapJson(_.dropNullValues)
   given searchResponseDecoder: Decoder[SearchResponse] = deriveDecoder
@@ -38,5 +45,4 @@ trait SearchTest extends AnyFlatSpec {
       shutdown.unsafeRunSync()
     }
   }
-
 }

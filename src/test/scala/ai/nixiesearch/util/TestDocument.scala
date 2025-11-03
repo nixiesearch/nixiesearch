@@ -1,7 +1,7 @@
 package ai.nixiesearch.util
 
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.{TextField, IntField}
+import ai.nixiesearch.core.Field.{IdField, IntField, TextField}
 
 import scala.util.Random
 
@@ -12,7 +12,7 @@ object TestDocument {
       price: Int = Random.nextInt(100)
   ) = new Document(
     List(
-      TextField("_id", id),
+      IdField("_id", id),
       TextField("title", "hello"),
       IntField("price", price)
     )

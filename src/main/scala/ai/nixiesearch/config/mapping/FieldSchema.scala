@@ -74,6 +74,25 @@ object FieldSchema {
     val codec: FieldCodec[TextField] = TextFieldCodec(this)
   }
 
+  object TextFieldSchema {
+    def apply(
+        name: FieldName,
+        search: SearchParams = SearchParams(),
+        store: Boolean = true,
+        sort: Boolean = false,
+        facet: Boolean = false,
+        filter: Boolean = false,
+        suggest: Option[SuggestSchema] = None,
+        required: Boolean = false
+    ) = {
+      if (name.name == "_id") {
+        throw new Exception("id field as text")
+      } else {
+        new TextFieldSchema(name, search, store, sort, facet, filter, suggest, required)
+      }
+    }
+  }
+
   case class TextListFieldSchema(
       name: FieldName,
       search: SearchParams = SearchParams(),
