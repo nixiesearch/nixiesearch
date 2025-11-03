@@ -45,7 +45,7 @@ object DocumentDecoder {
 
         Document(fields.toList)
       } else {
-        in.decodeError("expected '{'")
+        in.decodeError("document should start with '{'")
       }
     }
 
