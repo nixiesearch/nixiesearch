@@ -95,6 +95,7 @@ case class IndexMapping(
       case (Some(a: IntFieldSchema), Some(b: IntFieldSchema))           => IO.pure(Keep(b))
       case (Some(a: LongFieldSchema), Some(b: LongFieldSchema))         => IO.pure(Keep(b))
       case (Some(a: TextFieldSchema), Some(b: TextFieldSchema))         => IO.pure(Keep(b))
+      case (Some(a: TextFieldSchema), Some(b: IdFieldSchema))           => IO.pure(Keep(b))
       case (Some(a: TextListFieldSchema), Some(b: TextListFieldSchema)) => IO.pure(Keep(b))
       case (Some(a), Some(b)) if a == b                                 => IO.pure(Keep(b))
       case (Some(a), Some(b))                                           =>

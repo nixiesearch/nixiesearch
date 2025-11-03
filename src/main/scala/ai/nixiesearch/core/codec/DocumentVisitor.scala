@@ -102,11 +102,12 @@ object DocumentVisitor {
 
   def create(mapping: IndexMapping, fields: List[FieldName]): IO[DocumentVisitor] = {
     fields
-      .traverse(field =>
+      .flatTraverse(field =>
         mapping.fieldSchema(field) match {
+          case None if field.name == "_score" => IO.pure(Nil)
           case None => IO.raiseError(UserError(s"field ${field.name} is not defined in mapping"))
           case Some(mapping) if !mapping.store => IO.raiseError(UserError(s"field ${field.name} is not stored"))
-          case Some(other)                     => IO.pure(other)
+          case Some(other)                     => IO.pure(List(other))
         }
       )
       .map(_ => new DocumentVisitor(mapping, fields))
