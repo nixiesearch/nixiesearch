@@ -6,7 +6,7 @@ import ai.nixiesearch.api.{IndexModifyRoute, SearchRoute}
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.config.{Config, InferenceConfig}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.Field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.util.Tags.EndToEnd
 import ai.nixiesearch.util.{DatasetLoader, EnvVars, SearchTest, TestDocument}
 import cats.effect.IO
@@ -28,7 +28,7 @@ class StandaloneIndexSyncEndToEndTest extends AnyFlatSpec with Matchers with Sea
   override def inference: InferenceConfig = conf.inference
 
   def makedoc(id: String, title: String): Document =
-    Document(List(TextField("_id", id), TextField("title", title)))
+    Document(List(IdField("_id", id), TextField("title", title)))
 
   it should "load docs and search" taggedAs (EndToEnd.Index) in withIndex { nixie =>
     {
