@@ -10,6 +10,8 @@ import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.SearchArgs
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
+import ai.nixiesearch.util.EnvVars
+import ai.nixiesearch.util.analytics.AnalyticsReporter
 import cats.data.Kleisli
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
@@ -19,13 +21,16 @@ import org.http4s.server.Server
 
 import scala.concurrent.duration.*
 
-object SearchMode extends Logging {
-  def run(args: SearchArgs, config: Config): IO[Unit] = {
-    api(args, config).use(_ => IO.never)
+object SearchMode extends Mode[SearchArgs] {
+  def run(args: SearchArgs, env: EnvVars): IO[Unit] = {
+    api(args, env).use(_ => IO.never)
   }
 
-  def api(args: SearchArgs, config: Config): Resource[IO, Server] = for {
-    _         <- Resource.eval(info("Starting in 'search' mode with only searcher"))
+  def api(args: SearchArgs, env: EnvVars): Resource[IO, Server] = for {
+    _      <- Resource.eval(info("Starting in 'search' mode with only searcher"))
+    config <- Resource.eval(Config.load(args.config, env))
+    _      <- AnalyticsReporter.create(config, args.mode)
+
     metrics   <- Resource.pure(Metrics())
     models    <- Models.create(config.inference, config.core.cache, metrics)
     searchers <- config.schema.values.toList

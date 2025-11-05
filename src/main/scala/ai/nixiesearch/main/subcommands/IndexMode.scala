@@ -13,21 +13,34 @@ import ai.nixiesearch.main.CliConfig.IndexSourceArgs.{ApiIndexSourceArgs, FileIn
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
+import ai.nixiesearch.util.EnvVars
+import ai.nixiesearch.util.analytics.AnalyticsReporter
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import fs2.Stream
 
-object IndexMode extends Logging {
-  def run(args: IndexArgs, config: Config): IO[Unit] = for {
+object IndexMode extends Mode[IndexArgs] {
+  override def run(args: IndexArgs, env: EnvVars): IO[Unit] = for {
     _       <- info("Starting in 'index' mode with indexer only ")
+    config  <- Config.load(args.config, env)
     indexes <- IO(config.schema.values.toList)
-    _       <- args.source match {
-      case apiConfig: ApiIndexSourceArgs   => runApi(indexes, apiConfig, config)
-      case fileConfig: FileIndexSourceArgs =>
-        runOffline(indexes, FileSource(fileConfig), fileConfig.index, config.core.cache, config.inference)
-      case kafkaConfig: KafkaIndexSourceArgs =>
-        runOffline(indexes, KafkaSource(kafkaConfig), kafkaConfig.index, config.core.cache, config.inference)
-    }
+    _       <- AnalyticsReporter
+      .create(config, args.mode)
+      .use(_ =>
+        args.source match {
+          case apiConfig: ApiIndexSourceArgs   => runApi(indexes, apiConfig, config)
+          case fileConfig: FileIndexSourceArgs =>
+            runOffline(indexes, FileSource(fileConfig), fileConfig.index, config.core.cache, config.inference)
+          case kafkaConfig: KafkaIndexSourceArgs =>
+            runOffline(
+              indexes,
+              KafkaSource(kafkaConfig),
+              kafkaConfig.index,
+              config.core.cache,
+              config.inference
+            )
+        }
+      )
   } yield {}
 
   def runOffline(
