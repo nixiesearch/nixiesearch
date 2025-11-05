@@ -1,6 +1,6 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.FieldSchema.{IntFieldSchema, TextFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.field.*
@@ -70,9 +70,9 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         StringName("int") -> IntFieldSchema(StringName("int"), facet = true)
       )
     )
-    val schemaOK = mapping.fieldSchemaOf[IntFieldSchema]("int")
+    val schemaOK = mapping.fieldSchema[IntFieldSchema](StringName("int"))
     schemaOK shouldBe Some(IntFieldSchema(StringName("int"), facet = true))
-    val schemaFail = mapping.fieldSchemaOf[TextFieldSchema]("int")
+    val schemaFail = mapping.fieldSchema[TextFieldSchema](StringName("int"))
     schemaFail shouldBe None
   }
 
@@ -91,7 +91,7 @@ class IndexMappingTest extends AnyFlatSpec with Matchers {
         name = IndexName("test"),
         alias = List(Alias("prod")),
         fields = Map(
-          StringName("_id")   -> TextFieldSchema(StringName("_id"), filter = true),
+          StringName("_id")   -> IdFieldSchema(StringName("_id")),
           StringName("title") -> TextFieldSchema(StringName("title"))
         )
       )

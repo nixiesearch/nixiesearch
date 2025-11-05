@@ -1,2 +1,2 @@
-mkdocs-material[imaging] == 9.6.9
+mkdocs-material[imaging] == 9.6.23
 mkdocs-table-reader-plugin

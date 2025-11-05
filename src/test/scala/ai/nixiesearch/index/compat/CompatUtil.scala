@@ -5,7 +5,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.{DiskLocation, Memor
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.config.{CacheConfig, Config, InferenceConfig}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.sync.LocalIndex
 import ai.nixiesearch.index.{Indexer, Models, Searcher}

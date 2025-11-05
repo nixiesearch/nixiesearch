@@ -11,7 +11,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.IdField
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.sync.LocalIndex
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
@@ -31,7 +31,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
       .search(SearchRequest(query, filters, n, fields.map(FieldName.unsafe), aggs, sort = sort))
       .unsafeRunSync()
       .hits
-      .flatMap(_.fields.collect { case TextField(_, value, _) => value })
+      .flatMap(_.fields.collect { case IdField(_, value) => value })
   }
 
   def searchRaw(

@@ -10,7 +10,7 @@ import ai.nixiesearch.core.Document
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import cats.effect.unsafe.implicits.global
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.SearchTest
 import ai.nixiesearch.config.mapping.FieldName.StringName
 
@@ -21,7 +21,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true, facet = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("title")),
       TextFieldSchema(StringName("title_nonstore"), store = false),
       TextListFieldSchema(StringName("title2")),
@@ -47,7 +47,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       val source =
         Document(
           List(
-            TextField("_id", "1"),
+            IdField("_id", "1"),
             TextField("title", "foo"),
             TextListField("title2", List("foo", "bar")),
             TextField("str_foo", "foo"),
@@ -104,7 +104,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       val source =
         Document(
           List(
-            TextField("_id", "1"),
+            IdField("_id", "1"),
             TextField("title_nonstore", "foo")
           )
         )
@@ -127,11 +127,11 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
 
   it should "handle fast-path fetches" in withIndex { store =>
     val source = List(
-      Document(List(TextField("_id", "1"))),
-      Document(List(TextField("_id", "2"))),
-      Document(List(TextField("_id", "3"))),
-      Document(List(TextField("_id", "4"))),
-      Document(List(TextField("_id", "5")))
+      Document(List(IdField("_id", "1"))),
+      Document(List(IdField("_id", "2"))),
+      Document(List(IdField("_id", "3"))),
+      Document(List(IdField("_id", "4"))),
+      Document(List(IdField("_id", "5")))
     )
     store.indexer.addDocuments(source).unsafeRunSync()
     store.indexer.flush().unsafeRunSync()
@@ -143,7 +143,7 @@ class DocumentVisitorTest extends AnyFlatSpec with Matchers with SearchTest {
       fields = List(StringName("_id"))
     )
     val docs = Try(store.searcher.search(request).unsafeRunSync())
-    val ids  = docs.map(_.hits.flatMap(_.fields.collect { case TextField("_id", value, _) => value }))
+    val ids  = docs.map(_.hits.flatMap(_.fields.collect { case IdField("_id", value) => value }))
     ids shouldBe Success(List("1", "2", "3", "4", "5"))
   }
 }

@@ -1,12 +1,12 @@
 package ai.nixiesearch.index
 
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.index.IndexStats.{FieldStats, LeafStats, SegmentStats}
 import ai.nixiesearch.util.{SearchTest, TestInferenceConfig}
@@ -22,7 +22,7 @@ class IndexStatsTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(
         name = StringName("title"),
         search = SearchParams(

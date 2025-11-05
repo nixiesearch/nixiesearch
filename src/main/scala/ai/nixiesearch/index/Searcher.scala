@@ -21,7 +21,7 @@ import ai.nixiesearch.config.mapping.{FieldName, IndexMapping}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.search.MergedFacetCollector
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.field.{FieldCodec, *}
 import cats.effect.{IO, Ref, Resource}
 import org.apache.lucene.index.{DirectoryReader, DocValues, IndexReader, LeafReaderContext, ReaderUtil}
 import org.apache.lucene.search.{
@@ -40,8 +40,9 @@ import org.apache.lucene.search.{
 import cats.syntax.all.*
 import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Error.{BackendError, UserError}
+import ai.nixiesearch.core.Field.{FloatField, IdField, TextField}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.{DocumentVisitor}
 import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
@@ -58,7 +59,6 @@ import org.apache.lucene.document.LatLonDocValuesField
 import java.util.concurrent.Executors
 import scala.jdk.CollectionConverters.*
 import scala.collection.mutable
-import language.experimental.namedTuples
 
 case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics: Metrics) extends Logging {
 
@@ -81,7 +81,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     fieldSuggestions <- Stream
       .emits(request.fields)
       .evalMap(fieldName =>
-        index.mapping.fieldSchema(fieldName) match {
+        index.mapping.fieldSchema(StringName(fieldName)) match {
           case None => IO.raiseError(UserError(s"field '$fieldName' is not found in mapping"))
           case Some(TextLikeFieldSchema(suggest = Some(schema))) =>
             GeneratedSuggestions.fromField(fieldName, suggester, schema.analyze.analyzer, request.query, request.count)
@@ -185,7 +185,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       case Some(a) =>
         a.aggs.toList
           .traverse { case (name, agg) =>
-            mapping.fieldSchema(agg.field) match {
+            mapping.fieldSchema(StringName(agg.field)) match {
               case Some(field) if !field.facet =>
                 IO.raiseError(UserError(s"cannot aggregate over a field marked as a non-facetable"))
               case None         => IO.raiseError(UserError(s"cannot aggregate over a field not defined in schema"))
@@ -215,7 +215,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     result
   }
 
-  val ID_DOCVALUE_NAME                                        = "_id" + TextField.FILTER_SUFFIX
+  val ID_DOCVALUE_NAME                                        = "_id" + FieldCodec.FILTER_SUFFIX
   protected def hasBinaryDv(reader: DirectoryReader): Boolean = {
     if (reader.leaves().isEmpty) {
       false
@@ -237,7 +237,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
         val idDocValues  = DocValues.getBinary(leafReader.reader(), ID_DOCVALUE_NAME)
         idDocValues.advance(scoreDoc.doc - leafReader.docBase)
         val id = idDocValues.binaryValue().utf8ToString()
-        Document(TextField("_id", id), FloatField("_score", scoreDoc.score))
+        Document(IdField("_id", id), FloatField("_score", scoreDoc.score))
       })
       .toList
   }
@@ -249,16 +249,20 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       fields: List[FieldName]
   ): IO[List[Document]] = for {
     visitor <- DocumentVisitor.create(mapping, fields)
-    docs    <- IO {
-      val docs = top.scoreDocs.map(doc => {
-        visitor.reset()
-        reader.storedFields().document(doc.doc, visitor)
-        visitor.asDocument(doc.score)
-      })
-      docs.toList
-    }
+    docs    <- top.scoreDocs.toList.traverse(collectOne(reader, visitor, _))
   } yield {
     docs
+  }
+
+  private def collectOne(reader: DirectoryReader, visitor: DocumentVisitor, doc: ScoreDoc): IO[Document] = for {
+    _      <- IO(visitor.reset())
+    _      <- IO(reader.storedFields().document(doc.doc, visitor))
+    stored <- IO(visitor.asDocument(doc.score)).flatMap {
+      case Left(value)  => IO.raiseError(value)
+      case Right(value) => IO.pure(value)
+    }
+  } yield {
+    stored
   }
 
   def getReadersOrFail(): IO[Readers] = {

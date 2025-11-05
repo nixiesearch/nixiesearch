@@ -73,6 +73,7 @@ So by default all fields in Nixiesearch are:
 
 Multiple field types are supported, so the `type` parameter can be one of the following:
 
+* Document identifier: `id`. A special field type for document identifiers, automatically used for the `_id` field.
 * [Text fields](#text-field-mapping): `text` and `text[]`. Unlike other Lucene-based search engines where all fields are implicitly repeatable, we distinguish between single and multi-value fields.
 * [Numerical fields](#numerical-fields): `int`, `long`, `double`, `float`, `bool`, `geopoint`. You cannot search over numerical fields (unless you treat them as strings), but you can [filter](../search/filter.md), [facet](../search/facet.md) and [sort](../search/sort.md)!
 * [Media fields](#media-fields): `image`. A special field type for [multi-modal search](types/images.md).
@@ -96,6 +97,24 @@ So all fields matching the wildcard pattern are going to be treated according to
 
 * only a single `*` placeholder is allowed.
 * you cannot have a non-wildcard field defined matching a wildcard pattern (e.g. having both a regular `title_string` field and a wildcard `*_string` in the same index).
+
+You can also combine nested fields with wildcards using dot notation:
+
+```yaml
+schema:
+  products:
+    fields:
+      meta.field_*_str:
+        type: text
+        search:
+          lexical:
+            analyze: english
+```
+
+This pattern matches fields like `meta.field_title_str`, `meta.field_desc_str`, etc. Limitations for nested wildcards:
+
+* only one `.` (dot) and one `*` (wildcard) allowed per field name
+* the wildcard must appear after the dot (e.g., `parent.child_*` is valid, `*_parent.child` is not)
 
 Wildcard fields can be used in the `fields` block of search request to get multiple fields from the document at once:
 

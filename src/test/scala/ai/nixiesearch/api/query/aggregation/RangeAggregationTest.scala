@@ -11,7 +11,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.FiniteRange.Higher.{Lt, Lte}
 import ai.nixiesearch.core.FiniteRange.Lower.{Gt, Gte}
 import ai.nixiesearch.core.aggregate.AggregationResult.{RangeAggregationResult, RangeCount}
@@ -21,12 +21,13 @@ import org.scalatest.matchers.should.Matchers
 import scala.util.Try
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.LexicalParams
+import ai.nixiesearch.core.field.{DateFieldCodec, DateTimeFieldCodec}
 
 class RangeAggregationTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(StringName("_id"), filter = true),
+      IdFieldSchema(StringName("_id")),
       TextFieldSchema(StringName("title"), search = SearchParams(lexical = Some(LexicalParams()))),
       TextFieldSchema(StringName("color"), filter = true, facet = true),
       IntFieldSchema(StringName("count"), facet = true, filter = true),
@@ -45,7 +46,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
   val docs = List(
     Document(
       List(
-        TextField("_id", "1"),
+        IdField("_id", "1"),
         TextField("title", "long socks"),
         TextField("color", "red"),
         IntField("count", 1),
@@ -62,7 +63,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextField("title", "sleeveless jacket"),
         TextField("color", "red"),
         IntField("count", 2),
@@ -79,7 +80,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextField("title", "short socks"),
         TextField("color", "red"),
         IntField("count", 3),
@@ -96,7 +97,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "4"),
+        IdField("_id", "4"),
         TextField("title", "winter socks"),
         TextField("color", "white"),
         IntField("count", 4),
@@ -113,7 +114,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "5"),
+        IdField("_id", "5"),
         TextField("title", "evening dress"),
         TextField("color", "white"),
         IntField("count", 5),
@@ -130,7 +131,7 @@ class RangeAggregationTest extends SearchTest with Matchers {
     ),
     Document(
       List(
-        TextField("_id", "6"),
+        IdField("_id", "6"),
         TextField("title", "winter socks"),
         TextField("color", "black"),
         IntField("count", 6),
@@ -416,8 +417,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
 
   it should "aggregate over dates" in withIndex { index =>
     {
-      val day1   = DateField.parseString("2024-01-02").toOption.get
-      val day2   = DateField.parseString("2024-01-04").toOption.get
+      val day1   = DateFieldCodec.parseString("2024-01-02").toOption.get
+      val day2   = DateFieldCodec.parseString("2024-01-04").toOption.get
       val result = index.searchRaw(aggs =
         Some(
           Aggs(
@@ -444,8 +445,8 @@ class RangeAggregationTest extends SearchTest with Matchers {
 
   it should "aggregate over datetimes" in withIndex { index =>
     {
-      val day1   = DateTimeField.parseString("2024-01-02T00:00:00Z").toOption.get
-      val day2   = DateTimeField.parseString("2024-01-04T00:00:00Z").toOption.get
+      val day1   = DateTimeFieldCodec.parseString("2024-01-02T00:00:00Z").toOption.get
+      val day2   = DateTimeFieldCodec.parseString("2024-01-04T00:00:00Z").toOption.get
       val result = index.searchRaw(aggs =
         Some(
           Aggs(

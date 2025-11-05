@@ -1,12 +1,12 @@
 package ai.nixiesearch.api.suggest
 
 import ai.nixiesearch.api.SearchRoute.SuggestRequest
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation.MemoryLocation
 import ai.nixiesearch.config.mapping.{IndexMapping, IndexName, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.SearchTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -17,7 +17,7 @@ class SuggestSingleFieldTest extends SearchTest with Matchers {
   val mapping = IndexMapping(
     name = IndexName.unsafe("test"),
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(name = StringName("title"), search = SearchParams(), suggest = Some(SuggestSchema())),
       TextListFieldSchema(name = StringName("genres"), search = SearchParams(), suggest = Some(SuggestSchema()))
     ),

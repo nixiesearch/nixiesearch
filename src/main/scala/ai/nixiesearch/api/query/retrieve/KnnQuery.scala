@@ -1,10 +1,12 @@
 package ai.nixiesearch.api.query.retrieve
 
 import ai.nixiesearch.api.filter.Filters
+import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.field.TextListField.NESTED_EMBED_SUFFIX
+import ai.nixiesearch.core.field.TextListFieldCodec.NESTED_EMBED_SUFFIX
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.search.DocumentGroup.{PARENT_FIELD, ROLE_FIELD}
 import cats.effect.IO
@@ -31,8 +33,10 @@ case class KnnQuery(field: String, query_vector: Array[Float], k: Option[Int], n
         case None          => IO(None)
         case Some(filters) => filters.toLuceneQuery(mapping)
       }
-      schema <- IO.fromOption(mapping.fieldSchema(field))(UserError(s"field '$field' not found in index mapping"))
-      query  <- schema match {
+      schema <- IO.fromOption(mapping.fieldSchema[FieldSchema[?]](StringName(field)))(
+        UserError(s"field '$field' not found in index mapping")
+      )
+      query <- schema match {
         case tf: TextFieldSchema if tf.search.semantic.nonEmpty =>
           IO.pure(new KnnFloatVectorQuery(field, query_vector, finalK, luceneFilters.orNull))
         case tlf: TextListFieldSchema if tlf.search.semantic.nonEmpty =>

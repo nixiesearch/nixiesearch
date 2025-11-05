@@ -4,10 +4,10 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.FieldValueSort
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue.{First, Last}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, DESC}
 import ai.nixiesearch.config.FieldSchema
-import ai.nixiesearch.config.FieldSchema.TextFieldSchema
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName
 import ai.nixiesearch.config.mapping.FieldName.StringName
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.core.{Document, Field}
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,14 +19,14 @@ trait SortSuite[T <: Field, S <: FieldSchema[T], U: Ordering] extends SearchTest
   def values: List[U]
 
   val name    = StringName("field")
-  val mapping = TestIndexMapping("sort", List(schema(name), TextFieldSchema(StringName("_id"))))
+  val mapping = TestIndexMapping("sort", List(schema(name), IdFieldSchema(StringName("_id"))))
   val docs    = List(
     Document(
       List(
-        TextField("_id", "miss")
+        IdField("_id", "miss")
       )
     )
-  ) ++ values.zipWithIndex.map((value, id) => Document(List(TextField("_id", id.toString), field(name, value))))
+  ) ++ values.zipWithIndex.map((value, id) => Document(List(IdField("_id", id.toString), field(name, value))))
 
   it should "sort by value asc, missing last" in withIndex { index =>
     {

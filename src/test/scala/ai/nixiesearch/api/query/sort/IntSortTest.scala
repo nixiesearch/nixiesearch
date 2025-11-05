@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.sort
 
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.field.IntField
+import ai.nixiesearch.core.Field.IntField
 
 class IntSortTest extends SortSuite[IntField, IntFieldSchema, Int] {
   override def field(name: FieldName, value: Int): IntField = IntField(name.name, value)

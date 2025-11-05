@@ -4,7 +4,7 @@ import ai.nixiesearch.api.query.retrieve.MatchQuery
 import ai.nixiesearch.config.mapping.IndexMapping.Alias
 import ai.nixiesearch.core.Document
 import ai.nixiesearch.core.Error.UserError
-import ai.nixiesearch.core.field.*
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping}
 import org.http4s.Method
 import org.scalatest.flatspec.AnyFlatSpec
@@ -16,9 +16,9 @@ class SearchRouteTest extends AnyFlatSpec with Matchers with SearchTest {
 
   val mapping = TestIndexMapping().copy(alias = List(Alias("test_alias")))
   val docs    = List(
-    Document(List(TextField("_id", "1"), TextField("title", "red dress"))),
-    Document(List(TextField("_id", "2"), TextField("title", "white dress"))),
-    Document(List(TextField("_id", "3"), TextField("title", "red pajama")))
+    Document(List(IdField("_id", "1"), TextField("title", "red dress"))),
+    Document(List(IdField("_id", "2"), TextField("title", "white dress"))),
+    Document(List(IdField("_id", "3"), TextField("title", "red pajama")))
   )
 
   it should "search over dsl with empty query" in withIndex { index =>

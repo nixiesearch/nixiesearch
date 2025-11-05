@@ -3,13 +3,13 @@ package ai.nixiesearch.api.query
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.filter.Predicate.TermPredicate
 import ai.nixiesearch.api.query.retrieve.KnnQuery
-import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, TextFieldSchema, TextListFieldSchema}
 import ai.nixiesearch.config.InferenceConfig
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams
 import ai.nixiesearch.config.mapping.SearchParams.SemanticInferenceParams
 import ai.nixiesearch.core.Document
-import ai.nixiesearch.core.field.{TextField, TextListField}
+import ai.nixiesearch.core.Field.{IdField, TextField, TextListField}
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.util.{SearchTest, TestIndexMapping, TestInferenceConfig}
@@ -21,7 +21,7 @@ class KnnQueryMultiTest extends SearchTest with Matchers {
   val mapping                             = TestIndexMapping(
     "test",
     fields = List(
-      TextFieldSchema(name = StringName("_id"), filter = true),
+      IdFieldSchema(name = StringName("_id")),
       TextFieldSchema(name = StringName("category"), filter = true),
       TextListFieldSchema(
         name = StringName("titles"),
@@ -31,18 +31,18 @@ class KnnQueryMultiTest extends SearchTest with Matchers {
   )
   val docs = List(
     Document(
-      List(TextField("_id", "1"), TextField("category", "clothing"), TextListField("titles", "red dress", "dress red"))
+      List(IdField("_id", "1"), TextField("category", "clothing"), TextListField("titles", "red dress", "dress red"))
     ),
     Document(
       List(
-        TextField("_id", "2"),
+        IdField("_id", "2"),
         TextField("category", "clothing"),
         TextListField("titles", "white dress", "dress white")
       )
     ),
     Document(
       List(
-        TextField("_id", "3"),
+        IdField("_id", "3"),
         TextField("category", "sleepwear"),
         TextListField("titles", "red pajama", "pajama red")
       )

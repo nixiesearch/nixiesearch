@@ -2,6 +2,7 @@ package ai.nixiesearch.config.mapping
 
 import ai.nixiesearch.config.FieldSchema
 import ai.nixiesearch.config.FieldSchema.{TextFieldSchema, TextLikeFieldSchema, TextListFieldSchema}
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.core.{Field, Logging}
 import org.apache.lucene.analysis.{Analyzer, DelegatingAnalyzerWrapper}
 
@@ -10,7 +11,7 @@ case class PerFieldAnalyzer(defaultAnalyzer: Analyzer, mapping: IndexMapping)
     with Logging {
 
   override def getWrappedAnalyzer(fieldName: String): Analyzer =
-    mapping.fieldSchema(fieldName) match {
+    mapping.fieldSchema(StringName(fieldName)) match {
       case Some(s: TextLikeFieldSchema[?]) =>
         s.search.lexical match {
           case Some(searchParams) => searchParams.analyze.analyzer

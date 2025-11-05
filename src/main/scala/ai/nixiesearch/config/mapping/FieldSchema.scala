@@ -1,11 +1,11 @@
 package ai.nixiesearch.config
 
+import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.QuantStore
 import ai.nixiesearch.config.mapping.{FieldName, Language, SearchParams, SuggestSchema}
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.TextLikeField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.*
 import ai.nixiesearch.core.nn.ModelRef
 import io.circe.{Decoder, DecodingFailure, Encoder}
@@ -14,7 +14,6 @@ import io.circe.Json
 import io.circe.JsonObject
 import io.circe.derivation.{ConfiguredDecoder, ConfiguredEncoder}
 
-import language.experimental.namedTuples
 import scala.NamedTuple.NamedTuple
 import scala.util.{Failure, Success}
 
@@ -25,6 +24,8 @@ sealed trait FieldSchema[T <: Field] {
   def facet: Boolean
   def filter: Boolean
   def required: Boolean
+
+  def codec: FieldCodec[T]
 }
 
 object FieldSchema {
@@ -48,6 +49,17 @@ object FieldSchema {
 
   }
 
+  case class IdFieldSchema(name: FieldName = StringName("_id"), sort: Boolean = false) extends FieldSchema[IdField] {
+
+    def store: Boolean                 = true
+    def facet: Boolean                 = false
+    def suggest: Option[SuggestSchema] = None
+    def required: Boolean              = false
+    def filter: Boolean                = true
+
+    val codec: FieldCodec[IdField] = IdFieldCodec(this)
+  }
+
   case class TextFieldSchema(
       name: FieldName,
       search: SearchParams = SearchParams(),
@@ -58,7 +70,28 @@ object FieldSchema {
       suggest: Option[SuggestSchema] = None,
       required: Boolean = false
   ) extends TextLikeFieldSchema[TextField]
-      with FieldSchema[TextField]
+      with FieldSchema[TextField] {
+    val codec: FieldCodec[TextField] = TextFieldCodec(this)
+  }
+
+  object TextFieldSchema {
+    def apply(
+        name: FieldName,
+        search: SearchParams = SearchParams(),
+        store: Boolean = true,
+        sort: Boolean = false,
+        facet: Boolean = false,
+        filter: Boolean = false,
+        suggest: Option[SuggestSchema] = None,
+        required: Boolean = false
+    ) = {
+      if (name.name == "_id") {
+        throw new Exception("id field as text")
+      } else {
+        new TextFieldSchema(name, search, store, sort, facet, filter, suggest, required)
+      }
+    }
+  }
 
   case class TextListFieldSchema(
       name: FieldName,
@@ -70,7 +103,10 @@ object FieldSchema {
       suggest: Option[SuggestSchema] = None,
       required: Boolean = false
   ) extends TextLikeFieldSchema[TextListField]
-      with FieldSchema[TextListField]
+      with FieldSchema[TextListField] {
+    val codec: FieldCodec[TextListField] = TextListFieldCodec(this)
+
+  }
 
   case class IntFieldSchema(
       name: FieldName,
@@ -79,7 +115,9 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
-  ) extends FieldSchema[IntField]
+  ) extends FieldSchema[IntField] {
+    val codec: FieldCodec[IntField] = IntFieldCodec(this)
+  }
 
   case class IntListFieldSchema(
       name: FieldName,
@@ -88,7 +126,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[IntListField] {
-    def sort = false
+    def sort                            = false
+    val codec: FieldCodec[IntListField] = IntListFieldCodec(this)
   }
 
   case class LongFieldSchema(
@@ -98,7 +137,9 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
-  ) extends FieldSchema[LongField]
+  ) extends FieldSchema[LongField] {
+    val codec: FieldCodec[LongField] = LongFieldCodec(this)
+  }
 
   case class LongListFieldSchema(
       name: FieldName,
@@ -107,7 +148,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[LongListField] {
-    def sort = false
+    def sort                             = false
+    val codec: FieldCodec[LongListField] = LongListFieldCodec(this)
   }
 
   case class FloatFieldSchema(
@@ -117,7 +159,9 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
-  ) extends FieldSchema[FloatField]
+  ) extends FieldSchema[FloatField] {
+    val codec: FieldCodec[FloatField] = FloatFieldCodec(this)
+  }
 
   case class FloatListFieldSchema(
       name: FieldName,
@@ -126,7 +170,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[FloatListField] {
-    def sort = false
+    def sort                              = false
+    val codec: FieldCodec[FloatListField] = FloatListFieldCodec(this)
   }
 
   case class DoubleFieldSchema(
@@ -136,7 +181,9 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
-  ) extends FieldSchema[DoubleField]
+  ) extends FieldSchema[DoubleField] {
+    val codec: FieldCodec[DoubleField] = DoubleFieldCodec(this)
+  }
 
   case class DoubleListFieldSchema(
       name: FieldName,
@@ -145,7 +192,8 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DoubleListField] {
-    def sort = false
+    def sort                               = false
+    val codec: FieldCodec[DoubleListField] = DoubleListFieldCodec(this)
   }
 
   case class BooleanFieldSchema(
@@ -155,7 +203,10 @@ object FieldSchema {
       facet: Boolean = false,
       filter: Boolean = false,
       required: Boolean = false
-  ) extends FieldSchema[BooleanField]
+  ) extends FieldSchema[BooleanField] {
+    val codec: FieldCodec[BooleanField] = BooleanFieldCodec(this)
+
+  }
 
   case class GeopointFieldSchema(
       name: FieldName,
@@ -164,7 +215,9 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[GeopointField] {
-    def facet = false
+    def facet                            = false
+    val codec: FieldCodec[GeopointField] = GeopointFieldCodec(this)
+
   }
 
   case class DateFieldSchema(
@@ -175,7 +228,7 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DateField] {
-    def asInt = IntFieldSchema(name, store, sort, facet, filter)
+    val codec: FieldCodec[DateField] = DateFieldCodec(this)
   }
 
   case class DateTimeFieldSchema(
@@ -186,12 +239,22 @@ object FieldSchema {
       filter: Boolean = false,
       required: Boolean = false
   ) extends FieldSchema[DateTimeField] {
-    def asLong = LongFieldSchema(name, store, sort, facet, filter)
+
+    val codec: FieldCodec[DateTimeField] = DateTimeFieldCodec(this)
   }
 
   object yaml {
     import SearchParams.given
     import SuggestSchema.yaml.given
+
+    def idFieldSchemaDecoder(name: FieldName): Decoder[IdFieldSchema] = Decoder.instance(c =>
+      for {
+        sort <- c.downField("sort").as[Option[Boolean]]
+      } yield {
+        val default = IdFieldSchema()
+        IdFieldSchema(name = name, sort = sort.getOrElse(default.sort))
+      }
+    )
 
     def textFieldSchemaDecoder(name: FieldName): Decoder[TextFieldSchema] = Decoder.instance(c =>
       for {
@@ -397,22 +460,24 @@ object FieldSchema {
 
     def fieldSchemaDecoder(name: FieldName): Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
-        case Left(value)                  => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
-        case Right("text" | "string")     => textFieldSchemaDecoder(name).tryDecode(c)
-        case Right("text[]" | "string[]") => textListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("int")                 => intFieldSchemaDecoder(name).tryDecode(c)
-        case Right("int[]")               => intListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("long")                => longFieldSchemaDecoder(name).tryDecode(c)
-        case Right("long[]")              => longListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("float")               => floatFieldSchemaDecoder(name).tryDecode(c)
-        case Right("float[]")             => floatListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("double")              => doubleFieldSchemaDecoder(name).tryDecode(c)
-        case Right("double[]")            => doubleListFieldSchemaDecoder(name).tryDecode(c)
-        case Right("bool")                => booleanFieldSchemaDecoder(name).tryDecode(c)
-        case Right("geopoint")            => geopointFieldSchemaDecoder(name).tryDecode(c)
-        case Right("date")                => dateFieldSchemaDecoder(name).tryDecode(c)
-        case Right("datetime")            => dateTimeFieldSchemaDecoder(name).tryDecode(c)
-        case Right(other)                 =>
+        case Left(value) => Left(DecodingFailure(s"Cannot decode field '$name': $value", c.history))
+        case Right("id") => idFieldSchemaDecoder(name).tryDecode(c)
+        case Right("text" | "string") if name.name == "_id" => idFieldSchemaDecoder(name).tryDecode(c)
+        case Right("text" | "string")                       => textFieldSchemaDecoder(name).tryDecode(c)
+        case Right("text[]" | "string[]")                   => textListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("int")                                   => intFieldSchemaDecoder(name).tryDecode(c)
+        case Right("int[]")                                 => intListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("long")                                  => longFieldSchemaDecoder(name).tryDecode(c)
+        case Right("long[]")                                => longListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("float")                                 => floatFieldSchemaDecoder(name).tryDecode(c)
+        case Right("float[]")                               => floatListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("double")                                => doubleFieldSchemaDecoder(name).tryDecode(c)
+        case Right("double[]")                              => doubleListFieldSchemaDecoder(name).tryDecode(c)
+        case Right("bool")                                  => booleanFieldSchemaDecoder(name).tryDecode(c)
+        case Right("geopoint")                              => geopointFieldSchemaDecoder(name).tryDecode(c)
+        case Right("date")                                  => dateFieldSchemaDecoder(name).tryDecode(c)
+        case Right("datetime")                              => dateTimeFieldSchemaDecoder(name).tryDecode(c)
+        case Right(other)                                   =>
           Left(DecodingFailure(s"Field type '$other' for field $name is not supported. Maybe try 'text'?", c.history))
       }
     )
@@ -425,6 +490,9 @@ object FieldSchema {
     import io.circe.derivation.Configuration
 
     given config: Configuration = Configuration.default.withDefaults
+
+    given idFieldSchemaEncoder: Encoder[IdFieldSchema] = deriveEncoder
+    given idfieldSchemaDecoder: Decoder[IdFieldSchema] = ConfiguredDecoder.derived[IdFieldSchema](using config)
 
     given textFieldSchemaEncoder: Encoder[TextFieldSchema] = deriveEncoder
     given textFieldSchemaDecoder: Decoder[TextFieldSchema] = ConfiguredDecoder.derived[TextFieldSchema](using config)
@@ -478,6 +546,7 @@ object FieldSchema {
     given dateTimeFieldSchemaEncoder: Encoder[DateTimeFieldSchema] = deriveEncoder
 
     given fieldSchemaEncoder: Encoder[FieldSchema[? <: Field]] = Encoder.instance {
+      case f: IdFieldSchema         => idFieldSchemaEncoder.apply(f).deepMerge(withType("id"))
       case f: IntFieldSchema        => intFieldSchemaEncoder.apply(f).deepMerge(withType("int"))
       case f: IntListFieldSchema    => intListFieldSchemaEncoder.apply(f).deepMerge(withType("int[]"))
       case f: LongFieldSchema       => longFieldSchemaEncoder.apply(f).deepMerge(withType("long"))
@@ -496,6 +565,7 @@ object FieldSchema {
 
     given fieldSchemaDecoder: Decoder[FieldSchema[? <: Field]] = Decoder.instance(c =>
       c.downField("type").as[String] match {
+        case Right("id")       => idfieldSchemaDecoder.tryDecode(c)
         case Right("int")      => intFieldSchemaDecoder.tryDecode(c)
         case Right("int[]")    => intListFieldSchemaDecoder.tryDecode(c)
         case Right("long")     => longFieldSchemaDecoder.tryDecode(c)

@@ -2,7 +2,7 @@ package ai.nixiesearch.api.query.sort
 
 import ai.nixiesearch.config.FieldSchema.DateFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.field.DateField
+import ai.nixiesearch.core.Field.DateField
 
 class DateFieldSort extends SortSuite[DateField, DateFieldSchema, Int] {
   override def field(name: FieldName, value: Int): DateField = DateField(name.name, value)

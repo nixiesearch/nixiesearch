@@ -3,12 +3,17 @@ package ai.nixiesearch.core.field
 import ai.nixiesearch.api.SearchRoute.SortPredicate.MissingValue
 import ai.nixiesearch.config.FieldSchema.IntFieldSchema
 import ai.nixiesearch.config.mapping.FieldName
-import ai.nixiesearch.core.Field
-import ai.nixiesearch.core.Field.NumericField
-import ai.nixiesearch.core.codec.FieldCodec
+import ai.nixiesearch.config.mapping.FieldName.StringName
+import ai.nixiesearch.core.DocumentDecoder.JsonError
+import ai.nixiesearch.core.Error.BackendError
+import ai.nixiesearch.core.{DocumentDecoder, Field}
+import ai.nixiesearch.core.Field.{IntField, NumericField}
+import ai.nixiesearch.core.codec.DocumentVisitor
+import ai.nixiesearch.core.codec.DocumentVisitor.StoredLuceneField.IntStoredField
 import ai.nixiesearch.core.search.DocumentGroup
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import io.circe.Decoder.Result
-import io.circe.{ACursor, Json}
+import io.circe.{ACursor, Decoder, Json}
 import org.apache.lucene.document.{
   NumericDocValuesField,
   SortedNumericDocValuesField,
@@ -19,12 +24,12 @@ import org.apache.lucene.document.Field.Store
 import org.apache.lucene.queries.function.docvalues.IntDocValues
 import org.apache.lucene.search.SortField
 
-case class IntField(name: String, value: Int) extends Field with NumericField
+import scala.util.{Failure, Success, Try}
 
-object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
+case class IntFieldCodec(spec: IntFieldSchema) extends FieldCodec[IntField] {
+  import FieldCodec.*
   override def writeLucene(
       field: IntField,
-      spec: IntFieldSchema,
       buffer: DocumentGroup
   ): Unit = {
     if (spec.filter) {
@@ -41,19 +46,23 @@ object IntField extends FieldCodec[IntField, IntFieldSchema, Int] {
     }
   }
 
-  override def readLucene(
-      name: String,
-      spec: IntFieldSchema,
-      value: Int
-  ): Either[FieldCodec.WireDecodingError, IntField] =
-    Right(IntField(name, value))
+  override def readLucene(doc: DocumentVisitor.StoredDocument): Either[WireDecodingError, List[IntField]] =
+    Right(
+      doc.fields
+        .collect { case f @ IntStoredField(name, value) if spec.name.matches(StringName(name)) => f }
+        .map(doubleField => IntField(doubleField.name, doubleField.value))
+    )
 
   override def encodeJson(field: IntField): Json = Json.fromInt(field.value)
 
-  def sort(field: FieldName, reverse: Boolean, missing: MissingValue): SortField = {
+  override def decodeJson(name: String, reader: JsonReader): Either[DocumentDecoder.JsonError, Option[IntField]] = {
+    decodeJsonImpl(name, reader.readInt).map(value => Some(IntField(name, value)))
+  }
+
+  def sort(field: FieldName, reverse: Boolean, missing: MissingValue): Either[BackendError, SortField] = {
     val sortField = new SortField(field.name + SORT_SUFFIX, SortField.Type.INT, reverse)
     sortField.setMissingValue(MissingValue.of(min = Int.MinValue, max = Int.MaxValue, reverse, missing))
-    sortField
+    Right(sortField)
   }
 
 }

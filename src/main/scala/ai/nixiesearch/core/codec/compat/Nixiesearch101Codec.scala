@@ -6,7 +6,7 @@ import ai.nixiesearch.config.mapping.SearchParams.{QuantStore, SemanticParams}
 import ai.nixiesearch.config.mapping.{FieldName, IndexConfig, IndexMapping}
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.core.field.TextField
+import ai.nixiesearch.core.Field.TextField
 import org.apache.lucene.backward_codecs.lucene912.Lucene912Codec
 import org.apache.lucene.backward_codecs.lucene101.Lucene101Codec
 import org.apache.lucene.codecs.lucene102.Lucene102HnswBinaryQuantizedVectorsFormat
