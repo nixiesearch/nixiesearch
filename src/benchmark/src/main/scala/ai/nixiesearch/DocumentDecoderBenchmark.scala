@@ -1,27 +1,15 @@
 package ai.nixiesearch
 
-import ai.nixiesearch.DocumentDecoderBenchmark.Task
 import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.SemanticSimpleParams
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName, SearchParams}
+import ai.nixiesearch.core.Field.{IdField, TextField}
 import ai.nixiesearch.core.{Document, DocumentDecoder}
-import io.circe.Decoder
-import io.circe.parser.decode
-import io.circe.parser.parse
-import org.openjdk.jmh.annotations.{
-  Benchmark,
-  BenchmarkMode,
-  Measurement,
-  Mode,
-  OutputTimeUnit,
-  Param,
-  Scope,
-  Setup,
-  State,
-  Warmup
-}
+import org.openjdk.jmh.annotations.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
+import io.circe.Decoder
+import io.circe.parser.*
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
@@ -48,20 +36,32 @@ class DocumentDecoderBenchmark {
     )
   )
 
-  var json: String                      = uninitialized
-  var decoder: JsonValueCodec[Document] = uninitialized
+  var json: String                                = uninitialized
+  given decoderJsoniter: JsonValueCodec[Document] = DocumentDecoder.codec(SCHEMA)
+  given decoderCirce: Decoder[Document]           = Decoder.instance(c =>
+    for {
+      id   <- c.downField("_id").as[String]
+      text <- c.downField("title").downField("text").as[String]
+      emb  <- c.downField("title").downField("embedding").as[Array[Float]]
+    } yield {
+      Document(IdField("_id", id), TextField("title", text, Some(emb)))
+    }
+  )
 
   @Setup
   def setup() = {
-    val emb = Array.fill(1024)(Random.nextFloat())
+    val emb = Array.fill(DIM.toInt)(Random.nextFloat())
     json = s"""{"_id": "1", "title": {"text": "aaa", "embedding": [${emb.mkString(",")}]}}"""
-    decoder = DocumentDecoder.codec(SCHEMA)
   }
 
   @Benchmark
-  def decodeEmbed() = {
-    readFromString[Document](json)(using decoder)
+  def decodeJsoniter() = {
+    readFromString[Document](json)
+  }
 
+  @Benchmark
+  def decodeCirce() = {
+    decode[Document](json).toTry.get
   }
 
 }
