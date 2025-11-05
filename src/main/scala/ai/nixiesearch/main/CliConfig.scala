@@ -4,7 +4,7 @@ import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs, TraceArgs}
 import ai.nixiesearch.main.CliConfig.IndexSourceArgs.*
 import ai.nixiesearch.main.CliConfig.{IndexSourceArgs, *}
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
@@ -108,9 +108,11 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
     addSubcommand(kafka)
   }
   object search extends Subcommand("search") with ConfigOption with LoglevelOption
+  object trace  extends Subcommand("trace")
   addSubcommand(standalone)
   addSubcommand(index)
   addSubcommand(search)
+  addSubcommand(trace)
   version("Nixiesearch v:" + Version().getOrElse("unknown"))
   banner("""Usage: nixiesearch <subcommand> <options>
            |Options:
@@ -136,12 +138,12 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 
 object CliConfig extends Logging {
   enum CliArgs(val mode: String) {
-    def config: URL
     def loglevel: Loglevel
 
     case StandaloneArgs(config: URL, loglevel: Loglevel = INFO)                     extends CliArgs("standalone")
     case IndexArgs(config: URL, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs("index")
     case SearchArgs(config: URL, loglevel: Loglevel = INFO)                         extends CliArgs("search")
+    case TraceArgs(loglevel: Loglevel = INFO)                                       extends CliArgs("trace")
   }
 
   enum IndexSourceArgs {
@@ -188,6 +190,8 @@ object CliConfig extends Logging {
     parser <- IO(CliConfig(args))
     _      <- IO(parser.verify())
     opts   <- parser.subcommand match {
+      case Some(parser.trace) =>
+        IO(TraceArgs())
       case Some(parser.standalone) =>
         for {
           config   <- parse(parser.standalone.config)

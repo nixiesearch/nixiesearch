@@ -111,6 +111,31 @@ buildInfoKeys ++= Seq[BuildInfoKey](
   BuildInfoKey.action("gpu") { GPU },
   BuildInfoKey.action("arch") { PLATFORM }
 )
+
+// Native Image Plugin Configuration
+enablePlugins(NativeImagePlugin)
+nativeImageVersion  := "25"
+nativeImageJvm      := "graalvm-oracle"
+nativeImageJvmIndex := "cs" // Use Coursier
+
+// Exclude native image keys from lint warnings (they're consumed by the plugin)
+Global / excludeLintKeys += nativeImageVersion
+Global / excludeLintKeys += nativeImageJvm
+Global / excludeLintKeys += nativeImageJvmIndex
+nativeImageOptions ++= Seq(
+  "--gc=G1",
+  "--enable-native-access=ALL-UNNAMED",
+  "-H:+SharedArenaSupport",
+  s"-H:ConfigurationFileDirectories=${baseDirectory.value}/native-image-configs",
+  "-H:+ReportExceptionStackTraces",
+  "-H:+PrintClassInitialization",
+  "--no-fallback",
+  "--verbose",
+  "-J-Xmx16g",
+  "--initialize-at-run-time=io.netty,org.apache.lucene,ai.onnxruntime,com.github.jnr"
+)
+nativeImageOutput := target.value / s"scala-${scalaVersion.value}" / "nixiesearch"
+
 docker / dockerfile := {
   val artifact: File     = assembly.value
   val artifactTargetPath = s"/app/${artifact.name}"
@@ -176,6 +201,58 @@ docker / buildOptions := BuildOptions(
   removeIntermediateContainers = BuildOptions.Remove.Always,
   pullBaseImage = BuildOptions.Pull.Always
 )
+
+// Native Docker Configuration
+import sbtdocker.Instructions
+import sbtdocker.DockerPlugin.autoImport.*
+
+lazy val dockerNative = taskKey[ImageId]("Build native Docker image")
+
+dockerNative := {
+  val nativeBinary = nativeImage.value // Build native binary first
+  val log          = streams.value.log
+  val stageDir     = target.value / "docker-native"
+
+  val dockerfileInstructions = new Dockerfile {
+    from(s"--platform=$PLATFORM frolvlad/alpine-glibc:latest")
+    add(nativeBinary, "/nixiesearch")
+    runRaw("apk add libstdc++")
+    env(
+      Map(
+        "LANG"     -> "en_US.UTF-8",
+        "LANGUAGE" -> "en_US:en",
+        "LC_ALL"   -> "en_US.UTF-8"
+      )
+    )
+    entryPoint("/nixiesearch")
+    cmd("--help")
+  }
+
+  val imageNamesSeq = Seq(
+    ImageName(s"nixiesearch/nixiesearch:${version.value}-native-$PLATFORM"),
+    ImageName(s"nixiesearch/nixiesearch:latest-native")
+  )
+
+  val buildOpts = BuildOptions(
+    removeIntermediateContainers = BuildOptions.Remove.Always,
+    pullBaseImage = BuildOptions.Pull.Always
+  )
+
+  val processor = sbtdocker.staging.DefaultDockerfileProcessor
+  val imageId   = sbtdocker.DockerBuild(
+    dockerfileInstructions,
+    processor,
+    imageNamesSeq,
+    buildOpts,
+    Map.empty[String, String],
+    stageDir,
+    "docker",
+    log
+  )
+
+  log.info(s"Successfully built native Docker image: ${imageNamesSeq.head}")
+  imageId
+}
 
 ThisBuild / assemblyMergeStrategy := {
   case PathList("module-info.class")                                          => MergeStrategy.discard
