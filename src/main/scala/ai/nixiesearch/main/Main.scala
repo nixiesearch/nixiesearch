@@ -29,7 +29,7 @@ object Main extends IOApp with Logging {
   }
 
   def init(args: List[String]): IO[ArgsEnv] = for {
-    _    <- info(s"Staring Nixiesearch: ${Logo.version}")
+    _    <- info(s"Starting Nixiesearch: ${Logo.version}")
     _    <- IO(System.setProperty("ai.djl.offline", "true")) // too slow
     args <- CliConfig.load(args)
     _    <- changeLogbackLevel(args.loglevel)

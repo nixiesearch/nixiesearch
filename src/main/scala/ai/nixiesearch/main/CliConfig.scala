@@ -138,7 +138,6 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
 
 object CliConfig extends Logging {
   enum CliArgs(val mode: String) {
-    // def config: URL
     def loglevel: Loglevel
 
     case StandaloneArgs(config: URL, loglevel: Loglevel = INFO)                     extends CliArgs("standalone")

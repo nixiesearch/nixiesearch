@@ -125,8 +125,7 @@ Global / excludeLintKeys += nativeImageJvmIndex
 nativeImageOptions ++= Seq(
   "--gc=G1",
   "--enable-native-access=ALL-UNNAMED",
-  "--add-modules=jdk.incubator.vector",
-  "-H:+VectorAPISupport",
+  "-H:+SharedArenaSupport",
   s"-H:ConfigurationFileDirectories=${baseDirectory.value}/native-image-configs",
   "-H:+ReportExceptionStackTraces",
   "-H:+PrintClassInitialization",
