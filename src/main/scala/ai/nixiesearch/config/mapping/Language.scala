@@ -51,7 +51,7 @@ import org.apache.lucene.analysis.uk.UkrainianMorfologikAnalyzer
 
 enum Language(val code: String, val name: String, makeAnalyzer: => Analyzer) extends Logging {
   lazy val analyzer = {
-    logger.debug(s"created analyzer for language '$code'")
+    logger.debug(s"Created analyzer for language '$code'")
     makeAnalyzer
   }
   case Generic            extends Language("default", "default", new StandardAnalyzer())

@@ -33,6 +33,7 @@ object StandaloneMode extends Mode[StandaloneArgs] {
 
   def api(config: Config): Resource[IO, Nixiesearch] = for {
     _ <- Resource.eval(info("Starting in 'standalone' mode with indexer+searcher colocated within a single process"))
+
     metrics <- Resource.pure(Metrics())
     models  <- Models.create(config.inference, config.core.cache, metrics)
     indexes <- config.schema.values.toList

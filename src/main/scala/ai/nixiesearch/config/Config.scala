@@ -40,9 +40,9 @@ object Config extends Logging {
           case _         =>
             logger.info("No index schemas found in the config file.")
             logger.info(
-              "It's OK if you use Nixiesearch as an inference endpoint, but not OK if you plan to index documents"
+              "This is acceptable if using Nixiesearch as an inference endpoint, but index schemas are required for document indexing."
             )
-            logger.info("You have to first define an index schema before indexing documents.")
+            logger.info("An index schema must be defined before indexing documents.")
             Right(Map.empty)
         }
         index <- indexJson.toList.traverse { case (name, json) =>
@@ -75,7 +75,7 @@ object Config extends Logging {
       .toList
     val inferenceRefs = config.inference.embedding.keySet
     indexRefs.filterNot { case (name, ref) => inferenceRefs.contains(ref) }.map { case (name, ref) =>
-      s"field $name references a model $ref,  which is not defined in inference config"
+      s"Field $name references model $ref, which is not defined in the inference config."
     }
   }
 

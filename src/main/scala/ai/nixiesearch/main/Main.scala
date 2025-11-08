@@ -48,15 +48,15 @@ object Main extends IOApp with Logging {
       case Loglevel.WARN  => Level.toLevel("WARN", null)
       case Loglevel.ERROR => Level.toLevel("ERROR", null)
     }
-    logger.warn(s"Setting loglevel to $level")
+    logger.warn(s"Setting log level to $level")
     logger.setLevel(newLevel)
   }
 
   def gpuChecks(): IO[Unit] = for {
     _ <- IO(GPUUtils.isGPUBuild()).flatMap {
-      case false => info("Nixiesearch CPU inference build. GPU inference not supported")
+      case false => info("Nixiesearch CPU inference build. GPU inference not supported.")
       case true  =>
-        info("ONNX CUDA EP Found: GPU Build") *> Stream
+        info("ONNX CUDA EP found: GPU build.") *> Stream
           .evalSeq(GPUUtils.listDevices())
           .evalMap(device => info(s"GPU ${device.id}: ${device.model}"))
           .compile

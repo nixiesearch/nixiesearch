@@ -3,7 +3,7 @@ package ai.nixiesearch.core
 import ai.nixiesearch.config.mapping.IndexMapping
 import ai.nixiesearch.core.DocumentDecoder.JsonError
 import cats.effect.IO
-import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec, readFromString}
+import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec, readFromByteBuffer, readFromString}
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import de.lhns.fs2.compress.{Bzip2Decompressor, GzipDecompressor, ZstdDecompressor}
 import fs2.{Pipe, Pull, Stream}
@@ -18,6 +18,7 @@ import org.typelevel.jawn.AsyncParser.{Mode, UnwrapArray, ValueStream}
 import java.io.{File, FileInputStream, FileOutputStream, InputStream}
 import java.nio.ByteBuffer
 import java.nio.file.Files
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.Try
 
@@ -38,7 +39,7 @@ object JsonDocumentStream extends Logging {
         .peek1
         .flatMap {
           case Some((byte, tail)) if byte == '['.toByte =>
-            logger.debug("Payload starts with '[', assuming json-array format")
+            logger.debug("Payload starts with '[', assuming JSON array format")
             tail.through(parseJSONArr(documentListCodec)).pull.echo
           case Some((byte, tail)) if byte == '{'.toByte =>
             tail.through(parseNDJSON(documentCodec)).pull.echo
@@ -75,6 +76,7 @@ object JsonDocumentStream extends Logging {
       .through(fs2.text.lines)
       .filter(_.nonEmpty)
       .parEvalMap(8)(str => decode(str)(using decoder))
+
 
   private def parseJSONArr(decoder: JsonValueCodec[List[Document]]): Pipe[IO, Byte, Document] = bytes =>
     bytes

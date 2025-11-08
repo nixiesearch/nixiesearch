@@ -97,9 +97,9 @@ object InferenceConfig {
             case _ => PromptConfig()
           }
         case LocalModelHandle(_) =>
-          logger.warn("Loading embedding model from disk, so we cannot guess doc/query prompts based on model name")
+          logger.warn("Loading embedding model from disk, cannot guess doc/query prompts based on the model name.")
           logger.warn(
-            "Using empty prompt - please set them explicitly in the config inference.embedding.<model>.prompt"
+            "Using empty prompts. Please set them explicitly in the config at inference.embedding.<model>.prompt."
           )
           PromptConfig()
       }
@@ -142,7 +142,7 @@ object InferenceConfig {
             case Left(err)                                                               => Left(err)
             case Right(Some(model)) if OpenAIEmbedModel.SUPPORTED_MODELS.contains(model) =>
               logger.debug(
-                s"model $model looks like an OpenAI model (please override with provider: smth if detection went wrong"
+                s"Model $model appears to be an OpenAI model (override with 'provider: <name>' if detection is incorrect)"
               )
               openAIEmbeddingConfigDecoder.tryDecode(c)
             case Right(_) => onnxEmbeddingConfigDecoder.tryDecode(c)
@@ -251,8 +251,8 @@ object InferenceConfig {
             RankPromptConfig() // Default: no prompt formatting
           }
         case LocalModelHandle(_) =>
-          logger.warn("Loading ranker model from disk, cannot guess prompt template")
-          logger.warn("Using empty prompt - please set explicitly in config inference.ranker.<model>.prompt")
+          logger.warn("Loading ranker model from disk, cannot guess prompt template.")
+          logger.warn("Using empty prompt. Please set it explicitly in the config at inference.ranker.<model>.prompt.")
           RankPromptConfig()
       }
     }

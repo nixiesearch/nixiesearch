@@ -65,12 +65,12 @@ object KafkaSource {
       config.options.getOrElse(Map.empty).foreach { case (key, value) => props.setProperty(key, value) }
       for {
         client     <- IO(new KafkaConsumer(props, new ByteArrayDeserializer(), new ByteArrayDeserializer()))
-        _          <- IO(logger.info(s"created kafka consumer, broker=${config.brokers} group=${config.groupId}"))
-        _          <- IO.whenA(config.options.nonEmpty)(info(s"kafka conf overrides: ${config.options}"))
+        _          <- IO(logger.info(s"Created Kafka consumer: broker=${config.brokers} group=${config.groupId}"))
+        _          <- IO.whenA(config.options.nonEmpty)(info(s"Kafka conf overrides: ${config.options}"))
         partitions <- client.partitions(config.topic)
-        _          <- info(s"discovered partitions: $partitions")
+        _          <- info(s"Discovered partitions: $partitions")
         _          <- IO(client.subscribe(config.topic, config.offset))
-        _          <- IO(logger.info(s"subscribed to topic ${config.topic}"))
+        _          <- IO(logger.info(s"Subscribed to topic ${config.topic}"))
       } yield {
         new Consumer(client)
       }
@@ -82,25 +82,25 @@ object KafkaSource {
           Collections.singleton(topic),
           new ConsumerRebalanceListener {
             override def onPartitionsRevoked(partitions: java.util.Collection[TopicPartition]): Unit = {
-              logger.info(s"partitions $partitions were revoked")
+              logger.info(s"Partitions revoked: $partitions")
             }
 
             override def onPartitionsAssigned(partitions: java.util.Collection[TopicPartition]): Unit = {
-              logger.info(s"assigned partitions $partitions")
+              logger.info(s"Assigned partitions: $partitions")
               offset match {
                 case None =>
-                  logger.info(s"using committed offsets for topic $topic")
+                  logger.info(s"Using committed offsets for topic $topic")
                 case Some(SourceOffset.Latest) =>
-                  logger.info(s"using latest offsets for topic $topic")
+                  logger.info(s"Using latest offsets for topic $topic")
                   client.seek2(client.endOffsets2(partitions.asScala.toList))
                 case Some(SourceOffset.Earliest) =>
-                  logger.info(s"using earliest offsets for topic $topic")
+                  logger.info(s"Using earliest offsets for topic $topic")
                   client.seek2(client.beginningOffsets2(partitions.asScala.toList))
                 case Some(SourceOffset.ExactTimestamp(ts)) =>
-                  logger.info(s"using offset for ts=${ts} for topic $topic")
+                  logger.info(s"Using offset for timestamp $ts for topic $topic")
                   client.seek2(client.offsetsForTimes2(partitions.asScala.toList, ts))
                 case Some(SourceOffset.RelativeDuration(duration)) =>
-                  logger.info(s"using offset for duration=$duration for topic $topic")
+                  logger.info(s"Using offset for duration $duration for topic $topic")
                   val offset = Instant.now().minus(duration.toMillis, ChronoUnit.MILLIS).toEpochMilli
                   client.seek2(client.offsetsForTimes2(partitions.asScala.toList, offset))
               }
@@ -134,7 +134,7 @@ object KafkaSource {
       def seek2(offsets: Map[TopicPartition, Long]) = offsets.foreach {
         case (tp, offset) => {
           client.seek(tp, offset)
-          logger.info(s"seek ${tp.topic()}:${tp.partition()}:$offset")
+          logger.info(s"Seeking to offset: ${tp.topic()}:${tp.partition()}:$offset")
         }
       }
 
@@ -143,7 +143,7 @@ object KafkaSource {
 
       def poll2(freq: Duration): IO[Messages] = for {
         messages <- IO.blocking(client.poll(freq))
-        _        <- debug(s"polled ${messages.count()} messages from kafka")
+        _        <- debug(s"Polled ${messages.count()} messages from Kafka")
       } yield {
         val events  = messages.asScala.map(_.value()).toList
         val offsets = messages.asScala
@@ -167,9 +167,9 @@ object KafkaSource {
               ) = {
                 Option(exception) match {
                   case Some(error) =>
-                    logger.error(s"error committing to kafka: ${error.getMessage}", error)
+                    logger.error(s"Failed to commit to Kafka: ${error.getMessage}", error)
                   case None =>
-                    logger.debug(s"commit successful")
+                    logger.debug(s"Commit successful")
                 }
               }
             }

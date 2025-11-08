@@ -77,7 +77,7 @@ case class TextFieldCodec(spec: TextFieldSchema) extends FieldCodec[TextField] {
             case Distance.Dot    => VectorSimilarityFunction.DOT_PRODUCT
           }
           buffer.parent.add(new KnnFloatVectorField(field.name, embed, similarityFunction))
-        case None => logger.warn(s"field ${field.name} should have an embedding, but it has not - a bug?")
+        case None => logger.warn(s"Field ${field.name} should have an embedding but does not - this may indicate a bug.")
       }
     )
 

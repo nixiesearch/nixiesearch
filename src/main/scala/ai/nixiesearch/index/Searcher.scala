@@ -280,7 +280,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
 
   def close(): IO[Unit] = readersRef.get.flatMap {
     case Some(readers) => readers.close() *> info(s"closed index reader for index ${index.name.value}")
-    case None          => info(s"index '${index.name.value} does not have a reader open, there's nothing to close'")
+    case None          => info(s"Index '${index.name.value}' does not have a reader open, there is nothing to close.")
   }
 
 }

@@ -49,7 +49,7 @@ object GenerativeModel {
       truncated <- Stream(tokenized.take(metadata.n_ctx_train))
       _         <- Stream.eval(
         IO.whenA(truncated.size < tokenized.size)(
-          warn(s"Trimmed ${tokenized.size} -> ${metadata.n_ctx_train} due to too long context")
+          warn(s"Trimmed ${tokenized.size} -> ${metadata.n_ctx_train} tokens due to context being too long.")
         )
       )
       request <- Stream(

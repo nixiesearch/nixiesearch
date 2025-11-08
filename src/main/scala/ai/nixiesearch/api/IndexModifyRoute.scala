@@ -34,7 +34,7 @@ case class IndexModifyRoute(indexer: Indexer, maybeSearcher: Option[Searcher] = 
       deprecated() *> delete(docid)
   }
 
-  def deprecated(): IO[Unit] = warn("You're using deprecated API endpoint")
+  def deprecated(): IO[Unit] = warn("You are using a deprecated API endpoint.")
 
   def index(request: Request[IO]): IO[Response[IO]] = for {
     _        <- info(s"PUT /${indexer.index.name.value}/_index")
@@ -86,7 +86,7 @@ case class IndexModifyRoute(indexer: Indexer, maybeSearcher: Option[Searcher] = 
     _     <- indexer.index.sync()
     _     <- maybeSearcher match {
       case None           => IO.none
-      case Some(searcher) => info("we're in standalone mode, also doing sync for searcher") *> searcher.sync()
+      case Some(searcher) => info("In standalone mode, synchronizing searcher as well.") *> searcher.sync()
     }
     end      <- IO(System.nanoTime())
     response <- Ok(EmptyResponse("ok", (end - start) / 1000000000.0f))

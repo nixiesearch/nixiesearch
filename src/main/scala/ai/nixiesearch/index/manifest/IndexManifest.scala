@@ -29,9 +29,9 @@ case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: 
         }
       }
       val ops = result.flatten
-      logger.debug(s"source files=$files")
-      logger.debug(s"dest files=${target.map(_.files)}")
-      logger.debug(s"manifest diff: ${ops}")
+      logger.debug(s"Source files = $files")
+      logger.debug(s"Destination files = ${target.map(_.files)}")
+      logger.debug(s"Manifest diff: ${ops}.")
       ops
     }
   }

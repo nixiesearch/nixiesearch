@@ -31,6 +31,7 @@ object SearchMode extends Mode[SearchArgs] {
     config <- Resource.eval(Config.load(args.config, env))
     _      <- AnalyticsReporter.create(config, args.mode)
 
+
     metrics   <- Resource.pure(Metrics())
     models    <- Models.create(config.inference, config.core.cache, metrics)
     searchers <- config.schema.values.toList

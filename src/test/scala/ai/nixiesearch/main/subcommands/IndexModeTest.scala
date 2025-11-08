@@ -39,7 +39,8 @@ class IndexModeTest extends AnyFlatSpec with Matchers {
         ),
         cacheConfig = CacheConfig(),
         index = "movies",
-        inference = TestInferenceConfig.empty()
+        inference = TestInferenceConfig.empty(),
+        forceMerge = None
       )
       .unsafeRunSync()
   }

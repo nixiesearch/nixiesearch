@@ -136,7 +136,7 @@ object S3Client {
     }
 
     override def onStream(publisher: SdkPublisher[ByteBuffer]): Unit = {
-      logger.debug("subscribed to S3 GetObject data stream")
+      logger.debug("Subscribed to S3 GetObject data stream")
       val stream = fromPublisher[IO, ByteBuffer](publisher, 1).flatMap(bb => Stream.chunk(Chunk.byteBuffer(bb)))
       cf.complete(stream)
     }
