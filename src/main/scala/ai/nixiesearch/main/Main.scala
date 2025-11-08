@@ -2,9 +2,9 @@ package ai.nixiesearch.main
 
 import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
-import ai.nixiesearch.main.CliConfig.Loglevel
-import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode}
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs, TraceArgs}
+import ai.nixiesearch.main.CliConfig.{CliArgs, Loglevel}
+import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode, TraceMode}
 import ai.nixiesearch.util.{EnvVars, GPUUtils}
 import ai.nixiesearch.util.analytics.AnalyticsReporter
 import cats.effect.std.Env
@@ -14,25 +14,29 @@ import org.slf4j.LoggerFactory
 import fs2.Stream
 
 object Main extends IOApp with Logging {
+  case class ArgsEnv(args: CliArgs, env: EnvVars)
+
   override def run(args: List[String]): IO[ExitCode] = for {
-    _      <- info(s"Starting Nixiesearch: ${Logo.version}")
-    _      <- IO(System.setProperty("ai.djl.offline", "true")) // too slow
-    opts   <- CliConfig.load(args)
-    _      <- changeLogbackLevel(opts.loglevel)
-    env    <- EnvVars.load()
-    config <- Config.load(opts.config, env)
-    _      <- gpuChecks(config)
-    _      <- AnalyticsReporter
-      .create(config, opts.mode)
-      .use(_ =>
-        opts match {
-          case s: StandaloneArgs => StandaloneMode.run(s, config)
-          case s: SearchArgs     => SearchMode.run(s, config)
-          case s: IndexArgs      => IndexMode.run(s, config)
-        }
-      )
+    argsEnv <- init(args)
+    _       <- argsEnv.args match {
+      case s: StandaloneArgs => StandaloneMode.run(s, argsEnv.env)
+      case s: SearchArgs     => SearchMode.run(s, argsEnv.env)
+      case s: IndexArgs      => IndexMode.run(s, argsEnv.env)
+      case s: TraceArgs      => TraceMode.run(s, argsEnv.env)
+    }
   } yield {
     ExitCode.Success
+  }
+
+  def init(args: List[String]): IO[ArgsEnv] = for {
+    _    <- info(s"Starting Nixiesearch: ${Logo.version}")
+    _    <- IO(System.setProperty("ai.djl.offline", "true")) // too slow
+    args <- CliConfig.load(args)
+    _    <- changeLogbackLevel(args.loglevel)
+    env  <- EnvVars.load()
+    _    <- gpuChecks()
+  } yield {
+    ArgsEnv(args, env)
   }
 
   def changeLogbackLevel(level: Loglevel): IO[Unit] = IO {
@@ -48,7 +52,7 @@ object Main extends IOApp with Logging {
     logger.setLevel(newLevel)
   }
 
-  def gpuChecks(config: Config): IO[Unit] = for {
+  def gpuChecks(): IO[Unit] = for {
     _ <- IO(GPUUtils.isGPUBuild()).flatMap {
       case false => info("Nixiesearch CPU inference build. GPU inference not supported.")
       case true  =>

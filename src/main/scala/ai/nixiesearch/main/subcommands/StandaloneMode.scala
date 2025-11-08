@@ -6,22 +6,34 @@ import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
-import ai.nixiesearch.index.sync.Index
+import ai.nixiesearch.index.sync.{Index, LocalIndex}
 import ai.nixiesearch.main.CliConfig.CliArgs.StandaloneArgs
 import ai.nixiesearch.main.Logo
 import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
+import ai.nixiesearch.util.EnvVars
+import ai.nixiesearch.util.analytics.AnalyticsReporter
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.http4s.server.Server
 
-object StandaloneMode extends Logging {
-  def run(args: StandaloneArgs, config: Config): IO[Unit] = {
-    api(args, config).use(_ => IO.never)
-  }
+object StandaloneMode extends Mode[StandaloneArgs] {
+  case class Nixiesearch(
+      server: Server,
+      models: Models,
+      indexes: List[LocalIndex],
+      indexers: List[Indexer],
+      searchers: List[Searcher]
+  )
 
-  def api(args: StandaloneArgs, config: Config): Resource[IO, Server] = for {
-    _ <- Resource.eval(info("Starting in 'standalone' mode with indexer and searcher colocated within a single process."))
+  def run(args: StandaloneArgs, env: EnvVars): IO[Unit] = for {
+    config <- Config.load(args.config, env)
+    _      <- AnalyticsReporter.create(config, args.mode).use(_ => api(config).use(_ => IO.never))
+  } yield {}
+
+  def api(config: Config): Resource[IO, Nixiesearch] = for {
+    _ <- Resource.eval(info("Starting in 'standalone' mode with indexer+searcher colocated within a single process"))
+
     metrics <- Resource.pure(Metrics())
     models  <- Models.create(config.inference, config.core.cache, metrics)
     indexes <- config.schema.values.toList
@@ -55,6 +67,6 @@ object StandaloneMode extends Logging {
     server <- API.start(routes, config.core.host, config.core.port)
     _      <- Resource.eval(Logo.lines.map(line => info(line)).sequence)
   } yield {
-    server
+    Nixiesearch(server = server, models = models, indexes = indexes, indexers = indexers, searchers = searchers)
   }
 }
