@@ -19,7 +19,7 @@ case class PerFieldAnalyzer(defaultAnalyzer: Analyzer, mapping: IndexMapping)
         }
       case Some(other) =>
         logger.warn(
-          s"Called getWrappedAnalyzer for a non-text field $fieldName (which is $other), this is definitely a bug"
+          s"getWrappedAnalyzer called for non-text field $fieldName (which is $other) - this indicates a bug."
         )
         defaultAnalyzer
       case None => defaultAnalyzer

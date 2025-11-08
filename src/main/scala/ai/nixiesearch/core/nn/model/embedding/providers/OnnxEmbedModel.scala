@@ -221,9 +221,9 @@ object OnnxEmbedModel extends Logging {
           case _                                                               => MeanPooling
         }
       case LocalModelHandle(dir) =>
-        logger.warn("When using local non-HF model, we cannot guess the embedding pooling type")
+        logger.warn("When using a local non-HF model, cannot guess the embedding pooling type.")
         logger.warn(
-          "Using 'mean' by default, but if you're using GTE/Snowflake embeddings, you need to set inference.embedding.<model>.pooling=cls"
+          "Using 'mean' by default, but if you are using GTE/Snowflake embeddings, you need to set inference.embedding.<model>.pooling=cls."
         )
         MeanPooling
     }

@@ -15,6 +15,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
 import org.apache.commons.io.IOUtils
 
 import java.io.{ByteArrayOutputStream, FileInputStream}
+import java.nio.ByteBuffer
 
 class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
   val doc      = """{"_id":"1","text":"foo"}"""
@@ -26,7 +27,7 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
       StringName("text") -> TextFieldSchema(name = StringName("text"))
     )
   )
-
+  
   it should "decode raw json" in {
     val result = Stream(doc.getBytes()*).through(JsonDocumentStream.parse(mapping)).compile.toList.unsafeRunSync()
     result shouldBe List(expected)

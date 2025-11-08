@@ -35,7 +35,7 @@ object MemoryCachedEmbedModel extends Logging {
 
   def createUnsafe(underlying: EmbedModel, config: MemoryCacheConfig) = {
     val cache = Scaffeine().maximumSize(config.maxSize).build[Long, Array[Float]]()
-    logger.info(s"Heap-based embedding cache enabled for model '${underlying.model}, max size = ${config.maxSize}'")
+    logger.info(s"Heap-based embedding cache enabled for model '${underlying.model}', max size = ${config.maxSize}.")
     MemoryCachedEmbedModel(underlying, cache, config)
   }
 }

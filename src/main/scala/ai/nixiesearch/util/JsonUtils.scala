@@ -10,7 +10,6 @@ object JsonUtils {
   inline def forbidExtraFields[T](json: Json)(using m: Mirror.ProductOf[T]): Decoder.Result[Unit] = {
     val labels = constValueTuple[m.MirroredElemLabels].toList
     val name   = constValue[m.MirroredLabel]
-    print(labels)
     json.asObject match {
       case Some(value) =>
         value.keys.find(jsonKey => !labels.contains(jsonKey)) match {

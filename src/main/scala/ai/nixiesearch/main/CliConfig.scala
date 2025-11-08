@@ -77,6 +77,12 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
           default = None,
           descr = "custom S3 endpoint, optional, default=None"
         )
+      val forceMerge = opt[Int](
+        name = "force_merge",
+        required = false,
+        default = None,
+        descr = "Run force-merge after indexing"
+      )
     }
     object kafka extends Subcommand("kafka") with ConfigOption with LoglevelOption {
       val index   = opt[String](name = "index", descr = "to which index to write to")
@@ -146,8 +152,13 @@ object CliConfig extends Logging {
 
   enum IndexSourceArgs {
     case ApiIndexSourceArgs(host: Hostname = Hostname("0.0.0.0"), port: Port = Port(8080)) extends IndexSourceArgs
-    case FileIndexSourceArgs(url: URL, index: String, recursive: Boolean = false, endpoint: Option[String] = None)
-        extends IndexSourceArgs
+    case FileIndexSourceArgs(
+        url: URL,
+        index: String,
+        recursive: Boolean = false,
+        endpoint: Option[String] = None,
+        forceMerge: Option[Int] = None
+    ) extends IndexSourceArgs
     case KafkaIndexSourceArgs(
         index: String,
         brokers: List[String],
@@ -212,17 +223,18 @@ object CliConfig extends Logging {
             }
           case Some(parser.index.file) =>
             for {
-              config    <- parse(parser.index.file.config)
-              url       <- parse(parser.index.file.url)
-              index     <- parse(parser.index.file.index)
-              recursive <- parseOption(parser.index.file.recursive)
-              endpoint  <- parseOption(parser.index.file.endpoint)
-              loglevel  <- parseOption(parser.index.file.loglevel)
+              config     <- parse(parser.index.file.config)
+              url        <- parse(parser.index.file.url)
+              index      <- parse(parser.index.file.index)
+              recursive  <- parseOption(parser.index.file.recursive)
+              endpoint   <- parseOption(parser.index.file.endpoint)
+              loglevel   <- parseOption(parser.index.file.loglevel)
+              forceMerge <- parseOption(parser.index.file.forceMerge)
             } yield {
               IndexArgs(
                 config = config,
                 loglevel = loglevel.getOrElse(INFO),
-                source = FileIndexSourceArgs(url, index, recursive.getOrElse(false), endpoint)
+                source = FileIndexSourceArgs(url, index, recursive.getOrElse(false), endpoint, forceMerge)
               )
             }
           case Some(parser.index.kafka) =>
@@ -253,7 +265,7 @@ object CliConfig extends Logging {
             IO.raiseError(new Exception(s"Subcommand $other is not supported. Try indexer api."))
           case None =>
             IO.raiseError(
-              new Exception("No command given. If unsure, try 'nixiesearch standalone' or `nixiesearch --help'")
+              new Exception("No command given. If unsure, try 'nixiesearch standalone' or 'nixiesearch --help'.")
             )
 
         }
@@ -266,7 +278,7 @@ object CliConfig extends Logging {
         }
       case Some(other) =>
         IO.raiseError(new Exception(s"Subcommand $other is not supported. Try standalone/search/index."))
-      case None => IO.raiseError(new Exception("No command given. If unsure, try 'nixiesearch standalone'"))
+      case None => IO.raiseError(new Exception("No command given. If unsure, try 'nixiesearch standalone'."))
     }
   } yield {
     opts

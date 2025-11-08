@@ -11,7 +11,7 @@ class Nixiesearch103Codec(parent: Codec, mapping: IndexMapping)
 
   def this() = {
     this(new Lucene103Codec(), null)
-    logger.warn("empty codec constructor called, this should not happen!")
+    logger.warn("Empty codec constructor called - this should not occur.")
   }
 
 }

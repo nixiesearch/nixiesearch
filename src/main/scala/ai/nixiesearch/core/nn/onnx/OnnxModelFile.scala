@@ -35,9 +35,9 @@ object OnnxModelFile extends Logging {
           case Nil           => IO.raiseError(UserError(s"no ONNX files found in the repo. files=$files"))
           case base :: other =>
             if (other.nonEmpty) {
-              logger.warn(s"multiple ONNX files found in the repo: choosing $base (and ignoring $other)")
+              logger.warn(s"Multiple ONNX files found in repository: choosing $base (ignoring $other).")
               logger.warn(
-                "If you want to use another ONNX file, please set inference.embedding.<name>.file with desired file name"
+                "To use a different ONNX file, set inference.embedding.<name>.file to the desired filename."
               )
             }
             val dataFile = s"${base}_data"

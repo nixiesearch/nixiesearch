@@ -1,26 +1,11 @@
 package ai.nixiesearch
 
-import ai.nixiesearch.DocumentDecoderBenchmark.Task
 import ai.nixiesearch.config.FieldSchema.{IdFieldSchema, IntFieldSchema, TextFieldSchema}
 import ai.nixiesearch.config.mapping.FieldName.StringName
 import ai.nixiesearch.config.mapping.SearchParams.SemanticSimpleParams
 import ai.nixiesearch.config.mapping.{FieldName, IndexMapping, IndexName, SearchParams}
 import ai.nixiesearch.core.{Document, DocumentDecoder}
-import io.circe.Decoder
-import io.circe.parser.decode
-import io.circe.parser.parse
-import org.openjdk.jmh.annotations.{
-  Benchmark,
-  BenchmarkMode,
-  Measurement,
-  Mode,
-  OutputTimeUnit,
-  Param,
-  Scope,
-  Setup,
-  State,
-  Warmup
-}
+import org.openjdk.jmh.annotations.*
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 
 import java.util.concurrent.TimeUnit

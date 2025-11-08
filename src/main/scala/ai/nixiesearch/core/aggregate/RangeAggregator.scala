@@ -45,7 +45,7 @@ object RangeAggregator extends Logging {
   ): IO[RangeAggregationResult] = IO {
     val ranges = request.ranges.map {
       case AggRange(None, None) =>
-        logger.warn(s"got range aggregation $request with no from-to values, this should not happen")
+        logger.warn(s"Received range aggregation $request with no from/to values - this should not occur.")
         new LongRange(s"*-*", Long.MinValue, false, Long.MaxValue, false)
       case AggRange(Some(from), None) =>
         new LongRange(s"${from.value.toLong}-*", from.value.toLong, from.inclusive, Long.MaxValue, false)
@@ -77,7 +77,7 @@ object RangeAggregator extends Logging {
     val ranges = request.ranges.map {
       case AggRange(None, None) =>
         logger.warn(
-          s"got range aggregation $request with no from-to values, this should not happen (as parser rejects it)"
+          s"Received range aggregation $request with no from/to values - this should not occur (parser should reject this)."
         )
         new DoubleRange(s"*-*", Double.MinValue, true, Double.MaxValue, false)
       case AggRange(Some(from), None) =>

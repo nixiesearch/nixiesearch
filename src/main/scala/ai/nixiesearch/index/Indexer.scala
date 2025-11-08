@@ -105,7 +105,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
       mapping: Option[S],
       buffer: DocumentGroup
   ): Unit = mapping match {
-    case None          => logger.warn(s"field '${field.name}' is not defined in index mapping for ${index.name.value}")
+    case None          => logger.warn(s"Field '${field.name}' is not defined in the index mapping for '${index.name.value}'.")
     case Some(mapping) => mapping.codec.writeLucene(field, buffer)
   }
 
@@ -209,10 +209,10 @@ object Indexer extends Logging {
             .setRAMBufferSizeMB(mapping.config.indexer.ram_buffer_size.mb.toDouble)
           mapping.config.indexer.merge_policy match {
             case None =>
-              logger.debug("using default Lucene merge policy")
+              logger.debug("Using default Lucene merge policy")
               config
             case Some(mergePolicy) =>
-              logger.debug(s"using merge policy $mergePolicy")
+              logger.debug(s"Using merge policy $mergePolicy")
               config.setMergePolicy(mergePolicy.toLuceneMergePolicy())
           }
 

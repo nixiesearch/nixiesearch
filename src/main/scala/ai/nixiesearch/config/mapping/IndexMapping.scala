@@ -186,8 +186,8 @@ object IndexMapping extends Logging {
         val id             = StringName("_id")
         val extendedFields = fieldsMap.get(id) match {
           case Some(idMapping) =>
-            logger.warn("_id field is internal field and it's mapping cannot be changed")
-            logger.warn("_id field mapping ignored. Default mapping: search=false facet=false sort=false filter=true")
+            logger.warn("The _id field is an internal field and its mapping cannot be changed.")
+            logger.warn("The _id field mapping is ignored. Default mapping: search=false, facet=false, sort=false, filter=true.")
             fieldsMap.updated(id, IdFieldSchema(id))
           case None =>
             fieldsMap.updated(id, IdFieldSchema(id))
