@@ -69,6 +69,13 @@ object IndexMode extends Mode[IndexArgs] {
       models  <- Models.create(inference, cacheConfig, metrics)
       index   <- Index.forIndexing(indexMapping, models)
       indexer <- Indexer.open(index, metrics)
+      _       <- PeriodicEvalStream.run(
+        every = index.mapping.config.indexer.flush.interval,
+        action = indexer.flush().flatMap {
+          case true  => index.sync()
+          case false => IO.unit
+        }
+      )
     } yield {
       indexer
     }
@@ -79,7 +86,7 @@ object IndexMode extends Mode[IndexArgs] {
           .stream(indexer.index.mapping)
           .chunkN(1024)
           .through(PrintProgress.tapChunk("indexed docs"))
-          .evalMap(batch => indexer.addDocuments(batch.toList) *> indexer.flush())
+          .evalMap(batch => indexer.addDocuments(batch.toList))
           .compile
           .drain
         _ <- indexer.flush()
