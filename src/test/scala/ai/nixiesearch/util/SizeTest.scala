@@ -12,12 +12,22 @@ class SizeTest extends AnyFlatSpec with Matchers {
     decode[SizeWrap]("""{"value": "123"}""") shouldBe Right(SizeWrap(Size(123, "123")))
   }
 
+  it should "parse exponents" in {
+
+    decode[SizeWrap]("""{"value": "9.2E18 mb"}""") shouldBe Right(SizeWrap(Size(9223372036854775807L, "9.2E18 mb")))
+    decode[SizeWrap]("""{"value": "9.2e18 mb"}""") shouldBe Right(SizeWrap(Size(9223372036854775807L, "9.2e18 mb")))
+  }
+
   it should "parse space separated gigs" in {
     decode[SizeWrap]("""{"value": "123 GB"}""") shouldBe Right(SizeWrap(Size(123 * 1024 * 1024 * 1024L, "123 GB")))
   }
 
   it should "parse no-space kbs" in {
     decode[SizeWrap]("""{"value": "123kb"}""") shouldBe Right(SizeWrap(Size(123 * 1024L, "123kb")))
+  }
+
+  it should "parse no-space ks" in {
+    decode[SizeWrap]("""{"value": "123k"}""") shouldBe Right(SizeWrap(Size(123 * 1024L, "123k")))
   }
 
   it should "parse no-space kbs with dots" in {
