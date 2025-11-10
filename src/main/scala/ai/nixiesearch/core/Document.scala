@@ -30,7 +30,10 @@ object Document {
 
   def encoderFor(mapping: IndexMapping): Encoder[Document] =
     Encoder.instance(doc => {
-      val fields = doc.fields.flatMap(field => encodeField(mapping, field).map(v => field.name -> v))
+      val fields = doc.fields.flatMap {
+        case FloatField("_score", score) => Some("_score" -> Json.fromDoubleOrNull(score))
+        case field                       => encodeField(mapping, field).map(v => field.name -> v)
+      }
       Json.fromJsonObject(JsonObject.fromIterable(fields))
     })
 
