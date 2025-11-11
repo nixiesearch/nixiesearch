@@ -164,9 +164,9 @@ docker / dockerfile := {
           "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb",
           "dpkg -i cuda-keyring_1.1-1_all.deb",
           "apt-get update",
-          "apt-get install -y --no-install-recommends cuda-toolkit-12-6 nvidia-headless-550-open cudnn9-cuda-12",
+          "apt-get install -y --no-install-recommends cuda-toolkit-12-8 nvidia-headless-570-open cudnn9-cuda-12",
           "rm -rf /usr/lib/x86_64-linux-gnu/lib*static_v9.a",
-          "rm -rf /usr/local/cuda-12.4/targets/x86_64-linux/lib/lib*.a",
+          "rm -rf /usr/local/cuda-12.8/targets/x86_64-linux/lib/lib*.a",
           "rm -rf /opt/nvidia"
         ).mkString(" && ")
       )
