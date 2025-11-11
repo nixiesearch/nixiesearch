@@ -5,11 +5,10 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs, TraceArgs}
 import ai.nixiesearch.main.CliConfig.{CliArgs, Loglevel}
 import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode, TraceMode}
-import ai.nixiesearch.util.{EnvVars, GPUUtils}
+import ai.nixiesearch.util.{EnvVars, GPUUtils, PrintLogger}
 import ai.nixiesearch.util.analytics.AnalyticsReporter
 import cats.effect.std.Env
 import cats.effect.{ExitCode, IO, IOApp}
-import ch.qos.logback.classic.{Level, LoggerContext}
 import org.slf4j.LoggerFactory
 import fs2.Stream
 
@@ -32,25 +31,22 @@ object Main extends IOApp with Logging {
     _    <- info(s"Starting Nixiesearch: ${Logo.version}")
     _    <- IO(System.setProperty("ai.djl.offline", "true")) // too slow
     args <- CliConfig.load(args)
-    _    <- changeLogbackLevel(args.loglevel)
+    _    <- changeLogLevel(args.loglevel)
     env  <- EnvVars.load()
     _    <- gpuChecks()
   } yield {
     ArgsEnv(args, env)
   }
 
-  def changeLogbackLevel(level: Loglevel): IO[Unit] = IO {
-    val loggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-    val logger        = loggerContext.exists(org.slf4j.Logger.ROOT_LOGGER_NAME)
-    val newLevel      = level match {
-      case Loglevel.DEBUG => Level.toLevel("DEBUG", null)
-      case Loglevel.INFO  => Level.toLevel("INFO", null)
-      case Loglevel.WARN  => Level.toLevel("WARN", null)
-      case Loglevel.ERROR => Level.toLevel("ERROR", null)
+  def changeLogLevel(level: Loglevel): IO[Unit] = IO {
+    val newLevel = level match {
+      case Loglevel.DEBUG => PrintLogger.LogLevel.DEBUG
+      case Loglevel.INFO  => PrintLogger.LogLevel.INFO
+      case Loglevel.WARN  => PrintLogger.LogLevel.WARN
+      case Loglevel.ERROR => PrintLogger.LogLevel.ERROR
     }
-    logger.warn(s"Setting log level to $level")
-    logger.setLevel(newLevel)
-  }
+    PrintLogger.setLogLevel(newLevel)
+  } *> info(s"Log level set to $level")
 
   def gpuChecks(): IO[Unit] = for {
     _ <- IO(GPUUtils.isGPUBuild()).flatMap {
