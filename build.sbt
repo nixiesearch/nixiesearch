@@ -152,7 +152,7 @@ docker / dockerfile := {
     )
     runRaw(
       List(
-        "wget -O /tmp/jap.tar.gz https://github.com/async-profiler/async-profiler/releases/download/v4.1/async-profiler-4.1-linux-x64.tar.gz",
+        "wget -O /tmp/jap.tar.gz https://github.com/async-profiler/async-profiler/releases/download/v4.2/async-profiler-4.2-linux-x64.tar.gz",
         "mkdir -pv /opt/jap",
         "tar -zxf /tmp/jap.tar.gz -C /opt/jap/",
         "rm -rf /tmp/jap.tar.gz"
