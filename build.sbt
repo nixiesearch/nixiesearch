@@ -4,7 +4,7 @@ import sbt.Package.ManifestAttributes
 lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
-ThisBuild / version      := "0.7.2"
+ThisBuild / version      := "0.8.0-RC1"
 ThisBuild / scalaVersion := "3.7.3"
 
 lazy val root = (project in file("."))
