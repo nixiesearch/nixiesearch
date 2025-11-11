@@ -52,7 +52,7 @@ case class LocalNixie(searcher: Searcher, indexer: Indexer) {
 object LocalNixie {
   def create(mapping: IndexMapping, inference: InferenceConfig): Resource[IO, LocalNixie] = for {
     metrics  <- Resource.pure(Metrics())
-    models   <- Models.create(inference, CacheConfig(), metrics)
+    models   <- Models.create(inference, CacheConfig(), metrics, EnvVars())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(MemoryLocation()), models)
     indexer  <- Indexer.open(index, metrics)
     searcher <- Searcher.open(index, metrics)

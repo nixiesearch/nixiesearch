@@ -7,7 +7,7 @@ import ai.nixiesearch.config.StoreConfig.LocalStoreConfig
 import ai.nixiesearch.core.Error.BackendError
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
-import ai.nixiesearch.util.{TestDocument, TestIndexMapping, TestInferenceConfig}
+import ai.nixiesearch.util.{EnvVars, TestDocument, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -17,7 +17,7 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
 
   it should "start with empty index" in {
     val (models, modelsShutdown) =
-      Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
+      Models.create(TestInferenceConfig(), CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val (localIndex, localShutdown) = LocalIndex
       .create(TestIndexMapping(), config, models)
       .allocated
@@ -35,7 +35,7 @@ trait LocalIndexSuite extends AnyFlatSpec with Matchers {
 
   it should "write docs and search over them" in {
     val (models, modelsShutdown) =
-      Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
+      Models.create(TestInferenceConfig(), CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val (localIndex, localShutdown) = LocalIndex
       .create(TestIndexMapping(), config, models)
       .allocated

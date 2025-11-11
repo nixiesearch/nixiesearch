@@ -5,6 +5,7 @@ import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.{CohereEmbedModel, OpenAIEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
+import ai.nixiesearch.util.EnvVars
 import ai.nixiesearch.util.Tags.EndToEnd
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -32,11 +33,12 @@ class APIEmbedEndToEndTest extends AnyFlatSpec with Matchers {
 
 object APIEmbedEndToEndTest {
   def embed(provider: String, model: String, text: String): Array[Float] = {
+    val env = EnvVars.load().unsafeRunSync()
     val (embed, shutdown) = provider match {
       case "openai" =>
-        OpenAIEmbedModel.create(OpenAIEmbeddingInferenceModelConfig(model = model)).allocated.unsafeRunSync()
+        OpenAIEmbedModel.create(OpenAIEmbeddingInferenceModelConfig(model = model), env).allocated.unsafeRunSync()
       case "cohere" =>
-        CohereEmbedModel.create(CohereEmbeddingInferenceModelConfig(model = model)).allocated.unsafeRunSync()
+        CohereEmbedModel.create(CohereEmbeddingInferenceModelConfig(model = model), env).allocated.unsafeRunSync()
       case other => throw Exception("nope")
     }
     val result = embed.encode(Raw, List(text)).compile.toList.unsafeRunSync()

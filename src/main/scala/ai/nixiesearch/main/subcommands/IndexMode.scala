@@ -28,7 +28,7 @@ object IndexMode extends Mode[IndexArgs] {
       .create(config, args.mode)
       .use(_ =>
         args.source match {
-          case apiConfig: ApiIndexSourceArgs   => runApi(indexes, apiConfig, config)
+          case apiConfig: ApiIndexSourceArgs   => runApi(indexes, apiConfig, config, env)
           case fileConfig: FileIndexSourceArgs =>
             runOffline(
               indexes,
@@ -36,7 +36,8 @@ object IndexMode extends Mode[IndexArgs] {
               fileConfig.index,
               config.core.cache,
               config.inference,
-              fileConfig.forceMerge
+              fileConfig.forceMerge,
+              env
             )
           case kafkaConfig: KafkaIndexSourceArgs =>
             runOffline(
@@ -45,7 +46,8 @@ object IndexMode extends Mode[IndexArgs] {
               kafkaConfig.index,
               config.core.cache,
               config.inference,
-              None
+              None,
+              env
             )
         }
       )
@@ -57,7 +59,8 @@ object IndexMode extends Mode[IndexArgs] {
       index: String,
       cacheConfig: CacheConfig,
       inference: InferenceConfig,
-      forceMerge: Option[Int]
+      forceMerge: Option[Int],
+      env: EnvVars
   ): IO[Unit] = {
     val server = for {
       indexMapping <- Resource.eval(
@@ -66,7 +69,7 @@ object IndexMode extends Mode[IndexArgs] {
       )
       _       <- Resource.eval(debug(s"found index mapping for index '${indexMapping.name}'"))
       metrics <- Resource.pure(Metrics())
-      models  <- Models.create(inference, cacheConfig, metrics)
+      models  <- Models.create(inference, cacheConfig, metrics, env)
       index   <- Index.forIndexing(indexMapping, models)
       indexer <- Indexer.open(index, metrics)
       _       <- PeriodicEvalStream.run(
@@ -101,11 +104,11 @@ object IndexMode extends Mode[IndexArgs] {
     )
   }
 
-  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config): IO[Unit] = {
+  def runApi(indexes: List[IndexMapping], source: ApiIndexSourceArgs, config: Config, env: EnvVars): IO[Unit] = {
     val server = for {
       _        <- Resource.eval(info("Starting in 'index' mode with only indexer available as a REST API."))
       metrics  <- Resource.pure(Metrics())
-      models   <- Models.create(config.inference, config.core.cache, metrics)
+      models   <- Models.create(config.inference, config.core.cache, metrics, env)
       indexers <- indexes
         .map(im =>
           for {

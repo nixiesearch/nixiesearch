@@ -3,10 +3,10 @@
 
 ## Authentication
 
-To provide an API key to authenticate to OpenAI API, use the `COHERE_API` environment variable when starting Nixiesearch:
+To provide an API key to authenticate to Cohere API, use the `COHERE_API_KEY` environment variable when starting Nixiesearch:
 
 ```shell
-docker run -it -e COHERE_API=<thekey> nixiesearch/nixiesearch <opts>
+docker run -it -e COHERE_API_KEY=<thekey> nixiesearch/nixiesearch <opts>
 ```
 
 ## Usage

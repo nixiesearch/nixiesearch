@@ -28,14 +28,14 @@ object StandaloneMode extends Mode[StandaloneArgs] {
 
   def run(args: StandaloneArgs, env: EnvVars): IO[Unit] = for {
     config <- Config.load(args.config, env)
-    _      <- AnalyticsReporter.create(config, args.mode).use(_ => api(config).use(_ => IO.never))
+    _      <- AnalyticsReporter.create(config, args.mode).use(_ => api(config, env).use(_ => IO.never))
   } yield {}
 
-  def api(config: Config): Resource[IO, Nixiesearch] = for {
+  def api(config: Config, env: EnvVars): Resource[IO, Nixiesearch] = for {
     _ <- Resource.eval(info("Starting in 'standalone' mode with indexer+searcher colocated within a single process"))
 
     metrics <- Resource.pure(Metrics())
-    models  <- Models.create(config.inference, config.core.cache, metrics)
+    models  <- Models.create(config.inference, config.core.cache, metrics, env)
     indexes <- config.schema.values.toList
       .map(im => Index.local(im, models))
       .sequence

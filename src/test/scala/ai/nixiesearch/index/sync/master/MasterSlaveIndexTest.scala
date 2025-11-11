@@ -10,7 +10,7 @@ import ai.nixiesearch.core.Field.TextField
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.index.{Indexer, Models, Searcher}
 import ai.nixiesearch.index.sync.{MasterIndex, SlaveIndex}
-import ai.nixiesearch.util.{TestIndexMapping, TestInferenceConfig}
+import ai.nixiesearch.util.{EnvVars, TestIndexMapping, TestInferenceConfig}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import cats.effect.unsafe.implicits.global
@@ -26,7 +26,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
 
   it should "start from empty" ignore {
     val (models, modelsShutdown) =
-      Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
+      Models.create(TestInferenceConfig(), CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val (emptyIndex, indexClose) =
       MasterIndex.create(TestIndexMapping(), config(), models).allocated.unsafeRunSync()
     emptyIndex.sync().unsafeRunSync()
@@ -38,7 +38,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
 
   it should "start, write, stop" in {
     val (models, modelsShutdown) =
-      Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
+      Models.create(TestInferenceConfig(), CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val (masterIndex, masterClose) =
       MasterIndex.create(TestIndexMapping(), config(), models).allocated.unsafeRunSync()
     val (writer, writerClose) = Indexer.open(masterIndex, Metrics()).allocated.unsafeRunSync()
@@ -52,7 +52,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
 
   it should "start, write, search, stop" in {
     val (models, modelsShutdown) =
-      Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
+      Models.create(TestInferenceConfig(), CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val conf                       = config()
     val (masterIndex, masterClose) =
       MasterIndex.create(TestIndexMapping(), conf, models).allocated.unsafeRunSync()
@@ -75,7 +75,7 @@ class MasterSlaveIndexTest extends AnyFlatSpec with Matchers {
 
   it should "start, write, stop, search" in {
     val (models, modelsShutdown) =
-      Models.create(TestInferenceConfig(), CacheConfig(), Metrics()).allocated.unsafeRunSync()
+      Models.create(TestInferenceConfig(), CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val conf                       = config()
     val (masterIndex, masterClose) =
       MasterIndex.create(TestIndexMapping(), conf, models).allocated.unsafeRunSync()

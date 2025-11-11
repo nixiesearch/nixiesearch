@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 class StandaloneModeTest extends AnyFlatSpec with Matchers {
   it should "start on dummy mode with no indices" in {
     val conf            = Config()
-    val (api, shutdown) = StandaloneMode.api(conf).allocated.unsafeRunSync()
+    val (api, shutdown) = StandaloneMode.api(conf, EnvVars()).allocated.unsafeRunSync()
     shutdown.unsafeRunSync()
   }
 }

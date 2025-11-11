@@ -49,7 +49,7 @@ object CompatUtil {
 
   def writeResource(path: String): Resource[IO, Searcher] = for {
     metrics  <- Resource.pure(Metrics())
-    models   <- Models.create(inference, CacheConfig(), metrics)
+    models   <- Models.create(inference, CacheConfig(), metrics, EnvVars())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(DiskLocation(Paths.get(path))), models)
     indexer  <- Indexer.open(index, metrics)
     searcher <- Searcher.open(index, metrics)
@@ -62,7 +62,7 @@ object CompatUtil {
   }
 
   def readResource(path: String): Resource[IO, Searcher] = for {
-    models   <- Models.create(inference, CacheConfig(), Metrics())
+    models   <- Models.create(inference, CacheConfig(), Metrics(), EnvVars())
     index    <- LocalIndex.create(mapping, LocalStoreConfig(DiskLocation(Paths.get(path))), models)
     searcher <- Searcher.open(index, Metrics())
   } yield {

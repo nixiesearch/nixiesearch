@@ -12,7 +12,7 @@ import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.{
   EmbedRequest,
   EmbedResponse
 }
-import ai.nixiesearch.util.ExpBackoffRetryPolicy
+import ai.nixiesearch.util.{EnvVars, ExpBackoffRetryPolicy}
 import cats.effect.{IO, Resource}
 import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.circe.*
@@ -131,12 +131,12 @@ object CohereEmbedModel extends Logging {
     }
   )
 
-  def create(config: CohereEmbeddingInferenceModelConfig): Resource[IO, CohereEmbedModel] = for {
+  def create(config: CohereEmbeddingInferenceModelConfig, env: EnvVars): Resource[IO, CohereEmbedModel] = for {
     client <- EmberClientBuilder.default[IO].withTimeout(10.seconds).build
     retryClient = Retry[IO](ExpBackoffRetryPolicy(100.millis, 2.0, 4000.millis, config.retry))(client)
     key <- Resource.eval(
-      IO.fromOption(Option(System.getenv("COHERE_KEY")))(
-        Exception("COHERE_KEY env var is missing - how should we authenticate?")
+      IO.fromOption(env.string("COHERE_API_KEY"))(
+        Exception("COHERE_API_KEY env var is missing - how should we authenticate?")
       )
     )
     _        <- Resource.eval(IO.whenA(key.length < 10)(IO.raiseError(UserError(s"Cohere API key too short: '$key'"))))

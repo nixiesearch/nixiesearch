@@ -13,14 +13,10 @@ import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
 import ai.nixiesearch.core.nn.model.embedding.cache.{CachedEmbedModel, MemoryCachedEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
-import ai.nixiesearch.core.nn.model.embedding.providers.{
-  CohereEmbedModel,
-  EmbedModelProvider,
-  OnnxEmbedModel,
-  OpenAIEmbedModel
-}
+import ai.nixiesearch.core.nn.model.embedding.providers.{CohereEmbedModel, EmbedModelProvider, OnnxEmbedModel, OpenAIEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
+import ai.nixiesearch.util.EnvVars
 import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -70,7 +66,8 @@ object EmbedModelDict extends Logging {
   def create(
       models: Map[ModelRef, EmbeddingInferenceModelConfig],
       localFileCache: ModelFileCache,
-      metrics: Metrics
+      metrics: Metrics,
+      env: EnvVars
   ): Resource[IO, EmbedModelDict] =
     for {
       encoders <- models.toList.map {
@@ -80,11 +77,11 @@ object EmbedModelDict extends Logging {
             .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
         case (name: ModelRef, conf: OpenAIEmbeddingInferenceModelConfig) =>
           OpenAIEmbedModel
-            .create(conf)
+            .create(conf, env)
             .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
         case (name: ModelRef, conf: CohereEmbeddingInferenceModelConfig) =>
           CohereEmbedModel
-            .create(conf)
+            .create(conf, env)
             .flatMap(maybeCache(_, conf.cache).map(emb => name -> emb))
         case (name: ModelRef, other) =>
           Resource.raiseError[IO, (ModelRef, EmbedModel), Throwable](
