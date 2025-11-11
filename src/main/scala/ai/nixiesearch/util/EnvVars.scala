@@ -4,7 +4,7 @@ import ai.nixiesearch.core.Error.UserError
 import cats.effect.IO
 import cats.effect.std.Env
 
-case class EnvVars(values: Map[String, String]) {
+case class EnvVars(values: Map[String, String] = Map.empty) {
   def string(name: String) = values.get(name)
 }
 

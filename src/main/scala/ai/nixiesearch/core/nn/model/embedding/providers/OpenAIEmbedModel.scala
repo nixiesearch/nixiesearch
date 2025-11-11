@@ -21,7 +21,7 @@ import scala.concurrent.duration.*
 import ai.nixiesearch.config.mapping.DurationJson.given
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.util.ExpBackoffRetryPolicy
+import ai.nixiesearch.util.{EnvVars, ExpBackoffRetryPolicy}
 import org.http4s.client.middleware.Retry
 import org.http4s.headers.{Authorization, `Content-Type`}
 import org.http4s.{AuthScheme, Credentials, EntityDecoder, EntityEncoder, Headers, MediaType, Method, Request, Uri}
@@ -114,12 +114,12 @@ object OpenAIEmbedModel extends Logging {
   given openaiResponseCodec: Codec[OpenAIResponse]      = deriveCodec
   given responseJson: EntityDecoder[IO, OpenAIResponse] = jsonOf
 
-  def create(config: OpenAIEmbeddingInferenceModelConfig): Resource[IO, OpenAIEmbedModel] = for {
+  def create(config: OpenAIEmbeddingInferenceModelConfig, env: EnvVars): Resource[IO, OpenAIEmbedModel] = for {
     client <- EmberClientBuilder.default[IO].withTimeout(10.seconds).build
     retryClient = Retry[IO](ExpBackoffRetryPolicy(100.millis, 2.0, 4000.millis, config.retry))(client)
     key <- Resource.eval(
-      IO.fromOption(Option(System.getenv("OPENAI_KEY")))(
-        Exception("OPENAI_KEY env var is missing - how should we authenticate?")
+      IO.fromOption(env.string("OPENAI_API_KEY"))(
+        Exception("OPENAI_API_KEY env var is missing - how should we authenticate?")
       )
     )
     _ <- Resource.eval(

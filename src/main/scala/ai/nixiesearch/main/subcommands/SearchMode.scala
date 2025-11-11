@@ -33,7 +33,7 @@ object SearchMode extends Mode[SearchArgs] {
 
 
     metrics   <- Resource.pure(Metrics())
-    models    <- Models.create(config.inference, config.core.cache, metrics)
+    models    <- Models.create(config.inference, config.core.cache, metrics, env)
     searchers <- config.schema.values.toList
       .map(im =>
         for {

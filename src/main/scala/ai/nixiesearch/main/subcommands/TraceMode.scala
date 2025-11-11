@@ -70,7 +70,7 @@ object TraceMode extends Mode[TraceArgs] {
   }
 
   def init(args: TraceArgs, env: EnvVars): Resource[IO, Nixiesearch] = for {
-    nixie  <- StandaloneMode.api(config)
+    nixie  <- StandaloneMode.api(config, env)
     env    <- Resource.eval(EnvVars.load())
     client <- Resource.eval(Config.load(S3URL("nixiesearch-lambda-wiki", "config.yml"), env))
   } yield {
