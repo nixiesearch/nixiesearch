@@ -128,7 +128,7 @@ object OpenAIEmbedModel extends Logging {
       )
     )
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(config.endpoint)))
-    _        <- Resource.eval(info(s"Started OpenAI embedding client, model=${config.model}"))
+    _        <- Resource.eval(info(s"Started OpenAI embedding client, model=${config.model}, endpoint=${endpoint}"))
   } yield {
     OpenAIEmbedModel(retryClient, endpoint, key, config)
   }

@@ -1,12 +1,15 @@
 package ai.nixiesearch.index
 
 import ai.nixiesearch.config.{CacheConfig, InferenceConfig}
+import ai.nixiesearch.core.Logging
 import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
+import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.generative.GenerativeModelDict
 import ai.nixiesearch.core.nn.model.ranking.RankModelDict
 import ai.nixiesearch.util.EnvVars
+import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
 
@@ -14,15 +17,20 @@ import java.nio.file.Paths
 
 case class Models(embedding: EmbedModelDict, generative: GenerativeModelDict, ranker: RankModelDict)
 
-object Models {
+object Models extends Logging {
   def create(
       inferenceConfig: InferenceConfig,
       cacheConfig: CacheConfig,
       metrics: Metrics,
-      env: EnvVars 
+      env: EnvVars
   ): Resource[IO, Models] = for {
     cache      <- Resource.eval(ModelFileCache.create(Paths.get(cacheConfig.dir)))
     embeddings <- EmbedModelDict.create(inferenceConfig.embedding, cache, metrics, env)
+    _          <- Resource.eval(
+      embeddings.embedders.values.toList
+        .map(_.encode(Query, List("warmup")).compile.drain *> info("model warmup done"))
+        .sequence
+    )
     generative <- GenerativeModelDict.create(inferenceConfig.completion, cache, metrics)
     ranker     <- RankModelDict.create(inferenceConfig.ranker, cache, metrics)
   } yield {
