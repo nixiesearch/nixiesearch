@@ -41,7 +41,7 @@ jobs:
 
     - name: Run tests
       env:
-        COHERE_KEY: ${{ secrets.COHERE_KEY }}
-        OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-      if: env.OPENAI_KEY != ''
+        COHERE_KEY: ${{ secrets.COHERE_API_KEY }}
+        OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+      if: env.OPENAI_API_KEY != ''
       run: sbt -mem 5000 'testOnly --  -n e2e-api-embed'
