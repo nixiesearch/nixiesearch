@@ -13,11 +13,11 @@ lazy val root = (project in file("."))
   )
 
 libraryDependencies ++= Seq(
-  "org.typelevel"        %% "cats-effect"                % "3.6.3",
-  "org.scalatest"        %% "scalatest"                  % scalatestVersion % "test",
-  "org.scalactic"        %% "scalactic"                  % scalatestVersion % "test",
-  "org.scalatestplus"    %% "scalacheck-1-16"            % "3.2.14.0"       % "test",
-  "ch.qos.logback"        % "logback-classic"            % "1.5.20",
+  "org.typelevel"     %% "cats-effect"     % "3.6.3",
+  "org.scalatest"     %% "scalatest"       % scalatestVersion % "test",
+  "org.scalactic"     %% "scalactic"       % scalatestVersion % "test",
+  "org.scalatestplus" %% "scalacheck-1-16" % "3.2.14.0"       % "test",
+  // "ch.qos.logback"        % "logback-classic"            % "1.5.20",
   "io.circe"             %% "circe-yaml"                 % circeYamlVersion,
   "io.circe"             %% "circe-core"                 % circeVersion,
   "io.circe"             %% "circe-generic"              % circeVersion,
@@ -112,30 +112,6 @@ buildInfoKeys ++= Seq[BuildInfoKey](
   BuildInfoKey.action("arch") { PLATFORM }
 )
 
-// Native Image Plugin Configuration
-enablePlugins(NativeImagePlugin)
-nativeImageVersion  := "25"
-nativeImageJvm      := "graalvm-oracle"
-nativeImageJvmIndex := "cs" // Use Coursier
-
-// Exclude native image keys from lint warnings (they're consumed by the plugin)
-Global / excludeLintKeys += nativeImageVersion
-Global / excludeLintKeys += nativeImageJvm
-Global / excludeLintKeys += nativeImageJvmIndex
-nativeImageOptions ++= Seq(
-  "--gc=G1",
-  "--enable-native-access=ALL-UNNAMED",
-  "-H:+SharedArenaSupport",
-  s"-H:ConfigurationFileDirectories=${baseDirectory.value}/native-image-configs",
-  "-H:+ReportExceptionStackTraces",
-  "-H:+PrintClassInitialization",
-  "--no-fallback",
-  "--verbose",
-  "-J-Xmx16g",
-  "--initialize-at-run-time=io.netty,org.apache.lucene,ai.onnxruntime,com.github.jnr"
-)
-nativeImageOutput := target.value / s"scala-${scalaVersion.value}" / "nixiesearch"
-
 docker / dockerfile := {
   val artifact: File     = assembly.value
   val artifactTargetPath = s"/app/${artifact.name}"
@@ -209,14 +185,54 @@ import sbtdocker.DockerPlugin.autoImport.*
 lazy val dockerNative = taskKey[ImageId]("Build native Docker image")
 
 dockerNative := {
-  val nativeBinary = nativeImage.value // Build native binary first
-  val log          = streams.value.log
-  val stageDir     = target.value / "docker-native"
+  val jar      = assembly.value // Build JAR first
+  val log      = streams.value.log
+  val stageDir = target.value / "docker-native"
+  val base     = baseDirectory.value
 
   val dockerfileInstructions = new Dockerfile {
-    from(s"--platform=$PLATFORM frolvlad/alpine-glibc:latest")
-    add(nativeBinary, "/nixiesearch")
-    runRaw("apk add libstdc++")
+    // ================================
+    // Stage 1: Builder - GraalVM Native Image
+    // ================================
+    from(s"--platform=$PLATFORM ghcr.io/graalvm/native-image-community:25 AS builder")
+
+    // Set working directory
+    workDir("/build")
+
+    // Copy JAR and native-image configs
+    add(jar, "/build/nixiesearch.jar")
+    add(new File("native-image-configs"), "/build/native-image-configs")
+
+    // Build native image with all options from Dockerfile.native
+    runRaw(
+      List(
+        "native-image",
+        "--enable-native-access=ALL-UNNAMED",
+        "-H:+SharedArenaSupport",
+        "-H:ConfigurationFileDirectories=/build/native-image-configs",
+        "-H:+ReportExceptionStackTraces",
+        "-H:+PrintClassInitialization",
+        "--no-fallback",
+        "--verbose",
+        "-J-Xmx16g",
+        "-march=compatibility",
+//        "--initialize-at-run-time=io.netty,org.apache.lucene,ai.onnxruntime,com.github.jnr",
+//        "--initialize-at-run-time=io.netty.channel.ChannelHandlerMask,io.netty.channel.nio.AbstractNioChannel",
+//        "--trace-object-instantiation=ch.qos.logback.classic.Logger",
+        "--initialize-at-build-time=ai.nixiesearch.util.PrintLogger",
+        "-jar /build/nixiesearch.jar",
+        "-H:Name=/build/nixiesearch",
+        "-H:Class=ai.nixiesearch.main.Main"
+      ).mkString(" ")
+    )
+
+    // ================================
+    // Stage 2: Runtime - Minimal Ubuntu
+    // ================================
+    from(s"--platform=$PLATFORM ubuntu:questing-20251007")
+    // runRaw("apk add libstdc++")
+
+    // Set locale environment variables
     env(
       Map(
         "LANG"     -> "en_US.UTF-8",
@@ -224,7 +240,18 @@ dockerNative := {
         "LC_ALL"   -> "en_US.UTF-8"
       )
     )
-    entryPoint("/nixiesearch")
+
+    // Copy native binary from builder stage
+    customInstruction("COPY", "--from=builder /build/nixiesearch /nixiesearch")
+
+    // Copy entrypoint script
+    add(new File("deploy/nixiesearch-native.sh"), "/nixiesearch.sh")
+
+    // Make scripts executable
+    run("chmod", "+x", "/nixiesearch.sh")
+
+    // Set entrypoint and default command
+    entryPoint("/nixiesearch.sh")
     cmd("--help")
   }
 
