@@ -10,7 +10,7 @@ import com.comcast.ip4s.{Hostname as SHostname, Port as SPort}
 import org.http4s.{HttpApp, HttpRoutes, Response}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
-import org.http4s.server.middleware.{ErrorAction, Logger}
+import org.http4s.server.middleware.{ErrorAction, Logger, CORS}
 import cats.syntax.all.*
 import org.typelevel.ci.CIString
 
@@ -18,11 +18,14 @@ import scala.concurrent.duration.Duration
 
 object API extends Logging {
 
-  def wrapMiddleware(routes: HttpRoutes[IO]): HttpApp[IO] = {
+  def wrapMiddleware(routes: HttpRoutes[IO]): IO[HttpApp[IO]] = {
     val withMiddleware = Logger.httpRoutes(logBody = false, logHeaders = false, logAction = Some(info))(
       ErrorAction.httpRoutes(routes, (req, err) => error(err.toString, err))
     )
-    Router("/" -> withMiddleware).orNotFound.handleErrorWith(ErrorHandler.handle)
+    CORS.policy
+      .withAllowOriginAll(withMiddleware)
+      .map(withCORS => Router("/" -> withCORS).orNotFound.handleErrorWith(ErrorHandler.handle))
+
   }
 
   def start(
@@ -41,8 +44,8 @@ object API extends Logging {
           new Exception(s"cannot parse port '${port.value}'")
         )
       )
-      http = wrapMiddleware(routes)
-      api <- EmberServerBuilder
+      http <- Resource.eval(wrapMiddleware(routes))
+      api  <- EmberServerBuilder
         .default[IO]
         .withHost(host)
         .withPort(port)

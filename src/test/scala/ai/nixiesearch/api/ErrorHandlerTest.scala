@@ -17,7 +17,7 @@ class ErrorHandlerTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle exceptions" in {
-    val app      = API.wrapMiddleware(routes)
+    val app      = API.wrapMiddleware(routes).unsafeRunSync()
     val response = app.run(Request[IO](uri = Uri.unsafeFromString("http://localhost/exception"))).unsafeRunSync()
     val error    = response.as[ErrorResponse].unsafeRunSync()
     error shouldBe ErrorResponse("oops")
@@ -25,7 +25,7 @@ class ErrorHandlerTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle user errors" in {
-    val app      = API.wrapMiddleware(routes)
+    val app      = API.wrapMiddleware(routes).unsafeRunSync()
     val response = app.run(Request[IO](uri = Uri.unsafeFromString("http://localhost/user"))).unsafeRunSync()
     val error    = response.as[ErrorResponse].unsafeRunSync()
     error shouldBe ErrorResponse("you bad")
