@@ -5,7 +5,7 @@ lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
 lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
 
 ThisBuild / version      := "0.8.0-RC2"
-ThisBuild / scalaVersion := "3.7.3"
+ThisBuild / scalaVersion := "3.7.4"
 
 lazy val root = (project in file("."))
   .settings(
