@@ -65,9 +65,9 @@ libraryDependencies ++= Seq(
   "io.prometheus"                          % "prometheus-metrics-core"                % prometheusVersion,
   "io.prometheus"                          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
   "io.prometheus"                          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion,
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"                    % "2.38.3",
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe"                   % "2.38.3",
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"                  % "2.38.3" % "compile-internal"
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"                    % "2.38.4",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe"                   % "2.38.4",
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"                  % "2.38.4" % "compile-internal"
 )
 
 if (GPU) {
