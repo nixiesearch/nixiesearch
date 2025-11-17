@@ -28,7 +28,7 @@ object LocalDirectory extends Logging {
       logger.info("Using MMapDiretory")
       new MMapDirectory(path)
     case DirectoryType.NIOFSDirectoryType =>
-      logger.info("Using NIOFSDiretory")
+      logger.info("Using NIOFSDirectory")
       new NIOFSDirectory(path)
   }
   def fromLocal(
