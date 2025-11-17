@@ -1,8 +1,9 @@
 import Deps.*
 import sbt.Package.ManifestAttributes
 
-lazy val PLATFORM = Option(System.getenv("PLATFORM")).getOrElse("amd64")
-lazy val GPU      = Option(System.getenv("GPU")).getOrElse("false").toBoolean
+lazy val PLATFORM      = Option(System.getenv("PLATFORM")).getOrElse("amd64")
+lazy val GPU           = Option(System.getenv("GPU")).getOrElse("false").toBoolean
+lazy val GRAALVM_TRACE = Option(System.getenv("GRAALVM_TRACE")).getOrElse("false").toBoolean
 
 ThisBuild / version      := "0.8.0-RC2"
 ThisBuild / scalaVersion := "3.7.3"
@@ -65,9 +66,9 @@ libraryDependencies ++= Seq(
   "io.prometheus"                          % "prometheus-metrics-core"                % prometheusVersion,
   "io.prometheus"                          % "prometheus-metrics-exposition-formats"  % prometheusVersion,
   "io.prometheus"                          % "prometheus-metrics-instrumentation-jvm" % prometheusVersion,
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"                    % "2.38.3",
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe"                   % "2.38.3",
-  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros"                  % "2.38.3" % "compile-internal"
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core"                    % jsoniterVersion,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-circe"                   % jsoniterVersion,
+  "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "compile-internal"
 )
 
 if (GPU) {
@@ -111,6 +112,13 @@ buildInfoKeys ++= Seq[BuildInfoKey](
   BuildInfoKey.action("gpu") { GPU },
   BuildInfoKey.action("arch") { PLATFORM }
 )
+
+if (GRAALVM_TRACE) {
+  fork := true
+  javaOptions += "-agentlib:native-image-agent=config-output-dir=src/main/resources/META-INF/native-image/ai.nixiesearch/native-image-configs"
+} else {
+  javaOptions ++= Nil
+}
 
 docker / dockerfile := {
   val artifact: File     = assembly.value
@@ -194,7 +202,7 @@ dockerNative := {
     // ================================
     // Stage 1: Builder - GraalVM Native Image
     // ================================
-    from(s"--platform=$PLATFORM ghcr.io/graalvm/native-image-community:25 AS builder")
+    from(s"--platform=$PLATFORM ghcr.io/graalvm/native-image-community:25-muslib AS builder")
 
     // Set working directory
     workDir("/build")
@@ -209,17 +217,20 @@ dockerNative := {
         "native-image",
         "--enable-native-access=ALL-UNNAMED",
         "-H:+SharedArenaSupport",
-        "-H:ConfigurationFileDirectories=/build/native-image-configs",
         "-H:+ReportExceptionStackTraces",
         "-H:+PrintClassInitialization",
         "--no-fallback",
         "--verbose",
         "-J-Xmx16g",
-        "-march=compatibility",
-//        "--initialize-at-run-time=io.netty,org.apache.lucene,ai.onnxruntime,com.github.jnr",
+        "-O2",
+//        "-H:-ReduceImplicitExceptionStackTraceInformation",
+        "--static",
+        "--libc=musl",
+        "--initialize-at-run-time=io.netty",
 //        "--initialize-at-run-time=io.netty.channel.ChannelHandlerMask,io.netty.channel.nio.AbstractNioChannel",
 //        "--trace-object-instantiation=ch.qos.logback.classic.Logger",
-        "--initialize-at-build-time=ai.nixiesearch.util.PrintLogger",
+//        "--initialize-at-run-time=ai.nixiesearch.util.logger.PrintLogger,io.netty.channel.nio.AbstractNioChannel,io.netty.buffer.AbstractByteBufAllocator,io.netty.util.ResourceLeakDetector,io.netty.util.internal.SystemPropertyUtil",
+//        "--trace-object-instantiation=ai.nixiesearch.util.logger.PrintLogger",
         "-jar /build/nixiesearch.jar",
         "-H:Name=/build/nixiesearch",
         "-H:Class=ai.nixiesearch.main.Main"
@@ -229,29 +240,13 @@ dockerNative := {
     // ================================
     // Stage 2: Runtime - Minimal Ubuntu
     // ================================
-    from(s"--platform=$PLATFORM ubuntu:questing-20251007")
-    // runRaw("apk add libstdc++")
-
-    // Set locale environment variables
-    env(
-      Map(
-        "LANG"     -> "en_US.UTF-8",
-        "LANGUAGE" -> "en_US:en",
-        "LC_ALL"   -> "en_US.UTF-8"
-      )
-    )
+    from("scratch")
 
     // Copy native binary from builder stage
     customInstruction("COPY", "--from=builder /build/nixiesearch /nixiesearch")
 
-    // Copy entrypoint script
-    add(new File("deploy/nixiesearch-native.sh"), "/nixiesearch.sh")
-
-    // Make scripts executable
-    run("chmod", "+x", "/nixiesearch.sh")
-
     // Set entrypoint and default command
-    entryPoint("/nixiesearch.sh")
+    entryPoint("/nixiesearch")
     cmd("--help")
   }
 
