@@ -25,7 +25,7 @@ object LocalDirectory extends Logging {
       )
       new NIOFSDirectory(path)
     case DirectoryType.MMapDirectoryType =>
-      logger.info("Using MMapDiretory")
+      logger.info("Using MMapDirectory")
       new MMapDirectory(path)
     case DirectoryType.NIOFSDirectoryType =>
       logger.info("Using NIOFSDirectory")
