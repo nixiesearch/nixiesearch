@@ -29,6 +29,42 @@ GraalVM Native Image builds for faster startup, tagged as `<version>-native` (e.
 
 Choose JDK-based images for production workloads with full feature support, or native images for serverless deployments where fast startup matters more than local inference capabilities.
 
+## Container Registries
+
+Nixiesearch Docker images are available from two registries:
+
+### Docker Hub (Primary)
+
+```
+nixiesearch/nixiesearch:<tag>
+```
+
+Docker Hub is the default registry for most deployments. All image variants and tags are available:
+
+- `nixiesearch/nixiesearch:latest` - Latest JDK-based multi-arch image (Docker automatically pulls the correct variant for your platform)
+- `nixiesearch/nixiesearch:0.8.0` - Specific version (multi-arch)
+- `nixiesearch/nixiesearch:0.8.0-amd64` - Platform-specific x86_64 variant
+- `nixiesearch/nixiesearch:0.8.0-arm64` - Platform-specific ARM64 variant
+- `nixiesearch/nixiesearch:latest-gpu` - GPU-enabled variant
+- `nixiesearch/nixiesearch:latest-native` - Native GraalVM image
+- `nixiesearch/nixiesearch:0.8.0-native-amd64` - Specific native version
+
+Multi-arch tags (like `0.8.0` and `latest`) use Docker manifests to automatically pull the correct platform-specific image for your architecture.
+
+### AWS ECR Public Registry
+
+```
+public.ecr.aws/f3z9z3z0/nixiesearch:<tag>
+```
+
+AWS ECR Public Registry mirrors all Docker Hub images and is required for certain AWS services:
+
+- **AWS Lambda**: Lambda deployments must use ECR images (see [Lambda deployment guide](distributed/lambda.md))
+- Same tags and variants as Docker Hub
+- Lower latency when deploying to AWS infrastructure
+
+Both registries are kept in sync and contain identical images. Choose Docker Hub for general use, or ECR when deploying to AWS Lambda or when you need optimized performance within AWS.
+
 ## Standalone
 
 In standalone mode searcher and indexer are colocated on a single Nixiesearch process:
