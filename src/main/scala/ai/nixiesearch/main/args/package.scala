@@ -2,7 +2,7 @@ package ai.nixiesearch.main
 
 import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL
-import ai.nixiesearch.main.CliConfig.Loglevel
+import ai.nixiesearch.main.CliConfig.{ApiMode, Loglevel}
 import ai.nixiesearch.source.SourceOffset
 import org.rogach.scallop.ValueConverter
 
@@ -18,5 +18,6 @@ package object args {
     given mapStrStrConverter: ValueConverter[Map[String, String]] = MapStringStringConverter
     given listStrConverter: ValueConverter[List[String]]          = ListStringConverter
     given offsetConverter: ValueConverter[SourceOffset]           = SourceOffsetConverter
+    given apiModeConverter: ValueConverter[ApiMode]               = ApiModeConverter
   }
 }

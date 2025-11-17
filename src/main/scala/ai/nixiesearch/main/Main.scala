@@ -1,15 +1,12 @@
 package ai.nixiesearch.main
 
-import ai.nixiesearch.config.Config
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs, TraceArgs}
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.{CliArgs, Loglevel}
-import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode, TraceMode}
-import ai.nixiesearch.util.{EnvVars, GPUUtils, PrintLogger}
-import ai.nixiesearch.util.analytics.AnalyticsReporter
-import cats.effect.std.Env
+import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode}
+import ai.nixiesearch.util.{EnvVars, GPUUtils}
+import ai.nixiesearch.util.PrintLogger
 import cats.effect.{ExitCode, IO, IOApp}
-import org.slf4j.LoggerFactory
 import fs2.Stream
 
 object Main extends IOApp with Logging {
@@ -21,7 +18,6 @@ object Main extends IOApp with Logging {
       case s: StandaloneArgs => StandaloneMode.run(s, argsEnv.env)
       case s: SearchArgs     => SearchMode.run(s, argsEnv.env)
       case s: IndexArgs      => IndexMode.run(s, argsEnv.env)
-      case s: TraceArgs      => TraceMode.run(s, argsEnv.env)
     }
   } yield {
     ExitCode.Success
