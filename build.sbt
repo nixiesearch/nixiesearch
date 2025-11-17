@@ -24,7 +24,7 @@ libraryDependencies ++= Seq(
   "io.circe"             %% "circe-generic"              % circeVersion,
   "io.circe"             %% "circe-parser"               % circeVersion,
   "com.github.pathikrit" %% "better-files"               % "3.9.2",
-  "org.rogach"           %% "scallop"                    % "5.2.0",
+  "org.rogach"           %% "scallop"                    % "5.3.0",
   "com.github.blemale"   %% "scaffeine"                  % "5.3.0",
   "org.http4s"           %% "http4s-dsl"                 % http4sVersion,
   "org.http4s"           %% "http4s-ember-server"        % http4sVersion,
