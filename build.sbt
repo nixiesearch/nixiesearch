@@ -6,7 +6,7 @@ lazy val GPU           = Option(System.getenv("GPU")).getOrElse("false").toBoole
 lazy val GRAALVM_TRACE = Option(System.getenv("GRAALVM_TRACE")).getOrElse("false").toBoolean
 
 ThisBuild / version      := "0.8.0-RC2"
-ThisBuild / scalaVersion := "3.7.3"
+ThisBuild / scalaVersion := "3.7.4"
 
 lazy val root = (project in file("."))
   .settings(
