@@ -14,7 +14,7 @@ class IndexManifestDiffTest extends AnyFlatSpec with Matchers {
   it should "dump all files if target is empty" in {
     val source = TestManifest(List(IndexFile("a", 100L)))
     val result = source.diff(None).unsafeRunSync()
-    result shouldBe List(Add("a", None), Add(IndexManifest.MANIFEST_FILE_NAME, None))
+    result shouldBe List(Add("a", Some(100L)), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
   it should "update only manifest when nothing changed" in {
@@ -27,7 +27,7 @@ class IndexManifestDiffTest extends AnyFlatSpec with Matchers {
     val source = TestManifest(List(IndexFile("a", 100L), IndexFile("b", 100L)))
     val dest   = TestManifest(List(IndexFile("a", 100L)))
     val result = source.diff(Some(dest)).unsafeRunSync()
-    result shouldBe List(Add("b", None), Add(IndexManifest.MANIFEST_FILE_NAME, None))
+    result shouldBe List(Add("b", Some(100L)), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
   it should "del removed files" in {
@@ -41,7 +41,7 @@ class IndexManifestDiffTest extends AnyFlatSpec with Matchers {
     val source = TestManifest(List(IndexFile("a", 200L), IndexFile("b", 100L)))
     val dest   = TestManifest(List(IndexFile("a", 100L), IndexFile("b", 100L)))
     val result = source.diff(Some(dest)).unsafeRunSync()
-    result shouldBe List(Add("a", None), Add(IndexManifest.MANIFEST_FILE_NAME, None))
+    result shouldBe List(Add("a", Some(200L)), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
 }
