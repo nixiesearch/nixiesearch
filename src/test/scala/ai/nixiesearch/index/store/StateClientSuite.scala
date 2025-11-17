@@ -51,7 +51,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
     {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test1.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
-      val decoded = client.read("test1.bin").compile.to(Array).unsafeRunSync()
+      val decoded = client.read("test1.bin", None).compile.to(Array).unsafeRunSync()
       source sameElements decoded
     }
   }
@@ -61,7 +61,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       val source = Random.nextBytes(1024 * 1024)
       client.write("test2.bin", Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(source)))).unsafeRunSync()
       client.delete("test2.bin").unsafeRunSync()
-      a[FileMissingError] shouldBe thrownBy { client.read("test2.bin").compile.drain.unsafeRunSync() }
+      a[FileMissingError] shouldBe thrownBy { client.read("test2.bin", None).compile.drain.unsafeRunSync() }
     }
   }
 
@@ -102,7 +102,7 @@ trait StateClientSuite[T <: StateClient] extends AnyFlatSpec with Matchers {
       for {
         file <- SegmentInfos.readLatestCommit(dir).files(true).asScala.toList
       } {
-        client.write(file, byteClient.read(file)).unsafeRunSync()
+        client.write(file, byteClient.read(file, None)).unsafeRunSync()
       }
 
       val mf = client.createManifest(TestIndexMapping(), 0L).unsafeRunSync()

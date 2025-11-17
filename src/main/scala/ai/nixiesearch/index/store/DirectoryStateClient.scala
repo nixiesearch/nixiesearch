@@ -47,7 +47,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
           _ <- debug(
             s"existing ${IndexManifest.MANIFEST_FILE_NAME} file found for Lucene directory $dir for index ${indexName.value}"
           )
-          manifestBytes <- read(IndexManifest.MANIFEST_FILE_NAME).compile.to(Array)
+          manifestBytes <- read(IndexManifest.MANIFEST_FILE_NAME, None).compile.to(Array)
           manifest      <- IO(decode[IndexManifest](new String(manifestBytes))).flatMap {
             case Left(err)    => IO.raiseError(err)
             case Right(value) => IO.pure(value)
@@ -59,7 +59,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
     }
   }
 
-  override def read(fileName: String): Stream[IO, Byte] = {
+  override def read(fileName: String, sizeHint: Option[Long]): Stream[IO, Byte] = {
     def splitChunks(length: Long, chunk: Long): List[Long] = {
       val regularChunks = math.floor(length.toDouble / chunk).toInt
       val lastChunk     = length - regularChunks * chunk
@@ -99,7 +99,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
         .flatMap(out =>
           stream
             .chunkN(IO_BUFFER_SIZE.toInt)
-            .evalMap(chunk => IO(out.writeBytes(chunk.toByteBuffer.array(), chunk.size)))
+            .evalMap(chunk => IO(out.writeBytes(chunk.toArray, chunk.size)))
         )
         .compile
         .drain

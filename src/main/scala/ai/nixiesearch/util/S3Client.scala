@@ -13,6 +13,7 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import fs2.{Chunk, Stream}
 import fs2.interop.reactivestreams.fromPublisher
+import fs2.io.file.Files
 import software.amazon.awssdk.auth.credentials.internal.LazyAwsCredentialsProvider
 import software.amazon.awssdk.core.async.{AsyncRequestBody, AsyncResponseTransformer, SdkPublisher}
 import software.amazon.awssdk.services.s3.model.{
@@ -28,13 +29,14 @@ import software.amazon.awssdk.services.s3.model.{
   UploadPartRequest
 }
 
+import java.io.{FileInputStream, FileOutputStream}
 import java.net.URI
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 
-case class S3Client(client: S3AsyncClient) {
+case class S3Client(client: S3AsyncClient) extends Logging {
   val IO_BUFFER_SIZE = 5 * 1024 * 1024
 
   def head(bucket: String, path: String): IO[HeadObjectResponse] = for {
@@ -49,6 +51,36 @@ case class S3Client(client: S3AsyncClient) {
     stream  <- IO.fromCompletableFuture(IO(client.getObject(request, S3GetObjectResponseStream())))
   } yield {
     stream
+  }
+
+  def getObjectParallel(bucket: String, path: String, size: Long, threads: Int): Stream[IO, Byte] = {
+    val chunkSize = math.floor(size.toFloat / threads).toLong
+    val chunks    =
+      0L.until(size + chunkSize, step = chunkSize).map(split => math.min(split, size)).sliding(2).map(_.toList).toList
+    logger.info(s"getParallel: path=$path size=$size chunks=$chunks")
+    Stream
+      .emits(chunks)
+      .evalMap {
+        case from :: to :: Nil =>
+          IO(GetObjectRequest.builder().bucket(bucket).key(path).range(s"bytes=$from-${to - 1}").build())
+        case _ => IO.raiseError(new Exception("this should not happen"))
+      }
+      .parEvalMap(16)(request =>
+        for {
+          file   <- Files[IO].createTempFile
+          stream <- IO.fromCompletableFuture(IO(client.getObject(request, S3GetObjectResponseStream())))
+          _ <- stream.through(fs2.io.writeOutputStream(IO(new FileOutputStream(file.toNioPath.toFile)))).compile.drain
+          _ <- info(s"stored $file")
+        } yield {
+          file
+        }
+      )
+      .flatMap(path =>
+        fs2.io
+          .readInputStream[IO](IO(new FileInputStream(path.toNioPath.toFile)), 1024 * 1024)
+          .mapChunks(c => c)
+          //.onComplete(Stream.evalSeq(Files[IO].delete(path).map(x => Nil)))
+      )
   }
 
   def listObjects(bucket: String, path: String): Stream[IO, S3File] = for {

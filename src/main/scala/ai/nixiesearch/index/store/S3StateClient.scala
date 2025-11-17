@@ -49,13 +49,13 @@ case class S3StateClient(s3: S3Client, conf: S3Location, indexName: IndexName) e
       manifest
     }
 
-  override def read(fileName: String): Stream[IO, Byte] = for {
-    path         <- Stream.emit(s"${conf.prefix}/${indexName.value}/$fileName")
-    _            <- Stream.eval(debug(s"Reading s3://${conf.bucket}/$path"))
-    objectStream <- Stream.eval(s3.getObject(conf.bucket, path).handleErrorWith(wrapException(fileName)))
-    byte         <- objectStream
-  } yield {
-    byte
+  override def read(fileName: String, sizeHint: Option[Long]): Stream[IO, Byte] = {
+    val path = s"${conf.prefix}/${indexName.value}/$fileName"
+    logger.debug(s"Reading s3://${conf.bucket}/$path")
+    sizeHint match {
+      case Some(size) if size > 1024 * 1024L => s3.getObjectParallel(conf.bucket, path, size, 16)
+      case _ => Stream.eval(s3.getObject(conf.bucket, path).handleErrorWith(wrapException(fileName))).flatten
+    }
   }
 
   override def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit] = for {

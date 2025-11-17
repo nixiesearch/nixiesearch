@@ -8,7 +8,6 @@ import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder}
 
 case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: Long) extends Logging {
-  def syncFiles(): List[String] = files.map(_.name) :+ IndexManifest.MANIFEST_FILE_NAME
   def diff(target: Option[IndexManifest]): IO[List[ChangedFileOp]] = {
     IO {
       val sourceMap = files.map(f => f.name -> f.size).toMap
@@ -16,22 +15,22 @@ case class IndexManifest(mapping: IndexMapping, files: List[IndexFile], seqnum: 
       val allKeys   = (sourceMap.keySet ++ destMap.keySet ++ Set(IndexManifest.MANIFEST_FILE_NAME)).toList
       val result    = for {
         key <- allKeys
-        sourceTimeOption = sourceMap.get(key)
-        destTimeOption   = destMap.get(key)
+        sourceSizeOption = sourceMap.get(key)
+        destSizeOption   = destMap.get(key)
       } yield {
-        (sourceTimeOption, destTimeOption) match {
-          case (_, _) if key == IndexManifest.MANIFEST_FILE_NAME            => Some(ChangedFileOp.Add(key))
+        (sourceSizeOption, destSizeOption) match {
+          case (_, _) if key == IndexManifest.MANIFEST_FILE_NAME            => Some(ChangedFileOp.Add(key, None))
           case (Some(sourceSize), Some(destSize)) if sourceSize == destSize => None
-          case (Some(_), Some(_))                                           => Some(ChangedFileOp.Add(key))
-          case (Some(_), None)                                              => Some(ChangedFileOp.Add(key))
-          case (None, Some(_))                                              => Some(ChangedFileOp.Del(key))
-          case (None, None)                                                 => None
+          case (Some(sourceSize), Some(_)) => Some(ChangedFileOp.Add(key, Some(sourceSize)))
+          case (Some(sourceSize), None)    => Some(ChangedFileOp.Add(key, Some(sourceSize)))
+          case (None, Some(_))             => Some(ChangedFileOp.Del(key))
+          case (None, None)                => None
         }
       }
       val ops = result.flatten
-      logger.debug(s"Source files = $files")
-      logger.debug(s"Destination files = ${target.map(_.files)}")
-      logger.debug(s"Manifest diff: ${ops}.")
+      logger.info(s"Source files = $files")
+      logger.info(s"Destination files = ${target.map(_.files)}")
+      logger.info(s"Manifest diff: ${ops}.")
       ops
     }
   }
@@ -52,7 +51,7 @@ object IndexManifest extends Logging {
   case class IndexFile(name: String, size: Long)
 
   enum ChangedFileOp {
-    case Add(fileName: String) extends ChangedFileOp
-    case Del(fileName: String) extends ChangedFileOp
+    case Add(fileName: String, size: Option[Long]) extends ChangedFileOp
+    case Del(fileName: String)                     extends ChangedFileOp
   }
 }

@@ -20,7 +20,7 @@ object LocalDirectory extends Logging {
       for {
         _             <- Resource.eval(info("initialized MMapDirectory"))
         safeIndexPath <- Resource.eval(indexPath(path, indexName))
-        directory     <- Resource.make(IO(new MMapDirectory(safeIndexPath)))(dir => IO(dir.close()))
+        directory     <- Resource.make(IO(new NIOFSDirectory(safeIndexPath)))(dir => IO(dir.close()))
 
       } yield {
         directory
@@ -48,16 +48,22 @@ object LocalDirectory extends Logging {
       case (Some(localManifest), None) =>
         Resource.eval(
           info("remote location is empty, doing full sync local -> remote") *> Stream
-            .emits(localManifest.syncFiles())
-            .evalMap(file => remote.write(file, local.read(file)))
+            .evalSeq(localManifest.diff(None))
+            .evalMap {
+              case ChangedFileOp.Add(fileName, size) => remote.write(fileName, local.read(fileName, size))
+              case ChangedFileOp.Del(fileName)       => IO.unit
+            }
             .compile
             .drain *> info("local -> remote full sync done")
         )
       case (None, Some(remoteManifest)) =>
         Resource.eval(
           info("local index is empty, doing full sync remote -> local") *> Stream
-            .emits(remoteManifest.syncFiles())
-            .evalMap(file => local.write(file, remote.read(file)))
+            .evalSeq(remoteManifest.diff(None))
+            .evalMap {
+              case ChangedFileOp.Add(fileName, size) => local.write(fileName, remote.read(fileName, size))
+              case ChangedFileOp.Del(fileName)       => IO.unit
+            }
             .compile
             .drain *> info("remote -> local full sync done")
         )
@@ -69,8 +75,8 @@ object LocalDirectory extends Logging {
               Stream
                 .evalSeq(remoteManifest.diff(Some(localManifest)))
                 .evalMap {
-                  case ChangedFileOp.Add(fileName) => local.write(fileName, remote.read(fileName))
-                  case ChangedFileOp.Del(fileName) => local.delete(fileName)
+                  case ChangedFileOp.Add(fileName, size) => local.write(fileName, remote.read(fileName, size))
+                  case ChangedFileOp.Del(fileName)       => local.delete(fileName)
                 }
                 .compile
                 .drain
@@ -78,8 +84,8 @@ object LocalDirectory extends Logging {
               Stream
                 .evalSeq(localManifest.diff(Some(remoteManifest)))
                 .evalMap {
-                  case ChangedFileOp.Add(fileName) => remote.write(fileName, local.read(fileName))
-                  case ChangedFileOp.Del(fileName) => remote.delete(fileName)
+                  case ChangedFileOp.Add(fileName, size) => remote.write(fileName, local.read(fileName, size))
+                  case ChangedFileOp.Del(fileName)       => remote.delete(fileName)
                 }
                 .compile
                 .drain

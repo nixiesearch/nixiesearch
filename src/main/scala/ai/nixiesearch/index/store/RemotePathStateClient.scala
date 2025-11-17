@@ -51,7 +51,7 @@ case class RemotePathStateClient(path: JPath, indexName: IndexName) extends Stat
     manifest
   }
 
-  override def read(fileName: String): fs2.Stream[IO, Byte] = for {
+  override def read(fileName: String, sizeHint: Option[Long]): fs2.Stream[IO, Byte] = for {
     filePath <- Stream.eval(IO(path.resolve(fileName)))
     _        <- Stream.eval(debug(s"reading file '$filePath'"))
     exists   <- Stream.eval(Files[IO].exists(Path.fromNioPath(filePath)))

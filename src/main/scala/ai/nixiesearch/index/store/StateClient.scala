@@ -12,7 +12,7 @@ import java.nio.ByteBuffer
 trait StateClient {
   def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest]
   def readManifest(): IO[Option[IndexManifest]]
-  def read(fileName: String): Stream[IO, Byte]
+  def read(fileName: String, sizeHint: Option[Long]): Stream[IO, Byte]
   def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit]
   def delete(fileName: String): IO[Unit]
 
