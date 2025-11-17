@@ -110,6 +110,8 @@ The standalone deployment relies on a [PersistentVolumeClaim](https://kubernetes
 
 The distributed deployment splits Nixiesearch into specialized components. This approach gives you better performance, scalability, and operational flexibility for production workloads where you need more control over how different parts of the system behave.
 
+For serverless deployments, see the [AWS Lambda deployment guide](lambda.md) which covers running searchers as Lambda functions.
+
 ### What You Get
 
 In a distributed setup, you get dedicated searcher pods (typically 2 replicas) that handle all search queries, plus a single indexer pod that processes documents and builds indexes. Everything stays synchronized through [S3](https://aws.amazon.com/s3/) storage, and you can scale each component independently. The multiple searcher replicas provide high availability for your search service.

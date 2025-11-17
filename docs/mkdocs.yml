@@ -180,6 +180,7 @@ nav:
                 - Overview: deployment/distributed/indexing/overview.md
                 - Apache Kafka: deployment/distributed/indexing/kafka.md
                 - File: deployment/distributed/indexing/file.md
+            - AWS Lambda: deployment/distributed/lambda.md
             - GPU support: deployment/distributed/gpu.md
             - Caching: reference/cache.md
             - Prometheus monitoring: deployment/distributed/prometheus.md
