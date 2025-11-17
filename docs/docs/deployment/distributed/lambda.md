@@ -204,6 +204,15 @@ See the [configuration reference](../../reference/config.md) for all available o
 
 ## Deployment
 
+!!! note "ECR Registry Required"
+    AWS Lambda requires container images to be stored in Amazon ECR (Elastic Container Registry). You must use the ECR registry URI instead of Docker Hub:
+
+    ```
+    public.ecr.aws/f3z9z3z0/nixiesearch:latest
+    ```
+
+    Lambda cannot pull images directly from Docker Hub. See the [Container Registries](../overview.md#container-registries) section for more details.
+
 Using Terraform:
 
 ```hcl
@@ -211,7 +220,7 @@ resource "aws_lambda_function" "nixiesearch" {
   function_name = "nixiesearch-searcher"
   role          = aws_iam_role.lambda_role.arn
   package_type  = "Image"
-  image_uri     = "nixiesearch/nixiesearch:latest"
+  image_uri     = "public.ecr.aws/f3z9z3z0/nixiesearch:latest"
   memory_size   = 3008
   timeout       = 60
 
