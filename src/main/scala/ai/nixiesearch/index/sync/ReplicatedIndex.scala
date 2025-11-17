@@ -15,7 +15,7 @@ trait ReplicatedIndex extends Index {
         Stream
           .evalSeq(masterManifest.diff(Some(replicaManifest)))
           .evalMap {
-            case ChangedFileOp.Add(fileName) => replica.write(fileName, master.read(fileName))
+            case ChangedFileOp.Add(fileName, size) => replica.write(fileName, master.read(fileName, size))
             case ChangedFileOp.Del(fileName) => replica.delete(fileName)
           }
           .compile
@@ -27,7 +27,7 @@ trait ReplicatedIndex extends Index {
         Stream
           .evalSeq(masterManifest.diff(None))
           .evalMap {
-            case ChangedFileOp.Add(fileName) => replica.write(fileName, master.read(fileName))
+            case ChangedFileOp.Add(fileName,size) => replica.write(fileName, master.read(fileName,size))
             case ChangedFileOp.Del(fileName) => replica.delete(fileName)
           }
           .compile

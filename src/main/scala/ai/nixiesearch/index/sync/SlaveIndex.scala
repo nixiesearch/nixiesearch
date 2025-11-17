@@ -22,16 +22,16 @@ case class SlaveIndex(
     seqnum: Ref[IO, Long]
 ) extends ReplicatedIndex {
   override def sync(): IO[Boolean] = for {
-    _                     <- debug("index sync remote->slave in progress")
+    _                     <- info("index sync remote->slave in progress")
     masterManifestOption  <- master.readManifest()
     replicaManifestOption <- replica.readManifest()
     changed               <- (masterManifestOption, replicaManifestOption) match {
       case (Some(masterManifest), Some(replicaManifest)) if masterManifest.seqnum > replicaManifest.seqnum =>
         Stream
           .evalSeq(masterManifest.diff(Some(replicaManifest)))
-          .evalMap {
-            case ChangedFileOp.Add(fileName) => replica.write(fileName, master.read(fileName))
-            case ChangedFileOp.Del(fileName) => replica.delete(fileName)
+          .parEvalMap(16) {
+            case ChangedFileOp.Add(fileName, size) => replica.write(fileName, master.read(fileName, size))
+            case ChangedFileOp.Del(fileName)       => replica.delete(fileName)
           }
           .compile
           .drain
@@ -41,9 +41,9 @@ case class SlaveIndex(
       case (Some(masterManifest), None) =>
         Stream
           .evalSeq(masterManifest.diff(None))
-          .evalMap {
-            case ChangedFileOp.Add(fileName) => replica.write(fileName, master.read(fileName))
-            case ChangedFileOp.Del(fileName) => replica.delete(fileName)
+          .parEvalMap(16) {
+            case ChangedFileOp.Add(fileName, size) => replica.write(fileName, master.read(fileName, size))
+            case ChangedFileOp.Del(fileName)       => replica.delete(fileName)
           }
           .compile
           .drain

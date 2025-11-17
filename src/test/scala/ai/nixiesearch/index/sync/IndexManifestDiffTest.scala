@@ -14,34 +14,34 @@ class IndexManifestDiffTest extends AnyFlatSpec with Matchers {
   it should "dump all files if target is empty" in {
     val source = TestManifest(List(IndexFile("a", 100L)))
     val result = source.diff(None).unsafeRunSync()
-    result shouldBe List(Add("a"), Add(IndexManifest.MANIFEST_FILE_NAME))
+    result shouldBe List(Add("a", None), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
   it should "update only manifest when nothing changed" in {
     val source = TestManifest(List(IndexFile("a", 100L)))
     val result = source.diff(Some(source)).unsafeRunSync()
-    result shouldBe List(Add(IndexManifest.MANIFEST_FILE_NAME))
+    result shouldBe List(Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
   it should "add new files" in {
     val source = TestManifest(List(IndexFile("a", 100L), IndexFile("b", 100L)))
     val dest   = TestManifest(List(IndexFile("a", 100L)))
     val result = source.diff(Some(dest)).unsafeRunSync()
-    result shouldBe List(Add("b"), Add(IndexManifest.MANIFEST_FILE_NAME))
+    result shouldBe List(Add("b", None), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
   it should "del removed files" in {
     val source = TestManifest(List(IndexFile("a", 100L)))
     val dest   = TestManifest(List(IndexFile("a", 100L), IndexFile("b", 100L)))
     val result = source.diff(Some(dest)).unsafeRunSync()
-    result shouldBe List(Del("b"), Add(IndexManifest.MANIFEST_FILE_NAME))
+    result shouldBe List(Del("b"), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
   it should "replace changed files" in {
     val source = TestManifest(List(IndexFile("a", 200L), IndexFile("b", 100L)))
     val dest   = TestManifest(List(IndexFile("a", 100L), IndexFile("b", 100L)))
     val result = source.diff(Some(dest)).unsafeRunSync()
-    result shouldBe List(Add("a"), Add(IndexManifest.MANIFEST_FILE_NAME))
+    result shouldBe List(Add("a", None), Add(IndexManifest.MANIFEST_FILE_NAME, None))
   }
 
 }
