@@ -72,7 +72,7 @@ No sync wait on cold start, but search queries have higher latency (50-100ms) du
 
 ### Index Size Considerations
 
-Nixiesearch uses memory-mapped I/O (mmap in JDK builds, NIO in native builds) to access index data, so there's no hard limit on index size. However, **for semantic search with HNSW vector indexes**, if your index doesn't fit in available RAM, expect search latency to jump roughly 10x due to random disk reads during graph traversal.
+Nixiesearch uses memory-mapped I/O (mmap in JDK builds, NIO in native builds) to access index data, so there's no hard limit on index size. For native builds, you can explicitly configure `directory: "nio"` in the [index configuration](../../reference/config.md#index-configuration) if needed. However, **for semantic search with HNSW vector indexes**, if your index doesn't fit in available RAM, expect search latency to jump roughly 10x due to random disk reads during graph traversal.
 
 Note that Lambda has a **practical 3GB memory limit** (not 10GB as some docs suggest) unless you submit a quota increase request through AWS Support.
 

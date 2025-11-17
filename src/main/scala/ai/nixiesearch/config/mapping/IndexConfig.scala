@@ -1,19 +1,36 @@
 package ai.nixiesearch.config.mapping
 
-import ai.nixiesearch.config.mapping.IndexConfig.{FlushConfig, IndexerConfig}
-import ai.nixiesearch.util.Size
+import ai.nixiesearch.config.mapping.IndexConfig.DirectoryType.{MMapDirectoryType, NIOFSDirectoryType}
+import ai.nixiesearch.config.mapping.IndexConfig.{DirectoryType, FlushConfig, IndexerConfig}
+import ai.nixiesearch.core.Error.UserError
+import ai.nixiesearch.util.{Size, Version}
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 
 import scala.concurrent.duration.*
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success}
 
 case class IndexConfig(
-    indexer: IndexerConfig = IndexerConfig()
+    indexer: IndexerConfig = IndexerConfig(),
+    directory: DirectoryType = MMapDirectoryType
 )
 
 object IndexConfig {
   import DurationJson.given
+
+  enum DirectoryType(val name: String) {
+    case MMapDirectoryType  extends DirectoryType("mmap")
+    case NIOFSDirectoryType extends DirectoryType("nio")
+  }
+  object DirectoryType {
+    given directoryEncoder: Encoder[DirectoryType] = Encoder.encodeString.contramap(_.name)
+    given directoryDecoder: Decoder[DirectoryType] = Decoder.decodeString.emapTry {
+      case MMapDirectoryType.name  => Success(MMapDirectoryType)
+      case NIOFSDirectoryType.name => Success(NIOFSDirectoryType)
+      case other                   => Failure(UserError(s"directory type '$other' not supported, use nio/mmap"))
+    }
+  }
 
   case class FlushConfig(interval: FiniteDuration = 5.seconds)
 
@@ -51,9 +68,11 @@ object IndexConfig {
 
   given indexConfigDecoder: Decoder[IndexConfig] = Decoder.instance(c =>
     for {
-      indexer <- c.downField("indexer").as[Option[IndexerConfig]].map(_.getOrElse(IndexerConfig()))
+      indexer   <- c.downField("indexer").as[Option[IndexerConfig]]
+      directory <- c.downField("directory").as[Option[DirectoryType]]
     } yield {
-      IndexConfig(indexer)
+      val default = IndexConfig()
+      IndexConfig(indexer = indexer.getOrElse(default.indexer), directory = directory.getOrElse(default.directory))
     }
   )
 

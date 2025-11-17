@@ -98,6 +98,7 @@ Fields:
 * `hnsw.efc`: optional, int, default 100. How many neighbors in the HNSW graph are explored during indexing. Bigger the value, better the recall, but slower the indexing speed.
 * `hnsw.workers`: optional, int, default = number of CPU cores. How many concurrent workers to use for index merges.
 * `indexer.merge_policy`: optional, merge policy config, default `tiered`. Controls how Lucene merges index segments. See [Merge Policies](#merge-policies) section below for details.
+* `directory`: optional, enum (`mmap` or `nio`), default `mmap`. Lucene Directory implementation for index storage. Use `nio` for GraalVM native images where mmap is unavailable.
 
 ### Merge Policies
 

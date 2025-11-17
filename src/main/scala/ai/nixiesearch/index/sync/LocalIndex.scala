@@ -44,7 +44,7 @@ object LocalIndex extends Logging {
       models: Models
   ): Resource[IO, LocalIndex] = {
     for {
-      directory <- LocalDirectory.fromLocal(config.local, configMapping.name)
+      directory <- LocalDirectory.fromLocal(config.local, configMapping.name, configMapping.config.directory)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
       manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))

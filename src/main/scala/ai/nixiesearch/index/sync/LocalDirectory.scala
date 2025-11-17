@@ -2,11 +2,13 @@ package ai.nixiesearch.index.sync
 
 import ai.nixiesearch.config.StoreConfig
 import ai.nixiesearch.config.StoreConfig.LocalStoreLocation
+import ai.nixiesearch.config.mapping.IndexConfig.DirectoryType
 import ai.nixiesearch.config.mapping.IndexName
 import ai.nixiesearch.core.Logging
 import ai.nixiesearch.index.manifest.IndexManifest
 import ai.nixiesearch.index.manifest.IndexManifest.ChangedFileOp
 import ai.nixiesearch.index.store.{DirectoryStateClient, StateClient}
+import ai.nixiesearch.util.Version
 import cats.effect.{IO, Resource}
 import org.apache.lucene.store.{ByteBuffersDirectory, Directory, MMapDirectory, NIOFSDirectory}
 import fs2.Stream
@@ -15,12 +17,29 @@ import java.nio.file.{Files, Path}
 
 object LocalDirectory extends Logging {
   case class DirectoryError(m: String) extends Exception(m)
-  def fromLocal(local: LocalStoreLocation, indexName: IndexName): Resource[IO, Directory] = local match {
+
+  private def makeDirectory(directoryType: DirectoryType, path: Path): Directory = directoryType match {
+    case DirectoryType.MMapDirectoryType if Version.isGraalVMNativeImage =>
+      logger.warn(
+        "Configured to use MMapDirectory, but we're running in a native image: falling back to NIOFSDirectory"
+      )
+      new NIOFSDirectory(path)
+    case DirectoryType.MMapDirectoryType =>
+      logger.info("Using MMapDirectory")
+      new MMapDirectory(path)
+    case DirectoryType.NIOFSDirectoryType =>
+      logger.info("Using NIOFSDirectory")
+      new NIOFSDirectory(path)
+  }
+  def fromLocal(
+      local: LocalStoreLocation,
+      indexName: IndexName,
+      directoryType: DirectoryType
+  ): Resource[IO, Directory] = local match {
     case StoreConfig.LocalStoreLocation.DiskLocation(path) =>
       for {
-        _             <- Resource.eval(info("initialized MMapDirectory"))
         safeIndexPath <- Resource.eval(indexPath(path, indexName))
-        directory     <- Resource.make(IO(new NIOFSDirectory(safeIndexPath)))(dir => IO(dir.close()))
+        directory     <- Resource.make(IO(makeDirectory(directoryType, safeIndexPath)))(dir => IO(dir.close()))
 
       } yield {
         directory
@@ -37,9 +56,10 @@ object LocalDirectory extends Logging {
   def fromRemote(
       localLocation: LocalStoreLocation,
       remote: StateClient,
-      indexName: IndexName
+      indexName: IndexName,
+      directoryType: DirectoryType
   ): Resource[IO, Directory] = for {
-    directory            <- fromLocal(localLocation, indexName)
+    directory            <- fromLocal(localLocation, indexName, directoryType)
     local                <- Resource.pure(DirectoryStateClient(directory, indexName))
     localManifestOption  <- Resource.eval(local.readManifest())
     remoteManifestOption <- Resource.eval(remote.readManifest())
