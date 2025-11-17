@@ -14,13 +14,11 @@ import java.nio.file.Paths
 class SearchModeTest extends AnyFlatSpec with Matchers {
   it should "start on dummy mode with no indices" in {
     val conf            = Config()
-    val (api, shutdown) = Resource
-      .eval(
-        SearchMode
-          .run(SearchArgs(config = LocalURL(Paths.get("src/test/resources/config/minimal.yml"))), EnvVars(Map.empty))
-      )
-      .allocated
-      .unsafeRunSync()
+    val (api, shutdown) =
+      SearchMode
+        .init(SearchArgs(config = LocalURL(Paths.get("src/test/resources/config/minimal.yml"))), EnvVars(Map.empty))
+        .allocated
+        .unsafeRunSync()
 
     shutdown.unsafeRunSync()
   }

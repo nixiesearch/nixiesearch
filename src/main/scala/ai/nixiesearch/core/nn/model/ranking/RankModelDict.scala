@@ -8,6 +8,7 @@ import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
 import ai.nixiesearch.core.nn.model.ranking.providers.OnnxRankModel
 import ai.nixiesearch.core.nn.model.ranking.providers.OnnxRankModel.OnnxRankInferenceModelConfig
+import ai.nixiesearch.util.Version
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 
@@ -32,6 +33,8 @@ object RankModelDict extends Logging {
       metrics: Metrics
   ): Resource[IO, RankModelDict] = for {
     rankers <- models.toList.map {
+      case (model, config: OnnxRankInferenceModelConfig) if Version.isGraalVMNativeImage =>
+        Resource.eval(IO.raiseError(UserError(s"$model is not supported on native docker images, please use JDK one")))
       case (model, config: OnnxRankInferenceModelConfig) =>
         OnnxRankModel.create(config.model, config, localFileCache).map(m => model -> m)
       case (model, other) =>

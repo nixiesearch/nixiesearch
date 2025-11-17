@@ -16,6 +16,8 @@ import org.typelevel.ci.CIString
 import org.http4s.circe.*
 import io.circe.syntax.*
 
+import java.nio.charset.StandardCharsets
+
 case class LambdaRuntimeClient(client: Client[IO], endpoint: Uri) extends Logging {
   def waitForNextInvocation(): IO[ApiGatewayV2Request] =
     client.get(endpoint / "2018-06-01" / "runtime" / "invocation" / "next")(response =>
@@ -32,7 +34,7 @@ case class LambdaRuntimeClient(client: Client[IO], endpoint: Uri) extends Loggin
           entity = Entity.utf8String(
             LambdaError(
               error.getMessage,
-              "Runtime.UnknownReason",
+              "Runtime.BackendError",
               error.getStackTrace.map(_.toString).toList
             ).asJson.noSpaces
           )
@@ -72,13 +74,18 @@ object LambdaRuntimeClient extends Logging {
       isBase64Encoded: Option[Boolean]
   ) {
     def toHttp4s(): IO[Request[IO]] = {
+      val uriString = rawQueryString match {
+        case Some(qs) if qs.nonEmpty => s"${requestContext.http.path}?$qs"
+        case _                       => requestContext.http.path
+      }
+
       for {
-        uri    <- IO.fromEither(Uri.fromString(requestContext.http.path))
+        uri    <- IO.fromEither(Uri.fromString(uriString))
         method <- IO.fromEither(Method.fromString(requestContext.http.method))
         h          = Headers(headers.map { case (k, v) => Header.Raw(CIString(k), v) }.toList)
         bodyStream = body match {
           case None          => Stream.empty[IO]
-          case Some(content) => Stream.emits(content.getBytes())
+          case Some(content) => Stream.emits(content.getBytes(StandardCharsets.UTF_8))
         }
       } yield {
         Request[IO](method = method, uri = uri, headers = h, entity = Entity.stream(bodyStream))
@@ -106,7 +113,7 @@ object LambdaRuntimeClient extends Logging {
 
     def fromResponse(response: Response[IO]): IO[ApiGatewayV2Response] = for {
       bodyBytes <- response.body.compile.to(Array)
-      bodyString = new String(bodyBytes)
+      bodyString = new String(bodyBytes, StandardCharsets.UTF_8)
       headers    = response.headers.headers.map(h => h.name.toString -> h.value).toMap
     } yield {
       ApiGatewayV2Response(

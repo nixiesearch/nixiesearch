@@ -10,7 +10,7 @@ import ai.nixiesearch.core.nn.{ModelHandle, ModelRef}
 import ai.nixiesearch.core.nn.ModelHandle.{HuggingFaceHandle, LocalModelHandle}
 import ai.nixiesearch.core.nn.huggingface.{HuggingFaceClient, ModelFileCache}
 import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel
-import ai.nixiesearch.util.GPUUtils
+import ai.nixiesearch.util.{GPUUtils, Version}
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import fs2.io.file.Path as Fs2Path
@@ -65,6 +65,10 @@ object GenerativeModelDict extends Logging {
   ): Resource[IO, GenerativeModelDict] =
     for {
       generativeModels <- models.toList.map {
+        case (name: ModelRef, _) if Version.isGraalVMNativeImage =>
+          Resource.raiseError[IO, (ModelRef, GenerativeModel), Throwable](
+            UserError(s"LLM model ${name.name} is not supported on native images. Please switch to a JDK based one.")
+          )
         case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: HuggingFaceHandle, _, _, _)) =>
           createHuggingface(handle, name, conf, cache).map(model => name -> model)
         case (name: ModelRef, conf @ LlamacppInferenceModelConfig(handle: LocalModelHandle, _, _, _)) =>

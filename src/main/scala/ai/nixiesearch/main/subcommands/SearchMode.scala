@@ -28,7 +28,7 @@ object SearchMode extends Mode[SearchArgs] {
     init(args, env).use(app =>
       args.api match {
         case ApiMode.Http   => serveHttp(app.routes, app.config)
-        case ApiMode.Lambda => serveLambda(app.routes, app.config, env: EnvVars)
+        case ApiMode.Lambda => serveLambda(app.routes, app.config, env)
       }
     )
 
@@ -104,7 +104,7 @@ object SearchMode extends Mode[SearchArgs] {
   def processLambdaRequest(routes: HttpApp[IO], rawRequest: ApiGatewayV2Request): IO[ApiGatewayV2Response] = for {
     _           <- debug(s"got lambda request: $rawRequest")
     request     <- rawRequest.toHttp4s()
-    _           <- debug(s"http4s lambda request: $rawRequest")
+    _           <- debug(s"http4s lambda request: $request")
     response    <- routes.run(request)
     rawResponse <- ApiGatewayV2Response.fromResponse(response)
     _           <- debug(s"response: ${rawResponse}")

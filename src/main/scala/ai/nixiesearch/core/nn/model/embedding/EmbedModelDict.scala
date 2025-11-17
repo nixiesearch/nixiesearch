@@ -13,10 +13,15 @@ import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.Query
 import ai.nixiesearch.core.nn.model.embedding.cache.{CachedEmbedModel, MemoryCachedEmbedModel}
 import ai.nixiesearch.core.nn.model.embedding.providers.CohereEmbedModel.CohereEmbeddingInferenceModelConfig
-import ai.nixiesearch.core.nn.model.embedding.providers.{CohereEmbedModel, EmbedModelProvider, OnnxEmbedModel, OpenAIEmbedModel}
+import ai.nixiesearch.core.nn.model.embedding.providers.{
+  CohereEmbedModel,
+  EmbedModelProvider,
+  OnnxEmbedModel,
+  OpenAIEmbedModel
+}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel.OnnxEmbeddingInferenceModelConfig
 import ai.nixiesearch.core.nn.model.embedding.providers.OpenAIEmbedModel.OpenAIEmbeddingInferenceModelConfig
-import ai.nixiesearch.util.EnvVars
+import ai.nixiesearch.util.{EnvVars, Version}
 import cats.effect
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -71,6 +76,12 @@ object EmbedModelDict extends Logging {
   ): Resource[IO, EmbedModelDict] =
     for {
       encoders <- models.toList.map {
+        case (name: ModelRef, conf: OnnxEmbeddingInferenceModelConfig) if Version.isGraalVMNativeImage =>
+          Resource.raiseError[IO, (ModelRef, EmbedModel), Throwable](
+            UserError(
+              s"model ${name.name} is an ONNX model, which is not supported on native images. Either switch to JDK, or use API-based embedding providers"
+            )
+          )
         case (name: ModelRef, conf: OnnxEmbeddingInferenceModelConfig) =>
           OnnxEmbedModel
             .create(conf.model, conf, localFileCache)
