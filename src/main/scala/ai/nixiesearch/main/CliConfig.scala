@@ -4,7 +4,8 @@ import ai.nixiesearch.config.ApiConfig.{Hostname, Port}
 import ai.nixiesearch.config.URL
 import ai.nixiesearch.core.Error.UserError
 import ai.nixiesearch.core.Logging
-import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs, TraceArgs}
+import ai.nixiesearch.main.CliConfig.ApiMode.Http
+import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.IndexSourceArgs.*
 import ai.nixiesearch.main.CliConfig.{IndexSourceArgs, *}
 import ai.nixiesearch.main.CliConfig.Loglevel.INFO
@@ -113,12 +114,19 @@ case class CliConfig(arguments: List[String]) extends ScallopConf(arguments) wit
     addSubcommand(file)
     addSubcommand(kafka)
   }
-  object search extends Subcommand("search") with ConfigOption with LoglevelOption
-  object trace  extends Subcommand("trace")
+  object search extends Subcommand("search") with ConfigOption with LoglevelOption {
+    val api = opt[ApiMode](
+      name = "api",
+      required = false,
+      default = Some(ApiMode.Http),
+      descr = "API serving mode: http or lambda"
+    )
+  }
+
   addSubcommand(standalone)
   addSubcommand(index)
   addSubcommand(search)
-  addSubcommand(trace)
+
   version("Nixiesearch v:" + Version().getOrElse("unknown"))
   banner("""Usage: nixiesearch <subcommand> <options>
            |Options:
@@ -148,8 +156,12 @@ object CliConfig extends Logging {
 
     case StandaloneArgs(config: URL, loglevel: Loglevel = INFO)                     extends CliArgs("standalone")
     case IndexArgs(config: URL, source: IndexSourceArgs, loglevel: Loglevel = INFO) extends CliArgs("index")
-    case SearchArgs(config: URL, loglevel: Loglevel = INFO)                         extends CliArgs("search")
-    case TraceArgs(loglevel: Loglevel = INFO)                                       extends CliArgs("trace")
+    case SearchArgs(config: URL, loglevel: Loglevel = INFO, api: ApiMode = Http)    extends CliArgs("search")
+  }
+
+  enum ApiMode {
+    case Http   extends ApiMode
+    case Lambda extends ApiMode
   }
 
   enum IndexSourceArgs {
@@ -201,8 +213,6 @@ object CliConfig extends Logging {
     parser <- IO(CliConfig(args))
     _      <- IO(parser.verify())
     opts   <- parser.subcommand match {
-      case Some(parser.trace) =>
-        IO(TraceArgs())
       case Some(parser.standalone) =>
         for {
           config   <- parse(parser.standalone.config)
@@ -277,8 +287,9 @@ object CliConfig extends Logging {
         for {
           config   <- parse(parser.search.config)
           loglevel <- parseOption(parser.search.loglevel)
+          api     <- parseOption(parser.search.api)
         } yield {
-          SearchArgs(config, loglevel.getOrElse(INFO))
+          SearchArgs(config, loglevel.getOrElse(INFO), api.getOrElse(ApiMode.Http))
         }
       case Some(other) =>
         IO.raiseError(new Exception(s"Subcommand $other is not supported. Try standalone/search/index."))
