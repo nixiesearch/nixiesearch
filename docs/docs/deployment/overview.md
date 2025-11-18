@@ -54,7 +54,7 @@ Multi-arch tags (like `0.8.0` and `latest`) use Docker manifests to automaticall
 ### AWS ECR Public Registry
 
 ```
-public.ecr.aws/f3z9z3z0/nixiesearch:<tag>
+public.ecr.aws/nixiesearch/nixiesearch:<tag>
 ```
 
 AWS ECR Public Registry mirrors all Docker Hub images and is required for certain AWS services:

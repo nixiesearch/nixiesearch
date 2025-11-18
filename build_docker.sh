@@ -2,9 +2,9 @@
 
 set -euxo pipefail
 V=$1
-ECR_REGISTRY=public.ecr.aws/f3z9z3z0/nixiesearch
+ECR_REGISTRY=public.ecr.aws/nixiesearch/nixiesearch
 
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f3z9z3z0
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/nixiesearch
 
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
