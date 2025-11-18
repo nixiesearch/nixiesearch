@@ -204,14 +204,30 @@ See the [configuration reference](../../reference/config.md) for all available o
 
 ## Deployment
 
-!!! note "ECR Registry Required"
-    AWS Lambda requires container images to be stored in Amazon ECR (Elastic Container Registry). You must use the ECR registry URI instead of Docker Hub:
+!!! note "Private ECR Registry Required"
+    AWS Lambda requires container images to be stored in a **private ECR registry in the same region** as your Lambda function. While Nixiesearch images are hosted in the public ECR registry, Lambda cannot use them directly.
 
-    ```
-    public.ecr.aws/f3z9z3z0/nixiesearch:latest
-    ```
+    To deploy Nixiesearch on Lambda:
 
-    Lambda cannot pull images directly from Docker Hub. See the [Container Registries](../overview.md#container-registries) section for more details.
+    1. Pull the public image:
+       ```bash
+       docker pull public.ecr.aws/nixiesearch/nixiesearch:latest
+       ```
+
+    2. Tag it for your private ECR registry:
+       ```bash
+       docker tag public.ecr.aws/nixiesearch/nixiesearch:latest \
+         XXXXXXX.dkr.ecr.us-east-1.amazonaws.com/nixiesearch:latest
+       ```
+
+    3. Authenticate and push to your private ECR:
+       ```bash
+       aws ecr get-login-password --region us-east-1 | \
+         docker login --username AWS --password-stdin XXXXXXX.dkr.ecr.us-east-1.amazonaws.com
+       docker push XXXXXXX.dkr.ecr.us-east-1.amazonaws.com/nixiesearch:latest
+       ```
+
+    Replace `XXXXXXX` with your AWS account ID and `us-east-1` with your Lambda's region. See the [Container Registries](../overview.md#container-registries) section for more details.
 
 Using Terraform:
 
@@ -220,7 +236,7 @@ resource "aws_lambda_function" "nixiesearch" {
   function_name = "nixiesearch-searcher"
   role          = aws_iam_role.lambda_role.arn
   package_type  = "Image"
-  image_uri     = "public.ecr.aws/f3z9z3z0/nixiesearch:latest"
+  image_uri     = "XXXXXXX.dkr.ecr.us-east-1.amazonaws.com/nixiesearch:latest"
   memory_size   = 3008
   timeout       = 60
 
