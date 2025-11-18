@@ -53,8 +53,9 @@ abstract class NixiesearchCodec(name: String, parent: Codec, mapping: IndexMappi
                     case QuantStore.Int1 =>
                       new Lucene102HnswBinaryQuantizedVectorsFormat(conf.m, conf.ef, conf.workers, null)
                   }
-                  cache.put(field, fmt)
-                  fmt
+                  val wrapped = new HighDimVectorFormat(fmt)
+                  cache.put(field, wrapped)
+                  wrapped
                 case None =>
                   throw BackendError(
                     s"field $field expected to be a vector field, but it's ${mapping.fieldSchema(StringName(field))}"

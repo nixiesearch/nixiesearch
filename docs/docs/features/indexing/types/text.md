@@ -51,7 +51,7 @@ schema:
 Fields:
 
 * `model` (optional): embedding model for server-side inference. Required when documents don't have pre-computed embeddings.
-* `dim` (optional): embedding vector dimensions for pre-embedded documents. Required when `model` is not specified.
+* `dim` (optional): embedding vector dimensions for pre-embedded documents. Required when `model` is not specified. Maximum supported dimensions: 8192.
 * `ef` and `m`: HNSW index parameters. The higher these values, the better the search recall at the cost of performance.
 * `quantize` (optional, `float32`/`int8`/`int4`/`int1`, default `float32`): index quantization level. `int8` saves 4x RAM and disk but at the cost of worse recall.
 * `workers` (optional, int, default is same as number of CPUs in the system): how many background workers to use for HNSW indexing operations.
