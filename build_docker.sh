@@ -4,8 +4,6 @@ set -euxo pipefail
 V=$1
 ECR_REGISTRY=public.ecr.aws/f3z9z3z0/nixiesearch
 
-# Authenticate with AWS ECR Public Registry
-echo "Authenticating with AWS ECR Public Registry..."
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f3z9z3z0
 
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes

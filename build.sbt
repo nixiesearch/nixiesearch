@@ -209,7 +209,6 @@ dockerNative := {
 
     // Copy JAR and native-image configs
     add(jar, "/build/nixiesearch.jar")
-    add(new File("native-image-configs"), "/build/native-image-configs")
 
     // Build native image with all options from Dockerfile.native
     runRaw(
