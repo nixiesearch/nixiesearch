@@ -28,6 +28,7 @@ object StandaloneMode extends Mode[StandaloneArgs] {
 
   def run(args: StandaloneArgs, env: EnvVars): IO[Unit] = for {
     config <- Config.load(args.config, env)
+    _      <- printSystemDetails(config.core.cache.dir)
     _      <- AnalyticsReporter.create(config, args.mode).use(_ => api(config, env).use(_ => IO.never))
   } yield {}
 

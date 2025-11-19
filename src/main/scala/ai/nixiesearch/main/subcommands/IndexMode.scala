@@ -11,10 +11,12 @@ import ai.nixiesearch.index.sync.Index
 import ai.nixiesearch.main.CliConfig.CliArgs.IndexArgs
 import ai.nixiesearch.main.CliConfig.IndexSourceArgs.{ApiIndexSourceArgs, FileIndexSourceArgs, KafkaIndexSourceArgs}
 import ai.nixiesearch.main.Logo
+import ai.nixiesearch.main.subcommands.SearchMode.printSystemDetails
 import ai.nixiesearch.main.subcommands.util.PeriodicEvalStream
 import ai.nixiesearch.source.{DocumentSource, FileSource, KafkaSource}
 import ai.nixiesearch.util.EnvVars
 import ai.nixiesearch.util.analytics.AnalyticsReporter
+import cats.effect.kernel.Resource
 import cats.effect.{IO, Resource}
 import cats.syntax.all.*
 import fs2.Stream
@@ -23,6 +25,7 @@ object IndexMode extends Mode[IndexArgs] {
   override def run(args: IndexArgs, env: EnvVars): IO[Unit] = for {
     _       <- info("Starting in 'index' mode with indexer only ")
     config  <- Config.load(args.config, env)
+    _       <- printSystemDetails(config.core.cache.dir)
     indexes <- IO(config.schema.values.toList)
     _       <- AnalyticsReporter
       .create(config, args.mode)

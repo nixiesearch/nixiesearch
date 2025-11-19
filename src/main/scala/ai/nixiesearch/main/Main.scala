@@ -4,13 +4,27 @@ import ai.nixiesearch.core.Logging
 import ai.nixiesearch.main.CliConfig.CliArgs.{IndexArgs, SearchArgs, StandaloneArgs}
 import ai.nixiesearch.main.CliConfig.{CliArgs, Loglevel}
 import ai.nixiesearch.main.subcommands.{IndexMode, SearchMode, StandaloneMode}
-import ai.nixiesearch.util.{EnvVars, GPUUtils}
-import ai.nixiesearch.util.PrintLogger
+import ai.nixiesearch.util.{EnvVars, GPUUtils, PrintLogger, Version}
+import cats.effect.metrics.CpuStarvationWarningMetrics
 import cats.effect.{ExitCode, IO, IOApp}
 import fs2.Stream
 
+import scala.jdk.CollectionConverters.*
+import cats.syntax.all.*
+
 object Main extends IOApp with Logging {
   case class ArgsEnv(args: CliArgs, env: EnvVars)
+
+  override def computeWorkerThreadCount: Int = {
+    if (super.computeWorkerThreadCount <= 2) {
+      logger.warn(s"Increasing threadpool size from ${super.computeWorkerThreadCount} to 4")
+      4
+    } else {
+      super.computeWorkerThreadCount
+    }
+  }
+
+  override def blockedThreadDetectionEnabled: Boolean = true
 
   override def run(args: List[String]): IO[ExitCode] = for {
     argsEnv <- init(args)
@@ -30,6 +44,10 @@ object Main extends IOApp with Logging {
     _    <- changeLogLevel(args.loglevel)
     env  <- EnvVars.load()
     _    <- gpuChecks()
+    _    <- IO.whenA(Version.isGraalVMNativeImage)(
+      warn("Running an experimental GraalVM native build. ONNX and llamacpp inference are disabled.")
+    )
+    _ <- IO.whenA(Version.isLambdaRuntime)(info("Detected AWS Lambda runtime."))
   } yield {
     ArgsEnv(args, env)
   }
@@ -55,4 +73,13 @@ object Main extends IOApp with Logging {
           .drain
     }
   } yield {}
+
+  override def onCpuStarvationWarn(metrics: CpuStarvationWarningMetrics): IO[Unit] = {
+    if (Version.isLambdaRuntime) {
+      info(s"Lambda: app frozen for ${metrics.clockDrift}")
+    } else {
+      warn(s"event loop was blocked for ${metrics.clockDrift}")
+    }
+  }
+
 }
