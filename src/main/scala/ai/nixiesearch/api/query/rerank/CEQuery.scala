@@ -44,9 +44,15 @@ case class CEQuery(
       size: Int
   ): IO[Searcher.TopDocsWithFacets] = for {
     queryTopDocs <- retrieve.topDocs(mapping, readers, sort, filter, models, aggs, window.getOrElse(size))
+    rankStart    <- IO(System.nanoTime())
     merged       <- combine(mapping, readers, models, queryTopDocs.docs, size)
+    rankEnd      <- IO(System.nanoTime())
   } yield {
-    TopDocsWithFacets(merged, queryTopDocs.facets)
+    TopDocsWithFacets(
+      docs = merged,
+      facets = queryTopDocs.facets,
+      took = queryTopDocs.took.copy(rerank = Some((rankEnd - rankStart) / 1000000000.0))
+    )
   }
 
   def combine(

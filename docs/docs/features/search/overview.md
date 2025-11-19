@@ -23,7 +23,10 @@ For such a search request, Nixiesearch will reply with a JSON response with top-
 
 ```json
 {
-  "took": 100,
+  "took": {
+    "total": 0.100,
+    "search": 0.050
+  },
   "hits": [
     {"_id": "1", "title": "hello", "_score": 2},
     {"_id": "2", "title": "world", "_score": 1}

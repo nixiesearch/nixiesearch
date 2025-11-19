@@ -1,6 +1,7 @@
 package ai.nixiesearch.api.query.rerank
 
 import ai.nixiesearch.api.SearchRoute
+import ai.nixiesearch.api.SearchRoute.TookTime
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
 import ai.nixiesearch.api.query.Query
@@ -16,6 +17,7 @@ import io.circe.generic.semiauto.*
 import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.{ScoreDoc, TopDocs, TotalHits}
 import cats.syntax.all.*
+
 import scala.collection.mutable
 
 case class RRFQuery(retrieve: List[Query], k: Float = 60.0f, window: Option[Int] = None) extends RerankQuery {
@@ -29,10 +31,20 @@ case class RRFQuery(retrieve: List[Query], k: Float = 60.0f, window: Option[Int]
       size: Int
   ): IO[Searcher.TopDocsWithFacets] = for {
     queryTopDocs <- retrieve.traverse(_.topDocs(mapping, readers, sort, filter, models, aggs, window.getOrElse(size)))
+    facetStart   <- IO(System.nanoTime())
     facets       <- IO(MergedFacetCollector(queryTopDocs.map(_.facets), aggs))
+    rankStart    <- IO(System.nanoTime())
     merged       <- combine(mapping, readers, models, queryTopDocs.map(_.docs), size)
+    rankEnd      <- IO(System.nanoTime())
   } yield {
-    TopDocsWithFacets(merged, facets)
+    val took = queryTopDocs.foldLeft(TookTime())((took, b) => took.add(b.took))
+    TopDocsWithFacets(
+      merged,
+      facets,
+      took
+        .add(TookTime(agg = Some((rankStart - facetStart) / 1000000000.0)))
+        .copy(rerank = Some((rankEnd - rankStart) / 1000000000.0))
+    )
   }
 
   def combine(

@@ -1,6 +1,6 @@
 package ai.nixiesearch.api.query.retrieve
 
-import ai.nixiesearch.api.SearchRoute.SortPredicate
+import ai.nixiesearch.api.SearchRoute.{SortPredicate, TookTime}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.*
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.*
 import ai.nixiesearch.api.aggregation.Aggs
@@ -74,7 +74,9 @@ trait RetrieveQuery extends Query {
       aggs: Option[Aggs],
       size: Int
   ): IO[TopDocsWithFacets] = for {
+    start                  <- IO(System.nanoTime())
     luceneQueryWithFilters <- compile(mapping, maybeFilter, models.embedding, readers.fields)
+    compileEnd             <- IO(System.nanoTime())
     topCollector           <- sort match {
       case Nil => IO.pure(new TopScoreDocCollectorManager(size, size))
       case nel =>
@@ -86,8 +88,16 @@ trait RetrieveQuery extends Query {
     facetCollector <- IO.pure(new FacetsCollectorManager())
     collector      <- IO.pure(new MultiCollectorManager(topCollector, facetCollector))
     results        <- IO(readers.searcher.search(luceneQueryWithFilters, collector))
+    searchEnd      <- IO(System.nanoTime())
   } yield {
-    TopDocsWithFacets(docs = results(0).asInstanceOf[TopDocs], facets = results(1).asInstanceOf[FacetsCollector])
+    TopDocsWithFacets(
+      docs = results(0).asInstanceOf[TopDocs],
+      facets = results(1).asInstanceOf[FacetsCollector],
+      took = TookTime(
+        request = Some((compileEnd - start) / 1000000000.0),
+        search = Some((searchEnd - compileEnd) / 1000000000.0)
+      )
+    )
   }
 
   def makeSortField(mapping: IndexMapping, by: SortPredicate): IO[SortField] = {

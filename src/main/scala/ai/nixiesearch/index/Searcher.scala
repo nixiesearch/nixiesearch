@@ -9,7 +9,8 @@ import ai.nixiesearch.api.SearchRoute.{
   SearchResponse,
   SortPredicate,
   SuggestRequest,
-  SuggestResponse
+  SuggestResponse,
+  TookTime
 }
 import ai.nixiesearch.api.SearchRoute.SortPredicate.{DistanceSort, FieldValueSort, MissingValue}
 import ai.nixiesearch.api.aggregation.{Aggregation, Aggs}
@@ -42,7 +43,7 @@ import ai.nixiesearch.config.FieldSchema.*
 import ai.nixiesearch.core.Error.{BackendError, UserError}
 import ai.nixiesearch.core.Field.{FloatField, IdField, TextField}
 import ai.nixiesearch.core.aggregate.{AggregationResult, RangeAggregator, TermAggregator}
-import ai.nixiesearch.core.codec.{DocumentVisitor}
+import ai.nixiesearch.core.codec.DocumentVisitor
 import ai.nixiesearch.core.metrics.{Metrics, SearchMetrics}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.suggest.{GeneratedSuggestions, SuggestionRanker}
@@ -107,9 +108,10 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
   }
 
   def search(request: SearchRequest): IO[SearchResponse] = for {
-    start   <- IO(System.currentTimeMillis())
+    start   <- IO(System.nanoTime())
     _       <- IO(metrics.search.activeQueries.labelValues(index.name.value).inc())
     readers <- getReadersOrFail()
+    openEnd <- IO(System.nanoTime())
     query   <- request.query match {
       case q @ KnnQuery(k = None)               => IO.pure(q.copy(k = Some(request.size)))
       case q @ SemanticQuery(k = None)          => IO.pure(q.copy(k = Some(request.size)))
@@ -126,18 +128,24 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
       aggs = request.aggs,
       size = request.size
     )
+    aggStart  <- IO(System.nanoTime())
     aggs      <- aggregate(index.mapping, mergedTopDocs.facets, request.aggs)
+    aggEnd    <- IO(System.nanoTime())
     collected <- collect(index.mapping, mergedTopDocs.docs, request.fields)
-    end       <- IO(System.currentTimeMillis())
-    _         <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
+    end       <- IO(System.nanoTime())
+    _         <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000000000.0))
     _         <- IO(metrics.search.searchTotal.labelValues(index.name.value).inc())
     _         <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
   } yield {
     SearchResponse(
-      took = 0, // filled later
+      took = mergedTopDocs.took.copy(
+        open = Some((openEnd - start) / 1000000000.0),
+        agg = Some((aggEnd - aggStart) / 1000000000.0),
+        fetch = Some((end - aggEnd) / 1000000000.0)
+      ),
       hits = collected,
       aggs = aggs,
-      ts = end
+      ts = end / 1000000L
     )
   }
 
@@ -333,7 +341,7 @@ object Searcher extends Logging {
     }
   }
 
-  case class TopDocsWithFacets(docs: TopDocs, facets: FacetsCollector)
+  case class TopDocsWithFacets(docs: TopDocs, facets: FacetsCollector, took: TookTime)
   def open(index: Index, metrics: Metrics): Resource[IO, Searcher] = {
     for {
 

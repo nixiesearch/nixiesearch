@@ -24,8 +24,6 @@ object Main extends IOApp with Logging {
     }
   }
 
-  override def blockedThreadDetectionEnabled: Boolean = true
-
   override def run(args: List[String]): IO[ExitCode] = for {
     argsEnv <- init(args)
     _       <- argsEnv.args match {
