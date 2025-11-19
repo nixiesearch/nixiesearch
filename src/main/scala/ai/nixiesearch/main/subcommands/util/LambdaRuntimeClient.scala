@@ -6,25 +6,40 @@ import ai.nixiesearch.main.subcommands.util.LambdaRuntimeClient.ApiGatewayV2Requ
 import ai.nixiesearch.main.subcommands.util.LambdaRuntimeClient.{ApiGatewayV2Request, ApiGatewayV2Response, LambdaError}
 import ai.nixiesearch.util.EnvVars
 import cats.effect.{IO, Resource}
-import fs2.Stream
+import fs2.{Chunk, Stream}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder, Json}
-import org.http4s.{Entity, EntityDecoder, Header, Headers, Method, Request, Response, Uri}
+import org.http4s.{Charset, Entity, EntityDecoder, Header, Headers, MediaType, Method, Request, Response, Uri}
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.typelevel.ci.CIString
 import org.http4s.circe.*
 import io.circe.syntax.*
+import org.apache.commons.codec.binary.Base64
+import org.http4s.headers.`Content-Type`
+import scodec.bits.ByteVector
 
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import scala.concurrent.duration.*
 
 case class LambdaRuntimeClient(client: Client[IO], endpoint: Uri) extends Logging {
-  def waitForNextInvocation(): IO[ApiGatewayV2Request] =
-    client.get(endpoint / "2018-06-01" / "runtime" / "invocation" / "next")(response =>
-      response
-        .as[ApiGatewayV2Request]
-        .flatTap(request => debug(s"lambda request: ${request}"))
-    )
+  def waitForNextInvocation(): IO[ApiGatewayV2Request] = {
+    client
+      .run(
+        Request(
+          method = Method.GET,
+          uri = endpoint / "2018-06-01" / "runtime" / "invocation" / "next",
+          headers = Headers(`Content-Type`(MediaType.application.json))
+        )
+      )
+      .use(response =>
+        response
+          .as[ApiGatewayV2Request]
+          .flatTap(request => debug(s"lambda request: ${request}"))
+      )
+  }
+
   def postInvocationError(id: String, error: Throwable): IO[Unit] =
     client
       .run(
@@ -83,12 +98,14 @@ object LambdaRuntimeClient extends Logging {
         uri    <- IO.fromEither(Uri.fromString(uriString))
         method <- IO.fromEither(Method.fromString(requestContext.http.method))
         h          = Headers(headers.map { case (k, v) => Header.Raw(CIString(k), v) }.toList)
-        bodyStream = body match {
-          case None          => Stream.empty[IO]
-          case Some(content) => Stream.emits(content.getBytes(StandardCharsets.UTF_8))
+        bodyEntity = (body, isBase64Encoded) match {
+          case (None, _)                           => Entity.empty[IO]
+          case (Some(content), None | Some(false)) => Entity.string(content, Charset.`UTF-8`)
+          case (Some(content), Some(true))         => Entity.strict(ByteVector.view(Base64.decodeBase64(content)))
+
         }
       } yield {
-        Request[IO](method = method, uri = uri, headers = h, entity = Entity.stream(bodyStream))
+        Request[IO](method = method, uri = uri, headers = h, entity = bodyEntity)
       }
     }
   }
@@ -136,7 +153,7 @@ object LambdaRuntimeClient extends Logging {
         BackendError("cannot find AWS_LAMBDA_RUNTIME_API env var. are we running in AWS Lambda?")
       )
     )
-    client   <- EmberClientBuilder.default[IO].build
+    client   <- EmberClientBuilder.default[IO].withTimeout(15.minutes).withIdleConnectionTime(15.minutes).build
     endpoint <- Resource.eval(IO.fromEither(Uri.fromString(s"http://$apiEndpoint")))
     _        <- Resource.eval(info(s"AWS lambda client started, endpoint: $endpoint"))
   } yield {
