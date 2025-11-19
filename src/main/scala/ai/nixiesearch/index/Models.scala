@@ -26,11 +26,6 @@ object Models extends Logging {
   ): Resource[IO, Models] = for {
     cache      <- Resource.eval(ModelFileCache.create(Paths.get(cacheConfig.dir)))
     embeddings <- EmbedModelDict.create(inferenceConfig.embedding, cache, metrics, env)
-    _          <- Resource.eval(
-      embeddings.embedders.values.toList
-        .map(_.encode(Query, List("warmup")).compile.drain *> info("model warmup done"))
-        .sequence
-    )
     generative <- GenerativeModelDict.create(inferenceConfig.completion, cache, metrics)
     ranker     <- RankModelDict.create(inferenceConfig.ranker, cache, metrics)
   } yield {
