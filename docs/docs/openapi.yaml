@@ -105,17 +105,20 @@ paths:
         {
           "hits": [
             {
-              "_id": 1, 
-              "title": "The Matrix", 
+              "_id": 1,
+              "title": "The Matrix",
               "_score": 0.2
             },
             {
-              "_id": 2, 
-              "title": "The Matrix Revolutions", 
+              "_id": 2,
+              "title": "The Matrix Revolutions",
               "_score": 0.1
             }
-          ]
-          "took": 10
+          ],
+          "took": {
+            "total": 0.010,
+            "search": 0.005
+          }
         }
         ```
       operationId: search
@@ -831,15 +834,46 @@ components:
           $ref: '#/components/schemas/Sort'
 
 
+    TookTime:
+      type: object
+      description: Detailed timing breakdown of search request processing in seconds. All fields are optional and only populated when relevant.
+      properties:
+        open:
+          type: number
+          description: Time spent opening/accessing the index
+          example: 0.001
+        total:
+          type: number
+          description: Total request processing time
+          example: 0.015
+        request:
+          type: number
+          description: Time spent compiling the query request
+          example: 0.002
+        search:
+          type: number
+          description: Time spent executing the Lucene search
+          example: 0.005
+        agg:
+          type: number
+          description: Time spent computing aggregations
+          example: 0.003
+        fetch:
+          type: number
+          description: Time spent fetching document fields
+          example: 0.002
+        rerank:
+          type: number
+          description: Time spent reranking results (for RRF/CE queries)
+          example: 0.002
+
     SearchResponse:
       type: object
       description: Search response. A flat JSON with all requested documents fields and values.
       additionalProperties: true
       properties:
         took:
-          type: number
-          description: Number of seconds spend processing the request, including JSON parsing, search and fetch.
-          example: 0.000123
+          $ref: '#/components/schemas/TookTime'
         hits:
           type: array
           description: List of document fields.

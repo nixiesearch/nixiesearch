@@ -176,7 +176,10 @@ You will get the following response:
 
 ```json
 {
-  "took": 1,
+  "took": {
+    "total": 0.001,
+    "search": 0.0005
+  },
   "hits": [
     {
       "_id": "414906",
@@ -228,7 +231,11 @@ And we also got a "The Dark Knight" movie!
 
 ```json
 {
-  "took": 8,
+  "took": {
+    "total": 0.008,
+    "search": 0.004,
+    "rerank": 0.002
+  },
   "hits": [
     {
       "_id": "414906",

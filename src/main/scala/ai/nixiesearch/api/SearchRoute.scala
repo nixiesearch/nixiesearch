@@ -6,7 +6,7 @@ import ai.nixiesearch.api.SearchRoute.SortPredicate.{MissingValue, SortOrder}
 import ai.nixiesearch.api.SearchRoute.SortPredicate.SortOrder.{ASC, Default}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions
 import ai.nixiesearch.api.SearchRoute.SuggestResponse.Suggestion
-import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SearchResponseFrame, SuggestRequest}
+import ai.nixiesearch.api.SearchRoute.{SearchRequest, SearchResponse, SearchResponseFrame, SuggestRequest, TookTime}
 import ai.nixiesearch.api.SearchRoute.SuggestRequest.SuggestRerankOptions.RRFOptions
 import ai.nixiesearch.api.aggregation.Aggs
 import ai.nixiesearch.api.filter.Filters
@@ -84,11 +84,12 @@ case class SearchRoute(searcher: Searcher) extends Route with Logging {
     response <- searchBlocking(decoded)
     end      <- IO(System.nanoTime())
   } yield {
-    val took = (end - start) / 1000000000.0f
+    val took = (end - start) / 1000000000.0
     Response[IO](
       status = Status.Ok,
       headers = Headers(`Content-Type`(new MediaType("application", "json"))),
-      entity = Entity.string(response.copy(took = took).asJson.noSpaces, Charset.`UTF-8`)
+      entity =
+        Entity.string(response.copy(took = response.took.copy(total = Some(took))).asJson.noSpaces, Charset.`UTF-8`)
     )
   }
 
@@ -221,12 +222,44 @@ object SearchRoute {
   }
 
   case class SearchResponse(
-      took: Float,
+      took: TookTime,
       hits: List[Document],
       aggs: Map[String, AggregationResult],
       response: Option[String] = None,
       ts: Long
-  ) {}
+  )
+
+  case class TookTime(
+      open: Option[Double] = None,
+      total: Option[Double] = None,
+      request: Option[Double] = None,
+      search: Option[Double] = None,
+      agg: Option[Double] = None,
+      fetch: Option[Double] = None,
+      rerank: Option[Double] = None
+  ) {
+    def add(other: TookTime): TookTime = TookTime(
+      open = sum(open, other.open),
+      total = sum(total, other.total),
+      request = sum(request, other.request),
+      search = sum(search, other.search),
+      agg = sum(agg, other.agg),
+      fetch = sum(fetch, other.fetch),
+      rerank = sum(rerank, other.rerank)
+    )
+
+    private def sum(a: Option[Double], b: Option[Double]) = (a, b) match {
+      case (Some(x), Some(y)) => Some(x + y)
+      case (Some(x), None)    => Some(x)
+      case (None, Some(y))    => Some(y)
+      case (None, None)       => None
+    }
+  }
+
+  object TookTime {
+    given tookDecoder: Decoder[TookTime] = deriveDecoder
+    given tookEncoder: Encoder[TookTime] = deriveEncoder[TookTime].mapJson(_.dropNullValues)
+  }
 
   import SearchRequest.given
 
