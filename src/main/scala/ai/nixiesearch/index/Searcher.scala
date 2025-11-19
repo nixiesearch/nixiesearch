@@ -133,7 +133,7 @@ case class Searcher(index: Index, readersRef: Ref[IO, Option[Readers]], metrics:
     aggEnd    <- IO(System.nanoTime())
     collected <- collect(index.mapping, mergedTopDocs.docs, request.fields)
     end       <- IO(System.nanoTime())
-    _         <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000.0))
+    _         <- IO(metrics.search.searchTimeSeconds.labelValues(index.name.value).inc((end - start) / 1000000000.0))
     _         <- IO(metrics.search.searchTotal.labelValues(index.name.value).inc())
     _         <- IO(metrics.search.activeQueries.labelValues(index.name.value).dec())
   } yield {
