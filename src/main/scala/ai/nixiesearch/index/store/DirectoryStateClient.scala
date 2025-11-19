@@ -19,7 +19,7 @@ import scala.jdk.CollectionConverters.*
 case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends StateClient with Logging {
   val IO_BUFFER_SIZE = 16 * 1024L
 
-  private def inputSize(name: String): IO[Long] = IO {
+  private def inputSize(name: String): IO[Long] = IO.blocking {
     val input = dir.openInput(name, IOContext.DEFAULT)
     val size  = input.length()
     input.close()
@@ -27,7 +27,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
   }
 
   override def createManifest(mapping: IndexMapping, seqnum: Long): IO[IndexManifest] = for {
-    files <- IO(
+    files <- IO.blocking(
       if (DirectoryReader.indexExists(dir)) SegmentInfos.readLatestCommit(dir).files(true).asScala.toList else Nil
     )
     entries <- Stream
@@ -40,7 +40,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
   }
 
   override def readManifest(): IO[Option[IndexManifest]] = {
-    IO(dir.listAll().contains(IndexManifest.MANIFEST_FILE_NAME)).flatMap {
+    IO.blocking(dir.listAll().contains(IndexManifest.MANIFEST_FILE_NAME)).flatMap {
       case false => IO.none
       case true  =>
         for {
@@ -69,14 +69,14 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
         ((0 until regularChunks).map(i => chunk) :+ lastChunk).toList
       }
     }
-    def nextChunk(input: IndexInput, chunkSize: Long): IO[Chunk[Byte]] = IO {
+    def nextChunk(input: IndexInput, chunkSize: Long): IO[Chunk[Byte]] = IO.blocking {
       val buffer = new Array[Byte](chunkSize.toInt)
       input.readBytes(buffer, 0, chunkSize.toInt)
       Chunk.byteBuffer(ByteBuffer.wrap(buffer))
     }
     for {
-      input <- Stream.bracket(IO(dir.openInput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(input =>
-        IO(input.close())
+      input <- Stream.bracket(IO.blocking(dir.openInput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(
+        input => IO.blocking(input.close())
       )
       inputSize <- Stream.eval(IO(input.length()))
       _         <- Stream.eval(debug(s"reading file $fileName, size=$inputSize"))
@@ -89,17 +89,17 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
 
   override def write(fileName: String, stream: Stream[IO, Byte]): IO[Unit] = {
     for {
-      exists <- IO(dir.listAll().contains(fileName))
-      _      <- IO.whenA(exists)(IO(dir.deleteFile(fileName)) *> debug(s"overwritten file '$fileName'"))
+      exists <- IO.blocking(dir.listAll().contains(fileName))
+      _      <- IO.whenA(exists)(IO.blocking(dir.deleteFile(fileName)) *> debug(s"overwritten file '$fileName'"))
       _      <- Stream
-        .bracket(IO(dir.createOutput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(out =>
-          IO(out.close())
+        .bracket(IO.blocking(dir.createOutput(fileName, IOContext.DEFAULT)).handleErrorWith(wrapExceptions))(out =>
+          IO.blocking(out.close())
         )
         .evalTap(_ => debug(s"writing file $fileName"))
         .flatMap(out =>
           stream
             .chunkN(IO_BUFFER_SIZE.toInt)
-            .evalMap(chunk => IO(out.writeBytes(chunk.toArray, chunk.size)))
+            .evalMap(chunk => IO.blocking(out.writeBytes(chunk.toArray, chunk.size)))
         )
         .compile
         .drain
@@ -107,7 +107,7 @@ case class DirectoryStateClient(dir: Directory, indexName: IndexName) extends St
   }
 
   override def delete(fileName: String): IO[Unit] =
-    debug(s"deleting $fileName") *> IO(dir.deleteFile(fileName)).handleErrorWith(wrapExceptions)
+    debug(s"deleting $fileName") *> IO.blocking(dir.deleteFile(fileName)).handleErrorWith(wrapExceptions)
 
   private def wrapExceptions(ex: Throwable) = ex match {
     case ex: NoSuchFileException =>
