@@ -37,6 +37,7 @@ object SearchMode extends Mode[SearchArgs] {
   def init(args: SearchArgs, env: EnvVars): Resource[IO, SearchInit] = for {
     _      <- Resource.eval(info(s"Starting in '${args.mode}' mode with only searcher"))
     config <- Resource.eval(Config.load(args.config, env))
+    _      <- Resource.eval(printSystemDetails(config.core.cache.dir))
     _      <- AnalyticsReporter.create(config, args.mode)
 
     metrics   <- Resource.pure(Metrics())

@@ -21,4 +21,6 @@ object Version {
   def isRelease: Boolean = apply().isDefined
 
   def isGraalVMNativeImage: Boolean = System.getProperty("org.graalvm.nativeimage.imagecode") != null
+
+  lazy val isLambdaRuntime: Boolean = Option(System.getenv("AWS_LAMBDA_RUNTIME_API")).isDefined
 }
