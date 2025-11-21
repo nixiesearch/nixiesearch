@@ -1,0 +1,1155 @@
+openapi: "3.0.0"
+info:
+  description: |-
+    Nixiesearch is a **modern search engine** that runs on [S3-compatible storage](deployment/distributed/persistence/s3.md). We built it after dealing with the headaches of running large Elastic/OpenSearch clusters (here's the [blog post full of pain](https://nixiesearch.substack.com/p/nixiesearch-running-lucene-over-s3)), and here’s why it’s awesome:
+
+    * **Powered by [Apache Lucene](https://lucene.apache.org)**: You get support for [39 languages](/reference/languages), [facets](/features/search/facet.md), [advanced filters](/features/search/filter.md), [autocomplete suggestions](/features/autocomplete/index.md), and the familiar [sorting](/features/search/sort.md) features you’re used to.
+    * **Decoupled [S3-based](/deployment/distributed/persistence/s3.md) storage and compute**: There's nothing to break. You get risk-free [backups](/tutorial/backup.md), [upgrades](/tutorial/upgrade.md), [schema changes](/tutorial/schema.md) and [auto-scaling](/tutorial/autoscaling.md), all on a stateless index stored in S3.
+    * **Pull indexing**: Supports both offline and online incremental indexing using an [Apache Spark based ETL process](/features/indexing/overview.md). No more POSTing JSON blobs to prod cluster (and overloading it).
+    * **No state inside the cluster**: All changes (settings, indexes, etc.) are just [config](/reference/config.md) updates, which makes [blue-green deployments](/tutorial/schema.md) of index changes a breeze.
+    * **AI batteries included**: [Embedding](/features/inference/embeddings.md) and [LLM inference](/features/inference/completions.md), first class [RAG API](/features/search/rag.md) support.
+
+  contact:
+    email: roman@nixiesearch.ai
+  version: 0.5.0
+  title: Nixiesearch
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+externalDocs:
+  description: Find out more about Nixiesearch
+  url: http://nixiesearch.ai
+servers:
+  - url: https://demo.nixiesearch.ai/
+tags:
+  - name: Search
+    description: |-
+      Send a search query and get documents found.
+      
+      See [search overview](/features/search/overview/) doc section for more details.
+  - name: Ingest
+    description: Adding and removing documents from the index.
+  - name: Index
+    description: Index operations
+    externalDocs:
+      description: See indexing overview doc section for more details.
+      url: /features/indexing/overview/
+  - name: System
+    description: System endpoints.
+paths:
+  /v1/index:
+    get:
+      summary: List indexes
+      description: |-
+        List all available indexes on the current node.
+        
+        Example request:
+        ```shell
+        curl -XGET http://localhost/v1/indexes
+        ```
+        
+        Example response:
+        ```json
+        {
+          "indexes": [
+            {"name": "movies"},
+            {"name": "orders", "aliases": ["orders_2025"]},
+          ]
+        }
+        ```
+      operationId: listIndexes
+      tags:
+        - Index
+      responses:
+        200:
+          description: A list of indexes.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  indexes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: "Name of the index"
+                          example: "movies"
+                        aliases:
+                          type: array
+                          items:
+                            type: string
+                            description: "An optional set of index aliases"
+                            example: "films"
+                  total:
+                    type: integer
+                    example: 1
+
+  /v1/index/{name}/search:
+    post:
+      summary: Search in an index
+      description: |-
+        Example request to match some documents:
+        ```shell
+        curl \
+          -XPOST http://localhost:8080/v1/index/movies/search 
+          -d '{
+                "query": {"match": {"title": "matrix"}}, 
+                "fields":["title", "_id"]
+              }'
+        ```
+        The response:
+        ```json
+        {
+          "hits": [
+            {
+              "_id": 1,
+              "title": "The Matrix",
+              "_score": 0.2
+            },
+            {
+              "_id": 2,
+              "title": "The Matrix Revolutions",
+              "_score": 0.1
+            }
+          ],
+          "took": {
+            "total": 0.010,
+            "search": 0.005
+          }
+        }
+        ```
+      operationId: search
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+      tags:
+        - Search
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        200:
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /v1/index/{name}/suggest:
+    post:
+      summary: Make autocomplete suggestions
+      description: |-
+        A field should be marked as 'suggest: true` to be suggestable. 
+        
+        Example request to get suggestions:
+        ```shell
+        curl \
+          -XPOST http://localhost:8080/v1/index/movies/suggest 
+          -d '{
+                "query": "mat", 
+                "fields":["title"]
+              }'
+        ```
+        The response:
+        ```json
+        {
+          "suggestions": [
+            {"text": "matrix", "score": 2.0},
+            {"text": "matsushita", "score": 1.0} 
+          ],
+          "took": 10
+        }
+        ```
+      operationId: suggest
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+      tags:
+        - Search
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestRequest'
+      responses:
+        200:
+          description: Suggest completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestResponse'
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /v1/index/{name}/stats:
+    get:
+      summary: Index stats
+      description: Get internal index stats
+      operationId: stats
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+      tags:
+        - Index
+      responses:
+        200:
+          description: OK - Index stats
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Internal index statistics JSON format. We do not guarantee backwards compatibility on this payload yet.
+        404:
+          $ref: '#/components/responses/NotFoundError'
+
+
+  /v1/index/{name}/flush:
+    post:
+      summary: Commit index changes
+      description: Commit all unsaved in-memory changes to the index to persistent store
+      operationId: flushIndex
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+      tags:
+        - Index
+      responses:
+        200:
+          description: Index flushed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /v1/index/{name}/merge:
+    post:
+      summary: Trigger index merge
+      operationId: mergeIndex
+      tags:
+        - Index
+        - System
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                segments:
+                  type: integer
+                  description: Target number of segments in the index
+                  example: 3
+                  default: 1
+      responses:
+        200:
+          description: Index merge operation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /v1/index/{name}:
+    get:
+      summary: Get index mapping
+      description: |-
+        Get active mapping of an index.
+        
+        Example request:
+        ```shell
+        curl -XGET http://localhost:8080/v1/index/movies/mapping
+        ```
+        
+        The response payload JSON schema maps to the YAML format of [index mapping in the Nixiesearch config file](/features/indexing/mapping).
+      operationId: mapping
+      tags:
+        - Index
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK - Index mapping in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+        404:
+          $ref: '#/components/responses/NotFoundError'
+    post:
+      summary: Index documents
+      description: Write one or more documents into the index.
+      operationId: indexDocs
+      tags:
+        - Ingest
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - type: object
+                  additionalProperties: true
+                - type: array
+                  items: {}
+      responses:
+        200:
+          description: A batch of documents was successfully written
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexResponse'
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /v1/index/{name}/delete:
+    post:
+      summary: Bulk delete
+      description: |-
+        Delete multiple documents using a filter.
+        
+        All documents matched by a filter include/exclude clauses are going to be deleted.
+        To do a dry run, it's suggested to test bulk delete queries over a `/search` endpoint.
+
+      operationId: bulkDelete
+      tags:
+        - Ingest
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  $ref: "#/components/schemas/Filters"
+      responses:
+        200:
+          description: some documents were successfully deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /v1/index/{name}/doc/{docid}:
+    delete:
+      summary: Delete document by id
+      description: Delete single document by a `_id` field value
+      operationId: deleteDoc
+      tags:
+        - Ingest
+      parameters:
+        - name: name
+          in: path
+          description: Name or alias of the index
+          required: true
+          schema:
+            type: string
+        - name: docid
+          in: path
+          description: Document id, the value of the _id field in the document.
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: A document was successfully deleted. As you're deleting a single document, the response `deleted` field will have 0 or 1.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        400:
+          $ref: '#/components/responses/UserError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+        500:
+          $ref: '#/components/responses/ServerError'
+  /v1/system/telemetry:
+    get:
+      summary: Get usage telemetry payload
+      description: Render a preview of an anonymous telemetry payload. See [Anonymous Usage Statistics](/help/usage_stats) for more details
+      operationId: telemetry
+      tags:
+        - System
+      responses:
+        200:
+          description: "OK: Nixiesearch telemetry payload in JSON format"
+          content:
+            application/json:
+              schema:
+                type: object
+                description: JSON payload with current telemetry payload
+
+  /v1/system/config:
+    get:
+      summary: Get active configuration
+      description: |-
+        Can be useful for debugging which active configuration the server has.
+        
+        Example request:
+        ```shell
+        curl -XGET http://localhost:8080/v1/system/config
+        ```
+        A response JSON payload has no explicit fixed schema (and we do not guarantee backwards compatibility),
+        but follows the YAML format of [Nixiesearch config file](/reference/config):
+        
+        ```js
+        {
+          "inference": {
+            "embedding": {
+              "text": {
+                "model": "nixiesearch/e5-small-v2-onnx",
+        // skipped             
+        ```
+      operationId: config
+      tags:
+        - System
+      responses:
+        200:
+          description: "OK: Nixiesearch configuration in JSON format"
+          content:
+            application/json:
+              schema:
+                type: object
+                description: JSON payload with current active configuration
+  /health:
+    get:
+      summary: Health check
+      description: |- 
+        A health check endpoint for k8s health probes. 
+        
+        Always returns `HTTP 200` if the server is available.
+        
+        The payload is always empty.
+      operationId: health
+      tags:
+        - System
+      responses:
+        200:
+          description: "System is in healthy state"
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      operationId: metrics
+      description: |-
+        [Prometheus](https://prometheus.io)-compatible metrics. See [metrics](/deployment/distributed/prometheus) doc page for more details.
+      tags:
+        - System
+      responses:
+        200:
+          description: Metrics snapshot
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "sdf"
+
+components:
+  schemas:
+    IndexResponse:
+      type: object
+      description: Indexing response
+      properties:
+        result:
+          type: string
+          description: A string with 'ok' on success
+          example: ok
+        docs:
+          type: integer
+          description: Number of documents inserted into the index.
+          example: 42
+        took:
+          type: number
+          description: Number of seconds request processing took.
+          example: 0.0001
+
+
+
+
+    SuggestRerankRRF:
+      type: object
+      description: Use RRF for suggestion mixing
+      properties:
+        rrf:
+          type: object
+          properties:
+            depth:
+              type: number
+              description: How many suggestion candidates to generate prior to reranking
+              default: 50
+            scale:
+              type: number
+              description: An RRF constant scaling factor, importance of top vs bottom candidate position on the final ranking
+              default: 60
+    SuggestRequest:
+      type: object
+      description: Suggest request
+      required: [query, fields]
+      example:
+        query: hell
+        fields: [title, categories]
+        count: 10
+      properties:
+        query:
+          type: string
+          description: A suggestion query
+        fields:
+          type: array
+          description: List of fields to use for suggestion generation
+          items:
+            type: string
+        count:
+          type: number
+          description: Number of suggestions to return
+          default: 10
+        rerank:
+          description: Ranking method
+          default:
+            rrf:
+              depth: 50
+              scale: 60
+          oneOf:
+            - $ref: '#/components/schemas/SuggestRerankRRF'
+
+
+    SuggestResponse:
+      type: object
+      description: Suggest response
+      example:
+        suggestions:
+          - text: hello
+            score: 2.0
+          - text: hello world
+            score: 1.0
+        took: 42
+      required: [suggestions, took]
+      properties:
+        suggestions:
+          type: array
+          description: List of suggestions
+          items:
+            type: object
+            required: [text, score]
+            properties:
+              text:
+                type: string
+                description: Generated suggestion
+                example: hello
+              score:
+                type: number
+                description: Suggestion score
+                example: 1.0
+        took:
+          type: number
+          description: Time in seconds server spent processing the request (including JSON parsing)
+
+    MatchAllQuery:
+      type: object
+      description: Match all documents
+      properties:
+        match_all:
+          type: object
+          properties: {}
+    MatchQuery:
+      type: object
+      description: Search in a specific field
+      properties:
+        match:
+          type: object
+          additionalProperties:
+            type: string
+            description: A key-value pair of field name and value.
+
+    Query:
+      description: |-
+        A Search query. 
+        
+        To search over a field, it should be marked as `search: true` in the 
+        [index mapping](/features/indexing/mapping/).
+        
+        Some examples for different query types:
+        ```js
+        // all documents
+        {"match_all": {}}
+        
+        // search specific field
+        {"match": {"title": "matrix"}}
+        
+        // search over many fields
+        {
+          "multi_match": {
+            "query": "matrix", 
+            "fields": ["title", "description"]
+          }
+        }
+        ```
+        See [Query DSL](/features/search/query/) for more details
+      default:
+        match_all: {}
+      oneOf:
+        - $ref: '#/components/schemas/MatchAllQuery'
+        - $ref: '#/components/schemas/MatchQuery'
+    TextNumSort:
+      type: object
+      description: Sort by a field with options
+      properties:
+        order:
+          type: string
+          enum: [asc, desc]
+        missing:
+          type: string
+          enum: [first, last]
+    DistanceSort:
+      type: object
+      description: Sort by distance
+      required: [lat, lon]
+      properties:
+        lat:
+          type: number
+          description: Latitude
+        lon:
+          type: number
+          description: Longitude
+    FieldName:
+      type: string
+      description: Default sort by field
+    FieldSortOptions:
+      type: object
+      description: Sort with params
+      additionalProperties:
+        oneOf:
+          - $ref: '#/components/schemas/TextNumSort'
+          - $ref: '#/components/schemas/DistanceSort'
+    Sort:
+      type: array
+      description: |-
+        Sort documents.
+        
+        Sortable fields should be marked as `search: true` in the 
+        [index mapping](/features/indexing/mapping/).
+        
+        Some examples for sorts:
+        ```js
+        // by field name, default params
+        ["price"]
+        
+        // with parameters
+        [
+          {
+            "price": {
+              "order": "desc", 
+              "missing": "last"
+            }
+          }
+        ]
+        ```
+        See [Sorting](/features/search/sort/) for more details
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/FieldName'
+          - $ref: '#/components/schemas/FieldSortOptions'
+
+    TermAggregation:
+      type: object
+      description: Term count aggregation
+      required: [field]
+      properties:
+        field:
+          type: string
+          description: Over which field should we aggregate
+          example: colors
+        size:
+          type: number
+          description: How many top-N aggregation results to keep
+          default: 10
+          example: 100
+
+    RangeAggregation:
+      type: object
+      description: Multiple range counters aggregation
+      required: [field, ranges]
+      properties:
+        field:
+          type: string
+          description: Over which field should we aggregate
+          example: price
+        ranges:
+          type: array
+          description: A list of range buckets
+          items:
+            $ref: '#/components/schemas/Range'
+
+    Aggs:
+      type: object
+      description: |-
+        Facet aggregations.
+        
+        To aggregate over a field, it should be marked as `facet: true` in the 
+        [index mapping](/features/indexing/mapping/).
+        
+        
+        Examples:
+        ```js
+        { // by term
+          "colors": {
+            {"term": {"field": "color"}}
+          }
+        }
+        
+        { // by range
+          "prices": {
+            {
+              "range": {
+                "field": "price",
+                "ranges": [
+                  {"lt": 10}, 
+                  {"gte": 10}
+                ]
+              }
+            }
+          }
+        }
+        
+        ```
+        See [Search facets](/features/search/facet/) page for more details.
+      default: {}
+      example:
+        top_colors:
+          term:
+            field: color
+        price_buckets:
+          range:
+            field: price
+            ranges:
+              - lt: 10
+              - gte: 10
+      additionalProperties:
+        oneOf:
+          - $ref: '#/components/schemas/TermAggregation'
+          - $ref: '#/components/schemas/RangeAggregation'
+
+    SearchRequest:
+      type: object
+      description: Search request
+      properties:
+        query:
+          $ref: '#/components/schemas/Query'
+        filters:
+          $ref: '#/components/schemas/Filters'
+        size:
+          type: integer
+          description: Number of documents to return in response.
+          default: 10
+        fields:
+          type: array
+          description: Field names to fetch for found documents. Wildcard field names are also supported here, like `name_*`
+          default: ["_id"]
+          items:
+            type: string
+        aggs:
+          $ref: '#/components/schemas/Aggs'
+        sort:
+          $ref: '#/components/schemas/Sort'
+
+
+    TookTime:
+      type: object
+      description: Detailed timing breakdown of search request processing in seconds. All fields are optional and only populated when relevant.
+      properties:
+        open:
+          type: number
+          description: Time spent opening/accessing the index
+          example: 0.001
+        total:
+          type: number
+          description: Total request processing time
+          example: 0.015
+        request:
+          type: number
+          description: Time spent compiling the query request
+          example: 0.002
+        search:
+          type: number
+          description: Time spent executing the Lucene search
+          example: 0.005
+        agg:
+          type: number
+          description: Time spent computing aggregations
+          example: 0.003
+        fetch:
+          type: number
+          description: Time spent fetching document fields
+          example: 0.002
+        rerank:
+          type: number
+          description: Time spent reranking results (for RRF/CE queries)
+          example: 0.002
+
+    SearchResponse:
+      type: object
+      description: Search response. A flat JSON with all requested documents fields and values.
+      additionalProperties: true
+      properties:
+        took:
+          $ref: '#/components/schemas/TookTime'
+        hits:
+          type: array
+          description: List of document fields.
+        ts:
+          type: number
+          description: Server timestamp
+          example: 1747921013000
+
+    GeoBoxFilter:
+      type: object
+      description: Filter by a bounding box
+      required: [field, top_left, bottom_right]
+      properties:
+        field:
+          type: string
+          description: Name of geopoint field in the document schema
+          example: "location"
+        top_left:
+          type: object
+          description: Coordinates of the top-left corner of the bounding box
+          required: [lat, lon]
+          properties:
+            lat:
+              type: number
+              description: Latitude of the top-left corner.
+              example: 50.1
+            lon:
+              type: number
+              description: Longitude of the top-left corner.
+              example: 50.1
+        bottom_right:
+          type: object
+          description: Coordinates of the bottom-right corner of the bounding box
+          required: [lat, lon]
+          properties:
+            lat:
+              type: number
+              description: Latitude of the bottom-right corner.
+              example: 50.1
+            lon:
+              type: number
+              description: Longitude of the bottom-right corner.
+              example: 50.1
+
+    GeoDistanceFilter:
+      type: object
+      description: Filter by distance from a specific point
+      required: [field, lat, lon, distance]
+      properties:
+        field:
+          type: string
+          description: Name of the geopoint-type field of the document to use for distance calculation
+          example: "location"
+        lat:
+          type: number
+          description: Latitude of the point from which the distance is computed
+          example: 81.1
+        lon:
+          type: number
+          description: Latitude of the point from which the distance is computed
+          example: 50.1
+        distance:
+          type: string
+          example: "1 km"
+          description: |-
+            Distance in a free-form units. See list of supported units in the [Distance filters](/features/search/filter/#distance-filters) doc.
+
+    BoolAndPredicate:
+      type: object
+      description: AND predicate. All conditions from the list of clauses must match for a document to be included/excluded.
+      properties:
+        and:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+
+    BoolOrPredicate:
+      type: object
+      description: OR predicate. At least one condition from the list of clauses must match for a document to be included/excluded.
+      properties:
+        or:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+
+    BoolNotPredicate:
+      type: object
+      description: OR predicate. At least one condition from the list of clauses must match for a document to be included/excluded.
+      properties:
+        not:
+          $ref: '#/components/schemas/Filter'
+
+
+    BoolFilter:
+      description: |-
+        A meta-filter joining multiple nested filters into a single one.
+      example:
+        and:
+          - term:
+              color: red
+          - term:
+              category: dress
+
+      oneOf:
+        - $ref: '#/components/schemas/BoolAndPredicate'
+        - $ref: '#/components/schemas/BoolOrPredicate'
+        - $ref: '#/components/schemas/BoolNotPredicate'
+    Range:
+      type: object
+      description: A numerical range. Can be left or right unbound.
+      example:
+        gte: 10
+        lte: 20
+      properties:
+        gt:
+          type: number
+          description: Greater Than bound, not inclusive.
+        gte:
+          type: number
+          description: Greater Than or Equals, inclusive.
+        lt:
+          type: number
+          description: Less Than bound, not inclusive.
+        lte:
+          type: number
+          description: Less Than or Equals, inclusive.
+    RangeFilter:
+      type: object
+      description: Filter over numerical ranges.
+      example:
+        range:
+          price:
+            gt: 10
+            lte: 20
+      properties:
+        range:
+          type: object
+          additionalProperties:
+            description: "Name of the numerical field to filter over"
+            $ref: '#/components/schemas/Range'
+    TermFilter:
+      type: object
+      description: Filter over filterable fields.
+      externalDocs:
+        description: sdf
+        url: /features/search/filter/
+      properties:
+        term:
+          type: object
+          additionalProperties:
+            description: "a key-value pair of field and it's value"
+            oneOf:
+              - type: string
+              - type: number
+              - type: boolean
+    Filter:
+      oneOf:
+        - $ref: '#/components/schemas/TermFilter'
+        - $ref: '#/components/schemas/RangeFilter'
+        - $ref: '#/components/schemas/GeoDistanceFilter'
+        - $ref: '#/components/schemas/GeoBoxFilter'
+        - $ref: '#/components/schemas/BoolFilter'
+
+    Filters:
+      type: object
+      description: |-
+        Include and exclude filters.
+        
+        To filter over a field, it should be marked as `filter: true` in the 
+        [index mapping](/features/indexing/mapping/).
+        
+        
+        Some examples:
+        ```js
+        { // single term
+          "include": {
+            "term": {"category": "top-seller"}
+          }
+        }
+        
+        { // ranges
+          "include": {
+            "range": {
+              "price": {"gt": 10, "lt": 20}
+            }
+          }
+        }
+        
+        { // booleans
+          "include": {
+            "and": [
+              {"term": {"color": "red"}},
+              {"term": {"color": "green"}},
+            ]
+          }
+        }
+        ```
+        
+        See [Filters](/features/search/filter/) page for more details
+      example:
+        include:
+          and:
+            - term:
+                category: top-seller
+            - term:
+                available: true
+        exclude:
+          range:
+            gt: 100
+      properties:
+        include:
+          $ref: '#/components/schemas/Filter'
+
+        exclude:
+          $ref: '#/components/schemas/Filter'
+
+    DeleteResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          description: A string with 'ok' on success
+          example: ok
+        deleted:
+          type: integer
+          description: Number of documents deleted from the index.
+          example: 42
+        took:
+          type: number
+          description: Number of seconds request processing took.
+
+    EmptyResponse:
+      type: object
+      description: Empty successful response. A default return type for successful actions with no extra details.
+      properties:
+        status:
+          type: string
+          description: "Request processing status"
+          example: "ok"
+        took:
+          type: number
+          description: "How many seconds the request processing took"
+          example: 42
+    Error:
+      type: object
+      required:
+        - error
+      example:
+        error: Your princess is in another castle
+      properties:
+        error:
+          type: string
+          description: "A full error message"
+          example: "Your princess is in another castle"
+        cause:
+          type: string
+          description: "An optional root cause of the main error"
+          example: null
+
+  responses:
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UserError:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServerError:
+      description: A server-side error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
