@@ -202,7 +202,7 @@ dockerNative := {
     // ================================
     // Stage 1: Builder - GraalVM Native Image
     // ================================
-    from(s"--platform=$PLATFORM ghcr.io/graalvm/native-image-community:25-muslib AS builder")
+    from(s"--platform=$PLATFORM container-registry.oracle.com/graalvm/native-image:25-muslib AS builder")
 
     // Set working directory
     workDir("/build")
@@ -214,25 +214,22 @@ dockerNative := {
     runRaw(
       List(
         "native-image",
-        "--enable-native-access=ALL-UNNAMED",
-        "-H:+SharedArenaSupport",
-        "-H:+ReportExceptionStackTraces",
-        "-H:+PrintClassInitialization",
-        "--no-fallback",
-        "--verbose",
         "-J-Xmx16g",
         "-O2",
-//        "-H:-ReduceImplicitExceptionStackTraceInformation",
+        "--gc=G1",
+        "--enable-native-access=ALL-UNNAMED",
+        "--no-fallback",
+        "--verbose",
         "--static",
         "--libc=musl",
         "--initialize-at-run-time=io.netty",
-//        "--initialize-at-run-time=io.netty.channel.ChannelHandlerMask,io.netty.channel.nio.AbstractNioChannel",
-//        "--trace-object-instantiation=ch.qos.logback.classic.Logger",
-//        "--initialize-at-run-time=ai.nixiesearch.util.logger.PrintLogger,io.netty.channel.nio.AbstractNioChannel,io.netty.buffer.AbstractByteBufAllocator,io.netty.util.ResourceLeakDetector,io.netty.util.internal.SystemPropertyUtil",
-//        "--trace-object-instantiation=ai.nixiesearch.util.logger.PrintLogger",
-        "-jar /build/nixiesearch.jar",
+        "-H:+SharedArenaSupport",
+        "-H:+ReportExceptionStackTraces",
+        "-H:+PrintClassInitialization",
         "-H:Name=/build/nixiesearch",
-        "-H:Class=ai.nixiesearch.main.Main"
+        "-H:Class=ai.nixiesearch.main.Main",
+        "-jar /build/nixiesearch.jar"
+        // "-H:-ReduceImplicitExceptionStackTraceInformation",
       ).mkString(" ")
     )
 
