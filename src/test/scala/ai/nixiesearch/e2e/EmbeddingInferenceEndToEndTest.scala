@@ -2,6 +2,7 @@ package ai.nixiesearch.e2e
 
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache.LocalModelFileCache
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.{Query, Raw}
 import ai.nixiesearch.core.nn.model.embedding.EmbedModelDict
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel
@@ -52,7 +53,7 @@ object EmbeddingInferenceEndToEndTest {
     val handle                     = HuggingFaceHandle(parts(0), parts(1))
     val config                     = OnnxEmbeddingInferenceModelConfig(model = handle, file = file)
     val (embedder, shutdownHandle) = OnnxEmbedModel
-      .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
+      .create(handle, config, LocalModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
     val result = embedder.encode(Raw, List(text)).compile.toList.unsafeRunSync()

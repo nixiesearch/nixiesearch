@@ -87,7 +87,9 @@ object OnnxRankModel {
       prompt: RankPromptConfig = RankPromptConfig(),
       logitsProcessor: LogitsProcessor = LogitsProcessor.Noop
   ) extends OnnxConfig
-      with RankInferenceModelConfig
+      with RankInferenceModelConfig {
+    override def isLocal: Boolean = false
+  }
 
   object OnnxRankInferenceModelConfig {
     def apply(model: ModelHandle): OnnxRankInferenceModelConfig = {

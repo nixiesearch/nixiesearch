@@ -24,7 +24,7 @@ object Models extends Logging {
       metrics: Metrics,
       env: EnvVars
   ): Resource[IO, Models] = for {
-    cache      <- Resource.eval(ModelFileCache.create(Paths.get(cacheConfig.dir)))
+    cache      <- Resource.eval(ModelFileCache.create(inferenceConfig, Paths.get(cacheConfig.dir)))
     embeddings <- EmbedModelDict.create(inferenceConfig.embedding, cache, metrics, env)
     generative <- GenerativeModelDict.create(inferenceConfig.completion, cache, metrics)
     ranker     <- RankModelDict.create(inferenceConfig.ranker, cache, metrics)

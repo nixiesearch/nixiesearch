@@ -5,6 +5,7 @@ import ai.nixiesearch.core.metrics.Metrics
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache.LocalModelFileCache
 import ai.nixiesearch.util.TestInferenceConfig
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
@@ -15,7 +16,7 @@ import fs2.Stream
 import java.nio.file.Paths
 
 class LlamacppGenerativeModelTest extends AnyFlatSpec with Matchers {
-  lazy val fileCache = ModelFileCache(Paths.get("/tmp/nixiesearch/"))
+  lazy val fileCache = LocalModelFileCache(Paths.get("/tmp/nixiesearch/"))
 
   it should "load, generate text, unload" in {
     val (cache, shutdownHandle) =
