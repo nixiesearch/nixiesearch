@@ -31,7 +31,7 @@ object MasterIndex extends Logging {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
       directory    <- LocalDirectory.fromRemote(conf.indexer, replicaState, configMapping.name, configMapping.config.directory)
       masterState  <- DirectoryStateClient.create(directory, configMapping.name)
-      manifest     <- Resource.eval(LocalIndex.readOrCreateManifest(masterState, configMapping))
+      manifest     <- Resource.eval(LocalIndex.readAndMigrateManifest(masterState, configMapping))
       seqnum       <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index        <- Resource.make(
         IO(

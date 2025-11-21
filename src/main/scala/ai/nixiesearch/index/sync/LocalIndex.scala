@@ -46,7 +46,7 @@ object LocalIndex extends Logging {
     for {
       directory <- LocalDirectory.fromLocal(config.local, configMapping.name, configMapping.config.directory)
       state     <- Resource.pure(DirectoryStateClient(directory, configMapping.name))
-      manifest  <- Resource.eval(readOrCreateManifest(state, configMapping))
+      manifest  <- Resource.eval(readAndMigrateManifest(state, configMapping))
       _         <- Resource.eval(info(s"Local index ${manifest.mapping.name.value} opened"))
       seqnum    <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
       index     <- Resource.pure(
@@ -63,20 +63,14 @@ object LocalIndex extends Logging {
     }
   }
 
-  def readOrCreateManifest(state: StateClient, configMapping: IndexMapping): IO[IndexManifest] = {
+  def readAndMigrateManifest(state: StateClient, configMapping: IndexMapping): IO[IndexManifest] = {
     state.readManifest().attempt.flatMap {
       case Left(e) =>
         error(s"cannot decode index.json for index ${configMapping.name.value}", e) *> IO.raiseError(e)
       case Right(None) =>
-        for {
-          _        <- info("index dir does not contain manifest, creating...")
-          manifest <- state.createManifest(configMapping, 0L)
-          _        <- state.write(
-            IndexManifest.MANIFEST_FILE_NAME,
-            Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(manifest.asJson.spaces2.getBytes())))
-          )
-        } yield {
-          manifest
+        IO {
+          logger.info("index dir does not contain manifest, creating empty one...")
+          IndexManifest(configMapping, Nil, 0L)
         }
       case Right(Some(oldManifest)) if oldManifest.mapping == configMapping =>
         for {
@@ -88,10 +82,6 @@ object LocalIndex extends Logging {
         for {
           mergedMapping <- indexManifest.mapping.migrate(configMapping)
           manifest      <- state.createManifest(mergedMapping, indexManifest.seqnum)
-          _             <- state.write(
-            IndexManifest.MANIFEST_FILE_NAME,
-            Stream.chunk(Chunk.byteBuffer(ByteBuffer.wrap(manifest.asJson.spaces2.getBytes())))
-          )
         } yield {
           manifest
         }

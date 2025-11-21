@@ -107,7 +107,9 @@ object CohereEmbedModel extends Logging {
       endpoint: String = DEFAULT_ENDPOINT,
       batchSize: Int = 32,
       cache: EmbedCacheConfig = MemoryCacheConfig()
-  ) extends EmbeddingInferenceModelConfig
+  ) extends EmbeddingInferenceModelConfig {
+    override def isLocal: Boolean = false
+  }
 
   given cohereEmbeddingConfigEncoder: Encoder[CohereEmbeddingInferenceModelConfig] = deriveEncoder
 

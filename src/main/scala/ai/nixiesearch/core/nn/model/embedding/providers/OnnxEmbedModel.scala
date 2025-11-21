@@ -134,7 +134,9 @@ object OnnxEmbedModel extends Logging {
       device: Device = Device.CPU(),
       override val paddingSide: Option[OnnxConfig.PaddingSide] = None
   ) extends EmbeddingInferenceModelConfig
-      with OnnxConfig
+      with OnnxConfig {
+    override def isLocal: Boolean = true
+  }
   object OnnxEmbeddingInferenceModelConfig {
 
     def apply(model: ModelHandle, device: Device) =

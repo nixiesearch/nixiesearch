@@ -5,6 +5,7 @@ import ai.nixiesearch.config.InferenceConfig.{CompletionInferenceModelConfig, Pr
 import ai.nixiesearch.core.nn.ModelHandle.HuggingFaceHandle
 import ai.nixiesearch.core.nn.ModelRef
 import ai.nixiesearch.core.nn.huggingface.ModelFileCache
+import ai.nixiesearch.core.nn.huggingface.ModelFileCache.LocalModelFileCache
 import ai.nixiesearch.core.nn.model.DistanceFunction.CosineDistance
 import ai.nixiesearch.core.nn.model.embedding.EmbedModel.TaskType.{Document, Query}
 import ai.nixiesearch.core.nn.model.embedding.providers.OnnxEmbedModel
@@ -22,7 +23,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val handle                     = HuggingFaceHandle("sentence-transformers", "all-MiniLM-L6-v2")
     val config                     = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
-      .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch/")))
+      .create(handle, config, LocalModelFileCache(Paths.get("/tmp/nixiesearch/")))
       .allocated
       .unsafeRunSync()
     val query = embedder.encode(Query, List("How many people live in Berlin?")).compile.toList.unsafeRunSync()
@@ -48,7 +49,7 @@ class OnnxBiEncoderTest extends AnyFlatSpec with Matchers {
     val handle                     = HuggingFaceHandle("intfloat", "multilingual-e5-base")
     val config                     = OnnxEmbeddingInferenceModelConfig(model = handle)
     val (embedder, shutdownHandle) = OnnxEmbedModel
-      .create(handle, config, ModelFileCache(Paths.get("/tmp/nixiesearch")))
+      .create(handle, config, LocalModelFileCache(Paths.get("/tmp/nixiesearch")))
       .allocated
       .unsafeRunSync()
     val result = embedder.encode(Query, List("test")).compile.toList.unsafeRunSync()

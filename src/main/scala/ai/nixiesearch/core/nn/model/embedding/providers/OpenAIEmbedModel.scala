@@ -76,7 +76,9 @@ object OpenAIEmbedModel extends Logging {
       dimensions: Option[Int] = None,
       batchSize: Int = 32,
       cache: EmbedCacheConfig = MemoryCacheConfig()
-  ) extends EmbeddingInferenceModelConfig
+  ) extends EmbeddingInferenceModelConfig {
+    override def isLocal: Boolean = false
+  }
 
   given openAIEmbeddingConfigEncoder: Encoder[OpenAIEmbeddingInferenceModelConfig] = deriveEncoder
 

@@ -39,7 +39,11 @@ case class InferenceConfig(
     embedding: Map[ModelRef, EmbeddingInferenceModelConfig] = Map.empty,
     completion: Map[ModelRef, CompletionInferenceModelConfig] = Map.empty,
     ranker: Map[ModelRef, RankInferenceModelConfig] = Map.empty
-)
+) {
+  def hasLocalModels: Boolean = {
+    embedding.values.exists(_.isLocal) || completion.values.exists(_.isLocal) || ranker.values.exists(_.isLocal)
+  }
+}
 
 object InferenceConfig {
   case class PromptConfig(doc: String = "", query: String = "")
@@ -118,6 +122,7 @@ object InferenceConfig {
 
   trait EmbeddingInferenceModelConfig {
     def cache: EmbedCacheConfig
+    def isLocal: Boolean
   }
 
   object EmbeddingInferenceModelConfig extends Logging {
@@ -154,7 +159,9 @@ object InferenceConfig {
 
   }
 
-  sealed trait CompletionInferenceModelConfig
+  sealed trait CompletionInferenceModelConfig {
+    def isLocal: Boolean
+  }
 
   object CompletionInferenceModelConfig {
     case class LlamacppInferenceModelConfig(
@@ -162,7 +169,9 @@ object InferenceConfig {
         system: Option[String] = None,
         file: Option[String] = None,
         options: LlamacppParams = LlamacppParams()
-    ) extends CompletionInferenceModelConfig
+    ) extends CompletionInferenceModelConfig {
+      override def isLocal: Boolean = true
+    }
 
     case class LlamacppParams(
         threads: Int = Runtime.getRuntime.availableProcessors(),
@@ -238,7 +247,9 @@ object InferenceConfig {
   }
   object RankPromptConfig extends Logging {
     val Qwen3Reranker = RankPromptConfig(
-      template = Some("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n<Instruct>: Given a web search query, retrieve relevant passages that answer the query\n<Query>: {query}\n<Document>: {document}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n")
+      template = Some(
+        "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n<Instruct>: Given a web search query, retrieve relevant passages that answer the query\n<Query>: {query}\n<Document>: {document}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+      )
     )
 
     def apply(model: ModelHandle): RankPromptConfig = {
@@ -263,6 +274,7 @@ object InferenceConfig {
 
   trait RankInferenceModelConfig {
     def model: ModelHandle
+    def isLocal: Boolean
   }
 
   given rankInferenceConfigEncoder: Encoder[RankInferenceModelConfig] = Encoder.instance {
