@@ -105,7 +105,7 @@ case class Indexer(index: Index, writer: IndexWriter, metrics: Metrics) extends 
       mapping: Option[S],
       buffer: DocumentGroup
   ): Unit = mapping match {
-    case None          => logger.warn(s"Field '${field.name}' is not defined in the index mapping for '${index.name.value}'.")
+    case None => logger.warn(s"Field '${field.name}' is not defined in the index mapping for '${index.name.value}'.")
     case Some(mapping) => mapping.codec.writeLucene(field, buffer)
   }
 

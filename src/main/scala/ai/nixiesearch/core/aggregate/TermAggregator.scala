@@ -10,7 +10,12 @@ import ai.nixiesearch.core.Field.{DateField, DateTimeField}
 import ai.nixiesearch.core.field.{DateFieldCodec, DateTimeFieldCodec}
 import cats.effect.IO
 import org.apache.lucene.index.IndexReader
-import org.apache.lucene.facet.{FacetsCollector, LongValueFacetCounts, StringDocValuesReaderState, StringValueFacetCounts}
+import org.apache.lucene.facet.{
+  FacetsCollector,
+  LongValueFacetCounts,
+  StringDocValuesReaderState,
+  StringValueFacetCounts
+}
 
 object TermAggregator {
   def aggregate(

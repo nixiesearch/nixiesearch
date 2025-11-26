@@ -33,7 +33,7 @@ class APIEmbedEndToEndTest extends AnyFlatSpec with Matchers {
 
 object APIEmbedEndToEndTest {
   def embed(provider: String, model: String, text: String): Array[Float] = {
-    val env = EnvVars.load().unsafeRunSync()
+    val env               = EnvVars.load().unsafeRunSync()
     val (embed, shutdown) = provider match {
       case "openai" =>
         OpenAIEmbedModel.create(OpenAIEmbeddingInferenceModelConfig(model = model), env).allocated.unsafeRunSync()

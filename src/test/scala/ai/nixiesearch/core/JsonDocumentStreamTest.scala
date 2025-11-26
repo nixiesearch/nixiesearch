@@ -27,7 +27,7 @@ class JsonDocumentStreamTest extends AnyFlatSpec with Matchers {
       StringName("text") -> TextFieldSchema(name = StringName("text"))
     )
   )
-  
+
   it should "decode raw json" in {
     val result = Stream(doc.getBytes()*).through(JsonDocumentStream.parse(mapping)).compile.toList.unsafeRunSync()
     result shouldBe List(expected)

@@ -10,7 +10,7 @@ import ai.nixiesearch.util.{CitiesDataset, SearchTest, TestIndexMapping}
 import org.scalatest.matchers.should.Matchers
 
 class DistanceSortTest extends SearchTest with Matchers {
-  val name    = StringName("field")
+  val name         = StringName("field")
   lazy val mapping = CitiesDataset.mapping
   lazy val docs    = CitiesDataset()
 

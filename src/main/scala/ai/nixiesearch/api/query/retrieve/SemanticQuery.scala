@@ -22,7 +22,9 @@ case class SemanticQuery(field: String, query: String, k: Option[Int] = None, nu
       fields: List[String]
   ): IO[Query] = for {
     schema <- IO
-      .fromOption(mapping.fieldSchema[TextLikeFieldSchema[?]](StringName(field)))(UserError(s"no mapping for field $field"))
+      .fromOption(mapping.fieldSchema[TextLikeFieldSchema[?]](StringName(field)))(
+        UserError(s"no mapping for field $field")
+      )
     semantic <- IO.fromOption(schema.search.semantic)(UserError(s"field $field search type is not semantic"))
     model    <- semantic match {
       case SearchParams.SemanticInferenceParams(model = model) => IO.pure(model)

@@ -77,7 +77,6 @@ object JsonDocumentStream extends Logging {
       .filter(_.nonEmpty)
       .parEvalMap(8)(str => decode(str)(using decoder))
 
-
   private def parseJSONArr(decoder: JsonValueCodec[List[Document]]): Pipe[IO, Byte, Document] = bytes =>
     bytes
       .through(fs2.text.utf8.decode)

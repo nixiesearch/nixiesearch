@@ -32,15 +32,16 @@ object FieldName {
 
   case class WildcardName(name: String, prefix: String, suffix: String) extends FieldName {
     override def matches(field: FieldName): Boolean = field match {
-      case StringName(xname)                   => xname.startsWith(prefix) && xname.endsWith(suffix)
-      case NestedName(xname, parent, child)    => xname.startsWith(prefix) && xname.endsWith(suffix)
+      case StringName(xname)                     => xname.startsWith(prefix) && xname.endsWith(suffix)
+      case NestedName(xname, parent, child)      => xname.startsWith(prefix) && xname.endsWith(suffix)
       case WildcardName(xname, xprefix, xsuffix) => (this.prefix == xprefix) && (this.suffix == xsuffix)
       case NestedWildcardName(xname, xparent, xchild, xprefix, xsuffix) =>
         xprefix.startsWith(this.prefix) && xsuffix.endsWith(this.suffix)
     }
   }
 
-  case class NestedWildcardName(name: String, parent: String, child: String, prefix: String, suffix: String) extends FieldName {
+  case class NestedWildcardName(name: String, parent: String, child: String, prefix: String, suffix: String)
+      extends FieldName {
     override def matches(field: FieldName): Boolean = field match {
       case StringName(xname) =>
         // Match against full pattern: prefix*suffix (where prefix includes parent)
@@ -75,9 +76,9 @@ object FieldName {
       } else {
         // Extract components: parent.childPrefix*childSuffix
         val parent = field.substring(0, dotPos)
-        val child = field.substring(dotPos + 1)
+        val child  = field.substring(dotPos + 1)
         val prefix = field.substring(0, placeholderPos)  // Full prefix including parent and dot
-        val suffix = field.substring(placeholderPos + 1)  // Part after *
+        val suffix = field.substring(placeholderPos + 1) // Part after *
         Right(NestedWildcardName(field, parent, child, prefix, suffix))
       }
     } else if ((placeholderPos == -1) && (dotPos == -1)) {

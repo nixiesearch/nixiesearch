@@ -30,7 +30,8 @@ class GeopointFieldJsonTest extends AnyFlatSpec with Matchers with FieldJsonTest
   }
 
   it should "fail on invalid field name" in {
-    val result = Try(decode(GeopointFieldSchema(StringName("point")), """{"point": {"lat": 40.7128, "salat": -74.0060}}"""))
+    val result =
+      Try(decode(GeopointFieldSchema(StringName("point")), """{"point": {"lat": 40.7128, "salat": -74.0060}}"""))
     result shouldBe a[Failure[?]]
   }
 

@@ -287,7 +287,7 @@ object CliConfig extends Logging {
         for {
           config   <- parse(parser.search.config)
           loglevel <- parseOption(parser.search.loglevel)
-          api     <- parseOption(parser.search.api)
+          api      <- parseOption(parser.search.api)
         } yield {
           SearchArgs(config, loglevel.getOrElse(INFO), api.getOrElse(ApiMode.Http))
         }

@@ -24,7 +24,7 @@ object DocumentDecoder {
         if (!in.isNextToken('}')) {
           in.rollbackToken()
           while ({
-            val fieldName = in.readKeyAsString()
+            val fieldName     = in.readKeyAsString()
             val fullFieldName = s"$prefix.$fieldName"
 
             // Try to find this nested field in the mapping
@@ -64,9 +64,9 @@ object DocumentDecoder {
     // Decode array of single-level nested objects by collecting values into repeated fields
     def decodeNestedArray(prefix: String, in: JsonReader): List[Field] = {
       val stringValues = mutable.Map[String, mutable.ArrayBuffer[String]]()
-      val intValues = mutable.Map[String, mutable.ArrayBuffer[Int]]()
-      val longValues = mutable.Map[String, mutable.ArrayBuffer[Long]]()
-      val floatValues = mutable.Map[String, mutable.ArrayBuffer[Float]]()
+      val intValues    = mutable.Map[String, mutable.ArrayBuffer[Int]]()
+      val longValues   = mutable.Map[String, mutable.ArrayBuffer[Long]]()
+      val floatValues  = mutable.Map[String, mutable.ArrayBuffer[Float]]()
       val doubleValues = mutable.Map[String, mutable.ArrayBuffer[Double]]()
 
       if (in.isNextToken('[')) {
@@ -82,7 +82,7 @@ object DocumentDecoder {
                   if (!in.isNextToken('}')) {
                     in.rollbackToken()
                     while ({
-                      val fieldName = in.readKeyAsString()
+                      val fieldName     = in.readKeyAsString()
                       val fullFieldName = s"$prefix.$fieldName"
 
                       // Read value based on next token

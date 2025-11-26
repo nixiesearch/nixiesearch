@@ -9,7 +9,13 @@ import cats.syntax.all.*
 
 import scala.util.{Failure, Success}
 import ai.nixiesearch.config.FieldSchema.*
-import ai.nixiesearch.config.mapping.FieldName.{StringName, WildcardName, NestedName, NestedWildcardName, fieldNameDecoder}
+import ai.nixiesearch.config.mapping.FieldName.{
+  StringName,
+  WildcardName,
+  NestedName,
+  NestedWildcardName,
+  fieldNameDecoder
+}
 import ai.nixiesearch.config.mapping.IndexMapping.Migration.*
 import ai.nixiesearch.config.mapping.IndexMapping.{Alias, Migration}
 import ai.nixiesearch.core.nn.ModelHandle
@@ -38,8 +44,9 @@ case class IndexMapping(
     (name, schema)
   }
 
-  lazy val nestedFields: Map[String, FieldSchema[? <: Field]] = fields.collect { case (NestedName(name, _, _), schema) =>
-    (name, schema)
+  lazy val nestedFields: Map[String, FieldSchema[? <: Field]] = fields.collect {
+    case (NestedName(name, _, _), schema) =>
+      (name, schema)
   }
 
   lazy val wildcardFields = fields.collect { case (_: WildcardName, schema) =>
@@ -68,13 +75,15 @@ case class IndexMapping(
         case Some(schema: S) => Some(schema)
         case Some(_)         => None
         case None            =>
-          wildcardFields.collectFirst {
-            case schema: S if schema.name.matches(f) => schema
-          }.orElse(
-            nestedWildcardFields.collectFirst {
+          wildcardFields
+            .collectFirst {
               case schema: S if schema.name.matches(f) => schema
             }
-          )
+            .orElse(
+              nestedWildcardFields.collectFirst {
+                case schema: S if schema.name.matches(f) => schema
+              }
+            )
       }
 
     case f @ WildcardName(name, prefix, suffix) =>
@@ -187,7 +196,9 @@ object IndexMapping extends Logging {
         val extendedFields = fieldsMap.get(id) match {
           case Some(idMapping) =>
             logger.warn("The _id field is an internal field and its mapping cannot be changed.")
-            logger.warn("The _id field mapping is ignored. Default mapping: search=false, facet=false, sort=false, filter=true.")
+            logger.warn(
+              "The _id field mapping is ignored. Default mapping: search=false, facet=false, sort=false, filter=true."
+            )
             fieldsMap.updated(id, IdFieldSchema(id))
           case None =>
             fieldsMap.updated(id, IdFieldSchema(id))
@@ -213,7 +224,7 @@ object IndexMapping extends Logging {
 
     def checkWildcardOverrides(fields: List[FieldSchema[? <: Field]]): List[(FieldName, FieldName)] = {
       val fieldNames = fields.map(_.name)
-      val result = scala.collection.mutable.ListBuffer[(FieldName, FieldName)]()
+      val result     = scala.collection.mutable.ListBuffer[(FieldName, FieldName)]()
 
       // Check WildcardName overrides
       for {

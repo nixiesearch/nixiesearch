@@ -9,7 +9,13 @@ import ai.nixiesearch.core.{Document, Field, Logging}
 import ai.nixiesearch.core.Field.*
 import ai.nixiesearch.core.field.{DateFieldCodec, DateTimeFieldCodec}
 import ai.nixiesearch.core.nn.ModelRef
-import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel.{ModelMetadata, Token, TokenizeRequest, TokenizeResponse, tokenCodec}
+import ai.nixiesearch.core.nn.model.generative.GenerativeModel.LlamacppGenerativeModel.{
+  ModelMetadata,
+  Token,
+  TokenizeRequest,
+  TokenizeResponse,
+  tokenCodec
+}
 import ai.nixiesearch.llamacppserver.LlamacppServer
 import ai.nixiesearch.llamacppserver.LlamacppServer.LLAMACPP_BACKEND
 import cats.effect.IO

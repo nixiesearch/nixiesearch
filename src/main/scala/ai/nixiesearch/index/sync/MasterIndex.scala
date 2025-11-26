@@ -29,11 +29,16 @@ object MasterIndex extends Logging {
   ): Resource[IO, MasterIndex] =
     for {
       replicaState <- StateClient.createRemote(conf.remote, configMapping.name)
-      directory    <- LocalDirectory.fromRemote(conf.indexer, replicaState, configMapping.name, configMapping.config.directory)
-      masterState  <- DirectoryStateClient.create(directory, configMapping.name)
-      manifest     <- Resource.eval(LocalIndex.readAndMigrateManifest(masterState, configMapping))
-      seqnum       <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
-      index        <- Resource.make(
+      directory    <- LocalDirectory.fromRemote(
+        conf.indexer,
+        replicaState,
+        configMapping.name,
+        configMapping.config.directory
+      )
+      masterState <- DirectoryStateClient.create(directory, configMapping.name)
+      manifest    <- Resource.eval(LocalIndex.readAndMigrateManifest(masterState, configMapping))
+      seqnum      <- Resource.eval(Ref.of[IO, Long](manifest.seqnum))
+      index       <- Resource.make(
         IO(
           MasterIndex(
             mapping = manifest.mapping,
