@@ -13,5 +13,5 @@ object Deps {
   lazy val djlVersion         = "0.35.0"
   lazy val llamacppVersion    = "0.0.4-b5604"
   lazy val prometheusVersion  = "1.4.3"
-  lazy val jsoniterVersion    = "2.38.4"
+  lazy val jsoniterVersion    = "2.38.5"
 }
