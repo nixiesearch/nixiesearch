@@ -24,7 +24,8 @@ class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
   lazy val mapping = conf.schema(IndexName.unsafe("movies"))
 
   it should "write index to s3" taggedAs (EndToEnd.Index) in {
-    val (models, modelsShutdown)   = Models.create(conf.inference, CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
+    val (models, modelsShutdown) =
+      Models.create(conf.inference, CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val (master, masterShutdown)   = Index.forIndexing(mapping, models).allocated.unsafeRunSync()
     val (indexer, indexerShutdown) = Indexer.open(master, Metrics()).allocated.unsafeRunSync()
     val docs = DatasetLoader.fromFile(s"$pwd/src/test/resources/datasets/movies/movies.jsonl.gz", mapping)
@@ -37,7 +38,8 @@ class RemoteIndexSearchEndToEndTest extends AnyFlatSpec with Matchers {
   }
 
   it should "search from s3" taggedAs (EndToEnd.Index) in {
-    val (models, modelsShutdown)     = Models.create(conf.inference, CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
+    val (models, modelsShutdown) =
+      Models.create(conf.inference, CacheConfig(), Metrics(), EnvVars()).allocated.unsafeRunSync()
     val (slave, slaveShutdown)       = Index.forSearch(mapping, models).allocated.unsafeRunSync()
     val (searcher, searcherShutdown) = Searcher.open(slave, Metrics()).allocated.unsafeRunSync()
     val response                     = searcher.search(SearchRequest(query = MatchAllQuery())).unsafeRunSync()

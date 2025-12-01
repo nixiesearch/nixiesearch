@@ -33,7 +33,6 @@ trait FieldCodec[T <: Field] extends Logging {
       case Success(value)     => Right(value)
     }
 
-  
 }
 
 object FieldCodec {

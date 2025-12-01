@@ -67,9 +67,14 @@ object SlaveIndex extends Logging {
       models: Models
   ): Resource[IO, SlaveIndex] =
     for {
-      _              <- Resource.eval(debug(s"creating SlaveIndex for index=${configMapping.name} conf=$conf"))
-      masterState    <- StateClient.createRemote(conf.remote, configMapping.name)
-      directory      <- LocalDirectory.fromRemote(conf.indexer, masterState, configMapping.name, configMapping.config.directory)
+      _           <- Resource.eval(debug(s"creating SlaveIndex for index=${configMapping.name} conf=$conf"))
+      masterState <- StateClient.createRemote(conf.remote, configMapping.name)
+      directory   <- LocalDirectory.fromRemote(
+        conf.indexer,
+        masterState,
+        configMapping.name,
+        configMapping.config.directory
+      )
       replicaState   <- DirectoryStateClient.create(directory, configMapping.name)
       manifestOption <- Resource.eval(replicaState.readManifest())
       manifest <- Resource.eval(IO.fromOption(manifestOption)(BackendError("index.json file not found in the index")))

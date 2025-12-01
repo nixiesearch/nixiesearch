@@ -117,14 +117,14 @@ object OnnxSession extends Logging {
       onnxConfig: OnnxConfig,
       modelConfig: TransformersConfig
   ) = {
-    val startTime      = System.currentTimeMillis()
-    val tokenizerOpts  = Map(
-      "padding" -> "true",
-      "truncation" -> "true",
+    val startTime     = System.currentTimeMillis()
+    val tokenizerOpts = Map(
+      "padding"        -> "true",
+      "truncation"     -> "true",
       "modelMaxLength" -> onnxConfig.maxTokens.toString
     ) ++ onnxConfig.paddingSide.map(ps => "paddingSide" -> ps.value).toMap
 
-    val tokenizer = HuggingFaceTokenizer.newInstance(dic, tokenizerOpts.asJava)
+    val tokenizer           = HuggingFaceTokenizer.newInstance(dic, tokenizerOpts.asJava)
     val tokenizerFinishTime = System.currentTimeMillis()
     val env                 = OrtEnvironment.getEnvironment("nixiesearch")
     val opts                = new SessionOptions()

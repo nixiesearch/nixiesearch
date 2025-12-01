@@ -17,8 +17,8 @@ import java.nio.file.Paths
 class RankingInferenceEndToEndTest extends AnyFlatSpec with Matchers {
   val models = Table(
     "model",
-    //"cross-encoder/ms-marco-MiniLM-L6-v2",
-    //"jinaai/jina-reranker-v2-base-multilingual",
+    // "cross-encoder/ms-marco-MiniLM-L6-v2",
+    // "jinaai/jina-reranker-v2-base-multilingual",
     "zhiqing/Qwen3-Reranker-0.6B-seq-cls-ONNX"
   )
 

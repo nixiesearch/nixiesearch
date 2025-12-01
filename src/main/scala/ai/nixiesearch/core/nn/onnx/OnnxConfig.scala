@@ -15,7 +15,7 @@ trait OnnxConfig {
 
 object OnnxConfig {
   enum PaddingSide(val value: String) {
-    case Left extends PaddingSide("left")
+    case Left  extends PaddingSide("left")
     case Right extends PaddingSide("right")
   }
 

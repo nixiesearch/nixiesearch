@@ -79,7 +79,7 @@ case class S3Client(client: S3AsyncClient) extends Logging {
         fs2.io
           .readInputStream[IO](IO(new FileInputStream(path.toNioPath.toFile)), 1024 * 1024)
           .mapChunks(c => c)
-          //.onComplete(Stream.evalSeq(Files[IO].delete(path).map(x => Nil)))
+        // .onComplete(Stream.evalSeq(Files[IO].delete(path).map(x => Nil)))
       )
   }
 
