@@ -1,0 +1,18 @@
+Name,Type,Cardinality,Help
+nixiesearch_search_active_queries,gauge,n_index,The number of currently active queries
+nixiesearch_index_docs,gauge,n_index,Count of documents in this index
+nixiesearch_index_flush_total,counter,n_index,Total flushes
+nixiesearch_index_flush_time_seconds,gauge,n_index,Cumulative flush time in seconds
+nixiesearch_search_query_total,counter,n_index,Total number of search queries
+nixiesearch_search_query_time_seconds,gauge,2*n_index,Total search query time in seconds
+nixiesearch_suggest_query_total,counter,n_index,Total number of suggest queries
+nixiesearch_suggest_query_time_seconds,gauge,2*n_index,Total suggest query time in seconds
+nixiesearch_rag_query_total,counter,n_index,Total number of RAG queries
+nixiesearch_rag_query_time_seconds,gauge,n_index,Total RAG query time in seconds
+nixiesearch_inference_embedding_request_total,counter,n_models,Total number of embedding queries
+nixiesearch_inference_embedding_request_time_seconds,gauge,n_models,Total embedding time in seconds
+nixiesearch_inference_embedding_doc_total,counter,n_models,Total number of embedding queries
+nixiesearch_inference_completion_request_total,counter,n_models,Total number of completion queries
+nixiesearch_inference_completion_request_time_seconds,counter,n_models,Total completion time in seconds
+nixiesearch_inference_completion_generated_tokens_total,counter,n_models,Total generated tokens
+

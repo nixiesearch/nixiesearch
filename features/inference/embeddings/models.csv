@@ -1,0 +1,37 @@
+Name,Size,Seqlen,Dimensions,Prompt,Pooling
+[sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2),22M,512,384,not needed,mean
+[sentence-transformers/all-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2),33M,512,384,not needed,mean
+[sentence-transformers/all-mpnet-base-v2](https://huggingface.co/sentence-transformers/all-mpnet-base-v2),109M,384,384,not needed,mean
+[intfloat/e5-small](https://huggingface.co/intfloat/e5-small),33M,512,384,query+doc,mean
+[intfloat/e5-base](https://huggingface.co/intfloat/e5-base),109M,512,768,query+doc,mean
+[intfloat/e5-large](https://huggingface.co/intfloat/e5-large),335M,512,1024,query+doc,mean
+[intfloat/e5-small-v2](https://huggingface.co/intfloat/e5-small-v2),33M,512,384,query+doc,mean
+[intfloat/e5-base-v2](https://huggingface.co/intfloat/e5-base-v2),109M,512,768,query+doc,mean
+[intfloat/e5-large-v2](https://huggingface.co/intfloat/e5-large-v2),335M,512,1024,query+doc,mean
+[intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small),118M,512,384,auto,mean
+[intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small),278M,512,768,auto,mean
+[intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small),560M,512,1024,auto,mean
+[Alibaba-NLP/gte-base-en-v1.5](https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5),137M,8192,768,not needed,CLS
+[Alibaba-NLP/gte-large-en-v1.5](https://huggingface.co/Alibaba-NLP/gte-large-en-v1.5),434M,8192,1024,not needed,CLS
+[Alibaba-NLP/gte-modernbert-base](https://huggingface.co/Alibaba-NLP/gte-modernbert-base),149M,8192,768,not needed,CLS
+[Snowflake/snowflake-arctic-embed-s](https://huggingface.co/Snowflake/snowflake-arctic-embed-s),33M,512,384,query,CLS
+[Snowflake/snowflake-arctic-embed-xs](https://huggingface.co/Snowflake/snowflake-arctic-embed-xs),22M,512,384,query,CLS
+[Snowflake/snowflake-arctic-embed-m](https://huggingface.co/Snowflake/snowflake-arctic-embed-m),109M,512,768,query,CLS
+[Snowflake/snowflake-arctic-embed-m-v1.5](https://huggingface.co/Snowflake/snowflake-arctic-embed-m-v1.5),109M,512,768,query,CLS
+[Snowflake/snowflake-arctic-embed-m-v2.0](https://huggingface.co/Snowflake/snowflake-arctic-embed-m-v2.0),109M,512,768,query,CLS
+[Snowflake/snowflake-arctic-embed-l](https://huggingface.co/Snowflake/snowflake-arctic-embed-l),109M,512,1024,query,CLS
+[Snowflake/snowflake-arctic-embed-l-v2.0](https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0),109M,512,1024,query,CLS
+[BAAI/bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5),33M,512,384,query,mean
+[BAAI/bge-base-en-v1.5](https://huggingface.co/BAAI/bge-base-en-v1.5),109M,512,768,query,mean
+[BAAI/bge-large-en-v1.5](https://huggingface.co/BAAI/bge-large-en-v1.5),33M,512,1024,query,mean
+[BAAI/bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5),33M,512,384,query,mean
+[BAAI/bge-base-zh-v1.5](https://huggingface.co/BAAI/bge-base-zh-v1.5),109M,512,768,query,mean
+[BAAI/bge-large-zh-v1.5](https://huggingface.co/BAAI/bge-large-zh-v1.5),33M,512,1024,query,mean
+[BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3),560M,8192,1024,not needed,mean
+[WhereIsAI/UAE-Large-V1](https://huggingface.co/WhereIsAI/UAE-Large-V1),335M,512,1024,query,mean
+[mixedbread-ai/mxbai-embed-large-v1](https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1),335M,512,1024,query,CLS
+[jinaai/jina-embeddings-v3](https://huggingface.co/jinaai/jina-embeddings-v3),572M,8192,1024,query+doc,mean
+[NovaSearch/stella_en_400M_v5](https://huggingface.co/NovaSearch/stella_en_400M_v5),435B,4096,8192,query,mean
+[Qwen/Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B),600M,8192,1024,query,last
+[Qwen/Qwen3-Embedding-4B](https://huggingface.co/Qwen/Qwen3-Embedding-4B),4B,8192,1024,query,last
+[Qwen/Qwen3-Embedding-8B](https://huggingface.co/Qwen/Qwen3-Embedding-8B),8B,8192,1024,query,last
