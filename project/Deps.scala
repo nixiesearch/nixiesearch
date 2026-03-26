@@ -2,7 +2,7 @@ import sbt.*
 
 object Deps {
   lazy val http4sVersion      = "1.0.0-M46"
-  lazy val scalatestVersion   = "3.2.19"
+  lazy val scalatestVersion   = "3.2.20"
   lazy val circeVersion       = "0.14.15"
   lazy val circeYamlVersion   = "0.16.1"
   lazy val fs2Version         = "3.12.2"
