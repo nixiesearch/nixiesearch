@@ -8,7 +8,7 @@ object Deps {
   lazy val fs2Version         = "3.12.2"
   lazy val fs2CompressVersion = "2.3.2"
   lazy val awsVersion         = "2.40.7"
-  lazy val luceneVersion      = "10.3.2"
+  lazy val luceneVersion      = "10.6.0"
   lazy val onnxRuntimeVersion = "1.23.2"
   lazy val djlVersion         = "0.35.1"
   lazy val llamacppVersion    = "0.0.4-b5604"
