@@ -48,7 +48,7 @@ libraryDependencies ++= Seq(
   "org.apache.commons"    % "commons-lang3"              % "3.20.0",
   "ai.djl"                % "api"                        % djlVersion,
   "ai.djl.huggingface"    % "tokenizers"                 % djlVersion,
-  "com.github.luben"      % "zstd-jni"                   % "1.5.7-6",
+  "com.github.luben"      % "zstd-jni"                   % "1.5.7-26",
   "com.github.blemale"   %% "scaffeine"                  % "5.3.0",
   "com.hubspot.jinjava"   % "jinjava"                    % "2.8.2" excludeAll (
     ExclusionRule(organization = "com.google.code.findbugs", name = "annotations"),
